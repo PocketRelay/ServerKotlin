@@ -14,5 +14,5 @@ fun ByteBuf.readPacket(): Packet {
     val contentLength = length + (extLength shl 16)
     val content = ByteArray(contentLength)
     readBytes(content)
-    return Packet(length, component, command, error, qtype, id, content)
+    return Packet(component, command, error, qtype, id, content)
 }
