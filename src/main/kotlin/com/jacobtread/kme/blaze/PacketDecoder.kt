@@ -1,5 +1,6 @@
 package com.jacobtread.kme.blaze
 
+import com.jacobtread.kme.utils.readPacket
 import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.ByteToMessageDecoder
@@ -9,9 +10,7 @@ class PacketDecoder : ByteToMessageDecoder() {
         println("Readable: ${input.readableBytes()}")
         println("Byte Order: ${input.order()}")
         while (input.readableBytes() > 0) {
-
-            val packet = readRawPacket(input)
-            out.add(packet)
+            out.add(input.readPacket())
         }
     }
 }
