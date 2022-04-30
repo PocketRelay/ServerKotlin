@@ -20,50 +20,6 @@ import java.util.*
 
 
 fun main() {
-    Security.setProperty("jdk.tls.disabledAlgorithms", "");
-
-    val privateKey = readPrivateKey()
-    val certificate = readCertificate()
-
-    val context = SslContextBuilder.forServer(privateKey, certificate)
-        .ciphers(listOf("TLS_RSA_WITH_RC4_128_MD5", "TLS_RSA_WITH_RC4_128_SHA"))
-        .protocols("SSLv3")
-        .build()
-
-    val bossGroup = NioEventLoopGroup()
-    val workerGroup = NioEventLoopGroup()
-    try {
-        val b = ServerBootstrap()
-        val f = b.group(bossGroup, workerGroup)
-            .channel(NioServerSocketChannel::class.java)
-            .handler(LoggingHandler(LogLevel.INFO))
-            .childHandler(object : ChannelInitializer<Channel>() {
-                override fun initChannel(ch: Channel) {
-                   println("New channel started ${ch.remoteAddress()}")
-                    ch.pipeline()
-                        .addLast(context.newHandler(ch.alloc()))
-                }
-            })
-            .bind(42127).sync()
-        f.channel().closeFuture().sync()
-
-
-
-    } catch (e: Exception) {
-        e.printStackTrace()
-    } finally {
-        workerGroup.shutdownGracefully()
-        bossGroup.shutdownGracefully()
-    }
-    while (true) {
-
-    }
+   RedirectorServer.create()
 }
 
-class ServerHandler : ChannelInboundHandlerAdapter() {
-
-    override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-        super.channelRead(ctx, msg)
-    }
-
-}

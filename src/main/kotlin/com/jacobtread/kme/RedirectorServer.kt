@@ -5,8 +5,10 @@ import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.*
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
+import io.netty.handler.ssl.SslHandshakeCompletionEvent
+import io.netty.util.concurrent.GenericFutureListener
 
-class RedirectorServer : SimpleChannelInboundHandler<>() {
+class RedirectorServer : ChannelInboundHandlerAdapter() {
 
     companion object {
         private const val DEFAULT_HOST = "127.0.0.1"
@@ -14,28 +16,30 @@ class RedirectorServer : SimpleChannelInboundHandler<>() {
 
         fun create(host: String = DEFAULT_HOST, port: Int = DEFAULT_PORT) {
             val context = createContext()
-
-            // TODO: Platform specific event loop groups?
-
             val bossGroup = NioEventLoopGroup()
             val workerGroup = NioEventLoopGroup()
-
+            val redirect = RedirectorServer()
             val bootstrap = ServerBootstrap()
             bootstrap.group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel::class.java)
                 .childHandler(object : ChannelInitializer<Channel>() {
                     override fun initChannel(ch: Channel) {
+                        val handler = context.newHandler(ch.alloc());
                         ch.pipeline()
-                            .addLast(context.newHandler(ch.alloc()))
+                            .addLast(handler)
+                            .addLast(redirect)
                     }
                 })
+                .bind(host, port)
+                .sync()
+                .channel()
+                .closeFuture().sync()
 
         }
     }
 
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
         super.channelRead(ctx, msg)
+        println(msg)
     }
-
-
 }
