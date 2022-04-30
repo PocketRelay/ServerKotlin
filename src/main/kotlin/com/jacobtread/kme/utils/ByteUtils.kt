@@ -1,5 +1,6 @@
 package com.jacobtread.kme.utils
 
+import io.netty.buffer.ByteBuf
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
