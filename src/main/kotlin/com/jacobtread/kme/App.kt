@@ -60,31 +60,6 @@ fun main() {
     }
 }
 
-
-fun readPrivateKey(): PrivateKey {
-    val contents = ServerHandler::class.java.getResourceAsStream("/key.pem")
-        ?: throw IllegalStateException("Missing key file")
-    val text = String(contents.readAllBytes())
-        .replace("-----BEGIN PRIVATE KEY-----", "")
-        .replace("\n", "")
-        .replace("-----END PRIVATE KEY-----", "")
-        .trim()
-    contents.close()
-    val encoded = Base64.getDecoder().decode(text)
-    val keyFactory = KeyFactory.getInstance("RSA")
-    val keySpec = PKCS8EncodedKeySpec(encoded)
-    return keyFactory.generatePrivate(keySpec)
-}
-
-fun readCertificate(): X509Certificate {
-    val contents = ServerHandler::class.java.getResourceAsStream("/cert.pem")
-        ?: throw IllegalStateException("Missing key file")
-    val factory: CertificateFactory = CertificateFactory.getInstance("X.509")
-    val cert = factory.generateCertificate(contents)
-    contents.close()
-    return cert as X509Certificate
-}
-
 class ServerHandler : ChannelInboundHandlerAdapter() {
 
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
