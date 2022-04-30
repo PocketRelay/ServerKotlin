@@ -1,5 +1,7 @@
 package com.jacobtread.kme
 
+import com.jacobtread.kme.blaze.PacketDecoder
+import com.jacobtread.kme.blaze.RawPacket
 import com.jacobtread.kme.utils.createContext
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.*
@@ -8,7 +10,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.ssl.SslHandshakeCompletionEvent
 import io.netty.util.concurrent.GenericFutureListener
 
-class RedirectorServer : ChannelInboundHandlerAdapter() {
+class RedirectorServer : SimpleChannelInboundHandler<RawPacket>() {
 
     companion object {
         private const val DEFAULT_HOST = "127.0.0.1"
@@ -27,6 +29,7 @@ class RedirectorServer : ChannelInboundHandlerAdapter() {
                         val handler = context.newHandler(ch.alloc());
                         ch.pipeline()
                             .addLast(handler)
+                            .addLast(PacketDecoder())
                             .addLast(redirect)
                     }
                 })
@@ -38,8 +41,7 @@ class RedirectorServer : ChannelInboundHandlerAdapter() {
         }
     }
 
-    override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-        super.channelRead(ctx, msg)
+    override fun channelRead0(ctx: ChannelHandlerContext?, msg: RawPacket?) {
         println(msg)
     }
 }
