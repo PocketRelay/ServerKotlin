@@ -3,7 +3,7 @@ package com.jacobtread.kme.blaze
 import io.netty.buffer.Unpooled
 
 
-class InPacket(
+class RawPacket(
     val rawComponent: Int,
     val rawCommand: Int,
     val error: Int,

@@ -1,9 +1,9 @@
 package com.jacobtread.kme.utils
 
-import com.jacobtread.kme.blaze.InPacket
+import com.jacobtread.kme.blaze.RawPacket
 import io.netty.buffer.ByteBuf
 
-fun ByteBuf.readPacket(): InPacket {
+fun ByteBuf.readPacket(): RawPacket {
     val length = readUnsignedShort();
     val component = readUnsignedShort()
     val command = readUnsignedShort()
@@ -14,7 +14,7 @@ fun ByteBuf.readPacket(): InPacket {
     val contentLength = length + (extLength shl 16)
     val content = ByteArray(contentLength)
     readBytes(content)
-    return InPacket(component, command, error, qtype, id, content)
+    return RawPacket(component, command, error, qtype, id, content)
 }
 
 fun ByteBuf.writeVarInt(value: Long) {

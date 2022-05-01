@@ -2,6 +2,7 @@ package com.jacobtread.kme
 
 import com.jacobtread.kme.logging.Level
 import com.jacobtread.kme.logging.Logger
+import com.jacobtread.kme.servers.startRedirector
 import net.mamoe.yamlkt.Yaml
 import java.nio.file.Paths
 import kotlin.io.path.exists
@@ -11,10 +12,11 @@ import kotlin.io.path.writeText
 val LOGGER = Logger.get()
 
 fun main() {
+    Thread.currentThread().name = "Main"
+
     val rootPath = Paths.get(".")
 
     LOGGER.info("Starting ME3 Server")
-    LOGGER.info("Loading Configuration")
     val configFile = rootPath.resolve("config.yml")
     val config: Config
 
@@ -32,8 +34,15 @@ fun main() {
             LOGGER.error("Failed to write newly created config file", e)
         }
     }
-    LOGGER.info(config.toString())
     Logger.setLogLevel(Level.fromName(config.logLevel))
-    RedirectorHandler.start(config)
+
+    startRedirector(config)
+
+    val input = System.`in`
+    val inputReader = input.bufferedReader()
+    while (true) {
+        val input = inputReader.readLine()
+        LOGGER.info("Unknown command: $input")
+    }
 }
 

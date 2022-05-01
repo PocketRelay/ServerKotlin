@@ -1,8 +1,0 @@
-[00:43:25] [main/INFO] Starting ME3 Server
-[00:43:25] [main/INFO] Loading Configuration
-[00:43:26] [main/INFO] Loaded Configuration from: .\config.yml
-[00:43:26] [main/INFO] Config(host=127.0.0.1, logLevel=INFO, redirectorServer=RedirectorServer(port=42127), redirectorPacket=RedirectorPacket(addr=0, host=383933-gosprapp396.ea.com, ip=127.0.0.1, port=14219, secu=0, xdns=0))
-[00:43:26] [main/INFO] Creating redirector server at 127.0.0.1:42127
-[00:43:41] [nioEventLoopGroup-3-1/INFO] Sending redirection to client -> /127.0.0.1:62515
-[00:43:41] [nioEventLoopGroup-3-1/INFO] Created packet
-[00:43:41] [nioEventLoopGroup-3-1/INFO] Terminating finished redirect
