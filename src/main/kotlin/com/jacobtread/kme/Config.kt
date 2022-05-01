@@ -14,12 +14,26 @@ data class Config(
     val logLevel: String = "INFO",
 
     @Comment("Ports for the different servers")
-    @SerialName("ports")
     val ports: Ports = Ports(),
     @Comment("Settings for the redirect packet")
     @SerialName("redirector_packet")
     val redirectorPacket: RedirectorPacket = RedirectorPacket(),
+
+    @Comment("Database connection info")
+    val database: Database = Database()
 ) {
+
+    @Serializable
+    data class Database(
+        @Comment("The database host address")
+        val host: String = "127.0.0.1",
+        @Comment("The database port")
+        val port: String = "3306",
+        @Comment("The database account username")
+        val user: String = "root",
+        @Comment("The database account password")
+        val password: String = "password",
+    )
 
     @Serializable
     data class Ports(

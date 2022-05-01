@@ -8,9 +8,10 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import java.text.SimpleDateFormat
-import java.util.Date
+import java.util.*
 import java.util.zip.GZIPOutputStream
 import kotlin.io.path.*
+import kotlin.system.exitProcess
 
 class Logger {
 
@@ -65,7 +66,10 @@ class Logger {
     fun warn(text: String, vararg args: Any? = emptyArray()) = append(Level.WARN, text, *args)
 
     @JvmOverloads
-    fun fatal(text: String, vararg args: Any? = emptyArray()) = append(Level.FATAL, text, *args)
+    fun fatal(text: String, vararg args: Any? = emptyArray()) {
+        append(Level.FATAL, text, *args)
+        exitProcess(1)
+    }
 
     @JvmOverloads
     fun debug(text: String, vararg args: Any? = emptyArray()) = append(Level.DEBUG, text, *args)
@@ -207,7 +211,7 @@ class Logger {
     @Synchronized
     private fun createFile(): RandomAccessFile {
         val parent = logFile.parent
-        if(!parent.exists()) parent.createDirectories()
+        if (!parent.exists()) parent.createDirectories()
         if (!logFile.exists()) logFile.createFile()
         val randomAccess = RandomAccessFile(logFile.toFile(), "rw")
         val length = randomAccess.length()

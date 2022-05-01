@@ -17,6 +17,8 @@ dependencies {
     // https://mvnrepository.com/artifact/io.netty/netty-all
     implementation("io.netty:netty-all:4.1.76.Final")
     implementation("net.mamoe.yamlkt:yamlkt:0.10.2")
+    implementation("mysql:mysql-connector-java:8.0.29")
+
 }
 
 tasks.test {

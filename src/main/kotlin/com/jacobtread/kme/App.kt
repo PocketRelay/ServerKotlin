@@ -1,5 +1,6 @@
 package com.jacobtread.kme
 
+import com.jacobtread.kme.database.Database
 import com.jacobtread.kme.logging.Level
 import com.jacobtread.kme.logging.Logger
 import com.jacobtread.kme.servers.startRedirector
@@ -41,6 +42,7 @@ fun main() {
     startRedirector(config)
     startTickerServer(config)
     startTelemetryServer(config)
+    Database.connect(config)
 
     val input = System.`in`
     val inputReader = input.bufferedReader()
