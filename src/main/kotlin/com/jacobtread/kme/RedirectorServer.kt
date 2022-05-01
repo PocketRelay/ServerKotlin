@@ -1,9 +1,13 @@
 package com.jacobtread.kme
 
-import com.jacobtread.kme.blaze.Packet
+import com.jacobtread.kme.blaze.InPacket
+import com.jacobtread.kme.blaze.PacketCommand
 import com.jacobtread.kme.blaze.PacketComponent
 import com.jacobtread.kme.blaze.PacketDecoder
+import com.jacobtread.kme.blaze.builder.Packet
+import com.jacobtread.kme.utils.NULL_CHAR
 import com.jacobtread.kme.utils.createContext
+import com.jacobtread.kme.utils.getIp
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
@@ -13,16 +17,18 @@ import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import java.io.IOException
 
-class RedirectorServer : SimpleChannelInboundHandler<Packet>() {
+class RedirectorServer(
+    val config: Config,
+) : SimpleChannelInboundHandler<InPacket>() {
 
     companion object {
         fun start(config: Config) {
             val redirector = config.redirectorServer;
-            LOGGER.info("Creating redirector server at ${redirector.host}:${redirector.port}")
+            LOGGER.info("Creating redirector server at ${config.host}:${redirector.port}")
             val context = createContext()
             val bossGroup = NioEventLoopGroup()
             val workerGroup = NioEventLoopGroup()
-            val redirect = RedirectorServer()
+            val redirect = RedirectorServer(config)
             val bootstrap = ServerBootstrap()
             try {
                 bootstrap.group(bossGroup, workerGroup)
@@ -36,7 +42,7 @@ class RedirectorServer : SimpleChannelInboundHandler<Packet>() {
                                 .addLast(redirect)
                         }
                     })
-                    .bind(redirector.host, redirector.port)
+                    .bind(config.host, redirector.port)
                     .sync()
                     .channel()
                     .closeFuture().sync()
@@ -46,21 +52,34 @@ class RedirectorServer : SimpleChannelInboundHandler<Packet>() {
         }
     }
 
+    lateinit var channel: Channel
 
     override fun channelActive(ctx: ChannelHandlerContext) {
         super.channelActive(ctx)
+        channel = ctx.channel()
     }
 
-    override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
-        if (msg.component == PacketComponent.REDIRECTOR /* Redirect Component*/
-            && msg.command == 0x1 /* Authenticate Command*/) {
+    override fun channelRead0(ctx: ChannelHandlerContext, msg: InPacket) {
+        if (msg.component == PacketComponent.REDIRECTOR && msg.command == PacketCommand.REQUEST_REDIRECT) {
             val channel = ctx.channel()
             val remoteAddress = channel.remoteAddress()
 
             LOGGER.info("Sending redirection to client -> $remoteAddress")
-
-            val packet = Packet(msg.component, msg.command, 0, 0x1000)
-
+            val redirectorPacket = config.redirectorPacket
+            val packet = Packet(msg.component, msg.command, 0, 0x1000) {
+                Union(
+                    "ADDR", redirectorPacket.addr,
+                    StructInline("VALU") {
+                        Text("HOST", redirectorPacket.host)
+                        VarInt("IP$NULL_CHAR$NULL_CHAR", redirectorPacket.ip.getIp())
+                        VarInt("PORT", redirectorPacket.port)
+                    }
+                )
+                VarInt("SECU", redirectorPacket.secu)
+                VarInt("XDNS", redirectorPacket.xdns)
+            }
+            LOGGER.info(packet.array().contentToString())
+            channel.write(packet)
         }
     }
 }

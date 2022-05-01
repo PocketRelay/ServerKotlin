@@ -104,6 +104,7 @@ enum class PacketCommand(val id: Int) {
     UNREGISTER_DYNAMIC_DEDICATED_SERVER_CREATOR(0X00040097),
     // Redirector Component
     GET_SERVER_INSTANCE(0X00050001),
+    REQUEST_REDIRECT(0X00000001),
     // Stats Component
     GET_STAT_DESCS(0X00070001),
     GET_STATS(0X00070002),
@@ -196,7 +197,9 @@ enum class PacketCommand(val id: Int) {
     LOOKUP_USER_SESSION_ID(0X78020020),
     FETCH_LAST_LOCALE_USED_AND_AUTH_ERROR(0X78020021),
     FETCH_USER_FIRST_LAST_AUTH_TIME(0X78020022),
-    RESUME_SESSION(0X78020023);
+    RESUME_SESSION(0X78020023),
+    UNKNOWN(-1);
+
 
     companion object {
         private val LOOKUP: HashMap<Int, PacketCommand>
@@ -206,6 +209,6 @@ enum class PacketCommand(val id: Int) {
             values.forEach { LOOKUP[it.id] = it }
         }
 
-        fun from(value: Int): PacketCommand? = LOOKUP[value]
+        fun from(value: Int): PacketCommand = LOOKUP[value] ?: UNKNOWN
     }
 }

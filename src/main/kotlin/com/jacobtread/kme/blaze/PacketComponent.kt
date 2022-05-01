@@ -24,16 +24,18 @@ enum class PacketComponent(val id: Int) {
     GAME_REPORTING(0x1C),
     DYNAMIC_FILTER(0x7D0),
     RSP(0x801),
-    USER_SESSIONS(0x7802);
+    USER_SESSIONS(0x7802),
+    UNKNOWN(-1);
 
     companion object {
         private val LOOKUP: HashMap<Int, PacketComponent>
+
         init {
             val values = values()
             LOOKUP = HashMap(values.size)
             values.forEach { LOOKUP[it.id] = it }
         }
 
-        fun from(value: Int): PacketComponent? = LOOKUP[value]
+        fun from(value: Int): PacketComponent = LOOKUP[value] ?: UNKNOWN
     }
 }
