@@ -1,0 +1,5 @@
+[20:13:13] [main/INFO] Starting ME3 Server
+[20:13:13] [main/INFO] Loading Configuration
+[20:13:13] [main/INFO] No configuration found. Using default
+[20:13:13] [main/INFO] Config(logLevel=INFO, redirectorServer=RedirectorServer(host=127.0.0.1, port=42127), redirectorPacket=RedirectorPacket(addr=127.0.0.1, host=383933-gosprapp396.ea.com, port=14219, secu=0, xdns=0))
+[20:13:13] [main/INFO] Creating redirector server at 127.0.0.1:42127

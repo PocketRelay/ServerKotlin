@@ -1,27 +1,39 @@
 package com.jacobtread.kme
 
+import com.jacobtread.kme.logging.Level
+import com.jacobtread.kme.logging.Logger
 import net.mamoe.yamlkt.Yaml
 import java.nio.file.Paths
 import kotlin.io.path.exists
 import kotlin.io.path.readText
-import kotlin.io.path.writeBytes
 import kotlin.io.path.writeText
 
+val LOGGER = Logger.get()
 
 fun main() {
-    val configFile = Paths.get("config.yml")
-    val config: Config = if (configFile.exists()) {
+    val rootPath = Paths.get(".")
+
+    LOGGER.info("Starting ME3 Server")
+    LOGGER.info("Loading Configuration")
+    val configFile = rootPath.resolve("config.yml")
+    val config: Config
+
+    if (configFile.exists()) {
         val contents = configFile.readText()
-        Yaml.decodeFromString(Config.serializer(), contents)
+        config = Yaml.decodeFromString(Config.serializer(), contents)
+        LOGGER.info("Loaded Configuration from: $configFile")
     } else {
-        val value = Config()
+        LOGGER.info("No configuration found. Using default")
+        config = Config()
         try {
-            configFile.writeText(Yaml.encodeToString(value))
+            LOGGER.debug("Saving newly created config to: $configFile")
+            configFile.writeText(Yaml.encodeToString(config))
         } catch (e: Exception) {
-            System.err.println("Failed to write config file: ${e.message ?: e.javaClass.simpleName}")
+            LOGGER.error("Failed to write newly created config file", e)
         }
-        value
     }
-    RedirectorServer.create(config)
+    LOGGER.info(config.toString())
+    Logger.setLogLevel(Level.fromName(config.logLevel))
+    RedirectorServer.start(config)
 }
 

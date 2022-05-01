@@ -6,6 +6,9 @@ import net.mamoe.yamlkt.Comment
 
 @Serializable
 data class Config(
+    @Comment("The level of logging that should be used: INFO,WARN,ERROR,FATAL,DEBUG")
+    @SerialName("log_level")
+    val logLevel: String = "INFO",
     @Comment("Settings for the redirector server")
     @SerialName("redirector_server")
     val redirectorServer: RedirectorServer = RedirectorServer(),
@@ -14,10 +17,11 @@ data class Config(
     val redirectorPacket: RedirectorPacket = RedirectorPacket(),
 ) {
 
+
     @Serializable
     data class RedirectorServer(
         @Comment("Address to listen for connections on")
-        val host: String = "0.0.0.0",
+        val host: String = "127.0.0.1",
         @Comment("Port to listen for connections on")
         val port: Int = 42127,
     )

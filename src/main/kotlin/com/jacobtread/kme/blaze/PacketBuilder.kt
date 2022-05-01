@@ -220,62 +220,6 @@ class PacketBuilder(private val component: Int, private val command: Int, privat
     }
 }
 
-
-object PacketComponents {
-    const val AUTHENTICATION = 0x1
-    const val EXAMPLE = 0x3
-    const val GAME_MANAGER = 0x4
-    const val REDIRECTOR = 0x5
-    const val PLAY_GROUPS = 0x6
-    const val STATS = 0x7
-    const val UTIL = 0x9
-    const val CENSUS_DATA = 0xA
-    const val CLUBS = 0xB
-    const val GAME_REPORT_LEGACY = 0xC
-    const val LEAGUE = 0xD
-    const val MAIL = 0xE
-    const val MESSAGING = 0xF
-    const val LOCKER = 0x14
-    const val ROOMS = 0x15
-    const val TOURNAMENTS = 0x17
-    const val COMMERCE_INFO = 0x18
-    const val ASSOCIATION_LISTS = 0x19
-    const val GPS_CONTENT_CONTROLLER = 0x1B
-    const val GAME_REPORTING = 0x1C
-    const val DYNAMIC_FILTER = 0x7D0
-    const val RSP = 0x801
-    const val USER_SESSIONS = 0x7802
-
-    val Names = mapOf(
-        AUTHENTICATION to "Authentication",
-        EXAMPLE to "Example",
-        GAME_MANAGER to "Game Manager",
-        REDIRECTOR to "Redirector",
-        PLAY_GROUPS to "Play Groups",
-        STATS to "Stats",
-        UTIL to "Util",
-        CENSUS_DATA to "Census Data",
-        CLUBS to "Clubs",
-        GAME_REPORT_LEGACY to "Game Report Legacy",
-        LEAGUE to "League",
-        MAIL to "Mail",
-        MESSAGING to "Messaging",
-        LOCKER to "Locker",
-        ROOMS to "Rooms",
-        TOURNAMENTS to "Tournaments",
-        COMMERCE_INFO to "Commerce Info",
-        ASSOCIATION_LISTS to "Association Lists",
-        GPS_CONTENT_CONTROLLER to "GPS Content Controller",
-        GAME_REPORTING to "Game Reporting",
-        DYNAMIC_FILTER to "Dynamic Filter",
-        RSP to "RSP",
-        USER_SESSIONS to "User Sessions"
-    )
-
-    fun getName(value: Int): String = Names.getOrDefault(value, "Unknown")
-
-}
-
 fun Packet(component: Int, command: Int, qtype: Int, id: Int, content: PacketBuilder.() -> Unit): ByteBuf {
     val context = PacketBuilder(component, command, qtype, id)
     context.content()
