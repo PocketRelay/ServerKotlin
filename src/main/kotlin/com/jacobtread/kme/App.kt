@@ -34,6 +34,6 @@ fun main() {
     }
     LOGGER.info(config.toString())
     Logger.setLogLevel(Level.fromName(config.logLevel))
-    RedirectorServer.start(config)
+    RedirectorHandler.start(config)
 }
 

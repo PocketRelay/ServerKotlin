@@ -96,6 +96,7 @@ class TdfBuilder {
         for (value in values) {
             value.writeHead(out)
             value.write(out)
+
         }
     }
 }

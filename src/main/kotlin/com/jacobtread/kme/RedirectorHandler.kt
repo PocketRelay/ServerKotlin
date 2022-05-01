@@ -17,7 +17,7 @@ import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import java.io.IOException
 
-class RedirectorServer(
+class RedirectorHandler(
     val config: Config,
 ) : SimpleChannelInboundHandler<InPacket>() {
 
@@ -28,7 +28,7 @@ class RedirectorServer(
             val context = createContext()
             val bossGroup = NioEventLoopGroup()
             val workerGroup = NioEventLoopGroup()
-            val redirect = RedirectorServer(config)
+            val redirect = RedirectorHandler(config)
             val bootstrap = ServerBootstrap()
             try {
                 bootstrap.group(bossGroup, workerGroup)
@@ -66,6 +66,7 @@ class RedirectorServer(
 
             LOGGER.info("Sending redirection to client -> $remoteAddress")
             val redirectorPacket = config.redirectorPacket
+            // Create a packet to redirect the client to the target server
             val packet = Packet(msg.component, msg.command, 0, 0x1000) {
                 Union(
                     "ADDR", redirectorPacket.addr,
@@ -78,8 +79,11 @@ class RedirectorServer(
                 VarInt("SECU", redirectorPacket.secu)
                 VarInt("XDNS", redirectorPacket.xdns)
             }
-            LOGGER.info(packet.array().contentToString())
+            // Write the packet and close the connection
             channel.write(packet)
+            channel.flush()
+            channel.close()
+            LOGGER.info("Terminating connection to $remoteAddress (Finished redirect)")
         }
     }
 }

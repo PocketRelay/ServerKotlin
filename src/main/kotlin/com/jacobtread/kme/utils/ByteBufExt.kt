@@ -25,7 +25,7 @@ fun ByteBuf.writeVarInt(value: Long) {
             return
         }
         writeByte(((v and 0x7F) or 0x80).toInt())
-        v = value ushr 7
+        v = v ushr 7
     }
 }
 

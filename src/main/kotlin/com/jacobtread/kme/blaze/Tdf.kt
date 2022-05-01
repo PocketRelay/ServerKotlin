@@ -274,7 +274,7 @@ class UnionTdf(label: String, val type: Int = 0x7F, val value: Tdf? = null) : Td
         fun from(label: String, input: ByteBuf): UnionTdf {
             val type = input.readByte().toInt()
             val value = if (type != 0x7F) {
-                Tdf.read(input)
+                read(input)
             } else null
             return UnionTdf(label, type, value)
         }
