@@ -4,7 +4,9 @@ import io.netty.handler.ssl.SslContext
 import io.netty.handler.ssl.SslContextBuilder
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory
 import java.security.KeyStore
-import java.security.SecureRandom
+import java.util.*
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
 import javax.net.ssl.KeyManagerFactory
 
 object Security {
@@ -38,4 +40,19 @@ private fun loadKeystore(): KeyManagerFactory {
     val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
     kmf.init(keyStore, password)
     return kmf
+}
+
+// If you're trying to reverse hashes forget you saw this plz :)
+private const val PASSWORD_SALT = "hTbNMm3EAQ2Q66Hz"
+
+fun hashPassword(password: String): String {
+    val salt = PASSWORD_SALT.toByteArray()
+    val spec = PBEKeySpec(password.toCharArray(), salt, 65536, 128)
+    val keyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1")
+    val hash = keyFactory.generateSecret(spec).encoded
+    return Base64.getEncoder().encodeToString(hash)
+}
+
+fun compareHashPassword(password: String, hashed: String): Boolean {
+    return hashPassword(password) == hashed
 }
