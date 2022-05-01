@@ -4,6 +4,7 @@ import io.netty.handler.ssl.SslContext
 import io.netty.handler.ssl.SslContextBuilder
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory
 import java.security.KeyStore
+import java.security.SecureRandom
 import javax.net.ssl.KeyManagerFactory
 
 object Security {

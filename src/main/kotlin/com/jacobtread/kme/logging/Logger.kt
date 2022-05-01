@@ -66,7 +66,7 @@ class Logger {
     fun warn(text: String, vararg args: Any? = emptyArray()) = append(Level.WARN, text, *args)
 
     @JvmOverloads
-    fun fatal(text: String, vararg args: Any? = emptyArray()) {
+    fun fatal(text: String, vararg args: Any? = emptyArray()): Nothing {
         append(Level.FATAL, text, *args)
         exitProcess(1)
     }

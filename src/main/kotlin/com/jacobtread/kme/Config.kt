@@ -33,6 +33,8 @@ data class Config(
         val user: String = "root",
         @Comment("The database account password")
         val password: String = "password",
+        @Comment("The database to use")
+        val database: String = "kme",
     )
 
     @Serializable
