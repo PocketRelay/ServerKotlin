@@ -14,10 +14,8 @@ import io.netty.channel.socket.nio.NioServerSocketChannel
 class RedirectorServer : SimpleChannelInboundHandler<Packet>() {
 
     companion object {
-        private const val DEFAULT_HOST = "127.0.0.1"
-        private const val DEFAULT_PORT = 42127
-
-        fun create(host: String = DEFAULT_HOST, port: Int = DEFAULT_PORT) {
+        fun create(config: Config) {
+            val redirector = config.redirectorServer;
             val context = createContext()
             val bossGroup = NioEventLoopGroup()
             val workerGroup = NioEventLoopGroup()
@@ -34,7 +32,7 @@ class RedirectorServer : SimpleChannelInboundHandler<Packet>() {
                             .addLast(redirect)
                     }
                 })
-                .bind(host, port)
+                .bind(redirector.host, redirector.port)
                 .sync()
                 .channel()
                 .closeFuture().sync()

@@ -1,0 +1,16 @@
+# Settings for the redirector server
+redirector_server: 
+  # Address to listen for connections on
+  host: 0.0.0.0
+  # Port to listen for connections on
+  port: 42127
+# Settings for the redirect packet
+redirector_packet: 
+  # Address of the redirector
+  addr: 127.0.0.1
+  # Host to redirect to
+  host: '383933-gosprapp396.ea.com'
+  # Port to redirect to
+  port: 14219
+  secu: 0
+  xdns: 0
