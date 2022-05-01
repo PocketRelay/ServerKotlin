@@ -31,23 +31,8 @@ fun startTickerServer(config: Config) {
                 .childHandler(object : ChannelInitializer<Channel>() {
                     override fun initChannel(ch: Channel) {
                         ch.pipeline()
-                            // Add handler for processing packets
-                            .addLast(object : ChannelInboundHandlerAdapter() {
-                                override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-                                    super.channelRead(ctx, msg)
-                                    if (msg is ByteBuf) {
-                                        val readable = msg.readableBytes()
-                                        if (readable > 0) {
-                                            val out = ByteArray(readable)
-                                            msg.readBytes(out)
-                                            ctx.flush()
-                                            if (LOGGER.isDebugEnabled) {
-                                                LOGGER.debug(out.contentToString())
-                                            }
-                                        }
-                                    }
-                                }
-                            })
+                            // Add handler for processing ticker data
+                            .addLast(TickerClient())
                     }
                 })
                 // Bind the server to the host and port
@@ -64,11 +49,27 @@ fun startTickerServer(config: Config) {
             LOGGER.error("Exception in ticker server", e)
         }
     }.apply {
-        // Name the redirector thread
+        // Name the ticker thread
         name = "Ticker"
         // Close this thread when the JVM requests close
         isDaemon = true
-        // Start the redirector thread
+        // Start the ticker thread
         start()
+    }
+}
+
+private class TickerClient : ChannelInboundHandlerAdapter() {
+    override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
+        if (msg is ByteBuf) {
+            val readable = msg.readableBytes()
+            if (readable > 0) {
+                val out = ByteArray(readable)
+                msg.readBytes(out)
+                ctx.flush()
+                if (LOGGER.isDebugEnabled) {
+                    LOGGER.debug(out.contentToString())
+                }
+            }
+        }
     }
 }

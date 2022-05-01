@@ -3,6 +3,7 @@ package com.jacobtread.kme
 import com.jacobtread.kme.logging.Level
 import com.jacobtread.kme.logging.Logger
 import com.jacobtread.kme.servers.startRedirector
+import com.jacobtread.kme.servers.startTelemetryServer
 import com.jacobtread.kme.servers.startTickerServer
 import net.mamoe.yamlkt.Yaml
 import java.nio.file.Paths
@@ -39,6 +40,7 @@ fun main() {
 
     startRedirector(config)
     startTickerServer(config)
+    startTelemetryServer(config)
 
     val input = System.`in`
     val inputReader = input.bufferedReader()

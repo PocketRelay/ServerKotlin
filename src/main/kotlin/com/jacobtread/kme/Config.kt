@@ -27,6 +27,8 @@ data class Config(
         val redirector: Int = 42127,
         @Comment("Port for the ticker server")
         val ticker: Int = 8999,
+        @Comment("Port for the telemetry server")
+        val telemetry: Int = 9988,
         @Comment("Port for the main server")
         val main: Int = 14219
     )

@@ -80,7 +80,7 @@ fun startRedirector(config: Config) {
  * @property config The config for redirection packets
  * @constructor Create empty RedirectClient
  */
-class RedirectClient(private val config: Config.RedirectorPacket) : SimpleChannelInboundHandler<RawPacket>() {
+private class RedirectClient(private val config: Config.RedirectorPacket) : SimpleChannelInboundHandler<RawPacket>() {
 
     /**
      * channelRead0 Handles incoming RawPackets and sends back a redirect packet
