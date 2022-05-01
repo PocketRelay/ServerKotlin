@@ -3,6 +3,7 @@ package com.jacobtread.kme
 import com.jacobtread.kme.logging.Level
 import com.jacobtread.kme.logging.Logger
 import com.jacobtread.kme.servers.startRedirector
+import com.jacobtread.kme.servers.startTickerServer
 import net.mamoe.yamlkt.Yaml
 import java.nio.file.Paths
 import kotlin.io.path.exists
@@ -37,6 +38,7 @@ fun main() {
     Logger.setLogLevel(Level.fromName(config.logLevel))
 
     startRedirector(config)
+    startTickerServer(config)
 
     val input = System.`in`
     val inputReader = input.bufferedReader()

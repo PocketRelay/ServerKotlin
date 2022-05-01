@@ -120,7 +120,7 @@ class Logger {
         val threadName = Thread.currentThread().name
         val hasArgs = args.isNotEmpty()
         if (!hasArgs || args[0] is Throwable) {
-            val text = "[$time] [$threadName/${level.levelName}] $message\n"
+            val text = "[$time] [${level.levelName}] $message\n"
             if (level.index < 3) {
                 System.err.print(text)
             } else {

@@ -27,7 +27,6 @@ import java.io.IOException
  */
 fun startRedirector(config: Config) {
     Thread {
-        LOGGER.info("Starting Redirector Server (${config.host}:${config.ports.redirector})")
         LOGGER.info("===== Redirection Configuration =====")
         LOGGER.info("Host: ${config.redirectorPacket.host}")
         LOGGER.info("IP:   ${config.redirectorPacket.ip}")
@@ -38,7 +37,7 @@ fun startRedirector(config: Config) {
         val workerGroup = NioEventLoopGroup(customThreadFactory("Redirector Worker #{ID}"))
         val bootstrap = ServerBootstrap() // Create a server bootstrap
         try {
-            bootstrap.group(bossGroup, workerGroup)
+            val bind = bootstrap.group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel::class.java)
                 .childHandler(object : ChannelInitializer<Channel>() {
                     override fun initChannel(ch: Channel) {
@@ -52,10 +51,11 @@ fun startRedirector(config: Config) {
                     }
                 })
                 // Bind the server to the host and port
-                .bind(config.host, config.ports.redirector)
+                .bind(config.host, config.ports.ticker)
                 // Wait for the channel to bind
                 .sync()
-                .channel()
+            LOGGER.info("Started Redirector Server (${config.host}:${config.ports.redirector})")
+            bind.channel()
                 // Get the closing future
                 .closeFuture()
                 // Wait for the closing
