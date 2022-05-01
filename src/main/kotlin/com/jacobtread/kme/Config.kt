@@ -30,7 +30,9 @@ data class Config(
         @Comment("Port for the telemetry server")
         val telemetry: Int = 9988,
         @Comment("Port for the main server")
-        val main: Int = 14219
+        val main: Int = 14219,
+        @Comment("Port for the http server")
+        val http: Int = 80,
     )
 
     @Serializable
