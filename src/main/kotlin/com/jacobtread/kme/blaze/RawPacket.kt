@@ -22,6 +22,11 @@ class RawPacket(
         values
     }
 
+    fun getStringAt(index: Int): String {
+        val value = content[index] as StringTdf
+        return value.value
+    }
+
     override fun toString(): String {
         return "Packet (Component: $component ($rawComponent}), Command: $command ($rawCommand), Error; $error, QType: $qtype, Id: $id, Content: ${rawContent.contentToString()})"
     }

@@ -53,6 +53,7 @@ enum class PacketCommand(val id: Int) {
     GET_LEGAL_DOCS_INFO(0xF2),
     GET_TERMS_OF_SERVICE_CONTENT(0xF6),
     DEVICE_LOGIN_GUEST(0x12C),
+    CREATE_ACCOUNT(0xA),
 
     // Game Manager Component
     CREATE_GAME(0x1),
