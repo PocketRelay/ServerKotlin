@@ -1,5 +1,6 @@
 package com.jacobtread.kme
 
+import com.jacobtread.kme.blaze.PacketCommand
 import com.jacobtread.kme.database.Database
 import com.jacobtread.kme.logging.Level
 import com.jacobtread.kme.logging.Logger
@@ -42,6 +43,7 @@ fun main() {
     startRedirector(config)
     startTickerServer(config)
     startTelemetryServer(config)
+    PacketCommand.values()
     Database.connect(config)
 
     val input = System.`in`

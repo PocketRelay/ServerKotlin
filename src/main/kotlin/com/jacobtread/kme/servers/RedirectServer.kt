@@ -91,7 +91,7 @@ private class RedirectClient(private val config: Config.RedirectorPacket) : Simp
      */
     override fun channelRead0(ctx: ChannelHandlerContext, msg: RawPacket) {
         if (msg.component == PacketComponent.REDIRECTOR
-            && msg.command == PacketCommand.REQUEST_REDIRECT
+            && msg.command == PacketCommand.GET_SERVER_INSTANCE
         ) {
             val channel = ctx.channel()
             val remoteAddress = channel.remoteAddress()
