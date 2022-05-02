@@ -27,7 +27,6 @@ class PlayersRepository(connection: Connection) : DatabaseRepository(connection)
             """.trimIndent())
             LOGGER.info("Created players database table")
             LOGGER.info("Creating example player")
-            createPlayer("example@example.com", "example", "password")
         } catch (e: SQLException) {
             LOGGER.fatal("Failed to create players database table", e)
         }

@@ -51,7 +51,7 @@ fun startRedirector(config: Config) {
                     }
                 })
                 // Bind the server to the host and port
-                .bind(config.host, config.ports.ticker)
+                .bind(config.host, config.ports.redirector)
                 // Wait for the channel to bind
                 .sync()
             LOGGER.info("Started Redirector Server (${config.host}:${config.ports.redirector})")
@@ -97,7 +97,7 @@ private class RedirectClient(private val config: Config.RedirectorPacket) : Simp
             val remoteAddress = channel.remoteAddress()
             LOGGER.info("Sending redirection to client -> $remoteAddress")
             // Create a packet to redirect the client to the target server
-            val packet = Packet(msg.component, msg.command, 0, 0x1000) {
+            val packet = Packet(msg.component, msg.command,  0x1000, msg.id) {
                 Union(
                     "ADDR", config.addr,
                     StructInline("VALU") {

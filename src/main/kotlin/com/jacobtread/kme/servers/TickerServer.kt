@@ -36,7 +36,7 @@ fun startTickerServer(config: Config) {
                     }
                 })
                 // Bind the server to the host and port
-                .bind(config.host, config.ports.redirector)
+                .bind(config.host, config.ports.ticker)
                 // Wait for the channel to bind
                 .sync();
             LOGGER.info("Started Ticker Server (${config.host}:${config.ports.ticker})")

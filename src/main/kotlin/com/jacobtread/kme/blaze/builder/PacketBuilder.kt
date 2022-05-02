@@ -12,7 +12,7 @@ fun Packet(
     id: Int,
     error: Int = 0,
     content: TdfBuilder.() -> Unit,
-): ByteBuf = Packet(component.id, command.id, qtype, id, error, content)
+): ByteBuf = Packet(component.id, command.value, qtype, id, error, content)
 
 fun Packet(
     component: Int,

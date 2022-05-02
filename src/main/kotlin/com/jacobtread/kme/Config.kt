@@ -7,7 +7,7 @@ import net.mamoe.yamlkt.Comment
 @Serializable
 data class Config(
     @Comment("The host address to use when listening applied to all servers")
-    val host: String = "127.0.0.1",
+    val host: String = "0.0.0.0",
 
     @Comment("The level of logging that should be used: INFO,WARN,ERROR,FATAL,DEBUG")
     @SerialName("log_level")

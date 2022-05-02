@@ -37,10 +37,10 @@ fun startHttpServer(config: Config) {
                     }
                 })
                 // Bind the server to the host and port
-                .bind(config.host, config.ports.redirector)
+                .bind(config.host, config.ports.http)
                 // Wait for the channel to bind
                 .sync();
-            LOGGER.info("Started HTTP Server (${config.host}:${config.ports.ticker})")
+            LOGGER.info("Started HTTP Server (${config.host}:${config.ports.http})")
             bind.channel()
                 // Get the closing future
                 .closeFuture()

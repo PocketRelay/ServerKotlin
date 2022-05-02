@@ -32,6 +32,7 @@ fun startMainServer(config: Config, database: Database) {
                 .channel(NioServerSocketChannel::class.java)
                 .childHandler(object : ChannelInitializer<Channel>() {
                     override fun initChannel(ch: Channel) {
+                        println("Main Server Connection")
                         ch.pipeline()
                             // Add handler for decoding packet
                             .addLast(PacketDecoder())
@@ -73,6 +74,7 @@ private class MainClient(private val config: Config, private val database: Datab
     }
 
     override fun channelRead0(ctx: ChannelHandlerContext, msg: RawPacket) {
+        LOGGER.info("Incoming packet: $msg")
         when (msg.component) {
             PacketComponent.AUTHENTICATION -> handleAuthentication(msg)
             PacketComponent.GAME_MANAGER -> handleGameManager(ctx, msg)
@@ -86,7 +88,6 @@ private class MainClient(private val config: Config, private val database: Datab
     }
 
     fun handleAuthentication(packet: RawPacket) {
-        LOGGER.info("Incoming packet: $packet")
         when (packet.command) {
             PacketCommand.LIST_USER_ENTITLEMENTS_2 -> {
 
