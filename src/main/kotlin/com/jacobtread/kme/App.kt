@@ -43,8 +43,9 @@ fun main() {
     startRedirector(config)
     startTickerServer(config)
     startTelemetryServer(config)
-    startMainServer(config)
-    Database.connect(config)
+
+    val database = Database.connect(config)
+    startMainServer(config, database)
 
     val input = System.`in`
     val inputReader = input.bufferedReader()

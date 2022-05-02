@@ -7,6 +7,9 @@ import com.jacobtread.kme.blaze.PacketComponent
 import com.jacobtread.kme.blaze.PacketDecoder
 import com.jacobtread.kme.blaze.RawPacket
 import com.jacobtread.kme.blaze.builder.Packet
+import com.jacobtread.kme.database.Database
+import com.jacobtread.kme.database.repos.PlayersRepository
+import com.jacobtread.kme.game.Player
 import com.jacobtread.kme.utils.NULL_CHAR
 import com.jacobtread.kme.utils.customThreadFactory
 import io.netty.bootstrap.ServerBootstrap
@@ -19,7 +22,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel
 import java.io.IOException
 
 
-fun startMainServer(config: Config) {
+fun startMainServer(config: Config, database: Database) {
     Thread {
         val bossGroup = NioEventLoopGroup(customThreadFactory("Main Server Boss #{ID}"))
         val workerGroup = NioEventLoopGroup(customThreadFactory("Main Server Worker #{ID}"))
@@ -33,7 +36,7 @@ fun startMainServer(config: Config) {
                             // Add handler for decoding packet
                             .addLast(PacketDecoder())
                             // Add handler for processing packets
-                            .addLast(MainClient(config))
+                            .addLast(MainClient(config, database))
                     }
                 })
                 // Bind the server to the host and port
@@ -59,9 +62,10 @@ fun startMainServer(config: Config) {
     }
 }
 
-private class MainClient(private val config: Config) : SimpleChannelInboundHandler<RawPacket>() {
+private class MainClient(private val config: Config, private val database: Database) : SimpleChannelInboundHandler<RawPacket>() {
 
     lateinit var channel: Channel
+    var player: Player? = null
 
     override fun channelActive(ctx: ChannelHandlerContext) {
         super.channelActive(ctx)
@@ -82,6 +86,7 @@ private class MainClient(private val config: Config) : SimpleChannelInboundHandl
     }
 
     fun handleAuthentication(packet: RawPacket) {
+        LOGGER.info("Incoming packet: $packet")
         when (packet.command) {
             PacketCommand.LIST_USER_ENTITLEMENTS_2 -> {
 
@@ -121,6 +126,19 @@ private class MainClient(private val config: Config) : SimpleChannelInboundHandl
         val password = packet.getStringAt(2).trim()
         if (playerName.isBlank() || password.isBlank()) {
             LoginErrorPacket(packet, LoginError.INVALID_INFORMATION)
+            return
+        }
+        val playerRepo = database.playerRepository
+        try {
+            val player = playerRepo.getPlayer(playerName)
+            if (!player.isMatchingPassword(password)) {
+                LoginErrorPacket(packet, LoginError.WRONG_PASSWORD)
+                return
+            }
+        } catch (e: PlayersRepository.PlayerNotFoundException) {
+            LoginErrorPacket(packet, LoginError.INVALID_EMAIL)
+        } catch (e: PlayersRepository.ServerErrorException) {
+            LoginErrorPacket(packet, LoginError.SERVER_UNAVAILABLE)
         }
     }
 

@@ -1,6 +1,7 @@
 package com.jacobtread.kme.database.repos
 
 import com.jacobtread.kme.LOGGER
+import com.jacobtread.kme.game.Player
 import com.jacobtread.kme.utils.hashPassword
 import java.sql.Connection
 import java.sql.SQLException
@@ -62,6 +63,31 @@ class PlayersRepository(connection: Connection) : DatabaseRepository(connection)
         } catch (e: SQLException) {
             LOGGER.error("Failed to create player", e)
             throw PlayerCreationException("Failed to create player", e)
+        }
+    }
+
+
+    class PlayerNotFoundException : Exception()
+    class ServerErrorException : Exception()
+
+    fun getPlayer(displayName: String): Player {
+        try {
+            if (isDisplayNameTaken(displayName)) throw PlayerNotFoundException()
+            val statement = connection.prepareStatement("SELECT (`id`, `email`, `display_name`, `credits`, `games_played`, `auth`, `auth2`) FROM `players` WHERE `display_name` = ?")
+            statement.setString(1, displayName)
+            val result = statement.executeQuery()
+            if (!result.next()) throw PlayerNotFoundException()
+            return Player(
+                result.getInt("id"),
+                result.getString("email"),
+                result.getString("display_name"),
+                result.getInt("credits"),
+                result.getInt("games_played"),
+                result.getString("auth"),
+                result.getString("auth2"),
+            )
+        } catch (e: SQLException) {
+            throw ServerErrorException()
         }
     }
 }
