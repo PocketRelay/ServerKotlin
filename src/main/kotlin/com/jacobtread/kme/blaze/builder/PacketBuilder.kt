@@ -27,7 +27,9 @@ fun Packet(
     contentBuilder.populate()
     contentBuilder.write(contentBuffer)
     val buff = Unpooled.buffer();
+
     val length = contentBuffer.readableBytes()
+
     buff.writeByte((length and 0xFFFF) shr 8)
     buff.writeByte((length and 0xFF))
     buff.writeByte(component shr 8)
@@ -48,6 +50,6 @@ fun Packet(
         buff.writeByte(((length.toLong() and 0xFF000000) shr 24).toInt())
         buff.writeByte((length and 0x00FF0000) shr 16)
     }
-    buff.writeBytes(contentBuffer)
+    buff.writeBytes(contentBuffer, 0, length)
     return buff
 }

@@ -4,10 +4,10 @@ import com.jacobtread.kme.Config
 import com.jacobtread.kme.LOGGER
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.builder.Packet
-import com.jacobtread.kme.utils.NULL_CHAR
 import com.jacobtread.kme.utils.createContext
 import com.jacobtread.kme.utils.customThreadFactory
 import com.jacobtread.kme.utils.getIp
+import com.jacobtread.kme.utils.readPacket
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
@@ -93,25 +93,29 @@ private class RedirectClient(private val config: Config.RedirectorPacket) : Simp
             val platform = msg.getValue(StringTdf::class, "PLAT")
             val channel = ctx.channel()
             val remoteAddress = channel.remoteAddress()
-            println(msg.content)
-            LOGGER.info("Sending redirection to client -> $remoteAddress on platform ${platform ?: "Unknown"}")
+            LOGGER.info("Sending redirection to client ($remoteAddress) -> on platform ${platform ?: "Unknown"}")
+
+
             // Create a packet to redirect the client to the target server
-            val packet = Packet(msg.component, msg.command,  0x1000, msg.id) {
-                Union(
-                    "ADDR", config.addr,
+            val packet = Packet(msg.component, msg.command, 0x1000, msg.id) {
+                Union("ADDR",
+                    config.addr,
                     StructInline("VALU") {
                         Text("HOST", config.host)
-                        VarInt("IP$NULL_CHAR$NULL_CHAR", config.ip.getIp())
+                        VarInt("IP", config.ip.getIp())
                         VarInt("PORT", config.port)
                     }
                 )
                 VarInt("SECU", config.secu)
                 VarInt("XDNS", config.xdns)
             }
+
             // Write the packet, flush and then close the channel
             channel.writeAndFlush(packet)
-            channel.close()
-            LOGGER.info("Terminating connection to $remoteAddress (Finished redirect)")
+                .addListener {
+                    channel.close()
+                    LOGGER.info("Terminating connection to $remoteAddress (Finished redirect)")
+                }
         }
     }
 }

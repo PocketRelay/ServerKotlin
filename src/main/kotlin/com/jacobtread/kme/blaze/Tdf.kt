@@ -7,14 +7,14 @@ interface TdfValue<T> {
     val value: T
 }
 
-abstract class Tdf(val label: String, val tagType: Int) {
+abstract class Tdf(val label: String, private val tagType: Int) {
     abstract fun write(out: ByteBuf)
 
     fun writeHead(out: ByteBuf) {
         val tag = Labels.toTag(label)
-        out.writeByte(tag shr 24)
-        out.writeByte(tag shr 16)
-        out.writeByte(tag shr 8)
+        out.writeByte(tag.shr(24).and(0xFF).toInt())
+        out.writeByte(tag.shr(16).and(0xFF).toInt())
+        out.writeByte(tag.shr(8).and(0xFF).toInt())
         out.writeByte(tagType)
     }
 
