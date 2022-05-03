@@ -3,6 +3,10 @@ package com.jacobtread.kme.blaze
 import com.jacobtread.kme.utils.*
 import io.netty.buffer.ByteBuf
 
+interface TdfValue<T> {
+    val value: T
+}
+
 abstract class Tdf(val label: String, val tagType: Int) {
     abstract fun write(out: ByteBuf)
 
@@ -46,7 +50,6 @@ abstract class Tdf(val label: String, val tagType: Int) {
         fun read(input: ByteBuf): Tdf {
             val head = input.readUnsignedInt()
             val tag = (head and 0xFFFFFF00).toInt()
-            println("TAG: $tag, TYPE: ${head and 0xFF}")
             val label = Labels.fromTag(tag)
             return when (val type = (head and 0xFF).toInt()) {
                 VARINT -> VarIntTdf.from(label, input)
@@ -66,7 +69,7 @@ abstract class Tdf(val label: String, val tagType: Int) {
     }
 }
 
-class VarIntTdf(label: String, val value: Long) : Tdf(label, VARINT) {
+class VarIntTdf(label: String, override val value: Long) : Tdf(label, VARINT), TdfValue<Long> {
     companion object {
         fun from(label: String, input: ByteBuf): VarIntTdf {
             return VarIntTdf(label, input.readVarInt())
@@ -74,9 +77,10 @@ class VarIntTdf(label: String, val value: Long) : Tdf(label, VARINT) {
     }
 
     override fun write(out: ByteBuf) = out.writeVarInt(value)
+    override fun toString(): String = "VarInt($label: $value)"
 }
 
-class StringTdf(label: String, val value: String) : Tdf(label, STRING) {
+class StringTdf(label: String, override val value: String) : Tdf(label, STRING), TdfValue<String> {
     companion object {
         fun from(label: String, input: ByteBuf): StringTdf {
             return StringTdf(label, input.readString())
@@ -85,12 +89,10 @@ class StringTdf(label: String, val value: String) : Tdf(label, STRING) {
 
     override fun write(out: ByteBuf) = out.writeString(value)
 
-    override fun toString(): String {
-        return "StringTdf(label=$label, value=$value)"
-    }
+    override fun toString(): String = "String($label: $value)"
 }
 
-class BlobTdf(label: String, val value: ByteArray) : Tdf(label, BLOB) {
+class BlobTdf(label: String, override val value: ByteArray) : Tdf(label, BLOB), TdfValue<ByteArray> {
     companion object {
         fun from(label: String, input: ByteBuf): BlobTdf {
             val size = input.readVarInt().toInt()
@@ -104,9 +106,11 @@ class BlobTdf(label: String, val value: ByteArray) : Tdf(label, BLOB) {
         out.writeVarInt(value.size.toLong())
         out.writeBytes(value)
     }
+
+    override fun toString(): String = "Blob($label: ${value.contentToString()})"
 }
 
-class StructTdf(label: String, val start2: Boolean, val values: List<Tdf>) : Tdf(label, STRUCT) {
+class StructTdf(label: String, val start2: Boolean, override val value: List<Tdf>) : Tdf(label, STRUCT), TdfValue<List<Tdf>> {
     companion object {
         fun from(label: String, input: ByteBuf): StructTdf {
             val out = ArrayList<Tdf>()
@@ -128,15 +132,17 @@ class StructTdf(label: String, val start2: Boolean, val values: List<Tdf>) : Tdf
 
     override fun write(out: ByteBuf) {
         if (start2) out.writeByte(2)
-        values.forEach {
+        value.forEach {
             it.writeHead(out)
             it.write(out)
         }
         out.writeByte(0)
     }
+
+    override fun toString(): String = "Struct($label: $value)"
 }
 
-class ListTdf(label: String, val values: List<Any>) : Tdf(label, LIST) {
+class ListTdf(label: String, override val value: List<Any>) : Tdf(label, LIST), TdfValue<List<Any>> {
 
     companion object {
         fun from(label: String, input: ByteBuf): ListTdf {
@@ -180,24 +186,24 @@ class ListTdf(label: String, val values: List<Any>) : Tdf(label, LIST) {
     private val subType: Int
 
     init {
-        require(values.isNotEmpty()) { "ListTdf contents cannot be empty" }
-        subType = when (values[0]) {
+        require(value.isNotEmpty()) { "ListTdf contents cannot be empty" }
+        subType = when (value[0]) {
             is Long -> VARINT_LIST
             is String -> STRING_LIST
             is StructTdf -> STRUCT_LIST
             is VTripple -> TRIPPLE_LIST
-            else -> throw IllegalArgumentException("Don't know how to handle type \"${values[0]::class.java.simpleName}")
+            else -> throw IllegalArgumentException("Don't know how to handle type \"${value[0]::class.java.simpleName}")
         }
     }
 
     override fun write(out: ByteBuf) {
         out.writeByte(subType)
-        out.writeVarInt(values.size.toLong())
+        out.writeVarInt(value.size.toLong())
         when (subType) {
-            VARINT_LIST -> values.forEach { out.writeVarInt(it as Long) }
-            STRING_LIST -> values.forEach { out.writeString(it as String) }
-            STRUCT_LIST -> values.forEach { (it as StructTdf).write(out) }
-            TRIPPLE_LIST -> values.forEach {
+            VARINT_LIST -> value.forEach { out.writeVarInt(it as Long) }
+            STRING_LIST -> value.forEach { out.writeString(it as String) }
+            STRUCT_LIST -> value.forEach { (it as StructTdf).write(out) }
+            TRIPPLE_LIST -> value.forEach {
                 val tripple = it as VTripple
                 out.writeVarInt(tripple.a)
                 out.writeVarInt(tripple.b)
@@ -205,6 +211,8 @@ class ListTdf(label: String, val values: List<Any>) : Tdf(label, LIST) {
             }
         }
     }
+
+    override fun toString(): String = "List($label: $value)"
 }
 
 class PairListTdf(label: String, val a: List<Any>, val b: List<Any>) : Tdf(label, LIST) {
@@ -282,6 +290,10 @@ class PairListTdf(label: String, val a: List<Any>, val b: List<Any>) : Tdf(label
             }
         }
     }
+
+
+    override fun toString(): String = "PairList($label: $a, $b)"
+
 }
 
 class UnionTdf(label: String, val type: Int = 0x7F, val value: Tdf? = null) : Tdf(label, UNION) {
@@ -302,9 +314,11 @@ class UnionTdf(label: String, val type: Int = 0x7F, val value: Tdf? = null) : Td
             value?.write(out)
         }
     }
+
+    override fun toString(): String = "Union($label: $type, $value)"
 }
 
-class VarIntList(label: String, val values: List<Long>) : Tdf(label, INT_LIST) {
+class VarIntList(label: String, override val value: List<Long>) : Tdf(label, INT_LIST), TdfValue<List<Long>> {
     companion object {
         fun from(label: String, input: ByteBuf): VarIntList {
             val count = input.readVarInt().toInt()
@@ -315,12 +329,14 @@ class VarIntList(label: String, val values: List<Long>) : Tdf(label, INT_LIST) {
     }
 
     override fun write(out: ByteBuf) {
-        out.writeVarInt(values.size.toLong())
-        values.forEach { out.writeVarInt(it) }
+        out.writeVarInt(value.size.toLong())
+        value.forEach { out.writeVarInt(it) }
     }
+
+    override fun toString(): String = "VarIntList($label: $value)"
 }
 
-class PairTdf(label: String, val value: VPair) : Tdf(label, PAIR) {
+class PairTdf(label: String, override val value: VPair) : Tdf(label, PAIR), TdfValue<VPair> {
     companion object {
         fun from(label: String, input: ByteBuf): PairTdf {
             val a = input.readVarInt()
@@ -333,9 +349,11 @@ class PairTdf(label: String, val value: VPair) : Tdf(label, PAIR) {
         out.writeVarInt(value.a)
         out.writeVarInt(value.b)
     }
+
+    override fun toString(): String = "Pair($label: $value)"
 }
 
-class TrippleTdf(label: String, val value: VTripple) : Tdf(label, TRIPPLE) {
+class TrippleTdf(label: String, override val value: VTripple) : Tdf(label, TRIPPLE) , TdfValue<VTripple> {
     companion object {
         fun from(label: String, input: ByteBuf): TrippleTdf {
             val a = input.readVarInt()
@@ -350,9 +368,11 @@ class TrippleTdf(label: String, val value: VTripple) : Tdf(label, TRIPPLE) {
         out.writeVarInt(value.b)
         out.writeVarInt(value.c)
     }
+
+    override fun toString(): String = "Tripple($label: $value)"
 }
 
-class FloatTdf(label: String, val value: Float) : Tdf(label, FLOAT) {
+class FloatTdf(label: String, override val value: Float) : Tdf(label, FLOAT), TdfValue<Float> {
     companion object {
         fun from(label: String, input: ByteBuf): FloatTdf {
             val value = input.readFloat()
@@ -363,4 +383,6 @@ class FloatTdf(label: String, val value: Float) : Tdf(label, FLOAT) {
     override fun write(out: ByteBuf) {
         out.writeFloat(value)
     }
+
+    override fun toString(): String = "Float($label: $value)"
 }

@@ -2,10 +2,7 @@ package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.Config
 import com.jacobtread.kme.LOGGER
-import com.jacobtread.kme.blaze.PacketCommand
-import com.jacobtread.kme.blaze.PacketComponent
-import com.jacobtread.kme.blaze.PacketDecoder
-import com.jacobtread.kme.blaze.RawPacket
+import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.builder.Packet
 import com.jacobtread.kme.utils.NULL_CHAR
 import com.jacobtread.kme.utils.createContext
@@ -93,11 +90,11 @@ private class RedirectClient(private val config: Config.RedirectorPacket) : Simp
         if (msg.component == PacketComponent.REDIRECTOR
             && msg.command == PacketCommand.GET_SERVER_INSTANCE
         ) {
+            val platform = msg.getValue(StringTdf::class, "PLAT")
             val channel = ctx.channel()
             val remoteAddress = channel.remoteAddress()
-            LOGGER.info("Sending redirection to client -> $remoteAddress")
-            println(msg)
             println(msg.content)
+            LOGGER.info("Sending redirection to client -> $remoteAddress on platform ${platform ?: "Unknown"}")
             // Create a packet to redirect the client to the target server
             val packet = Packet(msg.component, msg.command,  0x1000, msg.id) {
                 Union(

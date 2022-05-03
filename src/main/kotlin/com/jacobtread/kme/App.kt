@@ -45,9 +45,6 @@ fun main() {
 //    val database = Database.connect(config)
 //    startMainServer(config, database)
 
-    println(-117.toByte())
-    println((-117).toUByte())
-
     val input = System.`in`
     val inputReader = input.bufferedReader()
     while (true) {

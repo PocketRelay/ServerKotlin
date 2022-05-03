@@ -26,7 +26,6 @@ object Labels {
 
     fun fromTag(tag: Int): String {
         val buff = tag.asBEBytes()
-        buff.reverse()
         val res = ByteArray(4)
         res[0] = (res[0].toInt() or (buff[0].toInt() and 0x80 shr 1)).toByte()
         res[0] = (res[0].toInt() or (buff[0].toInt() and 0x40 shr 2)).toByte()
