@@ -20,11 +20,11 @@ abstract class Tdf(val label: String, val tagType: Int) {
         const val BLOB = 0x02
         const val STRUCT = 0x3
         const val LIST = 0x4
-        const val PAIR_LIST = 0x05
-        const val UNION = 0x06
-        const val INT_LIST = 0x07
-        const val PAIR = 0x08
-        const val TRIPPLE = 0x09
+        const val PAIR_LIST = 0x5
+        const val UNION = 0x6
+        const val INT_LIST = 0x7
+        const val PAIR = 0x8
+        const val TRIPPLE = 0x9
         const val FLOAT = 0xA
 
         const val VARINT_LIST = 0x0
@@ -33,9 +33,20 @@ abstract class Tdf(val label: String, val tagType: Int) {
         const val TRIPPLE_LIST = 0x9
         const val FLOAT_LIST = 0xA
 
+        private fun ByteBuf.readUint(): UInt {
+            val buffer = ByteArray(4)
+            readBytes(buffer)
+
+            return ((buffer[3].toUInt() shl 24) +
+                    (buffer[2].toUInt() shl 16) +
+                    (buffer[1].toUInt() shl 8) +
+                    buffer[0].toUInt())
+        }
+
         fun read(input: ByteBuf): Tdf {
             val head = input.readUnsignedInt()
             val tag = (head and 0xFFFFFF00).toInt()
+            println("TAG: $tag, TYPE: ${head and 0xFF}")
             val label = Labels.fromTag(tag)
             return when (val type = (head and 0xFF).toInt()) {
                 VARINT -> VarIntTdf.from(label, input)
@@ -73,6 +84,10 @@ class StringTdf(label: String, val value: String) : Tdf(label, STRING) {
     }
 
     override fun write(out: ByteBuf) = out.writeString(value)
+
+    override fun toString(): String {
+        return "StringTdf(label=$label, value=$value)"
+    }
 }
 
 class BlobTdf(label: String, val value: ByteArray) : Tdf(label, BLOB) {
@@ -98,7 +113,7 @@ class StructTdf(label: String, val start2: Boolean, val values: List<Tdf>) : Tdf
             var start2 = false
             var byte: Int
             while (true) {
-                byte = input.readByte().toInt()
+                byte = input.readUnsignedByte().toInt()
                 if (byte == 0) break
                 if (byte == 2) {
                     start2 = true
@@ -125,7 +140,7 @@ class ListTdf(label: String, val values: List<Any>) : Tdf(label, LIST) {
 
     companion object {
         fun from(label: String, input: ByteBuf): ListTdf {
-            val subType = input.readByte().toInt()
+            val subType = input.readUnsignedByte().toInt()
             val count = input.readVarInt().toInt()
             return when (subType) {
                 VARINT_LIST -> {
@@ -196,8 +211,8 @@ class PairListTdf(label: String, val a: List<Any>, val b: List<Any>) : Tdf(label
 
     companion object {
         fun from(label: String, input: ByteBuf): PairListTdf {
-            val subTypeA = input.readByte().toInt()
-            val subTypeB = input.readByte().toInt()
+            val subTypeA = input.readUnsignedByte().toInt()
+            val subTypeB = input.readUnsignedByte().toInt()
             val count = input.readVarInt().toInt()
 
             val a = ArrayList<Any>(count)
@@ -272,7 +287,7 @@ class PairListTdf(label: String, val a: List<Any>, val b: List<Any>) : Tdf(label
 class UnionTdf(label: String, val type: Int = 0x7F, val value: Tdf? = null) : Tdf(label, UNION) {
     companion object {
         fun from(label: String, input: ByteBuf): UnionTdf {
-            val type = input.readByte().toInt()
+            val type = input.readUnsignedByte().toInt()
             val value = if (type != 0x7F) {
                 read(input)
             } else null

@@ -16,8 +16,12 @@ class RawPacket(
     val content: List<Tdf> by lazy {
         val buffer = Unpooled.wrappedBuffer(rawContent)
         val values = ArrayList<Tdf>()
-        while (buffer.readableBytes() > 0) {
-            values.add(Tdf.read(buffer))
+        try {
+            while (buffer.readableBytes() > 0) {
+                values.add(Tdf.read(buffer))
+            }
+        } catch (e: Throwable) {
+            e.printStackTrace()
         }
         values
     }

@@ -96,6 +96,8 @@ private class RedirectClient(private val config: Config.RedirectorPacket) : Simp
             val channel = ctx.channel()
             val remoteAddress = channel.remoteAddress()
             LOGGER.info("Sending redirection to client -> $remoteAddress")
+            println(msg)
+            println(msg.content)
             // Create a packet to redirect the client to the target server
             val packet = Packet(msg.component, msg.command,  0x1000, msg.id) {
                 Union(

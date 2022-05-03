@@ -3,6 +3,7 @@ package com.jacobtread.kme.utils
 import com.jacobtread.kme.blaze.RawPacket
 import io.netty.buffer.ByteBuf
 
+
 fun ByteBuf.readPacket(): RawPacket {
     val length = readUnsignedShort();
     val component = readUnsignedShort()
@@ -32,11 +33,11 @@ fun ByteBuf.writeVarInt(value: Long) {
 fun ByteBuf.readVarInt(): Long {
     var value = 0L
     var position = 0
-    var currentByte: Long
+    var currentByte: Int
     while (true) {
-        currentByte = readByte().toLong()
-        value = value or ((currentByte and 0x7F) shl position)
-        if (currentByte and 0x80 == 0L) break
+        currentByte = readUnsignedByte().toInt()
+        value = value or ((currentByte and 0x7F) shl position).toLong()
+        if (currentByte and 0x80 == 0) break
         position += 7
         if (position >= 32) throw RuntimeException("VarInt is too big")
     }
@@ -45,9 +46,9 @@ fun ByteBuf.readVarInt(): Long {
 
 fun ByteBuf.readString(): String {
     val length = readVarInt()
-    val bytes = ByteArray(length.toInt())
+    val bytes = ByteArray(length.toInt() - 1)
     readBytes(bytes)
-    readByte()
+    readUnsignedByte()
     return String(bytes, Charsets.UTF_8)
 }
 
