@@ -93,9 +93,6 @@ class TdfBuilder {
     }
 
     fun write(out: ByteBuf) {
-        for (value in values) {
-            value.writeHead(out)
-            value.write(out)
-        }
+        values.forEach { it.writeFully(out) }
     }
 }

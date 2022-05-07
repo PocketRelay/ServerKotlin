@@ -7,7 +7,6 @@ import com.jacobtread.kme.blaze.builder.Packet
 import com.jacobtread.kme.utils.createContext
 import com.jacobtread.kme.utils.customThreadFactory
 import com.jacobtread.kme.utils.getIp
-import com.jacobtread.kme.utils.readPacket
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
@@ -45,6 +44,7 @@ fun startRedirector(config: Config) {
                             .addLast(PacketDecoder())
                             // Add handler for processing packets
                             .addLast(RedirectClient(config.redirectorPacket))
+                            .addLast(PacketEncoder())
                     }
                 })
                 // Bind the server to the host and port
@@ -110,12 +110,16 @@ private class RedirectClient(private val config: Config.RedirectorPacket) : Simp
                 VarInt("XDNS", config.xdns)
             }
 
+            println(packet)
+            println(packet.content)
+
             // Write the packet, flush and then close the channel
-            channel.writeAndFlush(packet)
-                .addListener {
-                    channel.close()
-                    LOGGER.info("Terminating connection to $remoteAddress (Finished redirect)")
-                }
+            channel.writeAndFlush(packet).sync()
+            print("FLUSHED")
+//                .addListener {
+//                    channel.close()
+//                    LOGGER.info("Terminating connection to $remoteAddress (Finished redirect)")
+//                }
         }
     }
 }

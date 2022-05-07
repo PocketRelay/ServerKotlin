@@ -19,14 +19,18 @@ fun ByteBuf.readPacket(): RawPacket {
 }
 
 fun ByteBuf.writeVarInt(value: Long) {
-    var v = value
-    while (true) {
-        if(v and -128 == 0L) {
-            writeByte(v.toInt())
-            return
+    if (value < 0x40) {
+        writeByte((value and 0xFF).toInt())
+    } else {
+        var curByte = (value and 0x3F).toInt() or 0x80
+        writeByte(curByte)
+        var curShift = value shr 6
+        while (curShift >= 0x80) {
+            curByte = ((curShift and 0x7F) or 0x80).toInt()
+            curShift = curShift shr 7
+            writeByte(curByte)
         }
-        writeByte(((v and 127) or 128).toInt())
-        v = v ushr 7
+        writeByte(curShift.toInt())
     }
 }
 

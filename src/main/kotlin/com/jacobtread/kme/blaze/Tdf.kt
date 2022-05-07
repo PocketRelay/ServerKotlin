@@ -10,12 +10,13 @@ interface TdfValue<T> {
 abstract class Tdf(val label: String, private val tagType: Int) {
     abstract fun write(out: ByteBuf)
 
-    fun writeHead(out: ByteBuf) {
+    fun writeFully(out: ByteBuf) {
         val tag = Labels.toTag(label)
         out.writeByte(tag.shr(24).and(0xFF).toInt())
         out.writeByte(tag.shr(16).and(0xFF).toInt())
         out.writeByte(tag.shr(8).and(0xFF).toInt())
         out.writeByte(tagType)
+        write(out)
     }
 
     companion object {
@@ -133,8 +134,7 @@ class StructTdf(label: String, val start2: Boolean, override val value: List<Tdf
     override fun write(out: ByteBuf) {
         if (start2) out.writeByte(2)
         value.forEach {
-            it.writeHead(out)
-            it.write(out)
+            it.writeFully(out)
         }
         out.writeByte(0)
     }
@@ -310,8 +310,7 @@ class UnionTdf(label: String, val type: Int = 0x7F, val value: Tdf? = null) : Td
     override fun write(out: ByteBuf) {
         out.writeByte(type)
         if (type != 0x7F) {
-            value?.writeHead(out)
-            value?.write(out)
+            value?.writeFully(out)
         }
     }
 
@@ -353,7 +352,7 @@ class PairTdf(label: String, override val value: VPair) : Tdf(label, PAIR), TdfV
     override fun toString(): String = "Pair($label: $value)"
 }
 
-class TrippleTdf(label: String, override val value: VTripple) : Tdf(label, TRIPPLE) , TdfValue<VTripple> {
+class TrippleTdf(label: String, override val value: VTripple) : Tdf(label, TRIPPLE), TdfValue<VTripple> {
     companion object {
         fun from(label: String, input: ByteBuf): TrippleTdf {
             val a = input.readVarInt()
