@@ -37,6 +37,7 @@ fun startMainServer(config: Config, database: Database) {
                             .addLast(PacketDecoder())
                             // Add handler for processing packets
                             .addLast(MainClient(clientId.getAndIncrement(), config, database))
+                            .addLast(PacketEncoder())
                     }
                 })
                 // Bind the server to the host and port
