@@ -28,7 +28,7 @@ object TdfDumper {
             is ListTdf -> "$label: [" + value.value.joinToString(", ") { dumpListValue(it, indent, inline) } + "]"
             is UnionTdf -> dumpUnion(value, indent, inline)
             is VarIntList -> "$label: [" + value.value.joinToString(", ") { it.toString() } + "]"
-            is PairListTdf -> dumpPairList(value, indent, inline)
+            is MapTdf -> dumpMap(value, indent, inline)
             is PairTdf -> "(${value.value.a.hex()}, ${value.value.b.hex()})"
             is TrippleTdf -> "(${value.value.a.hex()}, ${value.value.b.hex()}, ${value.value.c.hex()})"
             is FloatTdf -> "${value.value}"
@@ -84,29 +84,27 @@ object TdfDumper {
         }
     }
 
-    private fun dumpPairList(value: PairListTdf, indent: Int, inline: Boolean): String {
+    private fun dumpMap(value: MapTdf, indent: Int, inline: Boolean): String {
         val builder = StringBuilder()
         builder.append(value.label)
             .append(": [")
-        val a = value.a
-        val b = value.b
         if (inline) {
             builder.append(' ')
-            for (i in a.indices) {
+            for ((k, v) in value.map) {
                 builder.append('(')
-                    .append(dumpListValue(a[i], indent, true))
+                    .append(dumpListValue(k, indent, true))
                     .append(',')
-                    .append(dumpListValue(b[i], indent, true))
+                    .append(dumpListValue(v, indent, true))
                     .append("), ")
             }
             builder.append("]")
         } else {
             builder.append('\n')
-            for (i in a.indices) {
+            for ((k, v) in value.map) {
                 builder.append('(')
-                    .append(dumpListValue(a[i], indent, false))
+                    .append(dumpListValue(k, indent, false))
                     .append(',')
-                    .append(dumpListValue(b[i], indent, false))
+                    .append(dumpListValue(v, indent, false))
                     .append("),\n")
             }
             builder.append("]")

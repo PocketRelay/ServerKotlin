@@ -65,6 +65,10 @@ fun startMainServer(config: Config, database: Database) {
 
 private class MainClient(private val config: Config, private val database: Database) : SimpleChannelInboundHandler<RawPacket>() {
 
+    companion object {
+        val CIDS = listOf(1, 24, 4, 28, 7, 9, 63490, 30720, 15, 30721, 30722, 30723, 30725, 30726, 2000)
+    }
+
     lateinit var channel: Channel
     var player: Player? = null
 
@@ -79,14 +83,97 @@ private class MainClient(private val config: Config, private val database: Datab
         print(msg.toDebugString())
         when (msg.component) {
             PacketComponent.AUTHENTICATION -> handleAuthentication(msg)
-            PacketComponent.GAME_MANAGER -> handleGameManager(ctx, msg)
-            PacketComponent.STATS -> handleStats(ctx, msg)
-            PacketComponent.MESSAGING -> handleMessaging(ctx, msg)
-            PacketComponent.ASSOCIATION_LISTS -> handleAssociationLists(ctx, msg)
-            PacketComponent.GAME_REPORTING -> handleGameReporting(ctx, msg)
-            PacketComponent.USER_SESSIONS -> handleUserSessions(ctx, msg)
+            PacketComponent.GAME_MANAGER -> handleGameManager(msg)
+            PacketComponent.STATS -> handleStats(msg)
+            PacketComponent.MESSAGING -> handleMessaging(msg)
+            PacketComponent.ASSOCIATION_LISTS -> handleAssociationLists(msg)
+            PacketComponent.GAME_REPORTING -> handleGameReporting(msg)
+            PacketComponent.USER_SESSIONS -> handleUserSessions(msg)
+            PacketComponent.UTIL -> handleUtil(msg)
             else -> {}
         }
+    }
+
+    fun handleUtil(packet: RawPacket) {
+        when (packet.command) {
+            PacketCommand.PRE_AUTH -> handlePreAuth(packet)
+            PacketCommand.POST_AUTH -> handlePostAuth(packet)
+        }
+    }
+
+    fun handlePreAuth(packet: RawPacket) {
+        val bootPacket = Packet(packet.component, packet.command, 0, 0x1000, packet.id) {
+            Number("ANON", 0x0)
+            Number("ASRC", 303107)
+            List("CIDS", CIDS)
+            Text("CNGN", "")
+            Struct("CONF") {
+                Map("CONF", mapOf(
+                    "pingPeriod" to "15s",
+                    "voipHeadsetUpdateRate" to "1000",
+                    "xlspConnectionIdleTimeout" to "300"
+                ))
+            }
+            Text("INST", "masseffect-3-pc")
+            Number("MINR", 0x0)
+            Text("NASP", "cem_ea_id")
+            Text("PLID", "")
+            Text("PLAT", "pc") // Platform
+            Text("PTAG", "")
+            Struct("QOSS") {
+                Struct("BWPS") {
+                    Text("PSA", "gossjcprod-qos01.ea.com")
+                    Number("PSP", 17502)
+                    Text("SNA", "prod-sjc")
+                }
+
+                Number("LNP", 0xA)
+                Map("LTPS", mapOf(
+                    "ea-sjc" to MakeStruct {
+                        Text("PSA", "gossjcprod-qos01.ea.com")
+                        Number("PSP", 17502)
+                        Text("SNA", "prod-sjc")
+                    },
+                    "rs-iad" to MakeStruct {
+                        Text("PSA", "gosiadprod-qos01.ea.com")
+                        Number("PSP", 17502)
+                        Text("SNA", "rs-prod-iad")
+                    },
+                    "rs-lhr" to MakeStruct {
+                        Text("PSA", "gosgvaprod-qos01.ea.com")
+                        Number("PSP", 17502)
+                        Text("SNA", "rs-prod-lhr")
+                    }
+                ))
+                Number("SVID", 0x45410805)
+            }
+            Text("RSRC", "303107")
+            Text("SVER", "Blaze 3.15.08.0 (CL# 750727)") // Server Version
+        }
+        channel.writeAndFlush(bootPacket)
+    }
+
+    fun handlePostAuth(packet: RawPacket) {
+        val bootPacket = Packet(packet.component, packet.command, 0, 0x1000, packet.id) {
+
+
+            // Player Sync Service Details
+            Struct("PSS") {
+                Text("ADRS", "playersyncservice.ea.com") // Address
+                Blob("CSIG") // Signature?
+                Number("PJID", 303107)
+                Number("PORT", 443) // Port
+                Number("RPRT", 0xF)
+                Number("TIID", 0x0)
+            }
+
+            Struct("TELE") {
+                Text("ADRS", config.host)
+                Number("ANON", 0)
+            }
+
+        }
+        channel.writeAndFlush(bootPacket)
     }
 
     fun handleAuthentication(packet: RawPacket) {
@@ -168,33 +255,33 @@ private class MainClient(private val config: Config, private val database: Datab
     fun LoginErrorPacket(packet: RawPacket, reason: LoginError) {
         channel.write(Packet(packet.component, packet.command, reason.value, 0x3000, packet.id) {
             Text("PNAM", "")
-            VarInt("UID$NULL_CHAR", 0)
+            Number("UID$NULL_CHAR", 0)
         })
         val remoteAddress = channel.remoteAddress()
         LOGGER.info("Client login failed for address $remoteAddress reason: $reason")
     }
 
-    fun handleGameManager(ctx: ChannelHandlerContext, packet: RawPacket) {
+    fun handleGameManager(packet: RawPacket) {
 
     }
 
-    fun handleStats(ctx: ChannelHandlerContext, packet: RawPacket) {
+    fun handleStats(packet: RawPacket) {
 
     }
 
-    fun handleMessaging(ctx: ChannelHandlerContext, packet: RawPacket) {
+    fun handleMessaging(packet: RawPacket) {
 
     }
 
-    fun handleAssociationLists(ctx: ChannelHandlerContext, packet: RawPacket) {
+    fun handleAssociationLists(packet: RawPacket) {
 
     }
 
-    fun handleGameReporting(ctx: ChannelHandlerContext, packet: RawPacket) {
+    fun handleGameReporting(packet: RawPacket) {
 
     }
 
-    fun handleUserSessions(ctx: ChannelHandlerContext, packet: RawPacket) {
+    fun handleUserSessions(packet: RawPacket) {
 
     }
 

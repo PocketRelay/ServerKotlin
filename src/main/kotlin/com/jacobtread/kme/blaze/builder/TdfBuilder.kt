@@ -14,22 +14,22 @@ class TdfBuilder {
         return this
     }
 
-    fun VarInt(label: String, value: Long): TdfBuilder {
+    fun Number(label: String, value: Long): TdfBuilder {
         values.add(VarIntTdf(label, value))
         return this
     }
 
-    fun VarInt(label: String, value: Int): TdfBuilder {
+    fun Number(label: String, value: Int): TdfBuilder {
         values.add(VarIntTdf(label, value.toLong()))
         return this
     }
 
-    fun VarInt(label: String, value: Short): TdfBuilder {
+    fun Number(label: String, value: Short): TdfBuilder {
         values.add(VarIntTdf(label, value.toLong()))
         return this
     }
 
-    fun Blob(label: String, value: ByteArray): TdfBuilder {
+    fun Blob(label: String, value: ByteArray = ByteArray(0)): TdfBuilder {
         values.add(BlobTdf(label, value))
         return this
     }
@@ -59,14 +59,14 @@ class TdfBuilder {
         return this
     }
 
-    fun Struct(label: String, start2: Boolean = false, init: TdfBuilder.() -> Unit): TdfBuilder {
+    fun Struct(label: String = "", start2: Boolean = false, init: TdfBuilder.() -> Unit): TdfBuilder {
         val builder = TdfBuilder()
         builder.init()
         values.add(StructTdf(label, start2, builder.values))
         return this
     }
 
-    fun StructInline(label: String, start2: Boolean = false, init: TdfBuilder.() -> Unit): StructTdf {
+    fun MakeStruct(label: String = "", start2: Boolean = false, init: TdfBuilder.() -> Unit): StructTdf {
         val builder = TdfBuilder()
         builder.init()
         return StructTdf(label, start2, builder.values)
@@ -82,8 +82,13 @@ class TdfBuilder {
         return this
     }
 
-    fun PairList(label: String, a: List<Any>, b: List<Any>): TdfBuilder {
-        values.add(PairListTdf(label, a, b))
+    fun Map(label: String, map: Map<Any, Any>): TdfBuilder {
+        values.add(MapTdf(label, map))
+        return this
+    }
+
+    fun Map(label: String, vararg pairs: Pair<Any, Any>): TdfBuilder {
+        values.add(MapTdf(label, mapOf(*pairs)))
         return this
     }
 

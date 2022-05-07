@@ -99,14 +99,14 @@ private class RedirectClient(private val config: Config.RedirectorPacket) : Simp
             val packet = Packet(msg.component, msg.command, 0x1000, msg.id) {
                 Union("ADDR",
                     config.addr,
-                    StructInline("VALU") {
+                    MakeStruct("VALU") {
                         Text("HOST", config.host)
-                        VarInt("IP", config.ip.getIp())
-                        VarInt("PORT", config.port)
+                        Number("IP", config.ip.getIp())
+                        Number("PORT", config.port)
                     }
                 )
-                VarInt("SECU", config.secu)
-                VarInt("XDNS", config.xdns)
+                Number("SECU", config.secu)
+                Number("XDNS", config.xdns)
             }
 
             // Write the packet, flush and then close the channel

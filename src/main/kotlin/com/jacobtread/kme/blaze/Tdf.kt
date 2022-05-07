@@ -27,7 +27,7 @@ abstract class Tdf(val label: String, private val tagType: Int) {
         const val BLOB = 0x02
         const val STRUCT = 0x3
         const val LIST = 0x4
-        const val PAIR_LIST = 0x5
+        const val MAP = 0x5
         const val UNION = 0x6
         const val INT_LIST = 0x7
         const val PAIR = 0x8
@@ -50,7 +50,7 @@ abstract class Tdf(val label: String, private val tagType: Int) {
                 BLOB -> BlobTdf.from(label, input)
                 STRUCT -> StructTdf.from(label, input)
                 LIST -> ListTdf.from(label, input)
-                PAIR_LIST -> PairListTdf.from(label, input)
+                MAP -> MapTdf.from(label, input)
                 UNION -> UnionTdf.from(label, input)
                 INT_LIST -> VarIntList.from(label, input)
                 PAIR -> PairTdf.from(label, input)
@@ -189,7 +189,7 @@ class ListTdf(label: String, override val value: List<Any>) : Tdf(label, LIST), 
     init {
         require(value.isNotEmpty()) { "ListTdf contents cannot be empty" }
         subType = when (value[0]) {
-            is Long -> VARINT_LIST
+            is Long, is Int -> VARINT_LIST
             is String -> STRING_LIST
             is StructTdf -> STRUCT_LIST
             is VTripple -> TRIPPLE_LIST
@@ -201,7 +201,13 @@ class ListTdf(label: String, override val value: List<Any>) : Tdf(label, LIST), 
         out.writeByte(subType)
         out.writeVarInt(value.size.toLong())
         when (subType) {
-            VARINT_LIST -> value.forEach { out.writeVarInt(it as Long) }
+            VARINT_LIST -> value.forEach {
+                if (it is Int) {
+                    out.writeVarInt(it.toLong())
+                } else {
+                    out.writeVarInt(it as Long)
+                }
+            }
             STRING_LIST -> value.forEach { out.writeString(it as String) }
             STRUCT_LIST -> value.forEach { (it as StructTdf).write(out) }
             TRIPPLE_LIST -> value.forEach {
@@ -222,85 +228,76 @@ class ListTdf(label: String, override val value: List<Any>) : Tdf(label, LIST), 
     }
 }
 
-class PairListTdf(label: String, val a: List<Any>, val b: List<Any>) : Tdf(label, LIST) {
+class MapTdf(label: String, val map: Map<Any, Any>) : Tdf(label, MAP) {
 
     companion object {
-        fun from(label: String, input: ByteBuf): PairListTdf {
+        fun from(label: String, input: ByteBuf): MapTdf {
             val subTypeA = input.readUnsignedByte().toInt()
             val subTypeB = input.readUnsignedByte().toInt()
             val count = input.readVarInt().toInt()
 
-            val a = ArrayList<Any>(count)
-            val b = ArrayList<Any>(count)
+            val out = HashMap<Any, Any>()
             repeat(count) {
-                when (subTypeA) {
-                    VARINT_LIST -> a.add(input.readVarInt())
-                    STRING_LIST -> a.add(input.readString())
-                    STRUCT_LIST -> a.add(StructTdf.from("", input))
-                    FLOAT_LIST -> a.add(input.readFloat())
+                val key: Any = when (subTypeA) {
+                    VARINT_LIST -> input.readVarInt()
+                    STRING_LIST -> input.readString()
                     else -> throw IllegalStateException("Unknown list subtype $subTypeA")
                 }
-                when (subTypeB) {
-                    VARINT_LIST -> b.add(input.readVarInt())
-                    STRING_LIST -> b.add(input.readString())
-                    STRUCT_LIST -> b.add(StructTdf.from("", input))
-                    FLOAT_LIST -> b.add(input.readFloat())
+                val value: Any = when (subTypeB) {
+                    VARINT_LIST -> input.readVarInt()
+                    STRING_LIST -> input.readString()
+                    STRUCT_LIST -> StructTdf.from("", input)
+                    FLOAT_LIST -> input.readFloat()
                     else -> throw IllegalStateException("Unknown list subtype $subTypeA")
                 }
+                out[key] = value
             }
-            return PairListTdf(label, a, b);
+            return MapTdf(label, out);
         }
     }
 
-    private val subTypeA: Int
-    private val subTypeB: Int
+    private val keySubType: Int
+    private val valueSubType: Int
 
     init {
-        require(a.isNotEmpty()) { "PairListTdf contents cannot be empty" }
-        require(b.isNotEmpty()) { "PairListTdf contents cannot be empty" }
-        require(a.size == b.size) { "PairListTdf both lists must have equal length" }
-        subTypeA = when (a[0]) {
+        require(map.isNotEmpty()) { "PairListTdf contents cannot be empty" }
+        val (key, value) = map.entries.first()
+        keySubType = when (key) {
             is Long -> VARINT_LIST
             is String -> STRING_LIST
-            is StructTdf -> STRUCT_LIST
             is Float -> FLOAT_LIST
-            else -> throw IllegalArgumentException("Don't know how to handle type \"${a[0]::class.java.simpleName}")
+            else -> throw IllegalArgumentException("Don't know how to handle type \"${key::class.java.simpleName}")
         }
-        subTypeB = when (b[0]) {
+        valueSubType = when (value) {
             is Long -> VARINT_LIST
             is String -> STRING_LIST
             is StructTdf -> STRUCT_LIST
             is Float -> FLOAT_LIST
-            else -> throw IllegalArgumentException("Don't know how to handle type \"${b[0]::class.java.simpleName}")
+            else -> throw IllegalArgumentException("Don't know how to handle type \"${value::class.java.simpleName}")
         }
     }
 
     override fun write(out: ByteBuf) {
-        out.writeByte(subTypeA)
-        out.writeByte(subTypeB)
-        out.writeVarInt(a.size.toLong())
-        val length = a.size
-        repeat(length) {
-            val aValue = a[it]
-            val bValue = b[it]
-            when (subTypeA) {
-                VARINT_LIST -> out.writeVarInt(aValue as Long)
-                STRING_LIST -> out.writeString(aValue as String)
-                STRUCT_LIST -> (aValue as StructTdf).write(out)
-                FLOAT_LIST -> out.writeFloat(aValue as Float)
+        out.writeByte(keySubType)
+        out.writeByte(valueSubType)
+        val entries = map.entries
+        out.writeVarInt(entries.size.toLong())
+        for ((key, value) in entries) {
+            when (keySubType) {
+                VARINT_LIST -> out.writeVarInt(key as Long)
+                STRING_LIST -> out.writeString(key as String)
+                FLOAT_LIST -> out.writeFloat(key as Float)
             }
-            when (subTypeB) {
-                VARINT_LIST -> out.writeVarInt(bValue as Long)
-                STRING_LIST -> out.writeString(bValue as String)
-                STRUCT_LIST -> (bValue as StructTdf).write(out)
-                FLOAT_LIST -> out.writeFloat(bValue as Float)
+            when (valueSubType) {
+                VARINT_LIST -> out.writeVarInt(value as Long)
+                STRING_LIST -> out.writeString(value as String)
+                STRUCT_LIST -> (value as StructTdf).write(out)
+                FLOAT_LIST -> out.writeFloat(value as Float)
             }
         }
     }
 
-
-    override fun toString(): String = "PairList($label: $a, $b)"
-
+    override fun toString(): String = "PairList($label: $map)"
 }
 
 class UnionTdf(label: String, val type: Int = 0x7F, val value: Tdf? = null) : Tdf(label, UNION) {
