@@ -42,13 +42,14 @@ fun main() {
     startTelemetryServer(config)
     startHttpServer(config)
 
-//    val database = Database.connect(config)
-//    startMainServer(config, database)
+    val database = Database.connect(config)
+    startMainServer(config, database)
 
-    val input = System.`in`
-    val inputReader = input.bufferedReader()
+    val sysIn = System.`in`
+    val inputReader = sysIn.bufferedReader()
+    var input: String
     while (true) {
-        val input = inputReader.readLine()
+        input = inputReader.readLine()
         LOGGER.info("Unknown command: $input")
     }
 }

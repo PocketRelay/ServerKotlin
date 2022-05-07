@@ -116,11 +116,10 @@ private class RedirectClient(private val config: Config.RedirectorPacket) : Simp
             println(packet.content)
 
             // Write the packet, flush and then close the channel
-            channel.writeAndFlush(packet)
-                .addListener {
-                    channel.close()
-                    LOGGER.info("Terminating connection to $remoteAddress (Finished redirect)")
-                }
+            channel.write(packet)
+            channel.flush()
+            channel.close()
+            LOGGER.info("Terminating connection to $remoteAddress (Finished redirect)")
         }
     }
 }
