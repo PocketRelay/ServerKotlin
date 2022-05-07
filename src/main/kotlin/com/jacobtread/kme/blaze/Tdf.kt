@@ -2,6 +2,8 @@ package com.jacobtread.kme.blaze
 
 import com.jacobtread.kme.utils.*
 import io.netty.buffer.ByteBuf
+import kotlin.reflect.KClass
+import kotlin.reflect.cast
 
 interface TdfValue<T> {
     val value: T
@@ -120,6 +122,16 @@ class StructTdf(label: String, val start2: Boolean, override val value: List<Tdf
         }
     }
 
+    fun <C : TdfValue<T>, T> getValue(type: KClass<C>, label: String): T? {
+        val value = this.value.find { it.label == label }
+        if (value == null || !value.javaClass.isAssignableFrom(type.java)) return null
+        return type.cast(value).value
+    }
+
+    fun getByLabel(label: String): Tdf? {
+        return value.find { it.label == label }
+    }
+
     override fun write(out: ByteBuf) {
         if (start2) out.writeByte(2)
         value.forEach {
@@ -202,6 +214,12 @@ class ListTdf(label: String, override val value: List<Any>) : Tdf(label, LIST), 
     }
 
     override fun toString(): String = "List($label: $value)"
+
+    fun <T : Any> getAtIndex(type: KClass<T>, index: Int): T? {
+        val value = value.getOrNull(index) ?: return null
+        if (!value.javaClass.isAssignableFrom(type.java)) return null
+        return type.cast(value)
+    }
 }
 
 class PairListTdf(label: String, val a: List<Any>, val b: List<Any>) : Tdf(label, LIST) {
