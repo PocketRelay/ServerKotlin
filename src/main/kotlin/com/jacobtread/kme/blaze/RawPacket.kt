@@ -1,5 +1,6 @@
 package com.jacobtread.kme.blaze
 
+import com.jacobtread.kme.utils.hex
 import io.netty.buffer.Unpooled
 import kotlin.reflect.KClass
 import kotlin.reflect.cast
@@ -47,6 +48,33 @@ class RawPacket(
 
     override fun toString(): String {
         return "Packet (Component: $component ($rawComponent), Command: $command ($rawCommand), Error; $error, QType: $qtype, Id: $id, Content: [${rawContent.joinToString(", ") { "${it.toInt().and(0xFF)}" }})"
+    }
+
+    fun toDebugString(raw: Boolean = false): String {
+        val builder = StringBuilder()
+        builder.apply {
+            append("====== Packet Dump ======\n")
+            append("Component: $component (${rawComponent.hex()})\n")
+            append("Command: $command (${rawCommand.hex()})\n")
+            append("Error: ${error.hex()}\n")
+            append("QType: ${qtype.hex()}\n")
+            append("ID: ${id.hex()}\n")
+            val content = content
+            append("Raw Content Length: ${content.size}\n")
+            if (raw) {
+                append('[')
+                rawContent.forEach {
+                    append(it.toInt().and(0xFF))
+                    append(", ")
+                }
+                append("]\n")
+            }
+            append("Content Length: ${content.size}\n")
+            append("=== Content ==\n")
+            append(TdfDumper.dump(content))
+            append("==== End Packet Dump ====\n")
+        }
+        return builder.toString()
     }
 
 }

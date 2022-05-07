@@ -38,16 +38,6 @@ abstract class Tdf(val label: String, private val tagType: Int) {
         const val TRIPPLE_LIST = 0x9
         const val FLOAT_LIST = 0xA
 
-        private fun ByteBuf.readUint(): UInt {
-            val buffer = ByteArray(4)
-            readBytes(buffer)
-
-            return ((buffer[3].toUInt() shl 24) +
-                    (buffer[2].toUInt() shl 16) +
-                    (buffer[1].toUInt() shl 8) +
-                    buffer[0].toUInt())
-        }
-
         fun read(input: ByteBuf): Tdf {
             val head = input.readUnsignedInt()
             val tag = (head and 0xFFFFFF00).toInt()
@@ -89,7 +79,6 @@ class StringTdf(label: String, override val value: String) : Tdf(label, STRING),
     }
 
     override fun write(out: ByteBuf) = out.writeString(value)
-
     override fun toString(): String = "String($label: $value)"
 }
 

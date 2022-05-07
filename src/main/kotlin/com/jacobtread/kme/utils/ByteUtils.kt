@@ -28,3 +28,19 @@ fun Int.asBEBytes(): ByteArray {
     buf.putInt(this)
     return buf.array()
 }
+
+fun Int.hex(): String {
+    return "0x" + this.toString(16)
+}
+
+fun Long.hex(): String {
+    return "0x" + this.toString(16)
+}
+
+fun Byte.hex(): String {
+    return "0x" + this.toString(16)
+}
+
+fun Short.hex(): String {
+    return "0x" + this.toString(16)
+}

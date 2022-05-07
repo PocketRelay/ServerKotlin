@@ -74,7 +74,9 @@ private class MainClient(private val config: Config, private val database: Datab
     }
 
     override fun channelRead0(ctx: ChannelHandlerContext, msg: RawPacket) {
-        LOGGER.info("Incoming packet: $msg")
+
+        LOGGER.info("Incoming packet:")
+        print(msg.toDebugString())
         when (msg.component) {
             PacketComponent.AUTHENTICATION -> handleAuthentication(msg)
             PacketComponent.GAME_MANAGER -> handleGameManager(ctx, msg)
