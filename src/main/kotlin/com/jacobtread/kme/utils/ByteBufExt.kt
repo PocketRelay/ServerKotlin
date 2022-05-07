@@ -35,17 +35,19 @@ fun ByteBuf.writeVarInt(value: Long) {
 }
 
 fun ByteBuf.readVarInt(): Long {
-    var value = 0L
-    var position = 0
-    var currentByte: Int
-    while (true) {
-        currentByte = readUnsignedByte().toInt()
-        value = value or ((currentByte and 0x7F) shl position).toLong()
-        if (currentByte and 0x80 == 0) break
-        position += 7
-        if (position >= 32) throw RuntimeException("VarInt is too big")
+    val firstByte = readUnsignedByte().toLong()
+    var shift = 6
+    var result = firstByte.and(0x3F)
+    if (firstByte >= 0x80) {
+        var byte: Long
+        do {
+            byte = readUnsignedByte().toLong()
+            result = result.or(byte.and(0x7F).shl(shift))
+            shift += 6
+        } while (byte >= 0x80)
     }
-    return value
+    return result
+
 }
 
 fun ByteBuf.readString(): String {
