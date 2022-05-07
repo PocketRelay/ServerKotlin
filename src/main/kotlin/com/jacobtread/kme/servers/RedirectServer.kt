@@ -87,8 +87,6 @@ private class RedirectClient(private val config: Config.RedirectorPacket) : Simp
      * @param msg
      */
     override fun channelRead0(ctx: ChannelHandlerContext, msg: RawPacket) {
-        println(msg)
-        println(msg.content)
         if (msg.component == PacketComponent.REDIRECTOR
             && msg.command == PacketCommand.GET_SERVER_INSTANCE
         ) {
@@ -96,7 +94,6 @@ private class RedirectClient(private val config: Config.RedirectorPacket) : Simp
             val channel = ctx.channel()
             val remoteAddress = channel.remoteAddress()
             LOGGER.info("Sending redirection to client ($remoteAddress) -> on platform ${platform ?: "Unknown"}")
-
 
             // Create a packet to redirect the client to the target server
             val packet = Packet(msg.component, msg.command, 0x1000, msg.id) {
@@ -111,9 +108,6 @@ private class RedirectClient(private val config: Config.RedirectorPacket) : Simp
                 VarInt("SECU", config.secu)
                 VarInt("XDNS", config.xdns)
             }
-
-            println(packet)
-            println(packet.content)
 
             // Write the packet, flush and then close the channel
             channel.write(packet)
