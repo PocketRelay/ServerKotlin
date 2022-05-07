@@ -87,6 +87,8 @@ private class RedirectClient(private val config: Config.RedirectorPacket) : Simp
      * @param msg
      */
     override fun channelRead0(ctx: ChannelHandlerContext, msg: RawPacket) {
+        println(msg)
+        println(msg.content)
         if (msg.component == PacketComponent.REDIRECTOR
             && msg.command == PacketCommand.GET_SERVER_INSTANCE
         ) {
@@ -114,12 +116,11 @@ private class RedirectClient(private val config: Config.RedirectorPacket) : Simp
             println(packet.content)
 
             // Write the packet, flush and then close the channel
-            channel.writeAndFlush(packet).sync()
-            print("FLUSHED")
-//                .addListener {
-//                    channel.close()
-//                    LOGGER.info("Terminating connection to $remoteAddress (Finished redirect)")
-//                }
+            channel.writeAndFlush(packet)
+                .addListener {
+                    channel.close()
+                    LOGGER.info("Terminating connection to $remoteAddress (Finished redirect)")
+                }
         }
     }
 }

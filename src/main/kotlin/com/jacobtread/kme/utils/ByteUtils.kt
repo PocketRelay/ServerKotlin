@@ -12,11 +12,11 @@ object ByteUtils {
 
 fun String.getIp(): Long {
     var result = 0L
-    val (a, b, c, d) = split('.')
-    result = result or (a.toInt() shl 24).toLong()
-    result = result or (b.toInt() shl 16).toLong()
-    result = result or (c.toInt() shl 8).toLong()
-    result = result or (d.toInt()).toLong()
+    val parts = split('.', limit = 4)
+    result = result or (parts[0].toInt() shl 24).toLong()
+    result = result or (parts[1].toInt() shl 16).toLong()
+    result = result or (parts[2].toInt() shl 8).toLong()
+    result = result or (parts[3].toInt()).toLong()
     return result
 }
 

@@ -46,7 +46,7 @@ class RawPacket(
     }
 
     override fun toString(): String {
-        return "Packet (Component: $component ($rawComponent), Command: $command ($rawCommand), Error; $error, QType: $qtype, Id: $id, Content: ${rawContent.contentToString()})"
+        return "Packet (Component: $component ($rawComponent), Command: $command ($rawCommand), Error; $error, QType: $qtype, Id: $id, Content: [${rawContent.joinToString(", ") { "${it.toInt().and(0xFF)}" }})"
     }
 
 }

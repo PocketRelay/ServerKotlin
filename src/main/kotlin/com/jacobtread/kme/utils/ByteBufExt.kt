@@ -43,7 +43,7 @@ fun ByteBuf.readVarInt(): Long {
         do {
             byte = readUnsignedByte().toLong()
             result = result.or(byte.and(0x7F).shl(shift))
-            shift += 6
+            shift += 7
         } while (byte >= 0x80)
     }
     return result

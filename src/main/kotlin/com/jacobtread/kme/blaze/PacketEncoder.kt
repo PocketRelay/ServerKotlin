@@ -23,6 +23,5 @@ class PacketEncoder : MessageToByteEncoder<RawPacket>() {
         }
         out.writeBytes(content)
         ctx.flush()
-        println("WROTE PACKET")
     }
 }
