@@ -66,7 +66,7 @@ fun startMainServer(config: Config, database: Database) {
 private class MainClient(private val id: Int, private val config: Config, private val database: Database) : SimpleChannelInboundHandler<RawPacket>() {
 
     companion object {
-        val CIDS = listOf(1, 24, 4, 28, 7, 9, 63490, 30720, 15, 30721, 30722, 30723, 30725, 30726, 2000)
+        val CIDS = listOf(1, 25, 4, 28, 7, 9, 63490, 30720, 15, 30721, 30722, 30723, 30725, 30726, 2000)
         val TELE_DISA =
             "AD,AF,AG,AI,AL,AM,AN,AO,AQ,AR,AS,AW,AX,AZ,BA,BB,BD,BF,BH,BI,BJ,BM,BN,BO,BR,BS,BT,BV,BW,BY,BZ,CC,CD,CF,CG,CI,CK,CL,CM,CN,CO,CR,CU,CV,CX,DJ,DM,DO,DZ,EC,EG,EH,ER,ET,FJ,FK,FM,FO,GA,GD,GE,GF,GG,GH,GI,GL,GM,GN,GP,GQ,GS,GT,GU,GW,GY,HM,HN,HT,ID,IL,IM,IN,IO,IQ,IR,IS,JE,JM,JO,KE,KG,KH,KI,KM,KN,KP,KR,KW,KY,KZ,LA,LB,LC,LI,LK,LR,LS,LY,MA,MC,MD,ME,MG,MH,ML,MM,MN,MO,MP,MQ,MR,MS,MU,MV,MW,MY,MZ,NA,NC,NE,NF,NG,NI,NP,NR,NU,OM,PA,PE,PF,PG,PH,PK,PM,PN,PS,PW,PY,QA,RE,RS,RW,SA,SB,SC,SD,SG,SH,SJ,SL,SM,SN,SO,SR,ST,SV,SY,SZ,TC,TD,TF,TG,TH,TJ,TK,TL,TM,TN,TO,TT,TV,TZ,UA,UG,UM,UY,UZ,VA,VC,VE,VG,VN,VU,WF,WS,YE,YT,ZM,ZW,ZZ"
         val SKEY = intArrayOf(
@@ -105,19 +105,19 @@ private class MainClient(private val id: Int, private val config: Config, privat
             PacketComponent.ASSOCIATION_LISTS -> handleAssociationLists(msg)
             PacketComponent.GAME_REPORTING -> handleGameReporting(msg)
             PacketComponent.USER_SESSIONS -> handleUserSessions(msg)
-            PacketComponent.UTIL -> handleUtil(msg)
+            PacketComponent.UTIL -> handleUtil(ctx,msg)
             else -> {}
         }
     }
 
-    fun handleUtil(packet: RawPacket) {
+    fun handleUtil(ctx: ChannelHandlerContext, packet: RawPacket) {
         when (packet.command) {
-            PacketCommand.PRE_AUTH -> handlePreAuth(packet)
+            PacketCommand.PRE_AUTH -> handlePreAuth(ctx,packet)
             PacketCommand.POST_AUTH -> handlePostAuth(packet)
         }
     }
 
-    fun handlePreAuth(packet: RawPacket) {
+    fun handlePreAuth(ctx: ChannelHandlerContext, packet: RawPacket) {
         val bootPacket = Packet(packet.component, packet.command, 0, 0x1000, packet.id) {
             number("ANON", 0x0)
             number("ASRC", 303107)
@@ -133,7 +133,7 @@ private class MainClient(private val id: Int, private val config: Config, privat
             text("INST", "masseffect-3-pc")
             number("MINR", 0x0)
             text("NASP", "cem_ea_id")
-            text("PLID", "")
+            text("PILD", "")
             text("PLAT", "pc") // Platform
             text("PTAG", "")
             +struct("QOSS") {
@@ -166,7 +166,9 @@ private class MainClient(private val id: Int, private val config: Config, privat
             text("RSRC", "303107")
             text("SVER", "Blaze 3.15.08.0 (CL# 750727)") // Server Version
         }
-        channel.writeAndFlush(bootPacket)
+        val channel = ctx.channel()
+        channel.write(bootPacket)
+        channel.flush()
     }
 
     fun handlePostAuth(packet: RawPacket) {

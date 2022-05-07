@@ -11,7 +11,9 @@ object TdfDumper {
         val out = StringBuilder()
         for (value in values) {
             out.append(dump(value, indent, inline))
-            if (value is StructTdf) {
+            if (inline) {
+                out.append(" ")
+            } else {
                 out.append('\n')
             }
         }
@@ -69,7 +71,8 @@ object TdfDumper {
         if (value.type == 0x7F) {
             builder.append("Empty")
         } else {
-            builder.append(dump(value, indent, inline))
+            val v = value.value
+            if (v != null) builder.append(dump(v, indent, inline))
         }
         return builder.toString()
     }
@@ -86,6 +89,7 @@ object TdfDumper {
 
     private fun dumpMap(value: MapTdf, indent: Int, inline: Boolean): String {
         val builder = StringBuilder()
+        val newIndent = indent + STRUCT_INDENT
         builder.append(value.label)
             .append(": [")
         if (inline) {
@@ -101,13 +105,15 @@ object TdfDumper {
         } else {
             builder.append('\n')
             for ((k, v) in value.map) {
-                builder.append('(')
-                    .append(dumpListValue(k, indent, false))
+                builder
+                    .append(" ".repeat(newIndent))
+                    .append('(')
+                    .append(dumpListValue(k, newIndent, false))
                     .append(',')
-                    .append(dumpListValue(v, indent, false))
+                    .append(dumpListValue(v, newIndent, false))
                     .append("),\n")
             }
-            builder.append("]")
+            builder.append(" ".repeat(indent) + "]")
         }
         return builder.toString()
     }
