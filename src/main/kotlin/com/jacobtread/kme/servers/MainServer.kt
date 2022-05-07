@@ -2,10 +2,7 @@ package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.Config
 import com.jacobtread.kme.LOGGER
-import com.jacobtread.kme.blaze.PacketCommand
-import com.jacobtread.kme.blaze.PacketComponent
-import com.jacobtread.kme.blaze.PacketDecoder
-import com.jacobtread.kme.blaze.RawPacket
+import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.builder.Packet
 import com.jacobtread.kme.database.Database
 import com.jacobtread.kme.database.repos.PlayersRepository
@@ -67,6 +64,7 @@ private class MainClient(private val config: Config, private val database: Datab
 
     companion object {
         val CIDS = listOf(1, 24, 4, 28, 7, 9, 63490, 30720, 15, 30721, 30722, 30723, 30725, 30726, 2000)
+        val TELE_DISA = "AD,AF,AG,AI,AL,AM,AN,AO,AQ,AR,AS,AW,AX,AZ,BA,BB,BD,BF,BH,BI,BJ,BM,BN,BO,BR,BS,BT,BV,BW,BY,BZ,CC,CD,CF,CG,CI,CK,CL,CM,CN,CO,CR,CU,CV,CX,DJ,DM,DO,DZ,EC,EG,EH,ER,ET,FJ,FK,FM,FO,GA,GD,GE,GF,GG,GH,GI,GL,GM,GN,GP,GQ,GS,GT,GU,GW,GY,HM,HN,HT,ID,IL,IM,IN,IO,IQ,IR,IS,JE,JM,JO,KE,KG,KH,KI,KM,KN,KP,KR,KW,KY,KZ,LA,LB,LC,LI,LK,LR,LS,LY,MA,MC,MD,ME,MG,MH,ML,MM,MN,MO,MP,MQ,MR,MS,MU,MV,MW,MY,MZ,NA,NC,NE,NF,NG,NI,NP,NR,NU,OM,PA,PE,PF,PG,PH,PK,PM,PN,PS,PW,PY,QA,RE,RS,RW,SA,SB,SC,SD,SG,SH,SJ,SL,SM,SN,SO,SR,ST,SV,SY,SZ,TC,TD,TF,TG,TH,TJ,TK,TL,TM,TN,TO,TT,TV,TZ,UA,UG,UM,UY,UZ,VA,VC,VE,VG,VN,VU,WF,WS,YE,YT,ZM,ZW,ZZ"
     }
 
     lateinit var channel: Channel
@@ -103,75 +101,73 @@ private class MainClient(private val config: Config, private val database: Datab
 
     fun handlePreAuth(packet: RawPacket) {
         val bootPacket = Packet(packet.component, packet.command, 0, 0x1000, packet.id) {
-            Number("ANON", 0x0)
-            Number("ASRC", 303107)
-            List("CIDS", CIDS)
-            Text("CNGN", "")
-            Struct("CONF") {
-                Map("CONF", mapOf(
+            number("ANON", 0x0)
+            number("ASRC", 303107)
+            list("CIDS", CIDS)
+            text("CNGN", "")
+            +struct("CONF") {
+                map("CONF", mapOf(
                     "pingPeriod" to "15s",
                     "voipHeadsetUpdateRate" to "1000",
                     "xlspConnectionIdleTimeout" to "300"
                 ))
             }
-            Text("INST", "masseffect-3-pc")
-            Number("MINR", 0x0)
-            Text("NASP", "cem_ea_id")
-            Text("PLID", "")
-            Text("PLAT", "pc") // Platform
-            Text("PTAG", "")
-            Struct("QOSS") {
-                Struct("BWPS") {
-                    Text("PSA", "gossjcprod-qos01.ea.com")
-                    Number("PSP", 17502)
-                    Text("SNA", "prod-sjc")
+            text("INST", "masseffect-3-pc")
+            number("MINR", 0x0)
+            text("NASP", "cem_ea_id")
+            text("PLID", "")
+            text("PLAT", "pc") // Platform
+            text("PTAG", "")
+            +struct("QOSS") {
+                +struct("BWPS") {
+                    text("PSA", "gossjcprod-qos01.ea.com")
+                    number("PSP", 17502)
+                    text("SNA", "prod-sjc")
                 }
 
-                Number("LNP", 0xA)
-                Map("LTPS", mapOf(
-                    "ea-sjc" to MakeStruct {
-                        Text("PSA", "gossjcprod-qos01.ea.com")
-                        Number("PSP", 17502)
-                        Text("SNA", "prod-sjc")
+                number("LNP", 0xA)
+                map("LTPS", mapOf(
+                    "ea-sjc" to struct {
+                        text("PSA", "gossjcprod-qos01.ea.com")
+                        number("PSP", 17502)
+                        text("SNA", "prod-sjc")
                     },
-                    "rs-iad" to MakeStruct {
-                        Text("PSA", "gosiadprod-qos01.ea.com")
-                        Number("PSP", 17502)
-                        Text("SNA", "rs-prod-iad")
+                    "rs-iad" to struct {
+                        text("PSA", "gosiadprod-qos01.ea.com")
+                        number("PSP", 17502)
+                        text("SNA", "rs-prod-iad")
                     },
-                    "rs-lhr" to MakeStruct {
-                        Text("PSA", "gosgvaprod-qos01.ea.com")
-                        Number("PSP", 17502)
-                        Text("SNA", "rs-prod-lhr")
+                    "rs-lhr" to struct {
+                        text("PSA", "gosgvaprod-qos01.ea.com")
+                        number("PSP", 17502)
+                        text("SNA", "rs-prod-lhr")
                     }
                 ))
-                Number("SVID", 0x45410805)
+                number("SVID", 0x45410805)
             }
-            Text("RSRC", "303107")
-            Text("SVER", "Blaze 3.15.08.0 (CL# 750727)") // Server Version
+            text("RSRC", "303107")
+            text("SVER", "Blaze 3.15.08.0 (CL# 750727)") // Server Version
         }
         channel.writeAndFlush(bootPacket)
     }
 
     fun handlePostAuth(packet: RawPacket) {
         val bootPacket = Packet(packet.component, packet.command, 0, 0x1000, packet.id) {
-
-
-            // Player Sync Service Details
-            Struct("PSS") {
-                Text("ADRS", "playersyncservice.ea.com") // Address
-                Blob("CSIG") // Signature?
-                Number("PJID", 303107)
-                Number("PORT", 443) // Port
-                Number("RPRT", 0xF)
-                Number("TIID", 0x0)
+            +struct("PSS") {
+                text("ADRS", "playersyncservice.ea.com")
+                blob("CSIG", ByteArray(0))
+                number("PJID",303107)
+                number("PORT",443)
+                number("RPRT", 0xF)
+                number("TIID", 0x0)
             }
 
-            Struct("TELE") {
-                Text("ADRS", config.host)
-                Number("ANON", 0)
+            +struct("TELE") {
+                text("ADRS", config.host) // Server Address
+                number("ANON", 0)
+                text("DISA", TELE_DISA)
+                text("FILT", "-UION/****") // Telemetry filter?
             }
-
         }
         channel.writeAndFlush(bootPacket)
     }
@@ -254,8 +250,8 @@ private class MainClient(private val config: Config, private val database: Datab
 
     fun LoginErrorPacket(packet: RawPacket, reason: LoginError) {
         channel.write(Packet(packet.component, packet.command, reason.value, 0x3000, packet.id) {
-            Text("PNAM", "")
-            Number("UID$NULL_CHAR", 0)
+            text("PNAM", "")
+            number("UID$NULL_CHAR", 0)
         })
         val remoteAddress = channel.remoteAddress()
         LOGGER.info("Client login failed for address $remoteAddress reason: $reason")

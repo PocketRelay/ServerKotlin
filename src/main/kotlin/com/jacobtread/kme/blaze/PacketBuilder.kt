@@ -3,7 +3,7 @@ package com.jacobtread.kme.blaze.builder
 import com.jacobtread.kme.blaze.PacketCommand
 import com.jacobtread.kme.blaze.PacketComponent
 import com.jacobtread.kme.blaze.RawPacket
-import io.netty.buffer.ByteBuf
+import com.jacobtread.kme.blaze.TdfBuilder
 import io.netty.buffer.Unpooled
 
 fun Packet(

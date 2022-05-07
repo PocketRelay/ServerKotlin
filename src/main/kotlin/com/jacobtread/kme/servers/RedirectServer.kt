@@ -97,16 +97,16 @@ private class RedirectClient(private val config: Config.RedirectorPacket) : Simp
 
             // Create a packet to redirect the client to the target server
             val packet = Packet(msg.component, msg.command, 0x1000, msg.id) {
-                Union("ADDR",
+                union("ADDR",
                     config.addr,
-                    MakeStruct("VALU") {
-                        Text("HOST", config.host)
-                        Number("IP", config.ip.getIp())
-                        Number("PORT", config.port)
+                    struct("VALU") {
+                        text("HOST", config.host)
+                        number("IP", config.ip.getIp())
+                        number("PORT", config.port)
                     }
                 )
-                Number("SECU", config.secu)
-                Number("XDNS", config.xdns)
+                number("SECU", config.secu)
+                number("XDNS", config.xdns)
             }
 
             // Write the packet, flush and then close the channel
