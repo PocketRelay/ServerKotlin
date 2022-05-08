@@ -1,21 +1,17 @@
-package com.jacobtread.kme.blaze.builder
+package com.jacobtread.kme.blaze
 
-import com.jacobtread.kme.blaze.PacketCommand
-import com.jacobtread.kme.blaze.PacketComponent
-import com.jacobtread.kme.blaze.RawPacket
-import com.jacobtread.kme.blaze.TdfBuilder
 import io.netty.buffer.Unpooled
 
-fun Packet(
+fun packet(
     component: PacketComponent,
     command: PacketCommand,
     qtype: Int,
     id: Int,
     error: Int = 0,
     content: TdfBuilder.() -> Unit,
-): RawPacket = Packet(component.id, command.value, qtype, id, error, content)
+): RawPacket = packet(component.id, command.value, qtype, id, error, content)
 
-fun Packet(
+fun packet(
     component: Int,
     command: Int,
     qtype: Int,

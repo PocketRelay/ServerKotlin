@@ -3,10 +3,9 @@ package com.jacobtread.kme.servers
 import com.jacobtread.kme.Config
 import com.jacobtread.kme.LOGGER
 import com.jacobtread.kme.blaze.*
-import com.jacobtread.kme.blaze.builder.Packet
 import com.jacobtread.kme.utils.createContext
 import com.jacobtread.kme.utils.customThreadFactory
-import com.jacobtread.kme.utils.getIp
+import com.jacobtread.kme.blaze.utils.getIp
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
@@ -96,7 +95,7 @@ private class RedirectClient(private val config: Config.RedirectorPacket) : Simp
             LOGGER.info("Sending redirection to client ($remoteAddress) -> on platform ${platform ?: "Unknown"}")
 
             // Create a packet to redirect the client to the target server
-            val packet = Packet(msg.component, msg.command, 0x1000, msg.id) {
+            val packet = packet(msg.component, msg.command, 0x1000, msg.id) {
                 union("ADDR",
                     config.addr,
                     struct("VALU") {

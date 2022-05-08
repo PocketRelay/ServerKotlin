@@ -1,6 +1,8 @@
 package com.jacobtread.kme.blaze
 
-import com.jacobtread.kme.utils.*
+import com.jacobtread.kme.blaze.utils.*
+import com.jacobtread.kme.utils.VPair
+import com.jacobtread.kme.utils.VTripple
 import io.netty.buffer.ByteBuf
 import kotlin.reflect.KClass
 import kotlin.reflect.cast

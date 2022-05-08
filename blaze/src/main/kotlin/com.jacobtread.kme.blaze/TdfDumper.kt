@@ -1,7 +1,7 @@
 package com.jacobtread.kme.blaze
 
+import com.jacobtread.kme.blaze.utils.hex
 import com.jacobtread.kme.utils.VTripple
-import com.jacobtread.kme.utils.hex
 
 object TdfDumper {
 

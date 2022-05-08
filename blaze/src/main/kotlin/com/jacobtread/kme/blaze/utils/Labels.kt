@@ -1,4 +1,7 @@
-package com.jacobtread.kme.utils
+package com.jacobtread.kme.blaze.utils
+
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
 object Labels {
 
@@ -29,7 +32,11 @@ object Labels {
     }
 
     fun fromTag(tag: Int): String {
-        val buff = tag.asBEBytes()
+        val buf = ByteBuffer.allocate(4)
+        buf.order(ByteOrder.BIG_ENDIAN)
+        buf.putInt(tag)
+        val buff = buf.array()
+
         val res = ByteArray(4)
         res[0] = (res[0].toInt() or (buff[0].toInt() and 0x80 shr 1)).toByte()
         res[0] = (res[0].toInt() or (buff[0].toInt() and 0x40 shr 2)).toByte()

@@ -3,12 +3,11 @@ package com.jacobtread.kme.servers
 import com.jacobtread.kme.Config
 import com.jacobtread.kme.LOGGER
 import com.jacobtread.kme.blaze.*
-import com.jacobtread.kme.blaze.builder.Packet
 import com.jacobtread.kme.database.Database
 import com.jacobtread.kme.database.repos.PlayersRepository
-import com.jacobtread.kme.exception.InvalidTdfException
+import com.jacobtread.kme.blaze.exception.InvalidTdfException
 import com.jacobtread.kme.game.Player
-import com.jacobtread.kme.utils.NULL_CHAR
+import com.jacobtread.kme.blaze.utils.NULL_CHAR
 import com.jacobtread.kme.utils.customThreadFactory
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
@@ -127,7 +126,7 @@ private class MainClient(private val id: Int, private val config: Config, privat
     }
 
     fun handlePreAuth(packet: RawPacket) {
-        val bootPacket = Packet(packet.component, packet.command, 0, 0x1000, packet.id) {
+        val bootPacket = packet(packet.component, packet.command, 0, 0x1000, packet.id) {
             number("ANON", 0x0)
             number("ASRC", 303107)
             list("CIDS", CIDS)
@@ -179,7 +178,7 @@ private class MainClient(private val id: Int, private val config: Config, privat
     }
 
     fun handlePostAuth(packet: RawPacket) {
-        val bootPacket = Packet(packet.component, packet.command, 0, 0x1000, packet.id) {
+        val bootPacket = packet(packet.component, packet.command, 0, 0x1000, packet.id) {
             +struct("PSS") {
                 text("ADRS", "playersyncservice.ea.com")
                 blob("CSIG", ByteArray(0))
@@ -308,7 +307,7 @@ private class MainClient(private val id: Int, private val config: Config, privat
     }
 
     fun LoginErrorPacket(packet: RawPacket, reason: LoginError) {
-        channel.write(Packet(packet.component, packet.command, reason.value, 0x3000, packet.id) {
+        channel.write(packet(packet.component, packet.command, reason.value, 0x3000, packet.id) {
             text("PNAM", "")
             number("UID$NULL_CHAR", 0)
         })
