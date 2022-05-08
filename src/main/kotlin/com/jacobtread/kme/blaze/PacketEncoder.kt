@@ -9,7 +9,7 @@ class PacketEncoder : MessageToByteEncoder<RawPacket>() {
     override fun encode(ctx: ChannelHandlerContext, msg: RawPacket, out: ByteBuf) {
         try {
             println("SENDING PACKET -> ")
-            println(msg.toDebugString())
+            println(msg.toDebugString(true))
         } catch (e: Throwable) {
             e.printStackTrace()
         }
