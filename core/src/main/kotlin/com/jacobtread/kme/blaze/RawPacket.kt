@@ -1,5 +1,6 @@
 package com.jacobtread.kme.blaze
 
+import com.jacobtread.kme.exception.InvalidTdfException
 import com.jacobtread.kme.utils.hex
 import io.netty.buffer.Unpooled
 import kotlin.reflect.KClass
@@ -40,10 +41,25 @@ class RawPacket(
         return type.cast(value)
     }
 
-    fun <C : TdfValue<T>, T> getValue(type: KClass<C>, label: String): T? {
+    @Throws(InvalidTdfException::class)
+    fun <C : TdfValue<T>, T> getValue(type: KClass<C>, label: String): T {
+        val value = content.find { it.label == label } ?: throw InvalidTdfException(label, "No value found")
+        if (!value.javaClass.isAssignableFrom(type.java)) throw InvalidTdfException(label, "Value not of type: ${value.javaClass.simpleName}")
+        try {
+            return type.cast(value).value
+        } catch (e: ClassCastException) {
+            throw InvalidTdfException(label, "Failed to cast value to: ${value.javaClass.simpleName}")
+        }
+    }
+
+    fun <C : TdfValue<T>, T> getValueOrNull(type: KClass<C>, label: String): T? {
         val value = content.find { it.label == label }
         if (value == null || !value.javaClass.isAssignableFrom(type.java)) return null
-        return type.cast(value).value
+        return try {
+            type.cast(value).value
+        } catch (e: ClassCastException) {
+            null
+        }
     }
 
     override fun toString(): String {

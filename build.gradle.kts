@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
     kotlin("jvm") version "1.6.20"
     kotlin("plugin.serialization") version "1.6.20"
@@ -8,27 +6,24 @@ plugins {
 group = "com.jacobtread.kme"
 version = "1.0-SNAPSHOT"
 
-repositories {
-    mavenCentral()
+allprojects {
+
+    apply(plugin = "org.jetbrains.kotlin.jvm")
+    apply(plugin = "org.jetbrains.kotlin.plugin.serialization")
+
+    repositories {
+        mavenCentral()
+    }
 }
+
 
 dependencies {
-    testImplementation(kotlin("test"))
-    // https://mvnrepository.com/artifact/io.netty/netty-all
-    implementation("io.netty:netty-all:4.1.76.Final")
-    implementation("net.mamoe.yamlkt:yamlkt:0.10.2")
-    implementation("mysql:mysql-connector-java:8.0.29")
-
+    implementation(project(":core"))
 }
 
-tasks.test {
-    useJUnitPlatform()
-}
-
-tasks.withType<KotlinCompile> {
-    kotlinOptions {
-        jvmTarget = "1.8"
-        freeCompilerArgs = listOf("-opt-in=kotlin.RequiresOptIn")
-    }
-
+tasks.create("start", JavaExec::class.java) {
+    classpath = sourceSets["main"].runtimeClasspath
+    args = listOf()
+    mainClass.set("com.jacobtread.kme.App")
+    workingDir = File(projectDir, "run")
 }

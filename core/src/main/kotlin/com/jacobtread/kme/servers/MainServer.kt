@@ -6,6 +6,7 @@ import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.builder.Packet
 import com.jacobtread.kme.database.Database
 import com.jacobtread.kme.database.repos.PlayersRepository
+import com.jacobtread.kme.exception.InvalidTdfException
 import com.jacobtread.kme.game.Player
 import com.jacobtread.kme.utils.NULL_CHAR
 import com.jacobtread.kme.utils.customThreadFactory
@@ -93,31 +94,39 @@ private class MainClient(private val id: Int, private val config: Config, privat
         this.channel = ctx.channel()
     }
 
-    override fun channelRead0(ctx: ChannelHandlerContext, msg: RawPacket) {
+    fun send(packet: RawPacket) {
+        channel.write(packet)
+        channel.flush()
+    }
 
-        LOGGER.info("Incoming packet:")
-        print(msg.toDebugString())
-        when (msg.component) {
-            PacketComponent.AUTHENTICATION -> handleAuthentication(msg)
-            PacketComponent.GAME_MANAGER -> handleGameManager(msg)
-            PacketComponent.STATS -> handleStats(msg)
-            PacketComponent.MESSAGING -> handleMessaging(msg)
-            PacketComponent.ASSOCIATION_LISTS -> handleAssociationLists(msg)
-            PacketComponent.GAME_REPORTING -> handleGameReporting(msg)
-            PacketComponent.USER_SESSIONS -> handleUserSessions(msg)
-            PacketComponent.UTIL -> handleUtil(ctx,msg)
-            else -> {}
+    override fun channelRead0(ctx: ChannelHandlerContext, msg: RawPacket) {
+        try {
+            LOGGER.info("Incoming packet:")
+            print(msg.toDebugString())
+            when (msg.component) {
+                PacketComponent.AUTHENTICATION -> handleAuthentication(msg)
+                PacketComponent.GAME_MANAGER -> handleGameManager(msg)
+                PacketComponent.STATS -> handleStats(msg)
+                PacketComponent.MESSAGING -> handleMessaging(msg)
+                PacketComponent.ASSOCIATION_LISTS -> handleAssociationLists(msg)
+                PacketComponent.GAME_REPORTING -> handleGameReporting(msg)
+                PacketComponent.USER_SESSIONS -> handleUserSessions(msg)
+                PacketComponent.UTIL -> handleUtil(msg)
+                else -> {}
+            }
+        } catch (e: InvalidTdfException) {
+            LOGGER.warn("Failed to handle packet $msg", e)
         }
     }
 
-    fun handleUtil(ctx: ChannelHandlerContext, packet: RawPacket) {
+    fun handleUtil(packet: RawPacket) {
         when (packet.command) {
-            PacketCommand.PRE_AUTH -> handlePreAuth(ctx,packet)
+            PacketCommand.PRE_AUTH -> handlePreAuth(packet)
             PacketCommand.POST_AUTH -> handlePostAuth(packet)
         }
     }
 
-    fun handlePreAuth(ctx: ChannelHandlerContext, packet: RawPacket) {
+    fun handlePreAuth(packet: RawPacket) {
         val bootPacket = Packet(packet.component, packet.command, 0, 0x1000, packet.id) {
             number("ANON", 0x0)
             number("ASRC", 303107)
@@ -166,9 +175,7 @@ private class MainClient(private val id: Int, private val config: Config, privat
             text("RSRC", "303107")
             text("SVER", "Blaze 3.15.08.0 (CL# 750727)") // Server Version
         }
-        val channel = ctx.channel()
-        channel.write(bootPacket)
-        channel.flush()
+        send(bootPacket)
     }
 
     fun handlePostAuth(packet: RawPacket) {
@@ -210,14 +217,12 @@ private class MainClient(private val id: Int, private val config: Config, privat
                 number("UID", id)
             }
         }
-        channel.writeAndFlush(bootPacket)
+        send(bootPacket)
     }
 
     fun handleAuthentication(packet: RawPacket) {
         when (packet.command) {
-            PacketCommand.LIST_USER_ENTITLEMENTS_2 -> {
-
-            }
+            PacketCommand.LIST_USER_ENTITLEMENTS_2 -> handleListUserEntitlements2(packet)
             PacketCommand.GET_AUTH_TOKEN -> {
 
             }
@@ -245,6 +250,19 @@ private class MainClient(private val id: Int, private val config: Config, privat
 
             }
         }
+    }
+
+    fun handleListUserEntitlements2(packet: RawPacket) {
+        val etag = packet.getValue(StringTdf::class, "ETAG")
+        if (etag.isEmpty()) {
+
+        } else {
+            sendEmpty(packet, 0x1000)
+        }
+    }
+
+    fun sendEmpty(packet: RawPacket, qtype: Int) {
+        send(RawPacket(packet.rawComponent, packet.rawCommand, 0, qtype, packet.id, ByteArray(0)))
     }
 
     fun handleLogin(packet: RawPacket) {
