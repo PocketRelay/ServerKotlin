@@ -23,7 +23,7 @@ data class Config(
     val database: Database = Database(),
 
     @Comment("OriginDummy")
-    val origin: Origin,
+    val origin: Origin = Origin(),
 
     val natType: Int = 4,
 ) {

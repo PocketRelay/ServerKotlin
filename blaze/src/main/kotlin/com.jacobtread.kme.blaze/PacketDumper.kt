@@ -32,14 +32,14 @@ object PacketDumper {
 
         out.append(") {\n")
         rawPacket.content.forEach {
-            appendTdf(out, 1, it)
+            appendTdf(out, 1, it, false)
             out.append('\n')
         }
         out.append("}")
         return out.toString()
     }
 
-    fun appendTdf(out: StringBuilder, indent: Int, value: Tdf) {
+    fun appendTdf(out: StringBuilder, indent: Int, value: Tdf, inline: Boolean) {
         when (value) {
             is VarIntTdf -> {
                 out.append("  ".repeat(indent))
@@ -74,7 +74,8 @@ object PacketDumper {
             }
             is StructTdf -> {
                 out.append("  ".repeat(indent))
-                    .append("struct")
+                if (!inline) out.append('+')
+                out.append("struct")
                 if (value.label.isNotEmpty()) {
                     out.append("(\"")
                         .append(value.label)
@@ -91,7 +92,7 @@ object PacketDumper {
                 }
                 val contents = value.value
                 contents.forEach {
-                    appendTdf(out, indent + 1, it)
+                    appendTdf(out, indent + 1, it, false)
                     out.append('\n')
                 }
                 out.append("  ".repeat(indent)).append("}")
@@ -146,7 +147,7 @@ object PacketDumper {
                     else -> {
                         out.append('\n')
                         for (i in content.indices) {
-                            appendTdf(out, indent + 1, content[i] as StructTdf)
+                            appendTdf(out, indent + 1, content[i] as StructTdf, true)
                             if (i != length - 1) {
                                 out.append(',')
                             }
@@ -169,7 +170,7 @@ object PacketDumper {
                         .append("0x")
                         .append(value.type.toString(16))
                         .append(",\n")
-                    appendTdf(out, indent + 1, content)
+                    appendTdf(out, indent + 1, content, true)
                     out.append("\n")
                         .append("  ".repeat(indent))
                         .append(')')
@@ -205,7 +206,7 @@ object PacketDumper {
                         is Long -> out.append("0x")
                             .append(va.toString(16))
                         is Float -> out.append(va.toString())
-                        is StructTdf -> appendTdf(out, indent + 1, va as StructTdf)
+                        is StructTdf -> appendTdf(out, indent + 1, va, true)
                     }
                     out.append(",\n")
                 }

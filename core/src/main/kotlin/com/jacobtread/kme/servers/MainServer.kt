@@ -131,15 +131,10 @@ private class MainClient(private val session: SessionData, private val config: C
         this.channel = ctx.channel()
     }
 
-    fun send(packet: RawPacket) {
-        channel.write(packet)
-        channel.flush()
-    }
-
     override fun channelRead0(ctx: ChannelHandlerContext, msg: RawPacket) {
         try {
             LOGGER.info("Incoming packet:")
-            print(msg.toDebugString())
+            println(PacketDumper.dump(msg))
             when (msg.component) {
                 PacketComponent.AUTHENTICATION -> handleAuthentication(msg)
                 PacketComponent.GAME_MANAGER -> handleGameManager(msg)
@@ -164,7 +159,7 @@ private class MainClient(private val session: SessionData, private val config: C
     }
 
     fun handlePreAuth(packet: RawPacket) {
-        val bootPacket = packet(packet.component, packet.command, 0, 0x1000, packet.id) {
+        packet(packet.component, packet.command, 0, 0x1000, packet.id) {
             number("ANON", 0x0)
             number("ASRC", 303107)
             list("CIDS", CIDS)
@@ -211,12 +206,11 @@ private class MainClient(private val session: SessionData, private val config: C
             }
             text("RSRC", "303107")
             text("SVER", "Blaze 3.15.08.0 (CL# 750727)") // Server Version
-        }
-        send(bootPacket)
+        }.send()
     }
 
     fun handlePostAuth(packet: RawPacket) {
-        val bootPacket = packet(packet.component, packet.command, 0, 0x1000, packet.id) {
+        packet(packet.component, packet.command, 0, 0x1000, packet.id) {
             +struct("PSS") {
                 text("ADRS", "playersyncservice.ea.com")
                 blob("CSIG", ByteArray(0))
@@ -253,19 +247,24 @@ private class MainClient(private val session: SessionData, private val config: C
                 number("TMOP", 0x1)
                 number("UID", session.id)
             }
-        }
-        send(bootPacket)
+        }.send()
+    }
+
+    fun RawPacket.send() {
+        channel.write(this)
+        channel.flush()
     }
 
     fun handleAuthentication(packet: RawPacket) {
         when (packet.command) {
             PacketCommand.LIST_USER_ENTITLEMENTS_2 -> handleListUserEntitlements2(packet)
             PacketCommand.GET_AUTH_TOKEN -> {
-
+                val player = session.player ?: return
+                packet(packet.component, packet.command, 0, 0x1000, packet.id) {
+                    text("AUTH", player.id.toString(16))
+                }.send()
             }
-            PacketCommand.LOGIN -> {
-
-            }
+            PacketCommand.LOGIN -> handleLogin(packet)
             PacketCommand.SILENT_LOGIN -> {
 
             }
@@ -283,21 +282,20 @@ private class MainClient(private val session: SessionData, private val config: C
             PacketCommand.CHECK_AGE_REQUIREMENT,
             PacketCommand.CREATE_ACCOUNT,
             PacketCommand.CREATE_PERSONA,
-            -> {
-
-            }
+            -> empty(packet, 0x1000)
+            else -> throw RuntimeException("Packet command didn't match packet component")
         }
     }
 
     fun handleListUserEntitlements2(packet: RawPacket) {
         val etag = packet.getValue(StringTdf::class, "ETAG")
         if (etag.isEmpty()) {
-            send(Data.makeUserEntitlements2(packet.id))
+            Data.makeUserEntitlements2(packet.id).send()
             if (!session.sendOffers) {
                 session.sendOffers = true
                 @Suppress("SpellCheckingInspection")
                 val sessPacket = packet(PacketComponent.USER_SESSIONS, PacketCommand.START_SESSION, 0x2000, 0x0) {
-                    struct("DATA") {
+                    +struct("DATA") {
                         +session.createAddrUnion("ADDR")
 
                         text("BPS", "ea-sjc")
@@ -306,7 +304,7 @@ private class MainClient(private val session: SessionData, private val config: C
                         map("DMAP", mapOf(0x70001 to 0x2e))
                         number("HWFG", 0x0)
                         list("PSLM", listOf(0xfff0fff, 0xfff0fff, 0xfff0fff))
-                        struct("QDAT") {
+                        +struct("QDAT") {
                             number("DBPS", 0x0)
                             number("NATT", config.natType)
                             number("UBPS", 0x0)
@@ -315,17 +313,20 @@ private class MainClient(private val session: SessionData, private val config: C
                     }
                     number("USID", session.userId)
                 }
-                send(sessPacket)
-                send(sessPacket)
+                sessPacket.send()
+                sessPacket.send()
             }
         } else {
-            sendEmpty(packet, 0x1000)
+            empty(packet, 0x1000)
         }
     }
 
-    fun sendEmpty(packet: RawPacket, qtype: Int) {
-        send(RawPacket(packet.rawComponent, packet.rawCommand, 0, qtype, packet.id, ByteArray(0)))
+    private val EMPTY_BYTE_ARRAY = ByteArray(0)
+
+    fun empty(packet: RawPacket, qtype: Int) {
+        RawPacket(packet.rawComponent, packet.rawCommand, 0, qtype, packet.id, EMPTY_BYTE_ARRAY).send()
     }
+
 
     fun handleLogin(packet: RawPacket) {
         val content = packet.content

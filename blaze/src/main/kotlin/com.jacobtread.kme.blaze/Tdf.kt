@@ -265,13 +265,13 @@ class MapTdf(label: String, val map: Map<Any, Any>) : Tdf(label, MAP) {
         require(map.isNotEmpty()) { "PairListTdf contents cannot be empty" }
         val (key, value) = map.entries.first()
         keySubType = when (key) {
-            is Long -> VARINT_LIST
+            is Long, is Int -> VARINT_LIST
             is String -> STRING_LIST
             is Float -> FLOAT_LIST
             else -> throw IllegalArgumentException("Don't know how to handle type \"${key::class.java.simpleName}")
         }
         valueSubType = when (value) {
-            is Long -> VARINT_LIST
+            is Long, is Int -> VARINT_LIST
             is String -> STRING_LIST
             is StructTdf -> STRUCT_LIST
             is Float -> FLOAT_LIST

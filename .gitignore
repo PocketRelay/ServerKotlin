@@ -18,3 +18,5 @@ gradle-app.setting
 /run/
 
 */build
+
+/logs
