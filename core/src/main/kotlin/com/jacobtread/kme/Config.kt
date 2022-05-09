@@ -21,6 +21,11 @@ data class Config(
 
     @Comment("Database connection info")
     val database: Database = Database(),
+
+    @Comment("OriginDummy")
+    val origin: Origin,
+
+    val natType: Int = 4,
 ) {
 
     @Serializable
@@ -62,5 +67,12 @@ data class Config(
         val port: Int = 14219,
         val secu: Int = 0x0,
         val xdns: Int = 0x0,
+    )
+
+    @Serializable
+    data class Origin(
+        val name: String = "OriginPlayer",
+        val pid: Int = 0x12345678,
+        val uid: Int = 0x12345678,
     )
 }

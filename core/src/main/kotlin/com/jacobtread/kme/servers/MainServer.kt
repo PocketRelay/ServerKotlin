@@ -4,6 +4,7 @@ import com.jacobtread.kme.Config
 import com.jacobtread.kme.LOGGER
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.exception.InvalidTdfException
+import com.jacobtread.kme.blaze.utils.IPAddress
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Database
 import com.jacobtread.kme.database.repos.PlayersRepository
@@ -32,8 +33,13 @@ fun startMainServer(config: Config, database: Database) {
                 .childHandler(object : ChannelInitializer<Channel>() {
                     override fun initChannel(ch: Channel) {
                         println("Main Server Connection")
+                        val remoteAddress = ch.remoteAddress()
+                        val addressEncoded = IPAddress.asLong(remoteAddress)
                         val session = SessionData(
-                            clientId.getAndIncrement()
+                            clientId.getAndIncrement(),
+                            config.origin.uid,
+                            NetData(addressEncoded, 3659),
+                            NetData(addressEncoded, 3659)
                         )
                         ch.pipeline()
                             // Add handler for decoding packet
@@ -68,9 +74,30 @@ fun startMainServer(config: Config, database: Database) {
 
 class SessionData(
     val id: Int,
+    var userId: Int,
+    val exip: NetData,
+    val inip: NetData,
     var player: Player? = null,
     var sendOffers: Boolean = false,
-)
+) {
+
+
+    fun createAddrUnion(label: String): UnionTdf =
+        UnionTdf(label, 0x02, struct("VALU") {
+            struct("EXIP") {
+                number("IP", exip.address)
+                number("PORT", exip.port)
+            }
+            struct("INIP") {
+                number("IP", inip.address)
+                number("PORT", inip.port)
+            }
+        })
+
+
+}
+
+data class NetData(var address: Long, var port: Int)
 
 private class MainClient(private val session: SessionData, private val config: Config, private val database: Database) : SimpleChannelInboundHandler<RawPacket>() {
 
@@ -95,6 +122,8 @@ private class MainClient(private val session: SessionData, private val config: C
     }
 
     lateinit var channel: Channel
+
+
     var player: Player? = null
 
     override fun channelActive(ctx: ChannelHandlerContext) {
@@ -269,19 +298,8 @@ private class MainClient(private val session: SessionData, private val config: C
                 @Suppress("SpellCheckingInspection")
                 val sessPacket = packet(PacketComponent.USER_SESSIONS, PacketCommand.START_SESSION, 0x2000, 0x0) {
                     struct("DATA") {
-                        union("ADDR",
-                            0x2,
-                            struct("VALU") {
-                                struct("EXIP") {
-                                    number("IP", 0x5b32c8e4)
-                                    number("PORT", 3659)
-                                }
-                                struct("INIP") {
-                                    number("IP", 0xc0a8b220)
-                                    number("PORT", 3659)
-                                }
-                            }
-                        )
+                        +session.createAddrUnion("ADDR")
+
                         text("BPS", "ea-sjc")
                         text("CTY", "")
 
@@ -290,13 +308,15 @@ private class MainClient(private val session: SessionData, private val config: C
                         list("PSLM", listOf(0xfff0fff, 0xfff0fff, 0xfff0fff))
                         struct("QDAT") {
                             number("DBPS", 0x0)
-                            number("NATT", 0x4)
+                            number("NATT", config.natType)
                             number("UBPS", 0x0)
                         }
                         number("UATT", 0x0)
                     }
-                    number("USID", 0x31125ddf)
+                    number("USID", session.userId)
                 }
+                send(sessPacket)
+                send(sessPacket)
             }
         } else {
             sendEmpty(packet, 0x1000)
