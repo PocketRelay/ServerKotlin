@@ -1,6 +1,5 @@
 package com.jacobtread.kme.blaze
 
-import com.jacobtread.kme.blaze.utils.hex
 import com.jacobtread.kme.utils.VTripple
 
 object TdfDumper {
@@ -23,7 +22,7 @@ object TdfDumper {
     private fun dump(value: Tdf, indent: Int = 0, inline: Boolean): String {
         val label = value.label
         return " ".repeat(indent) + when (value) {
-            is VarIntTdf -> "$label: ${value.value.hex()}"
+            is VarIntTdf -> "$label: 0x${value.value.toString(16)}"
             is StringTdf -> "$label: \"${value.value}\""
             is BlobTdf -> "$label: BLOB(" + value.value.joinToString(", ") { it.toInt().and(0xFF).toString() } + ")"
             is StructTdf -> dumpStruct(value, indent, inline)
@@ -31,8 +30,8 @@ object TdfDumper {
             is UnionTdf -> dumpUnion(value, indent, inline)
             is VarIntList -> "$label: [" + value.value.joinToString(", ") { it.toString() } + "]"
             is MapTdf -> dumpMap(value, indent, inline)
-            is PairTdf -> "(${value.value.a.hex()}, ${value.value.b.hex()})"
-            is TrippleTdf -> "(${value.value.a.hex()}, ${value.value.b.hex()}, ${value.value.c.hex()})"
+            is PairTdf -> "(0x${value.value.a.toString(16)}, 0x${value.value.b.toString(16)})"
+            is TrippleTdf -> "(0x${value.value.a.toString(16)}, 0x${value.value.b.toString(16)}, 0x${value.value.c.toString(16)})"
             is FloatTdf -> "${value.value}"
             else -> value.toString()
         }
@@ -65,8 +64,8 @@ object TdfDumper {
     private fun dumpUnion(value: UnionTdf, indent: Int, inline: Boolean): String {
         val builder = StringBuilder()
         builder.append(value.label)
-            .append(" (")
-            .append(value.type.hex())
+            .append(" (0x")
+            .append(value.type.toString(16))
             .append("): ")
         if (value.type == 0x7F) {
             builder.append("Empty")
@@ -79,10 +78,10 @@ object TdfDumper {
 
     private fun dumpListValue(value: Any, indent: Int, inline: Boolean): String {
         return when (value) {
-            is Long -> value.hex()
+            is Long -> "0x${value.toString(16)}"
             is String -> "\"$value\""
             is StructTdf -> dumpStruct(value, indent, inline)
-            is VTripple -> "(${value.a.hex()}, ${value.b.hex()}, ${value.c.hex()})"
+            is VTripple -> "(0x${value.a.toString(16)}, 0x${value.b.toString(16)}, 0x${value.c.toString(16)})"
             else -> value.toString()
         }
     }

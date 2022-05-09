@@ -3,9 +3,9 @@ package com.jacobtread.kme.servers
 import com.jacobtread.kme.Config
 import com.jacobtread.kme.LOGGER
 import com.jacobtread.kme.blaze.*
+import com.jacobtread.kme.blaze.utils.IPAddress
 import com.jacobtread.kme.utils.createContext
 import com.jacobtread.kme.utils.customThreadFactory
-import com.jacobtread.kme.blaze.utils.getIp
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
@@ -100,7 +100,7 @@ private class RedirectClient(private val config: Config.RedirectorPacket) : Simp
                     config.addr,
                     struct("VALU") {
                         text("HOST", config.host)
-                        number("IP", config.ip.getIp())
+                        number("IP", IPAddress.asLong(config.ip))
                         number("PORT", config.port)
                     }
                 )

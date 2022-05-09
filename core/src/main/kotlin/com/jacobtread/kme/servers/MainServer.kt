@@ -4,7 +4,6 @@ import com.jacobtread.kme.Config
 import com.jacobtread.kme.LOGGER
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.exception.InvalidTdfException
-import com.jacobtread.kme.blaze.utils.NULL_CHAR
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Database
 import com.jacobtread.kme.database.repos.PlayersRepository
@@ -353,7 +352,7 @@ private class MainClient(private val session: SessionData, private val config: C
     fun LoginErrorPacket(packet: RawPacket, reason: LoginError) {
         channel.write(packet(packet.component, packet.command, reason.value, 0x3000, packet.id) {
             text("PNAM", "")
-            number("UID$NULL_CHAR", 0)
+            number("UID", 0)
         })
         val remoteAddress = channel.remoteAddress()
         LOGGER.info("Client login failed for address $remoteAddress reason: $reason")
