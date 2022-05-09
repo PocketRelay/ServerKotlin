@@ -191,6 +191,7 @@ enum class PacketCommand(val component: PacketComponent, val value: Int) {
     SUBMIT_TRUSTED_END_GAME_REPORT(GAME_REPORTING, 0x65),
 
     // User Sessions Component
+    START_SESSION(USER_SESSIONS, 0x1),
     FETCH_EXTENDED_DATA(USER_SESSIONS, 0x3),
     UPDATE_EXTENDED_DATA_ATTRIBUTE(USER_SESSIONS, 0x5),
     UPDATE_HARDWARE_FLAGS(USER_SESSIONS, 0x8),

@@ -3,11 +3,12 @@ package com.jacobtread.kme.servers
 import com.jacobtread.kme.Config
 import com.jacobtread.kme.LOGGER
 import com.jacobtread.kme.blaze.*
+import com.jacobtread.kme.blaze.exception.InvalidTdfException
+import com.jacobtread.kme.blaze.utils.NULL_CHAR
+import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Database
 import com.jacobtread.kme.database.repos.PlayersRepository
-import com.jacobtread.kme.blaze.exception.InvalidTdfException
 import com.jacobtread.kme.game.Player
-import com.jacobtread.kme.blaze.utils.NULL_CHAR
 import com.jacobtread.kme.utils.customThreadFactory
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
@@ -32,11 +33,14 @@ fun startMainServer(config: Config, database: Database) {
                 .childHandler(object : ChannelInitializer<Channel>() {
                     override fun initChannel(ch: Channel) {
                         println("Main Server Connection")
+                        val session = SessionData(
+                            clientId.getAndIncrement()
+                        )
                         ch.pipeline()
                             // Add handler for decoding packet
                             .addLast(PacketDecoder())
                             // Add handler for processing packets
-                            .addLast(MainClient(clientId.getAndIncrement(), config, database))
+                            .addLast(MainClient(session, config, database))
                             .addLast(PacketEncoder())
                     }
                 })
@@ -63,7 +67,13 @@ fun startMainServer(config: Config, database: Database) {
     }
 }
 
-private class MainClient(private val id: Int, private val config: Config, private val database: Database) : SimpleChannelInboundHandler<RawPacket>() {
+class SessionData(
+    val id: Int,
+    var player: Player? = null,
+    var sendOffers: Boolean = false,
+)
+
+private class MainClient(private val session: SessionData, private val config: Config, private val database: Database) : SimpleChannelInboundHandler<RawPacket>() {
 
     companion object {
         val CIDS = listOf(1, 25, 4, 28, 7, 9, 63490, 30720, 15, 30721, 30722, 30723, 30725, 30726, 2000)
@@ -213,7 +223,7 @@ private class MainClient(private val id: Int, private val config: Config, privat
 
             +struct("UROP") {
                 number("TMOP", 0x1)
-                number("UID", id)
+                number("UID", session.id)
             }
         }
         send(bootPacket)
@@ -254,7 +264,41 @@ private class MainClient(private val id: Int, private val config: Config, privat
     fun handleListUserEntitlements2(packet: RawPacket) {
         val etag = packet.getValue(StringTdf::class, "ETAG")
         if (etag.isEmpty()) {
+            send(Data.makeUserEntitlements2(packet.id))
+            if (!session.sendOffers) {
+                session.sendOffers = true
+                @Suppress("SpellCheckingInspection")
+                val sessPacket = packet(PacketComponent.USER_SESSIONS, PacketCommand.START_SESSION, 0x2000, 0x0) {
+                    struct("DATA") {
+                        union("ADDR",
+                            0x2,
+                            struct("VALU") {
+                                struct("EXIP") {
+                                    number("IP", 0x5b32c8e4)
+                                    number("PORT", 3659)
+                                }
+                                struct("INIP") {
+                                    number("IP", 0xc0a8b220)
+                                    number("PORT", 3659)
+                                }
+                            }
+                        )
+                        text("BPS", "ea-sjc")
+                        text("CTY", "")
 
+                        map("DMAP", mapOf(0x70001 to 0x2e))
+                        number("HWFG", 0x0)
+                        list("PSLM", listOf(0xfff0fff, 0xfff0fff, 0xfff0fff))
+                        struct("QDAT") {
+                            number("DBPS", 0x0)
+                            number("NATT", 0x4)
+                            number("UBPS", 0x0)
+                        }
+                        number("UATT", 0x0)
+                    }
+                    number("USID", 0x31125ddf)
+                }
+            }
         } else {
             sendEmpty(packet, 0x1000)
         }

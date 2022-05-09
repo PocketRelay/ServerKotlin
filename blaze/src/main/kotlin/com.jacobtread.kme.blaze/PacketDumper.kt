@@ -114,6 +114,7 @@ object PacketDumper {
                                 out.append(", ")
                             }
                         }
+                        out.append("))")
                     }
                     is String -> {
                         for (i in content.indices) {
@@ -124,6 +125,7 @@ object PacketDumper {
                                 out.append(", ")
                             }
                         }
+                        out.append("))")
                     }
                     is VTripple -> {
                         for (i in content.indices) {
@@ -139,6 +141,7 @@ object PacketDumper {
                                 out.append(", ")
                             }
                         }
+                        out.append("))")
                     }
                     else -> {
                         out.append('\n')
@@ -149,11 +152,11 @@ object PacketDumper {
                             }
                             out.append('\n')
                         }
+                        out.append("  ".repeat(indent))
+                            .append("))")
                     }
                 }
 
-                out.append("  ".repeat(indent))
-                    .append("))")
             }
             is UnionTdf -> {
                 val content = value.value
@@ -206,6 +209,8 @@ object PacketDumper {
                     }
                     out.append(",\n")
                 }
+                out.append("  ".repeat(indent))
+                    .append("))")
             }
             is TrippleTdf -> {
                 val trip = value.value
