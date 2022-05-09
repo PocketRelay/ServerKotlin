@@ -1,0 +1,16 @@
+[11:02:27] [INFO] Starting ME3 Server
+[11:02:27] [INFO] Loaded Configuration from: .\config.yml
+[11:02:27] [INFO] ===== Redirection Configuration =====
+[11:02:27] [INFO] Host: 383933-gosprapp396.ea.com
+[11:02:27] [INFO] IP:   127.0.0.1
+[11:02:27] [INFO] Port: 14219
+[11:02:27] [INFO] =====================================
+[11:02:28] [INFO] Connected to Database (127.0.0.1:3306)
+[11:02:28] [INFO] Setting up Database...
+[11:02:28] [INFO] Started Redirector Server (0.0.0.0:42127)
+[11:02:28] [INFO] Started Ticker Server (0.0.0.0:8999)
+[11:02:28] [INFO] Started Telemetry Server (0.0.0.0:9988)
+[11:02:28] [INFO] Started HTTP Server (0.0.0.0:80)
+[11:02:28] [INFO] Created players database table
+[11:02:28] [INFO] Creating example player
+[11:02:28] [INFO] Started Main Server (0.0.0.0:14219)
