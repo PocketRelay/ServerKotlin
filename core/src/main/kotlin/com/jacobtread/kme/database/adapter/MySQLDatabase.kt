@@ -8,7 +8,7 @@ import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
 
-class MySQLDatabase : DatabaseAdapter<MySQLDatabase.DBConfig> {
+class MySQLDatabase : DatabaseAdapter {
 
     @Serializable
     data class DBConfig(
@@ -24,7 +24,8 @@ class MySQLDatabase : DatabaseAdapter<MySQLDatabase.DBConfig> {
         val database: String = "kme",
     )
 
-    override fun connect(config: DBConfig): Connection {
+    override fun connect(config: Config): Connection {
+        val mysqlConfig = config.database.mysql
         try {
             Class.forName("com.mysql.cj.jdbc.Driver")
         } catch (e: ClassNotFoundException) {
@@ -32,11 +33,11 @@ class MySQLDatabase : DatabaseAdapter<MySQLDatabase.DBConfig> {
         }
         try {
             val connection = DriverManager.getConnection(
-                "jdbc:mysql://${config.host}:${config.port}/${config.database}",
-                config.user,
-                config.password
+                "jdbc:mysql://${mysqlConfig.host}:${mysqlConfig.port}/${mysqlConfig.database}",
+                mysqlConfig.user,
+                mysqlConfig.password
             )
-            LOGGER.info("Connected to Database (${config.host}:${config.port})")
+            LOGGER.info("Connected to Database (${mysqlConfig.host}:${mysqlConfig.port})")
             return connection
         } catch (e: SQLException) {
             LOGGER.fatal("Unable to connect to database", e)

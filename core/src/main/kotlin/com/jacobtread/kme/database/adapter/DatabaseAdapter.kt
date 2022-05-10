@@ -3,8 +3,8 @@ package com.jacobtread.kme.database.adapter
 import com.jacobtread.kme.Config
 import java.sql.Connection
 
-interface DatabaseAdapter<C> {
+interface DatabaseAdapter {
 
-    fun connect(config: C): Connection
+    fun connect(config: Config): Connection
 
 }

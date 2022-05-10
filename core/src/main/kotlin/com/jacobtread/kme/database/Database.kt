@@ -10,10 +10,11 @@ class Database(val connection: Connection) {
 
     companion object {
         fun connect(config: Config): Database {
-            val connection = when (config.database.type) {
-                Config.DatabaseType.MySQL -> MySQLDatabase().connect(config.database.mysql)
-                Config.DatabaseType.SQLite -> SQLiteDatabase().connect(config.database.sqlite)
+            val adapter = when (config.database.type) {
+                Config.DatabaseType.MySQL -> MySQLDatabase()
+                Config.DatabaseType.SQLite -> SQLiteDatabase()
             }
+            val connection = adapter.connect(config)
             return Database(connection)
         }
     }

@@ -1,5 +1,6 @@
 package com.jacobtread.kme.database.adapter
 
+import com.jacobtread.kme.Config
 import com.jacobtread.kme.LOGGER
 import kotlinx.serialization.Serializable
 import net.mamoe.yamlkt.Comment
@@ -10,7 +11,7 @@ import java.sql.SQLException
 import kotlin.io.path.createDirectories
 import kotlin.io.path.notExists
 
-class SQLiteDatabase : DatabaseAdapter<SQLiteDatabase.DBConfig> {
+class SQLiteDatabase : DatabaseAdapter {
 
     @Serializable
     data class DBConfig(
@@ -18,14 +19,15 @@ class SQLiteDatabase : DatabaseAdapter<SQLiteDatabase.DBConfig> {
         val file: String = "data/app.db",
     )
 
-    override fun connect(config: DBConfig): Connection {
+    override fun connect(config: Config): Connection {
+        val dbConfig = config.database.sqlite
         try {
             Class.forName("org.sqlite.JDBC")
         } catch (e: ClassNotFoundException) {
             LOGGER.fatal("Missing MySQL driver")
         }
         try {
-            val file = config.file
+            val file = dbConfig.file
             val parentDir = Paths.get(file).parent
             if (parentDir.notExists()) parentDir.createDirectories()
             val connection = DriverManager.getConnection("jdbc:sqlite:$file")
