@@ -213,6 +213,23 @@ object PacketDumper {
                 out.append("  ".repeat(indent))
                     .append("))")
             }
+            is VarIntList -> {
+                out.append("  ".repeat(indent))
+                    .append("varList(\"")
+                    .append(value.label)
+                    .append("\", listOf(")
+                val contents = value.value
+                val length = contents.size
+                for (i in contents.indices) {
+                    out
+                        .append("0x")
+                        .append(contents[i].toString(16))
+                    if (i != length - 1) {
+                        out.append(", ")
+                    }
+                }
+                out.append("))")
+            }
             is TrippleTdf -> {
                 val trip = value.value
                 out.append("  ".repeat(indent))

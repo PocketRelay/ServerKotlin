@@ -4,6 +4,7 @@ import com.jacobtread.kme.Config
 import com.jacobtread.kme.LOGGER
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.exception.InvalidTdfException
+import com.jacobtread.kme.blaze.exception.UnexpectBlazePairException
 import com.jacobtread.kme.blaze.utils.IPAddress
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Database
@@ -38,8 +39,8 @@ fun startMainServer(config: Config, database: Database) {
                         val session = SessionData(
                             clientId.getAndIncrement(),
                             config.origin.uid,
-                            NetData(addressEncoded, 3659),
-                            NetData(addressEncoded, 3659)
+                            NetData(0, 0),
+                            NetData(0, 0)
                         )
                         ch.pipeline()
                             // Add handler for decoding packet
@@ -84,11 +85,11 @@ class SessionData(
 
     fun createAddrUnion(label: String): UnionTdf =
         UnionTdf(label, 0x02, struct("VALU") {
-            struct("EXIP") {
+            +struct("EXIP") {
                 number("IP", exip.address)
                 number("PORT", exip.port)
             }
-            struct("INIP") {
+            +struct("INIP") {
                 number("IP", inip.address)
                 number("PORT", inip.port)
             }
@@ -148,6 +149,8 @@ private class MainClient(private val session: SessionData, private val config: C
             }
         } catch (e: InvalidTdfException) {
             LOGGER.warn("Failed to handle packet $msg", e)
+        } catch (e: UnexpectBlazePairException) {
+            LOGGER.warn("Failed to handle packet: $msg", e)
         }
     }
 
@@ -283,7 +286,7 @@ private class MainClient(private val session: SessionData, private val config: C
             PacketCommand.CREATE_ACCOUNT,
             PacketCommand.CREATE_PERSONA,
             -> empty(packet, 0x1000)
-            else -> throw RuntimeException("Packet command didn't match packet component")
+            else -> throw UnexpectBlazePairException()
         }
     }
 
@@ -294,13 +297,13 @@ private class MainClient(private val session: SessionData, private val config: C
             if (!session.sendOffers) {
                 session.sendOffers = true
                 @Suppress("SpellCheckingInspection")
-                val sessPacket = packet(PacketComponent.USER_SESSIONS, PacketCommand.START_SESSION, 0x2000, 0x0) {
+                val sessPacket = packet(PacketComponent.USER_SESSIONS, PacketCommand.START_SESSION, 0x2000, 0) {
                     +struct("DATA") {
                         +session.createAddrUnion("ADDR")
 
                         text("BPS", "ea-sjc")
                         text("CTY", "")
-
+                        varList("CVAR", emptyList())
                         map("DMAP", mapOf(0x70001 to 0x2e))
                         number("HWFG", 0x0)
                         list("PSLM", listOf(0xfff0fff, 0xfff0fff, 0xfff0fff))
@@ -324,7 +327,8 @@ private class MainClient(private val session: SessionData, private val config: C
     private val EMPTY_BYTE_ARRAY = ByteArray(0)
 
     fun empty(packet: RawPacket, qtype: Int) {
-        RawPacket(packet.rawComponent, packet.rawCommand, 0, qtype, packet.id, EMPTY_BYTE_ARRAY).send()
+        RawPacket(packet.rawComponent, packet.rawCommand, 0, qtype, packet.id, EMPTY_BYTE_ARRAY)
+            .send()
     }
 
 
@@ -400,7 +404,25 @@ private class MainClient(private val session: SessionData, private val config: C
     }
 
     fun handleUserSessions(packet: RawPacket) {
+        when (packet.command) {
+            PacketCommand.UPDATE_HARDWARE_FLAGS,
+            PacketCommand.UPDATE_NETWORK_INFO,
+            -> {
+                val addr = packet.get(UnionTdf::class, "ADDR")
+                val value = addr.value as StructTdf
+                val inip = value.get(StructTdf::class, "INIP")
+                val port = inip.get(VarIntTdf::class, "PORT")
+                val remoteAddress = channel.remoteAddress()
+                val addressEncoded = IPAddress.asLong(remoteAddress)
+                session.inip.address = addressEncoded
+                session.inip.port = port.value.toInt()
 
+                session.exip.address = addressEncoded
+                session.exip.port = port.value.toInt()
+            }
+            else -> throw UnexpectBlazePairException()
+        }
+        empty(packet, 0x1000)
     }
 
 }

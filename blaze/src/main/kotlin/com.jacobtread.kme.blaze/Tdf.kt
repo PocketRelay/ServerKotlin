@@ -1,5 +1,6 @@
 package com.jacobtread.kme.blaze
 
+import com.jacobtread.kme.blaze.exception.InvalidTdfException
 import com.jacobtread.kme.blaze.utils.*
 import com.jacobtread.kme.utils.VPair
 import com.jacobtread.kme.utils.VTripple
@@ -124,10 +125,42 @@ class StructTdf(label: String, val start2: Boolean, override val value: List<Tdf
         }
     }
 
-    fun <C : TdfValue<T>, T> getValue(type: KClass<C>, label: String): T? {
+
+    fun <C : Tdf> get(type: KClass<C>, label: String): C {
+        val value = this.value.find { it.label == label }
+        if (value == null || !value.javaClass.isAssignableFrom(type.java)) throw InvalidTdfException(label, "No tdf found")
+        try {
+            return type.cast(value)
+        } catch (e: ClassCastException) {
+            throw InvalidTdfException(label, "Failed to cast tdf to: ${value.javaClass.simpleName}")
+        }
+    }
+
+    fun <C : Tdf> getOrNull(type: KClass<C>, label: String): C? {
         val value = this.value.find { it.label == label }
         if (value == null || !value.javaClass.isAssignableFrom(type.java)) return null
-        return type.cast(value).value
+        return type.cast(value)
+    }
+
+    @Throws(InvalidTdfException::class)
+    fun <C : TdfValue<T>, T> getValue(type: KClass<C>, label: String): T {
+        val value = this.value.find { it.label == label } ?: throw InvalidTdfException(label, "No value found")
+        if (!value.javaClass.isAssignableFrom(type.java)) throw InvalidTdfException(label, "Value not of type: ${value.javaClass.simpleName}")
+        try {
+            return type.cast(value).value
+        } catch (e: ClassCastException) {
+            throw InvalidTdfException(label, "Failed to cast value to: ${value.javaClass.simpleName}")
+        }
+    }
+
+    fun <C : TdfValue<T>, T> getValueOrNull(type: KClass<C>, label: String): T? {
+        val value = this.value.find { it.label == label }
+        if (value == null || !value.javaClass.isAssignableFrom(type.java)) return null
+        return try {
+            type.cast(value).value
+        } catch (e: ClassCastException) {
+            null
+        }
     }
 
     fun getByLabel(label: String): Tdf? {
@@ -286,12 +319,24 @@ class MapTdf(label: String, val map: Map<Any, Any>) : Tdf(label, MAP) {
         out.writeVarInt(entries.size.toLong())
         for ((key, value) in entries) {
             when (keySubType) {
-                VARINT_LIST -> out.writeVarInt(key as Long)
+                VARINT_LIST -> {
+                    if (key is Long) {
+                        out.writeVarInt(key)
+                    } else {
+                        out.writeVarInt((key as Int).toLong())
+                    }
+                }
                 STRING_LIST -> out.writeString(key as String)
                 FLOAT_LIST -> out.writeFloat(key as Float)
             }
             when (valueSubType) {
-                VARINT_LIST -> out.writeVarInt(value as Long)
+                VARINT_LIST -> {
+                    if (key is Long) {
+                        out.writeVarInt(key)
+                    } else {
+                        out.writeVarInt((key as Int).toLong())
+                    }
+                }
                 STRING_LIST -> out.writeString(value as String)
                 STRUCT_LIST -> (value as StructTdf).write(out)
                 FLOAT_LIST -> out.writeFloat(value as Float)

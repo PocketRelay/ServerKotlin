@@ -51,7 +51,17 @@ class RawPacket(
         return value.value
     }
 
-    fun <C : Tdf> get(type: KClass<C>, label: String): C? {
+    fun <C : Tdf> get(type: KClass<C>, label: String): C {
+        val value = content.find { it.label == label }
+        if (value == null || !value.javaClass.isAssignableFrom(type.java)) throw InvalidTdfException(label, "No tdf found")
+        try {
+            return type.cast(value)
+        } catch (e: ClassCastException) {
+            throw InvalidTdfException(label, "Failed to cast tdf to: ${value.javaClass.simpleName}")
+        }
+    }
+
+    fun <C : Tdf> getOrNull(type: KClass<C>, label: String): C? {
         val value = content.find { it.label == label }
         if (value == null || !value.javaClass.isAssignableFrom(type.java)) return null
         return type.cast(value)

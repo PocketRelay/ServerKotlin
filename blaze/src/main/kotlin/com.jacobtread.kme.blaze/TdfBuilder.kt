@@ -153,6 +153,17 @@ class TdfBuilder {
     }
 
     /**
+     * varList Adds a new var int list value to the builder.
+     * This becomes VarListTdf when created
+     *
+     * @param label The label of the Tdf
+     * @param value The list value
+     */
+    fun varList(label: String, value: List<Long>) {
+        values.add(VarIntList(label, value))
+    }
+
+    /**
      * union Adds a new union value to the builder.
      * This becomes a UnionTdf when created
      *
