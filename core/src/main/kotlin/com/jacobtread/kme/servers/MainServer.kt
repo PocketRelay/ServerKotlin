@@ -35,7 +35,6 @@ fun startMainServer(config: Config, database: Database) {
                     override fun initChannel(ch: Channel) {
                         println("Main Server Connection")
                         val remoteAddress = ch.remoteAddress()
-                        val addressEncoded = IPAddress.asLong(remoteAddress)
                         val session = SessionData(
                             clientId.getAndIncrement(),
                             config.origin.uid,
