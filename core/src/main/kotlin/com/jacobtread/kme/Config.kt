@@ -1,5 +1,7 @@
 package com.jacobtread.kme
 
+import com.jacobtread.kme.database.adapter.MySQLDatabase
+import com.jacobtread.kme.database.adapter.SQLiteDatabase
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.mamoe.yamlkt.Comment
@@ -28,19 +30,26 @@ data class Config(
     val natType: Int = 4,
 ) {
 
+
+    @Serializable
+    enum class DatabaseType {
+        @SerialName("mysql")
+        MySQL,
+
+        @SerialName("sqlite")
+        SQLite
+    }
+
     @Serializable
     data class Database(
-        @Comment("The database host address")
-        val host: String = "127.0.0.1",
-        @Comment("The database port")
-        val port: String = "3306",
-        @Comment("The database account username")
-        val user: String = "root",
-        @Comment("The database account password")
-        val password: String = "password",
-        @Comment("The database to use")
-        val database: String = "kme",
+        @Comment("The type of database to use MySQL or SQLite")
+        val type: DatabaseType = DatabaseType.MySQL,
+        @Comment("Settings for connecting to MySQL database")
+        val mysql: MySQLDatabase.DBConfig = MySQLDatabase.DBConfig(),
+        @Comment("Settings used for connecting to SQLite database")
+        val sqlite: SQLiteDatabase.DBConfig = SQLiteDatabase.DBConfig(),
     )
+
 
     @Serializable
     data class Ports(

@@ -6,8 +6,12 @@ import io.netty.handler.codec.ByteToMessageDecoder
 
 class PacketDecoder : ByteToMessageDecoder() {
     override fun decode(ctx: ChannelHandlerContext, input: ByteBuf, out: MutableList<Any>) {
-        while (input.readableBytes() > 0) {
-            out.add(RawPacket.read(input))
+        try {
+            while (input.readableBytes() > 0) {
+                out.add(RawPacket.read(input))
+            }
+        } catch (e: Throwable) {
+            e.printStackTrace()
         }
     }
 }

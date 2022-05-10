@@ -257,6 +257,7 @@ private class MainClient(private val session: SessionData, private val config: C
         channel.flush()
     }
 
+
     fun handleAuthentication(packet: RawPacket) {
         when (packet.command) {
             PacketCommand.LIST_USER_ENTITLEMENTS_2 -> handleListUserEntitlements2(packet)
@@ -299,7 +300,6 @@ private class MainClient(private val session: SessionData, private val config: C
                 val sessPacket = packet(PacketComponent.USER_SESSIONS, PacketCommand.START_SESSION, 0x2000, 0) {
                     +struct("DATA") {
                         +session.createAddrUnion("ADDR")
-
                         text("BPS", "ea-sjc")
                         text("CTY", "")
                         varList("CVAR", emptyList())
