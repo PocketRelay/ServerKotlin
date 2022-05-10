@@ -8,6 +8,7 @@ import java.nio.file.Paths
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
+import kotlin.io.path.absolute
 import kotlin.io.path.createDirectories
 import kotlin.io.path.notExists
 
@@ -28,7 +29,7 @@ class SQLiteDatabase : DatabaseAdapter {
         }
         try {
             val file = dbConfig.file
-            val parentDir = Paths.get(file).parent
+            val parentDir = Paths.get(file).absolute().parent
             if (parentDir.notExists()) parentDir.createDirectories()
             val connection = DriverManager.getConnection("jdbc:sqlite:$file")
             LOGGER.info("Connected to SQLite Database ($file)")
