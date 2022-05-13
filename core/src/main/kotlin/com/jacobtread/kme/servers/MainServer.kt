@@ -8,7 +8,8 @@ import com.jacobtread.kme.blaze.exception.UnexpectBlazePairException
 import com.jacobtread.kme.blaze.utils.IPAddress
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Database
-import com.jacobtread.kme.database.repos.PlayersRepository
+import com.jacobtread.kme.database.repos.PlayerNotFoundException
+import com.jacobtread.kme.database.repos.ServerErrorException
 import com.jacobtread.kme.game.Player
 import com.jacobtread.kme.utils.customThreadFactory
 import io.netty.bootstrap.ServerBootstrap
@@ -167,11 +168,13 @@ private class MainClient(private val session: SessionData, private val config: C
             list("CIDS", CIDS)
             text("CNGN", "")
             +struct("CONF") {
-                map("CONF", mapOf(
-                    "pingPeriod" to "15s",
-                    "voipHeadsetUpdateRate" to "1000",
-                    "xlspConnectionIdleTimeout" to "300"
-                ))
+                map(
+                    "CONF", mapOf(
+                        "pingPeriod" to "15s",
+                        "voipHeadsetUpdateRate" to "1000",
+                        "xlspConnectionIdleTimeout" to "300"
+                    )
+                )
             }
             text("INST", "masseffect-3-pc")
             number("MINR", 0x0)
@@ -341,14 +344,14 @@ private class MainClient(private val session: SessionData, private val config: C
         }
         val playerRepo = database.playerRepository
         try {
-            val player = playerRepo.getPlayer(playerName)
+            val player = playerRepo.getPlayerByName(playerName)
             if (!player.isMatchingPassword(password)) {
                 LoginErrorPacket(packet, LoginError.WRONG_PASSWORD)
                 return
             }
-        } catch (e: PlayersRepository.PlayerNotFoundException) {
+        } catch (e: PlayerNotFoundException) {
             LoginErrorPacket(packet, LoginError.INVALID_EMAIL)
-        } catch (e: PlayersRepository.ServerErrorException) {
+        } catch (e: ServerErrorException) {
             LoginErrorPacket(packet, LoginError.SERVER_UNAVAILABLE)
         }
     }

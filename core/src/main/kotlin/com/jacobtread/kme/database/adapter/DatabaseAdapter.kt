@@ -1,10 +1,9 @@
 package com.jacobtread.kme.database.adapter
 
 import com.jacobtread.kme.Config
-import java.sql.Connection
+import com.jacobtread.kme.database.repos.PlayersRepository
 
 interface DatabaseAdapter {
-
-    fun connect(config: Config): Connection
-
+    fun getPlayersRepository(): PlayersRepository
+    fun connect(baseConfig: Config.Database)
 }

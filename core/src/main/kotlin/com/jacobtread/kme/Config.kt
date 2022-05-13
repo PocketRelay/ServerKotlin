@@ -1,7 +1,7 @@
 package com.jacobtread.kme
 
-import com.jacobtread.kme.database.adapter.MySQLDatabase
-import com.jacobtread.kme.database.adapter.SQLiteDatabase
+import com.jacobtread.kme.database.adapter.MySQLAdapter
+import com.jacobtread.kme.database.adapter.SQLiteAdapter
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.mamoe.yamlkt.Comment
@@ -45,9 +45,9 @@ data class Config(
         @Comment("The type of database to use MySQL or SQLite")
         val type: DatabaseType = DatabaseType.MySQL,
         @Comment("Settings for connecting to MySQL database")
-        val mysql: MySQLDatabase.DBConfig = MySQLDatabase.DBConfig(),
+        val mysql: MySQLAdapter.DatabaseConfig = MySQLAdapter.DatabaseConfig(),
         @Comment("Settings used for connecting to SQLite database")
-        val sqlite: SQLiteDatabase.DBConfig = SQLiteDatabase.DBConfig(),
+        val sqlite: SQLiteAdapter.DatabaseConfig = SQLiteAdapter.DatabaseConfig(),
     )
 
 
