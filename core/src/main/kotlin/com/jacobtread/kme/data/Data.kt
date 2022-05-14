@@ -4,6 +4,7 @@ import com.jacobtread.kme.blaze.RawPacket
 import com.jacobtread.kme.blaze.respond
 import com.jacobtread.kme.blaze.struct
 import java.io.BufferedReader
+import java.io.IOException
 
 object Data {
 
@@ -564,8 +565,18 @@ object Data {
 
     fun getResource(name: String): ByteArray {
         val stream = Data::class.java.getResourceAsStream("/$name")
-            ?: throw IllegalStateException("Missing internal resource: $name")
+            ?: throw IOException("Missing internal resource: $name")
         return stream.readAllBytes()
+    }
+
+    fun getResourceOrNull(name: String): ByteArray? {
+        try {
+            val stream = Data::class.java.getResourceAsStream("/$name")
+                ?: return null
+            return stream.readAllBytes()
+        } catch (e: IOException) {
+            return null
+        }
     }
 
     fun getResourceReader(name: String): BufferedReader {
@@ -584,8 +595,10 @@ object Data {
         "VERSION" to "40128"
     )
 
-    fun loadBiniCompressed(): Map<String, String> {
-        val reader = getResourceReader("data/bini.txt")
+    fun loadBiniCompressed(): Map<String, String> = loadChunkedFile("data/bini.txt")
+
+    private fun loadChunkedFile(path: String): Map< String, String> {
+        val reader = getResourceReader(path)
         val lines = reader.readLines()
         var length = ""
         val out = HashMap<String, String>()
@@ -600,5 +613,13 @@ object Data {
         out["CHUNK_SIZE"] = "255"
         out["DATA_SIZE"] = length
         return out
+    }
+
+    fun loadTLK(name: String = "default"): Map<String, String> {
+        return try {
+            loadChunkedFile("data/tlk/$name.txt")
+        } catch (e: IOException) {
+            loadChunkedFile("data/tlk/default.txt")
+        }
     }
 }

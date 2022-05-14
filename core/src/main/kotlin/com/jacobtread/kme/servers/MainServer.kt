@@ -353,20 +353,24 @@ private class MainClient(private val session: SessionData, private val config: C
     private fun handleFetchClientConfig(packet: RawPacket) {
         val type = packet.getValue(StringTdf::class, "CFID")
         if (type.startsWith("ME3_LIVE_TLK_PC_")) {
-
-            return
-        }
-        val conf: Map<String, String> = when (type) {
-            "ME3_DATA" -> Data.makeME3Data()
-            "ME3_MSG" -> Data.makeME3MSG()
-            "ME3_ENT" -> Data.makeME3ENT()
-            "ME3_DIME" -> Data.makeME3DIME()
-            "ME3_BINI_VERSION" -> Data.makeBiniVersion()
-            "ME3_BINI_PC_COMPRESSED" -> Data.loadBiniCompressed()
-            else -> emptyMap()
-        }
-        channel.respond(packet) {
-            map("CONF", conf)
+            val lang = type.substring(16)
+            val tlk = Data.loadTLK(lang)
+            channel.respond(packet) {
+                map("CONF", tlk)
+            }
+        } else {
+            val conf: Map<String, String> = when (type) {
+                "ME3_DATA" -> Data.makeME3Data()
+                "ME3_MSG" -> Data.makeME3MSG()
+                "ME3_ENT" -> Data.makeME3ENT()
+                "ME3_DIME" -> Data.makeME3DIME()
+                "ME3_BINI_VERSION" -> Data.makeBiniVersion()
+                "ME3_BINI_PC_COMPRESSED" -> Data.loadBiniCompressed()
+                else -> emptyMap()
+            }
+            channel.respond(packet) {
+                map("CONF", conf)
+            }
         }
     }
 
