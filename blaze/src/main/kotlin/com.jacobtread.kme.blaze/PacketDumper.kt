@@ -15,9 +15,9 @@ object PacketDumper {
                 .append(rawPacket.rawCommand.toString(16))
         } else {
             out
-                .append("PacketComponent.")
+                .append("Component.")
                 .append(rawPacket.component)
-                .append(", PacketCommand.")
+                .append(", Command.")
                 .append(rawPacket.command)
         }
         out.append(", 0x")

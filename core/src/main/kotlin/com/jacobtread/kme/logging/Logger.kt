@@ -59,25 +59,25 @@ class Logger {
         Runtime.getRuntime().addShutdownHook(Thread(this::close))
     }
 
-    @JvmOverloads
     fun info(text: String, vararg args: Any? = emptyArray()) = append(Level.INFO, text, *args)
 
-    @JvmOverloads
     fun warn(text: String, vararg args: Any? = emptyArray()) = append(Level.WARN, text, *args)
 
-    @JvmOverloads
     fun fatal(text: String, vararg args: Any? = emptyArray()): Nothing {
         append(Level.FATAL, text, *args)
         exitProcess(1)
     }
 
-    @JvmOverloads
+    inline fun logIfDebug(provider: () -> String) {
+        if (isDebugEnabled) {
+            debug(provider())
+        }
+    }
+
     fun debug(text: String, vararg args: Any? = emptyArray()) = append(Level.DEBUG, text, *args)
 
-    @JvmOverloads
     fun error(text: String, vararg args: Any? = emptyArray()) = append(Level.ERROR, text, *args)
 
-    @JvmOverloads
     fun log(level: Level, text: String, vararg args: Any? = emptyArray()) = append(level, text, *args)
 
     /**

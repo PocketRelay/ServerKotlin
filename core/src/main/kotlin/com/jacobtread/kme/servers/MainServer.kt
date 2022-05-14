@@ -20,6 +20,7 @@ import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import java.io.IOException
+import java.time.Instant
 import java.util.concurrent.atomic.AtomicInteger
 
 
@@ -78,10 +79,11 @@ class SessionData(
     var userId: Int,
     val exip: NetData,
     val inip: NetData,
-    var player: Player? = null,
-    var sendOffers: Boolean = false,
 ) {
 
+    var player: Player? = null
+    var sendOffers: Boolean = false
+    var lastPingTime: Long = -1L
 
     fun createAddrUnion(label: String): UnionTdf =
         UnionTdf(label, 0x02, struct("VALU") {
@@ -134,6 +136,7 @@ private class MainClient(private val session: SessionData, private val config: C
 
     override fun channelRead0(ctx: ChannelHandlerContext, msg: RawPacket) {
         try {
+
             when (msg.component) {
                 Component.AUTHENTICATION -> handleAuthentication(msg)
                 Component.GAME_MANAGER -> handleGameManager(msg)
@@ -155,6 +158,14 @@ private class MainClient(private val session: SessionData, private val config: C
     fun handleUtil(packet: RawPacket) {
         when (packet.command) {
             Command.PRE_AUTH -> handlePreAuth(packet)
+            Command.PING -> {
+                LOGGER.logIfDebug { "Received ping update from client: ${session.id}" }
+                session.lastPingTime = System.currentTimeMillis()
+                channel.respond(packet) {
+                    // Server Time (in Epoch Seconds)
+                    number("STIM", Instant.now().epochSecond)
+                }
+            }
             Command.POST_AUTH -> handlePostAuth(packet)
         }
     }

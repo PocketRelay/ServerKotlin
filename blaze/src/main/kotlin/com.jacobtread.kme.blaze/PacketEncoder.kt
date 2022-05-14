@@ -6,7 +6,10 @@ import io.netty.handler.codec.MessageToByteEncoder
 
 class PacketEncoder : MessageToByteEncoder<RawPacket>() {
     override fun encode(ctx: ChannelHandlerContext, msg: RawPacket, out: ByteBuf) {
-        PacketLogger.log(PacketLogger.Direction.OUT, msg)
+        println("SENT PACKET:")
+        println(PacketDumper.dump(msg))
+        println()
+
         val content = msg.rawContent
         val length = content.size
         out.writeByte((length and 0xFFFF) shr 8)
