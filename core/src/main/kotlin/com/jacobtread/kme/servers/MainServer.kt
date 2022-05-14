@@ -22,6 +22,7 @@ import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import java.io.IOException
+import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -118,20 +119,20 @@ private class MainClient(private val session: SessionData, private val config: C
         private val CIDS = listOf(1, 25, 4, 28, 7, 9, 63490, 30720, 15, 30721, 30722, 30723, 30725, 30726, 2000)
         private val TELE_DISA =
             "AD,AF,AG,AI,AL,AM,AN,AO,AQ,AR,AS,AW,AX,AZ,BA,BB,BD,BF,BH,BI,BJ,BM,BN,BO,BR,BS,BT,BV,BW,BY,BZ,CC,CD,CF,CG,CI,CK,CL,CM,CN,CO,CR,CU,CV,CX,DJ,DM,DO,DZ,EC,EG,EH,ER,ET,FJ,FK,FM,FO,GA,GD,GE,GF,GG,GH,GI,GL,GM,GN,GP,GQ,GS,GT,GU,GW,GY,HM,HN,HT,ID,IL,IM,IN,IO,IQ,IR,IS,JE,JM,JO,KE,KG,KH,KI,KM,KN,KP,KR,KW,KY,KZ,LA,LB,LC,LI,LK,LR,LS,LY,MA,MC,MD,ME,MG,MH,ML,MM,MN,MO,MP,MQ,MR,MS,MU,MV,MW,MY,MZ,NA,NC,NE,NF,NG,NI,NP,NR,NU,OM,PA,PE,PF,PG,PH,PK,PM,PN,PS,PW,PY,QA,RE,RS,RW,SA,SB,SC,SD,SG,SH,SJ,SL,SM,SN,SO,SR,ST,SV,SY,SZ,TC,TD,TF,TG,TH,TJ,TK,TL,TM,TN,TO,TT,TV,TZ,UA,UG,UM,UY,UZ,VA,VC,VE,VG,VN,VU,WF,WS,YE,YT,ZM,ZW,ZZ"
-        private val SKEY = intArrayOf(
-            0x5E, 0x8A, 0xCB, 0xDD, 0xF8, 0xEC, 0xC1, 0x95, 0x98, 0x99,
-            0xF9, 0x94, 0xC0, 0xAD, 0xEE, 0xFC, 0xCE, 0xA4, 0x87, 0xDE,
-            0x8A, 0xA6, 0xCE, 0xDC, 0xB0, 0xEE, 0xE8, 0xE5, 0xB3, 0xF5,
-            0xAD, 0x9A, 0xB2, 0xE5, 0xE4, 0xB1, 0x99, 0x86, 0xC7, 0x8E,
-            0x9B, 0xB0, 0xF4, 0xC0, 0x81, 0xA3, 0xA7, 0x8D, 0x9C, 0xBA,
-            0xC2, 0x89, 0xD3, 0xC3, 0xAC, 0x98, 0x96, 0xA4, 0xE0, 0xC0,
-            0x81, 0x83, 0x86, 0x8C, 0x98, 0xB0, 0xE0, 0xCC, 0x89, 0x93,
-            0xC6, 0xCC, 0x9A, 0xE4, 0xC8, 0x99, 0xE3, 0x82, 0xEE, 0xD8,
-            0x97, 0xED, 0xC2, 0xCD, 0x9B, 0xD7, 0xCC, 0x99, 0xB3, 0xE5,
-            0xC6, 0xD1, 0xEB, 0xB2, 0xA6, 0x8B, 0xB8, 0xE3, 0xD8, 0xC4,
-            0xA1, 0x83, 0xC6, 0x8C, 0x9C, 0xB6, 0xF0, 0xD0, 0xC1, 0x93,
-            0x87, 0xCB, 0xB2, 0xEE, 0x88, 0x95, 0xD2, 0x80, 0x80
-        )
+        private val SKEY = createSKey()
+
+        private fun createSKey(): String {
+           return String(byteArrayOf(
+                94, -118, -53, -35, -8, -20, -63, -107, -104, -103, -7, -108, -64, -83, -18,
+                -4, -50, -92, -121, -34, -118, -90, -50, -36, -80, -18, -24, -27, -77, -11,
+                -83, -102, -78, -27, -28, -79, -103, -122, -57, -114, -101, -80, -12, -64, -127,
+                -93, -89, -115, -100, -70, -62, -119, -45, -61, -84, -104, -106, -92, -32, -64,
+                -127, -125, -122, -116, -104, -80, -32, -52, -119, -109, -58, -52, -102, -28, -56,
+                -103, -29, -126, -18, -40, -105, -19, -62, -51, -101, -41, -52, -103, -77, -27,
+                -58, -47, -21, -78, -90, -117, -72, -29, -40, -60, -95, -125, -58, -116, -100,
+                -74, -16, -48, -63, -109, -121, -53, -78, -18, -120, -107, -46, -128, -128
+            ), Charsets.UTF_8)
+        }
     }
 
     fun empty(packet: RawPacket, qtype: Int = RESPONSE) = channel.send(RawPacket(packet.rawComponent, packet.rawCommand, 0, qtype, packet.id, EMPTY_BYTE_ARRAY))
@@ -169,9 +170,9 @@ private class MainClient(private val session: SessionData, private val config: C
             GET_AUTH_TOKEN -> handleGetAuthToken(packet)
             LOGIN -> handleLogin(packet)
             SILENT_LOGIN -> handleSilentLogin(packet)
-            LOGIN_PERSONA -> {}
+            LOGIN_PERSONA -> handleLoginPersona(packet)
             ORIGIN_LOGIN -> {}
-            CREATE_ACCOUNT -> createAccount(packet)
+            CREATE_ACCOUNT -> handleCreateAccount(packet)
             LOGOUT,
             GET_PRIVACY_POLICY_CONTENT,
             GET_LEGAL_DOCS_INFO,
@@ -183,6 +184,7 @@ private class MainClient(private val session: SessionData, private val config: C
             else -> throw UnexpectBlazePairException()
         }
     }
+
 
     private fun handleListUserEntitlements2(packet: RawPacket) {
         val etag = packet.getValue(StringTdf::class, "ETAG")
@@ -223,22 +225,60 @@ private class MainClient(private val session: SessionData, private val config: C
     }
 
     private fun handleLogin(packet: RawPacket) {
-        val content = packet.content
-        val playerName = packet.getStringAt(1).trim()
-        val password = packet.getStringAt(2).trim()
-        if (playerName.isBlank() || password.isBlank()) {
+        val email = packet.getValue(StringTdf::class, "MAIL")
+        val password = packet.getValue(StringTdf::class, "PASS")
+        if (email.isBlank() || password.isBlank()) {
             loginErrorPacket(packet, LoginError.INVALID_INFORMATION)
             return
         }
+
+        val emailRegex = Regex("^[\\p{L}\\p{N}._%+-]+@[\\p{L}\\p{N}.\\-]+\\.\\p{L}{2,}$")
+        if (!email.matches(emailRegex)) {
+            loginErrorPacket(packet, LoginError.INVALID_EMAIL)
+            return
+        }
+
         val playerRepo = database.playerRepository
         try {
-            val player = playerRepo.getPlayerByName(playerName)
+            val player = playerRepo.getPlayerByEmail(email)
             if (!player.isMatchingPassword(password)) {
                 loginErrorPacket(packet, LoginError.WRONG_PASSWORD)
                 return
             }
+
+            session.setPlayer(player)
+
+            val sessionToken = getSessionToken()
+            val lastLoginTime = Instant.now().epochSecond
+
+            channel.respond(packet) {
+                text("LDHT", "")
+                number("NTOS", 0)
+                text("PCTK", sessionToken)
+
+                list("PLST", listOf(
+                    struct {
+                        text("DSNM", player.displayName)
+                        number("LAST", lastLoginTime)
+                        number("PID", player.id)
+                        number("STAS", 0)
+                        number("XREF", 0)
+                        number("XTYP", 0)
+                    }
+                ))
+
+                text("PRIV", "")
+                text("SKEY", "11229301_9b171d92cc562b293e602ee8325612e7")
+                number("SPAM", 0)
+                text("THST", "")
+                text("TSUI", "")
+                text("TURI", "")
+                number("UID", player.id)
+            }
+
+
         } catch (e: PlayerNotFoundException) {
-            loginErrorPacket(packet, LoginError.INVALID_EMAIL)
+            loginErrorPacket(packet, LoginError.EMAIL_NOT_FOUND)
         } catch (e: ServerErrorException) {
             loginErrorPacket(packet, LoginError.SERVER_UNAVAILABLE)
         }
@@ -270,15 +310,20 @@ private class MainClient(private val session: SessionData, private val config: C
         return output.toString()
     }
 
-    private fun authResponsePacket(packet: RawPacket) {
+    private fun getSessionToken(): String {
         val player = session.getPlayer()
-
         var sessionToken = player.sessionToken
         if (sessionToken == null) {
             sessionToken = createSessionToken()
             database.playerRepository.setPlayerSessionToken(player, sessionToken)
         }
+        return sessionToken
+    }
 
+    private fun authResponsePacket(packet: RawPacket) {
+        val player = session.getPlayer()
+
+        val sessionToken = getSessionToken()
         val lastLoginTime = Instant.now().epochSecond
 
         @Suppress("SpellCheckingInspection")
@@ -376,31 +421,57 @@ private class MainClient(private val session: SessionData, private val config: C
     }
 
     private fun loginErrorPacket(packet: RawPacket, reason: LoginError) {
+        @Suppress("SpellCheckingInspection")
         channel.error(packet, reason.value) {
             text("PNAM", "")
             number("UID", 0)
         }
     }
 
-
-    private fun createAccount(packet: RawPacket) {
+    private fun handleCreateAccount(packet: RawPacket) {
         val email = packet.getValue(StringTdf::class, "MAIL")
         val password = packet.getValue(StringTdf::class, "PASS")
         try {
             val player = database.playerRepository.createPlayer(email, email, password)
             session.setPlayer(player)
-            authResponsePacket(packet)
+            @Suppress("SpellCheckingInspection")
+            channel.respond(packet) {
+                text("PNAM", player.displayName)
+                number("UID", player.id)
+            }
             sessionDetailsPackets()
         } catch (e: PlayerCreationException) {
-            when(e.reason) {
+            when (e.reason) {
                 PlayerCreationException.Reason.EMAIL_TAKEN ->
                     loginErrorPacket(packet, LoginError.EMAIL_ALREADY_IN_USE)
                 else -> {}
             }
-            LOGGER.error("Failed to create player", e)
+            LOGGER.error("Failed to create player: ${e.message}")
         }
     }
 
+
+    private fun handleLoginPersona(packet: RawPacket) {
+        val player = session.getPlayer()
+        val lastLoginTime = Instant.now().epochSecond
+        @Suppress("SpellCheckingInspection")
+        channel.respond(packet) {
+            number("BUID", player.id)
+            number("FRST", 0)
+            text("KEY", "11229301_9b171d92cc562b293e602ee8325612e7")
+            number("LLOG", lastLoginTime)
+            text("MAIL", player.email)
+            +struct("PDTL") {
+                text("DSNM", player.displayName)
+                number("LAST", lastLoginTime)
+                number("PID", player.id)
+                number("STAS", 0)
+                number("XREF", 0)
+                number("XTYP", 0)
+            }
+            number("UID", player.id)
+        }
+    }
 
     //endregion
 
@@ -572,7 +643,7 @@ private class MainClient(private val session: SessionData, private val config: C
         channel.respond(packet) {
             +struct("PSS") {
                 text("ADRS", "playersyncservice.ea.com")
-                blob("CSIG", ByteArray(0))
+                blob("CSIG", EMPTY_BYTE_ARRAY)
                 number("PJID", 303107)
                 number("PORT", 443)
                 number("RPRT", 0xF)
@@ -589,11 +660,9 @@ private class MainClient(private val session: SessionData, private val config: C
                 number("PORT", config.ports.telemetry)
                 number("SDLY", 15000)
                 text("SESS", "JMhnT9dXSED")
-                val skey = StringBuilder()
-                SKEY.forEach { skey.append(it.toChar()) }
-                println(skey.toString())
+                text("SKEY", SKEY)
                 number("SPCT", 0x4B)
-                number("STIM", 0)
+                text("STIM", "")
             }
 
             +struct("TICK") {

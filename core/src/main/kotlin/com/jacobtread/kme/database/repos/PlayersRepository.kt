@@ -5,6 +5,7 @@ import com.jacobtread.kme.game.Player
 import com.jacobtread.kme.utils.hashPassword
 import java.sql.Connection
 import java.sql.SQLException
+import java.sql.Statement
 
 class PlayerCreationException(val reason: Reason, cause: Throwable? = null) : Exception(reason.toString(), cause) {
     enum class Reason {
@@ -12,6 +13,7 @@ class PlayerCreationException(val reason: Reason, cause: Throwable? = null) : Ex
         OTHER
     }
 }
+
 class PlayerNotFoundException : Exception()
 class ServerErrorException(cause: Throwable? = null) : Exception(cause)
 
@@ -63,6 +65,18 @@ abstract class PlayersRepository : DatabaseRepository() {
      */
     @Throws(ServerErrorException::class, PlayerNotFoundException::class)
     abstract fun getPlayerByName(displayName: String): Player
+
+    /**
+     * getPlayerByEmail Retrieves a player from the repository that has a matching
+     * email to the provided display name
+     *
+     * @param email The email of the player to search for
+     * @return The player that was found
+     * @throws ServerErrorException Thrown when an exception was occurred between the server and database
+     * @throws PlayerNotFoundException Thrown if the player doesn't exist
+     */
+    @Throws(ServerErrorException::class, PlayerNotFoundException::class)
+    abstract fun getPlayerByEmail(email: String): Player
 
     /**
      * getPlayerByID Retrieves a player from the repository that has a matching
@@ -174,7 +188,10 @@ abstract class PlayersRepository : DatabaseRepository() {
         }
 
         override fun createPlayerInternal(email: String, displayName: String, hashedPassword: String): Long {
-            val statement = connection.prepareStatement("INSERT INTO `players` (`email`, `display_name`, `password`) VALUES (?, ?, ?)")
+            val statement = connection.prepareStatement(
+                "INSERT INTO `players` (`email`, `display_name`, `password`) VALUES (?, ?, ?)",
+                Statement.RETURN_GENERATED_KEYS
+            )
             statement.setString(1, email)
             statement.setString(2, displayName)
             statement.setString(3, hashedPassword)
@@ -186,9 +203,28 @@ abstract class PlayersRepository : DatabaseRepository() {
 
         override fun getPlayerByName(displayName: String): Player {
             try {
-                if (isDisplayNameTaken(displayName)) throw PlayerNotFoundException()
                 val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `display_name` = ?")
                 statement.setString(1, displayName)
+                val result = statement.executeQuery()
+                if (!result.next()) throw PlayerNotFoundException()
+                return Player(
+                    result.getLong("id"),
+                    result.getString("email"),
+                    result.getString("display_name"),
+                    result.getInt("credits"),
+                    result.getInt("games_played"),
+                    result.getString("session_token"),
+                    result.getString("password"),
+                )
+            } catch (e: SQLException) {
+                throw ServerErrorException(e)
+            }
+        }
+
+        override fun getPlayerByEmail(email: String): Player {
+            try {
+                val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `email` = ?")
+                statement.setString(1, email)
                 val result = statement.executeQuery()
                 if (!result.next()) throw PlayerNotFoundException()
                 return Player(
@@ -245,11 +281,11 @@ abstract class PlayersRepository : DatabaseRepository() {
         override fun initQuery(): String =
             """
             CREATE TABLE IF NOT EXISTS `players` (
-                `id` INT AUTO_INCREMENT PRIMARY KEY UNIQUE ,
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE ,
                 `email` TEXT UNIQUE ,
                 `display_name` TEXT UNIQUE,
-                `credits` INT,
-                `games_played` INT DEFAULT 0,
+                `credits` INTEGER,
+                `games_played` INTEGER DEFAULT 0,
                 `session_token` TEXT DEFAULT NULL,
                 `password` TEXT DEFAULT NULL
             );

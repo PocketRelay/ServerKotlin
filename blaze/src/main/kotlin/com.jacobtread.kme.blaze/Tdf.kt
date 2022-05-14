@@ -92,14 +92,16 @@ class BlobTdf(label: String, override val value: ByteArray) : Tdf(label, BLOB), 
         fun from(label: String, input: ByteBuf): BlobTdf {
             val size = input.readVarInt().toInt()
             val byteArray = ByteArray(size)
-            input.readBytes(byteArray)
+            if (size > 0) input.readBytes(byteArray)
             return BlobTdf(label, byteArray)
         }
     }
 
     override fun write(out: ByteBuf) {
         out.writeVarInt(value.size.toLong())
-        out.writeBytes(value)
+        if (value.isNotEmpty()) {
+            out.writeBytes(value)
+        }
     }
 
     override fun toString(): String = "Blob($label: ${value.contentToString()})"

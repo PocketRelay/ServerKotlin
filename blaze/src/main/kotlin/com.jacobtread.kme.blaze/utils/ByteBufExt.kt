@@ -44,6 +44,7 @@ fun ByteBuf.readString(): String {
 
 fun ByteBuf.writeString(value: String) {
     val v = if (value.endsWith(Char.MIN_VALUE)) value else (value + '\u0000')
-    writeVarInt(v.length.toLong())
-    writeBytes(v.toByteArray(Charsets.UTF_8))
+    val bytes = v.toByteArray(Charsets.UTF_8)
+    writeVarInt(bytes.size.toLong())
+    writeBytes(bytes)
 }

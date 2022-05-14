@@ -5,6 +5,7 @@ import com.jacobtread.kme.logging.Level
 import com.jacobtread.kme.logging.Logger
 import com.jacobtread.kme.servers.*
 import net.mamoe.yamlkt.Yaml
+import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
 import kotlin.io.path.exists
 import kotlin.io.path.readText
@@ -13,7 +14,6 @@ import kotlin.io.path.writeText
 val LOGGER = Logger.get()
 
 fun main() {
-
     Thread.currentThread().name = "Main"
 
     val rootPath = Paths.get(".")
@@ -36,6 +36,7 @@ fun main() {
             LOGGER.error("Failed to write newly created config file", e)
         }
     }
+
     Logger.setLogLevel(Level.fromName(config.logLevel))
 
     startRedirector(config)
