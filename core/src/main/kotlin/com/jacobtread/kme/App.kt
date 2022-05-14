@@ -13,6 +13,7 @@ import kotlin.io.path.writeText
 val LOGGER = Logger.get()
 
 fun main() {
+
     Thread.currentThread().name = "Main"
 
     val rootPath = Paths.get(".")

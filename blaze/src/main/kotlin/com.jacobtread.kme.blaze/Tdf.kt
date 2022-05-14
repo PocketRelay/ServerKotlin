@@ -263,7 +263,7 @@ class ListTdf(label: String, override val value: List<Any>) : Tdf(label, LIST), 
     }
 }
 
-class MapTdf(label: String, val map: Map<Any, Any>) : Tdf(label, MAP) {
+class MapTdf(label: String, val map: Map<out Any, out Any>) : Tdf(label, MAP) {
 
     companion object {
         fun from(label: String, input: ByteBuf): MapTdf {

@@ -28,6 +28,12 @@ data class Config(
     val origin: Origin = Origin(),
 
     val natType: Int = 4,
+
+    @Comment("ME3Data")
+    val me3data: Map<String, String> = mapOf(
+        "" to ""
+    )
+
 ) {
 
 
@@ -84,4 +90,5 @@ data class Config(
         val pid: Int = 0x12345678,
         val uid: Int = 0x12345678,
     )
+
 }

@@ -3,7 +3,8 @@ package com.jacobtread.kme.servers
 import com.jacobtread.kme.Config
 import com.jacobtread.kme.LOGGER
 import com.jacobtread.kme.blaze.*
-import com.jacobtread.kme.blaze.exception.InvalidTdfException
+import com.jacobtread.kme.blaze.Command.*
+import com.jacobtread.kme.blaze.Component.*
 import com.jacobtread.kme.blaze.exception.UnexpectBlazePairException
 import com.jacobtread.kme.blaze.utils.IPAddress
 import com.jacobtread.kme.data.Data
@@ -105,10 +106,11 @@ data class NetData(var address: Long, var port: Int)
 private class MainClient(private val session: SessionData, private val config: Config, private val database: Database) : SimpleChannelInboundHandler<RawPacket>() {
 
     companion object {
-        val CIDS = listOf(1, 25, 4, 28, 7, 9, 63490, 30720, 15, 30721, 30722, 30723, 30725, 30726, 2000)
-        val TELE_DISA =
+        private val EMPTY_BYTE_ARRAY = ByteArray(0)
+        private val CIDS = listOf(1, 25, 4, 28, 7, 9, 63490, 30720, 15, 30721, 30722, 30723, 30725, 30726, 2000)
+        private val TELE_DISA =
             "AD,AF,AG,AI,AL,AM,AN,AO,AQ,AR,AS,AW,AX,AZ,BA,BB,BD,BF,BH,BI,BJ,BM,BN,BO,BR,BS,BT,BV,BW,BY,BZ,CC,CD,CF,CG,CI,CK,CL,CM,CN,CO,CR,CU,CV,CX,DJ,DM,DO,DZ,EC,EG,EH,ER,ET,FJ,FK,FM,FO,GA,GD,GE,GF,GG,GH,GI,GL,GM,GN,GP,GQ,GS,GT,GU,GW,GY,HM,HN,HT,ID,IL,IM,IN,IO,IQ,IR,IS,JE,JM,JO,KE,KG,KH,KI,KM,KN,KP,KR,KW,KY,KZ,LA,LB,LC,LI,LK,LR,LS,LY,MA,MC,MD,ME,MG,MH,ML,MM,MN,MO,MP,MQ,MR,MS,MU,MV,MW,MY,MZ,NA,NC,NE,NF,NG,NI,NP,NR,NU,OM,PA,PE,PF,PG,PH,PK,PM,PN,PS,PW,PY,QA,RE,RS,RW,SA,SB,SC,SD,SG,SH,SJ,SL,SM,SN,SO,SR,ST,SV,SY,SZ,TC,TD,TF,TG,TH,TJ,TK,TL,TM,TN,TO,TT,TV,TZ,UA,UG,UM,UY,UZ,VA,VC,VE,VG,VN,VU,WF,WS,YE,YT,ZM,ZW,ZZ"
-        val SKEY = intArrayOf(
+        private val SKEY = intArrayOf(
             0x5E, 0x8A, 0xCB, 0xDD, 0xF8, 0xEC, 0xC1, 0x95, 0x98, 0x99,
             0xF9, 0x94, 0xC0, 0xAD, 0xEE, 0xFC, 0xCE, 0xA4, 0x87, 0xDE,
             0x8A, 0xA6, 0xCE, 0xDC, 0xB0, 0xEE, 0xE8, 0xE5, 0xB3, 0xF5,
@@ -124,10 +126,9 @@ private class MainClient(private val session: SessionData, private val config: C
         )
     }
 
+    fun empty(packet: RawPacket, qtype: Int = RESPONSE) = channel.send(RawPacket(packet.rawComponent, packet.rawCommand, 0, qtype, packet.id, EMPTY_BYTE_ARRAY))
+
     lateinit var channel: Channel
-
-
-    var player: Player? = null
 
     override fun channelActive(ctx: ChannelHandlerContext) {
         super.channelActive(ctx)
@@ -136,41 +137,249 @@ private class MainClient(private val session: SessionData, private val config: C
 
     override fun channelRead0(ctx: ChannelHandlerContext, msg: RawPacket) {
         try {
-
             when (msg.component) {
-                Component.AUTHENTICATION -> handleAuthentication(msg)
-                Component.GAME_MANAGER -> handleGameManager(msg)
-                Component.STATS -> handleStats(msg)
-                Component.MESSAGING -> handleMessaging(msg)
-                Component.ASSOCIATION_LISTS -> handleAssociationLists(msg)
-                Component.GAME_REPORTING -> handleGameReporting(msg)
-                Component.USER_SESSIONS -> handleUserSessions(msg)
-                Component.UTIL -> handleUtil(msg)
+                AUTHENTICATION -> handleAuthentication(msg)
+                GAME_MANAGER -> handleGameManager(msg)
+                STATS -> handleStats(msg)
+                MESSAGING -> handleMessaging(msg)
+                ASSOCIATION_LISTS -> handleAssociationLists(msg)
+                GAME_REPORTING -> handleGameReporting(msg)
+                USER_SESSIONS -> handleUserSessions(msg)
+                UTIL -> handleUtil(msg)
                 else -> {}
             }
-        } catch (e: InvalidTdfException) {
-            LOGGER.warn("Failed to handle packet $msg", e)
-        } catch (e: UnexpectBlazePairException) {
+        } catch (e: Exception) {
             LOGGER.warn("Failed to handle packet: $msg", e)
         }
     }
 
-    fun handleUtil(packet: RawPacket) {
+    //region Authentication Component Region
+
+    private fun handleAuthentication(packet: RawPacket) {
         when (packet.command) {
-            Command.PRE_AUTH -> handlePreAuth(packet)
-            Command.PING -> {
-                LOGGER.logIfDebug { "Received ping update from client: ${session.id}" }
-                session.lastPingTime = System.currentTimeMillis()
-                channel.respond(packet) {
-                    // Server Time (in Epoch Seconds)
-                    number("STIM", Instant.now().epochSecond)
-                }
-            }
-            Command.POST_AUTH -> handlePostAuth(packet)
+            LIST_USER_ENTITLEMENTS_2 -> handleListUserEntitlements2(packet)
+            GET_AUTH_TOKEN -> handleGetAuthToken(packet)
+            LOGIN -> handleLogin(packet)
+            SILENT_LOGIN -> {}
+            LOGIN_PERSONA -> {}
+            ORIGIN_LOGIN -> {}
+            LOGOUT,
+            GET_PRIVACY_POLICY_CONTENT,
+            GET_LEGAL_DOCS_INFO,
+            GET_TERMS_OF_SERVICE_CONTENT,
+            ACCEPT_LEGAL_DOCS,
+            CHECK_AGE_REQUIREMENT,
+            CREATE_ACCOUNT,
+            CREATE_PERSONA,
+            -> empty(packet, 0x1000)
+            else -> throw UnexpectBlazePairException()
         }
     }
 
-    fun handlePreAuth(packet: RawPacket) {
+    private fun handleListUserEntitlements2(packet: RawPacket) {
+        val etag = packet.getValue(StringTdf::class, "ETAG")
+        if (etag.isEmpty()) {
+            channel.send(Data.makeUserEntitlements2(packet))
+
+            if (!session.sendOffers) {
+                session.sendOffers = true
+                @Suppress("SpellCheckingInspection")
+                val sessPacket = unique(USER_SESSIONS, START_SESSION) {
+                    +struct("DATA") {
+                        +session.createAddrUnion("ADDR")
+                        text("BPS", "ea-sjc")
+                        text("CTY", "")
+                        varList("CVAR", emptyList())
+                        map("DMAP", mapOf(0x70001 to 0x2e))
+                        number("HWFG", 0x0)
+                        list("PSLM", listOf(0xfff0fff, 0xfff0fff, 0xfff0fff))
+                        +struct("QDAT") {
+                            number("DBPS", 0x0)
+                            number("NATT", config.natType)
+                            number("UBPS", 0x0)
+                        }
+                        number("UATT", 0x0)
+                    }
+                    number("USID", session.userId)
+                }
+                channel.send(sessPacket)
+                channel.send(sessPacket)
+            }
+
+        } else {
+            empty(packet, 0x1000)
+        }
+    }
+
+    private fun handleGetAuthToken(packet: RawPacket) {
+        val player = session.player ?: return
+
+        channel.respond(packet) {
+            text("AUTH", player.id.toString(16))
+        }
+    }
+
+    private fun handleLogin(packet: RawPacket) {
+        val content = packet.content
+        val playerName = packet.getStringAt(1).trim()
+        val password = packet.getStringAt(2).trim()
+        if (playerName.isBlank() || password.isBlank()) {
+            loginErrorPacket(packet, LoginError.INVALID_INFORMATION)
+            return
+        }
+        val playerRepo = database.playerRepository
+        try {
+            val player = playerRepo.getPlayerByName(playerName)
+            if (!player.isMatchingPassword(password)) {
+                loginErrorPacket(packet, LoginError.WRONG_PASSWORD)
+                return
+            }
+        } catch (e: PlayerNotFoundException) {
+            loginErrorPacket(packet, LoginError.INVALID_EMAIL)
+        } catch (e: ServerErrorException) {
+            loginErrorPacket(packet, LoginError.SERVER_UNAVAILABLE)
+        }
+    }
+
+    private enum class LoginError(val value: Int) {
+        SERVER_UNAVAILABLE(0x0),
+        EMAIL_NOT_FOUND(0xB),
+        WRONG_PASSWORD(0x0C),
+        EMAIL_ALREADY_IN_USE(0x0F),
+        AGE_RESTRICTION(0x10),
+        INVALID_ACCOUNT(0x11),
+        BANNED_ACCOUNT(0x13),
+        INVALID_INFORMATION(0x15),
+        INVALID_EMAIL(0x16),
+        LEGAL_GUARDIAN_REQUIRED(0x2A),
+        CODE_REQUIRED(0x32),
+        KEY_CODE_ALREADY_IN_USE(0x33),
+        INVALID_CERBERUS_KEY(0x34),
+        SERVER_UNAVAILABLE_FINAL(0x4001),
+        FAILED_NO_LOGIN_ACTION(0x4004),
+        SERVER_UNAVAILABLE_NOTHING(0x4005),
+        CONNECTION_LOST(0x4007)
+    }
+
+    private fun loginErrorPacket(packet: RawPacket, reason: LoginError) {
+//        channel.write(packet(packet.component, packet.command, reason.value, 0x3000, packet.id) {
+//            text("PNAM", "")
+//            number("UID", 0)
+//        })
+        val remoteAddress = channel.remoteAddress()
+        LOGGER.info("Client login failed for address $remoteAddress reason: $reason")
+    }
+
+    //endregion
+
+    //region Game Manager Component Region
+
+    private fun handleGameManager(packet: RawPacket) {
+
+    }
+
+    //endregion
+
+    //region Stats Component Region
+
+    private fun handleStats(packet: RawPacket) {
+
+    }
+
+    //endregion
+
+    //region Messaging Component Region
+
+    private fun handleMessaging(packet: RawPacket) {
+
+    }
+
+    //endregion
+
+    //region Association Lists Component Region
+
+    private fun handleAssociationLists(packet: RawPacket) {
+
+    }
+
+    //endregion
+
+    //region Game Reporting Component Region
+
+    fun handleGameReporting(packet: RawPacket) {
+
+    }
+
+    //endregion
+
+    //region User Sessions Component Region
+
+    private fun handleUserSessions(packet: RawPacket) {
+        when (packet.command) {
+            UPDATE_HARDWARE_FLAGS,
+            UPDATE_NETWORK_INFO,
+            -> {
+                val addr = packet.get(UnionTdf::class, "ADDR")
+                val value = addr.value as StructTdf
+                val inip = value.get(StructTdf::class, "INIP")
+                val port = inip.get(VarIntTdf::class, "PORT")
+                val remoteAddress = channel.remoteAddress()
+                val addressEncoded = IPAddress.asLong(remoteAddress)
+                session.inip.address = addressEncoded
+                session.inip.port = port.value.toInt()
+
+                session.exip.address = addressEncoded
+                session.exip.port = port.value.toInt()
+            }
+            else -> throw UnexpectBlazePairException()
+        }
+        empty(packet, 0x1000)
+    }
+
+    //endregion
+
+    //region Util Component Region
+
+    private fun handleUtil(packet: RawPacket) {
+        when (packet.command) {
+            FETCH_CLIENT_CONFIG -> handleFetchClientConfig(packet)
+            PING -> handlePing(packet)
+            PRE_AUTH -> handlePreAuth(packet)
+            POST_AUTH -> handlePostAuth(packet)
+            else -> throw UnexpectBlazePairException()
+        }
+    }
+
+    private fun handleFetchClientConfig(packet: RawPacket) {
+        val type = packet.getValue(StringTdf::class, "CFID")
+        if (type.startsWith("ME3_LIVE_TLK_PC_")) {
+
+            return
+        }
+        val conf: Map<String, String> = when (type) {
+            "ME3_DATA" -> Data.makeME3Data()
+            "ME3_MSG" -> Data.makeME3MSG()
+            "ME3_ENT" -> Data.makeME3ENT()
+            "ME3_DIME" -> Data.makeME3DIME()
+            "ME3_BINI_VERSION" -> Data.makeBiniVersion()
+            "ME3_BINI_PC_COMPRESSED" -> Data.loadBiniCompressed()
+            else -> emptyMap()
+        }
+        channel.respond(packet) {
+            map("CONF", conf)
+        }
+    }
+
+    private fun handlePing(packet: RawPacket) {
+        LOGGER.logIfDebug { "Received ping update from client: ${session.id}" }
+        session.lastPingTime = System.currentTimeMillis()
+        channel.respond(packet) {
+            // Server Time (in Epoch Seconds)
+            number("STIM", Instant.now().epochSecond)
+        }
+    }
+
+    private fun handlePreAuth(packet: RawPacket) {
         channel.respond(packet) {
             number("ANON", 0x0)
             number("ASRC", 303107)
@@ -223,7 +432,7 @@ private class MainClient(private val session: SessionData, private val config: C
         }
     }
 
-    fun handlePostAuth(packet: RawPacket) {
+    private fun handlePostAuth(packet: RawPacket) {
         channel.respond(packet) {
             +struct("PSS") {
                 text("ADRS", "playersyncservice.ea.com")
@@ -264,171 +473,6 @@ private class MainClient(private val session: SessionData, private val config: C
         }
     }
 
-    fun handleAuthentication(packet: RawPacket) {
-        when (packet.command) {
-            Command.LIST_USER_ENTITLEMENTS_2 -> handleListUserEntitlements2(packet)
-            Command.GET_AUTH_TOKEN -> {
-                val player = session.player ?: return
-
-                channel.respond(packet) {
-                    text("AUTH", player.id.toString(16))
-                }
-            }
-            Command.LOGIN -> handleLogin(packet)
-            Command.SILENT_LOGIN -> {
-
-            }
-            Command.LOGIN_PERSONA -> {
-
-            }
-            Command.ORIGIN_LOGIN -> {
-
-            }
-            Command.LOGOUT,
-            Command.GET_PRIVACY_POLICY_CONTENT,
-            Command.GET_LEGAL_DOCS_INFO,
-            Command.GET_TERMS_OF_SERVICE_CONTENT,
-            Command.ACCEPT_LEGAL_DOCS,
-            Command.CHECK_AGE_REQUIREMENT,
-            Command.CREATE_ACCOUNT,
-            Command.CREATE_PERSONA,
-            -> empty(packet, 0x1000)
-            else -> throw UnexpectBlazePairException()
-        }
-    }
-
-    fun handleListUserEntitlements2(packet: RawPacket) {
-        val etag = packet.getValue(StringTdf::class, "ETAG")
-        if (etag.isEmpty()) {
-            channel.send(Data.makeUserEntitlements2(packet))
-
-            if (!session.sendOffers) {
-                session.sendOffers = true
-                @Suppress("SpellCheckingInspection")
-                val sessPacket = unique(Component.USER_SESSIONS, Command.START_SESSION) {
-                    +struct("DATA") {
-                        +session.createAddrUnion("ADDR")
-                        text("BPS", "ea-sjc")
-                        text("CTY", "")
-                        varList("CVAR", emptyList())
-                        map("DMAP", mapOf(0x70001 to 0x2e))
-                        number("HWFG", 0x0)
-                        list("PSLM", listOf(0xfff0fff, 0xfff0fff, 0xfff0fff))
-                        +struct("QDAT") {
-                            number("DBPS", 0x0)
-                            number("NATT", config.natType)
-                            number("UBPS", 0x0)
-                        }
-                        number("UATT", 0x0)
-                    }
-                    number("USID", session.userId)
-                }
-                channel.send(sessPacket)
-                channel.send(sessPacket)
-            }
-
-        } else {
-            empty(packet, 0x1000)
-        }
-    }
-
-    private val EMPTY_BYTE_ARRAY = ByteArray(0)
-
-    fun empty(packet: RawPacket, qtype: Int) {
-        channel.send(RawPacket(packet.rawComponent, packet.rawCommand, 0, qtype, packet.id, EMPTY_BYTE_ARRAY))
-    }
-
-    fun handleLogin(packet: RawPacket) {
-        val content = packet.content
-        val playerName = packet.getStringAt(1).trim()
-        val password = packet.getStringAt(2).trim()
-        if (playerName.isBlank() || password.isBlank()) {
-            LoginErrorPacket(packet, LoginError.INVALID_INFORMATION)
-            return
-        }
-        val playerRepo = database.playerRepository
-        try {
-            val player = playerRepo.getPlayerByName(playerName)
-            if (!player.isMatchingPassword(password)) {
-                LoginErrorPacket(packet, LoginError.WRONG_PASSWORD)
-                return
-            }
-        } catch (e: PlayerNotFoundException) {
-            LoginErrorPacket(packet, LoginError.INVALID_EMAIL)
-        } catch (e: ServerErrorException) {
-            LoginErrorPacket(packet, LoginError.SERVER_UNAVAILABLE)
-        }
-    }
-
-    enum class LoginError(val value: Int) {
-        SERVER_UNAVAILABLE(0x0),
-        EMAIL_NOT_FOUND(0xB),
-        WRONG_PASSWORD(0x0C),
-        EMAIL_ALREADY_IN_USE(0x0F),
-        AGE_RESTRICTION(0x10),
-        INVALID_ACCOUNT(0x11),
-        BANNED_ACCOUNT(0x13),
-        INVALID_INFORMATION(0x15),
-        INVALID_EMAIL(0x16),
-        LEGAL_GUARDIAN_REQUIRED(0x2A),
-        CODE_REQUIRED(0x32),
-        KEY_CODE_ALREADY_IN_USE(0x33),
-        INVALID_CERBERUS_KEY(0x34),
-        SERVER_UNAVAILABLE_FINAL(0x4001),
-        FAILED_NO_LOGIN_ACTION(0x4004),
-        SERVER_UNAVAILABLE_NOTHING(0x4005),
-        CONNECTION_LOST(0x4007)
-    }
-
-    fun LoginErrorPacket(packet: RawPacket, reason: LoginError) {
-//        channel.write(packet(packet.component, packet.command, reason.value, 0x3000, packet.id) {
-//            text("PNAM", "")
-//            number("UID", 0)
-//        })
-        val remoteAddress = channel.remoteAddress()
-        LOGGER.info("Client login failed for address $remoteAddress reason: $reason")
-    }
-
-    fun handleGameManager(packet: RawPacket) {
-
-    }
-
-    fun handleStats(packet: RawPacket) {
-
-    }
-
-    fun handleMessaging(packet: RawPacket) {
-
-    }
-
-    fun handleAssociationLists(packet: RawPacket) {
-
-    }
-
-    fun handleGameReporting(packet: RawPacket) {
-
-    }
-
-    fun handleUserSessions(packet: RawPacket) {
-        when (packet.command) {
-            Command.UPDATE_HARDWARE_FLAGS,
-            Command.UPDATE_NETWORK_INFO,
-            -> {
-                val addr = packet.get(UnionTdf::class, "ADDR")
-                val value = addr.value as StructTdf
-                val inip = value.get(StructTdf::class, "INIP")
-                val port = inip.get(VarIntTdf::class, "PORT")
-                val remoteAddress = channel.remoteAddress()
-                val addressEncoded = IPAddress.asLong(remoteAddress)
-                session.inip.address = addressEncoded
-                session.inip.port = port.value.toInt()
-
-                session.exip.address = addressEncoded
-                session.exip.port = port.value.toInt()
-            }
-            else -> throw UnexpectBlazePairException()
-        }
-        empty(packet, 0x1000)
-    }
+    //endregion
 
 }

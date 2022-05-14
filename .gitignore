@@ -15,10 +15,8 @@ gradle-app.setting
 
 .idea/
 
-/run/
-
+/run
 */build
-
 /logs
-
 /replay
+/tkl

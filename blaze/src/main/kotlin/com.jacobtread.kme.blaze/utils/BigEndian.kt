@@ -28,4 +28,13 @@ object BigEndian {
         array[3] = value.toByte()
         return array
     }
+
+    fun uint32ToBytes(value: Int): ByteArray {
+        val array = ByteArray(4)
+        array[0] = (value shr 24).toByte()
+        array[1] = (value shr 16).toByte()
+        array[2] = (value shr 8).toByte()
+        array[3] = value.toByte()
+        return array
+    }
 }

@@ -148,7 +148,7 @@ class TdfBuilder {
      * @param label The label of the Tdf
      * @param value The map value
      */
-    fun map(label: String, value: Map<Any, Any>) {
+    fun map(label: String, value: Map<out Any, out Any>) {
         values.add(MapTdf(label, value))
     }
 
