@@ -9,6 +9,7 @@ import com.jacobtread.kme.blaze.exception.UnexpectBlazePairException
 import com.jacobtread.kme.blaze.utils.IPAddress
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Database
+import com.jacobtread.kme.database.repos.PlayerCreationException
 import com.jacobtread.kme.database.repos.PlayerNotFoundException
 import com.jacobtread.kme.database.repos.ServerErrorException
 import com.jacobtread.kme.game.Player
@@ -170,13 +171,13 @@ private class MainClient(private val session: SessionData, private val config: C
             SILENT_LOGIN -> handleSilentLogin(packet)
             LOGIN_PERSONA -> {}
             ORIGIN_LOGIN -> {}
+            CREATE_ACCOUNT -> createAccount(packet)
             LOGOUT,
             GET_PRIVACY_POLICY_CONTENT,
             GET_LEGAL_DOCS_INFO,
             GET_TERMS_OF_SERVICE_CONTENT,
             ACCEPT_LEGAL_DOCS,
             CHECK_AGE_REQUIREMENT,
-            CREATE_ACCOUNT,
             CREATE_PERSONA,
             -> empty(packet, 0x1000)
             else -> throw UnexpectBlazePairException()
@@ -380,6 +381,26 @@ private class MainClient(private val session: SessionData, private val config: C
             number("UID", 0)
         }
     }
+
+
+    private fun createAccount(packet: RawPacket) {
+        val email = packet.getValue(StringTdf::class, "MAIL")
+        val password = packet.getValue(StringTdf::class, "PASS")
+        try {
+            val player = database.playerRepository.createPlayer(email, email, password)
+            session.setPlayer(player)
+            authResponsePacket(packet)
+            sessionDetailsPackets()
+        } catch (e: PlayerCreationException) {
+            when(e.reason) {
+                PlayerCreationException.Reason.EMAIL_TAKEN ->
+                    loginErrorPacket(packet, LoginError.EMAIL_ALREADY_IN_USE)
+                else -> {}
+            }
+            LOGGER.error("Failed to create player", e)
+        }
+    }
+
 
     //endregion
 

@@ -6,7 +6,12 @@ import com.jacobtread.kme.utils.hashPassword
 import java.sql.Connection
 import java.sql.SQLException
 
-class PlayerCreationException(reason: String, cause: Throwable? = null) : Exception(reason, cause)
+class PlayerCreationException(val reason: Reason, cause: Throwable? = null) : Exception(reason.toString(), cause) {
+    enum class Reason {
+        EMAIL_TAKEN,
+        OTHER
+    }
+}
 class PlayerNotFoundException : Exception()
 class ServerErrorException(cause: Throwable? = null) : Exception(cause)
 
@@ -43,8 +48,9 @@ abstract class PlayersRepository : DatabaseRepository() {
      * @param email The email of the player account
      * @param displayName The display name of the player (username)
      * @param hashedPassword The hashed password
+     * @return The ID of the newly created player
      */
-    protected abstract fun createPlayerInternal(email: String, displayName: String, hashedPassword: String)
+    protected abstract fun createPlayerInternal(email: String, displayName: String, hashedPassword: String): Long
 
     /**
      * getPlayerByName Retrieves a player from the repository that has a matching
@@ -98,15 +104,17 @@ abstract class PlayersRepository : DatabaseRepository() {
      * @throws PlayerCreationException Thrown if creation of the player fails
      */
     @Throws(PlayerCreationException::class)
-    fun createPlayer(email: String, displayName: String, password: String) {
+    fun createPlayer(email: String, displayName: String, password: String): Player {
         try {
-            if (isEmailTaken(email)) throw PlayerCreationException("That email is already in use.")
-            if (isDisplayNameTaken(displayName)) throw PlayerCreationException("That display name is already in use.")
+            if (isEmailTaken(email)) throw PlayerCreationException(PlayerCreationException.Reason.EMAIL_TAKEN)
+            if (isDisplayNameTaken(displayName)) throw PlayerCreationException(PlayerCreationException.Reason.EMAIL_TAKEN)
             val hashed = hashPassword(password)
-            createPlayerInternal(email, displayName, hashed)
+            val id = createPlayerInternal(email, displayName, hashed)
+
+            return Player(id, email, displayName, 0, 0, null, hashed)
         } catch (e: Exception) {
-            LOGGER.error("Failed to create player", e)
-            throw PlayerCreationException("Failed to create player", e)
+            if (e is PlayerCreationException) throw e
+            throw PlayerCreationException(PlayerCreationException.Reason.OTHER, e)
         }
     }
 
@@ -165,12 +173,15 @@ abstract class PlayersRepository : DatabaseRepository() {
             return resultSet.next()
         }
 
-        override fun createPlayerInternal(email: String, displayName: String, hashedPassword: String) {
+        override fun createPlayerInternal(email: String, displayName: String, hashedPassword: String): Long {
             val statement = connection.prepareStatement("INSERT INTO `players` (`email`, `display_name`, `password`) VALUES (?, ?, ?)")
             statement.setString(1, email)
             statement.setString(2, displayName)
             statement.setString(3, hashedPassword)
             statement.executeUpdate()
+            val resultSet = statement.generatedKeys
+            if (!resultSet.next()) throw IllegalStateException("Missing ID from created player")
+            return resultSet.getLong(1)
         }
 
         override fun getPlayerByName(displayName: String): Player {
