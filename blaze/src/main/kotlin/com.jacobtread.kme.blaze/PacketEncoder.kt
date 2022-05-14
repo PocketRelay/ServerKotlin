@@ -6,12 +6,7 @@ import io.netty.handler.codec.MessageToByteEncoder
 
 class PacketEncoder : MessageToByteEncoder<RawPacket>() {
     override fun encode(ctx: ChannelHandlerContext, msg: RawPacket, out: ByteBuf) {
-        try {
-            println("SENDING PACKET -> ")
-            println(PacketDumper.dump(msg))
-        } catch (e: Throwable) {
-            e.printStackTrace()
-        }
+        PacketLogger.log(PacketLogger.Direction.OUT, msg)
         val content = msg.rawContent
         val length = content.size
         out.writeByte((length and 0xFFFF) shr 8)

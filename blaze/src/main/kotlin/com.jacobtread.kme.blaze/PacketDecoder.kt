@@ -8,7 +8,9 @@ class PacketDecoder : ByteToMessageDecoder() {
     override fun decode(ctx: ChannelHandlerContext, input: ByteBuf, out: MutableList<Any>) {
         try {
             while (input.readableBytes() > 0) {
-                out.add(RawPacket.read(input))
+                val packet = RawPacket.read(input)
+                PacketLogger.log(PacketLogger.Direction.IN, packet)
+                out.add(packet)
             }
         } catch (e: Throwable) {
             e.printStackTrace()

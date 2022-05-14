@@ -6,8 +6,8 @@ object PacketDumper {
 
     fun dump(rawPacket: RawPacket): String {
         val out = StringBuilder("packet(")
-        if (rawPacket.command == PacketCommand.UNKNOWN
-            || rawPacket.component == PacketComponent.UNKNOWN
+        if (rawPacket.command == Command.UNKNOWN
+            || rawPacket.component == Component.UNKNOWN
         ) {
             out.append("0x")
                 .append(rawPacket.rawComponent.toString(16))

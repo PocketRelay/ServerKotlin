@@ -1,30 +1,31 @@
 package com.jacobtread.kme.blaze
 
 import io.netty.buffer.Unpooled
-import java.io.FileNotFoundException
-import java.nio.file.Paths
-import kotlin.io.path.exists
-import kotlin.io.path.forEachDirectoryEntry
-import kotlin.io.path.readBytes
+import kotlin.io.path.*
 
 fun main(args: Array<String>) {
+    val dir = Path("replay")
+    val decodedDir = dir / "decoded"
 
-    val dir = Paths.get("replay")
+    if (!decodedDir.exists()) decodedDir.createDirectories()
     dir.forEachDirectoryEntry {
         if (it.fileName.toString().endsWith(".bin")) {
+            val outFile = decodedDir / "${it.fileName}.txt"
+            if (!outFile.exists()) outFile.createFile()
+            val outBuilder = StringBuilder()
             val contents = it.readBytes()
             val buffer = Unpooled.wrappedBuffer(contents)
             while (buffer.readableBytes() > 0) {
                 try {
-                    println("=========== CONTENTS OF ${it.fileName.toString()} ===========")
                     val packet = RawPacket.read(buffer)
-                    println(PacketDumper.dump(packet))
-                    println("=======================================")
+                    outBuilder.append(PacketDumper.dump(packet))
+                    outBuilder.append('\n')
                 } catch (e: Throwable) {
                     e.printStackTrace()
                     break
                 }
             }
+            outFile.writeText(outBuilder.toString())
         }
     }
 

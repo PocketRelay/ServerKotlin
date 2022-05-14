@@ -1,7 +1,7 @@
 package com.jacobtread.kme.blaze
 
 
-enum class PacketComponent(val id: Int) {
+enum class Component(val id: Int) {
     AUTHENTICATION(0x1),
     EXAMPLE(0x3),
     GAME_MANAGER(0x4),
@@ -28,7 +28,7 @@ enum class PacketComponent(val id: Int) {
     UNKNOWN(-1);
 
     companion object {
-        private val LOOKUP: HashMap<Int, PacketComponent>
+        private val LOOKUP: HashMap<Int, Component>
 
         init {
             val values = values()
@@ -36,6 +36,6 @@ enum class PacketComponent(val id: Int) {
             values.forEach { LOOKUP[it.id] = it }
         }
 
-        fun from(value: Int): PacketComponent = LOOKUP[value] ?: UNKNOWN
+        fun from(value: Int): Component = LOOKUP[value] ?: UNKNOWN
     }
 }

@@ -1,5 +1,6 @@
 package com.jacobtread.kme
 
+import com.jacobtread.kme.blaze.PacketLogger
 import com.jacobtread.kme.database.Database
 import com.jacobtread.kme.logging.Level
 import com.jacobtread.kme.logging.Logger
@@ -50,7 +51,11 @@ fun main() {
     var input: String
     while (true) {
         input = inputReader.readLine()
-        LOGGER.info("Unknown command: $input")
+        if (input == "pdump") {
+            PacketLogger.dump()
+        } else {
+            LOGGER.info("Unknown command: $input")
+        }
     }
 }
 

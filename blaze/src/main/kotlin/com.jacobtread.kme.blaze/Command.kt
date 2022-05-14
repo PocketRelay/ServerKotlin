@@ -1,9 +1,9 @@
 package com.jacobtread.kme.blaze
 
-import com.jacobtread.kme.blaze.PacketComponent.*
+import com.jacobtread.kme.blaze.Component.*
 
 @Suppress("unused")
-enum class PacketCommand(val component: PacketComponent, val value: Int) {
+enum class Command(val component: Component, val value: Int) {
     //Authentication Component
     UPDATE_ACCOUNT(AUTHENTICATION, 0x14),
     UPDATE_PARENTAL_EMAIL(AUTHENTICATION, 0x1C),
@@ -212,7 +212,7 @@ enum class PacketCommand(val component: PacketComponent, val value: Int) {
 
 
     companion object {
-        private val LOOKUP: HashMap<Int, PacketCommand>
+        private val LOOKUP: HashMap<Int, Command>
 
         init {
             val values = values()
@@ -224,7 +224,7 @@ enum class PacketCommand(val component: PacketComponent, val value: Int) {
             }
         }
 
-        fun from(component: Int, command: Int): PacketCommand {
+        fun from(component: Int, command: Int): Command {
             return LOOKUP[(component shl 16) + command] ?: UNKNOWN
         }
     }

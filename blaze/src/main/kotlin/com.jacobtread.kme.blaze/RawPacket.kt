@@ -31,8 +31,8 @@ class RawPacket(
     }
 
 
-    val component = PacketComponent.from(rawComponent)
-    val command = PacketCommand.from(rawComponent, rawCommand)
+    val component = Component.from(rawComponent)
+    val command = Command.from(rawComponent, rawCommand)
     val content: List<Tdf> by lazy {
         val buffer = Unpooled.wrappedBuffer(rawContent)
         val values = ArrayList<Tdf>()

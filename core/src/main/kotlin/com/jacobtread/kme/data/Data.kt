@@ -4,9 +4,9 @@ import com.jacobtread.kme.blaze.*
 
 object Data {
 
-    fun makeUserEntitlements2(id: Int): RawPacket {
+    fun makeUserEntitlements2(packet: RawPacket): RawPacket {
         @Suppress("SpellCheckingInspection")
-        return packet(PacketComponent.AUTHENTICATION, PacketCommand.LIST_USER_ENTITLEMENTS_2, 0x1000, id) {
+        return respond(packet) {
             list("NLST", listOf(
                 struct {
                     text("DEVI", "")
