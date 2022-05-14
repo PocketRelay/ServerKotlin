@@ -22,6 +22,12 @@ fun Channel.respond(
     populate: TdfBuilder.() -> Unit = {},
 ) = send(createPacket(responding.rawComponent, responding.rawCommand, RESPONSE, responding.id, error, populate))
 
+fun Channel.error(
+    responding: RawPacket,
+    error: Int,
+    populate: TdfBuilder.() -> Unit = {},
+) = send(createPacket(responding.rawComponent, responding.rawCommand, ERROR, responding.id, error, populate))
+
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun respond(
@@ -41,7 +47,7 @@ inline fun respond(
 inline fun Channel.unique(
     component: Component,
     command: Command,
-    id: Int,
+    id: Int = 0x0,
     error: Int = NO_ERROR,
     noinline populate: TdfBuilder.() -> Unit = {},
 ) = send(createPacket(component.id, command.value, UNIQUE, id, error, populate))

@@ -192,6 +192,7 @@ enum class Command(val component: Component, val value: Int) {
 
     // User Sessions Component
     START_SESSION(USER_SESSIONS, 0x1),
+    SESSION_DETAILS(USER_SESSIONS, 0x2),
     FETCH_EXTENDED_DATA(USER_SESSIONS, 0x3),
     UPDATE_EXTENDED_DATA_ATTRIBUTE(USER_SESSIONS, 0x5),
     UPDATE_HARDWARE_FLAGS(USER_SESSIONS, 0x8),

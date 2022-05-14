@@ -82,9 +82,16 @@ class SessionData(
     val inip: NetData,
 ) {
 
-    var player: Player? = null
+    private var player: Player? = null
     var sendOffers: Boolean = false
     var lastPingTime: Long = -1L
+
+    fun getPlayer(): Player = player!!
+    fun hasPlayer(): Boolean = player != null
+
+    fun setPlayer(player: Player) {
+        this.player = player
+    }
 
     fun createAddrUnion(label: String): UnionTdf =
         UnionTdf(label, 0x02, struct("VALU") {
@@ -160,7 +167,7 @@ private class MainClient(private val session: SessionData, private val config: C
             LIST_USER_ENTITLEMENTS_2 -> handleListUserEntitlements2(packet)
             GET_AUTH_TOKEN -> handleGetAuthToken(packet)
             LOGIN -> handleLogin(packet)
-            SILENT_LOGIN -> {}
+            SILENT_LOGIN -> handleSilentLogin(packet)
             LOGIN_PERSONA -> {}
             ORIGIN_LOGIN -> {}
             LOGOUT,
@@ -212,11 +219,6 @@ private class MainClient(private val session: SessionData, private val config: C
     }
 
     private fun handleGetAuthToken(packet: RawPacket) {
-        val player = session.player ?: return
-
-        channel.respond(packet) {
-            text("AUTH", player.id.toString(16))
-        }
     }
 
     private fun handleLogin(packet: RawPacket) {
@@ -241,6 +243,117 @@ private class MainClient(private val session: SessionData, private val config: C
         }
     }
 
+    private fun handleSilentLogin(packet: RawPacket) {
+        val pid = packet.getValue(VarIntTdf::class, "PID")
+        val auth = packet.getValue(StringTdf::class, "AUTH")
+        try {
+            val player = database.playerRepository.getPlayerByID(pid)
+            if (player.sessionToken == auth) {
+                session.setPlayer(player)
+                authResponsePacket(packet)
+                sessionDetailsPackets()
+            } else {
+                loginErrorPacket(packet, LoginError.INVALID_ACCOUNT)
+            }
+        } catch (e: PlayerNotFoundException) {
+            loginErrorPacket(packet, LoginError.INVALID_ACCOUNT)
+        } catch (e: ServerErrorException) {
+            loginErrorPacket(packet, LoginError.SERVER_UNAVAILABLE)
+        }
+    }
+
+    private fun createSessionToken(): String {
+        val chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPSQRSTUVWXYZ0123456789-"
+        val output = StringBuilder()
+        repeat(128) { output.append(chars.random()) }
+        return output.toString()
+    }
+
+    private fun authResponsePacket(packet: RawPacket) {
+        val player = session.getPlayer()
+
+        var sessionToken = player.sessionToken
+        if (sessionToken == null) {
+            sessionToken = createSessionToken()
+            database.playerRepository.setPlayerSessionToken(player, sessionToken)
+        }
+
+        val lastLoginTime = Instant.now().epochSecond
+
+        @Suppress("SpellCheckingInspection")
+        channel.respond(packet) {
+            number("AGUP", 0)
+            text("LDHT", "")
+            number("NTOS", 0)
+            text("PCTK", sessionToken)
+            text("PRIV", "")
+            +struct("SESS") {
+                number("BUID", player.id)
+                number("FRST", 0)
+                text("KEY", "11229301_9b171d92cc562b293e602ee8325612e7")
+                number("LLOG", lastLoginTime)
+                text("MAIL", player.email)
+                +struct("PDTL") {
+                    text("DSNM", player.displayName)
+                    number("LAST", lastLoginTime)
+                    number("PID", player.id)
+                    number("STAS", 0)
+                    number("XREF", 0)
+                    number("XTYP", 0)
+                }
+                number("UID", player.id)
+            }
+            number("SPAM", 0)
+            text("THST", "")
+            text("TSUI", "")
+            text("TURI", "")
+        }
+    }
+
+    private fun sessionDetailsPackets() {
+        val player = session.getPlayer()
+        @Suppress("SpellCheckingInspection")
+        channel.unique(
+            USER_SESSIONS,
+            SESSION_DETAILS,
+        ) {
+            +struct("DATA") {
+                union("ADDR")
+                text("BPS", "")
+                text("CTY", "")
+                varList("CVAR", emptyList())
+                map("DMAP", mapOf(0x70001 to 0x22))
+                number("HWFG", 0)
+
+                +struct("QDAT") {
+                    number("DBPS", 0)
+                    number("NATT", config.natType)
+                    number("UBPS", 0)
+                }
+
+                number("UATT", 0)
+            }
+
+            +struct("USER") {
+                number("AID", player.id)
+                number("ALOC", 0x64654445)
+                blob("EXBB", EMPTY_BYTE_ARRAY)
+                number("EXID", 0)
+                number("ID", player.id)
+                text("NAME", player.displayName)
+            }
+        }
+
+        @Suppress("SpellCheckingInspection")
+        channel.unique(
+            USER_SESSIONS,
+            UPDATE_EXTENDED_DATA_ATTRIBUTE
+        ) {
+            number("FLGS", 3)
+            number("ID", player.id)
+        }
+    }
+
     private enum class LoginError(val value: Int) {
         SERVER_UNAVAILABLE(0x0),
         EMAIL_NOT_FOUND(0xB),
@@ -262,12 +375,10 @@ private class MainClient(private val session: SessionData, private val config: C
     }
 
     private fun loginErrorPacket(packet: RawPacket, reason: LoginError) {
-//        channel.write(packet(packet.component, packet.command, reason.value, 0x3000, packet.id) {
-//            text("PNAM", "")
-//            number("UID", 0)
-//        })
-        val remoteAddress = channel.remoteAddress()
-        LOGGER.info("Client login failed for address $remoteAddress reason: $reason")
+        channel.error(packet, reason.value) {
+            text("PNAM", "")
+            number("UID", 0)
+        }
     }
 
     //endregion

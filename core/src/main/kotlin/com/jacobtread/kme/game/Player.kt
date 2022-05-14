@@ -3,12 +3,12 @@ package com.jacobtread.kme.game
 import com.jacobtread.kme.utils.compareHashPassword
 
 data class Player(
-    val id: Int,
+    val id: Long,
     val email: String,
-    val display_name: String,
+    val displayName: String,
     val credits: Int,
     val games_player: Int,
-    val auth: String,
+    val sessionToken: String?,
     val password: String,
 ) {
 
