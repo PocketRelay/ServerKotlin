@@ -476,6 +476,7 @@ private class MainClient(private val session: SessionData, private val config: C
             }
             number("UID", player.id)
         }
+        sessionDetailsPackets()
     }
 
     //endregion
