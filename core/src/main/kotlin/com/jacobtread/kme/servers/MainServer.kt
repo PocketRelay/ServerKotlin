@@ -5,7 +5,6 @@ import com.jacobtread.kme.LOGGER
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.Command.*
 import com.jacobtread.kme.blaze.Component.*
-import com.jacobtread.kme.blaze.exception.UnexpectBlazePairException
 import com.jacobtread.kme.blaze.utils.IPAddress
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Database
@@ -157,7 +156,7 @@ private class MainClient(private val session: SessionData, private val config: C
                 GAME_REPORTING -> handleGameReporting(msg)
                 USER_SESSIONS -> handleUserSessions(msg)
                 UTIL -> handleUtil(msg)
-                else -> {}
+                else -> empty(msg)
             }
         } catch (e: Exception) {
             LOGGER.warn("Failed to handle packet: $msg", e)
@@ -175,15 +174,7 @@ private class MainClient(private val session: SessionData, private val config: C
             LOGIN_PERSONA -> handleLoginPersona(packet)
             ORIGIN_LOGIN -> {}
             CREATE_ACCOUNT -> handleCreateAccount(packet)
-            LOGOUT,
-            GET_PRIVACY_POLICY_CONTENT,
-            GET_LEGAL_DOCS_INFO,
-            GET_TERMS_OF_SERVICE_CONTENT,
-            ACCEPT_LEGAL_DOCS,
-            CHECK_AGE_REQUIREMENT,
-            CREATE_PERSONA,
-            -> empty(packet, 0x1000)
-            else -> throw UnexpectBlazePairException()
+            else -> empty(packet)
         }
     }
 
@@ -218,11 +209,15 @@ private class MainClient(private val session: SessionData, private val config: C
             }
 
         } else {
-            empty(packet, 0x1000)
+            empty(packet)
         }
     }
 
     private fun handleGetAuthToken(packet: RawPacket) {
+        val player = session.getPlayer()
+        channel.respond(packet) {
+            text("AUTH", player.id.toString(16))
+        }
     }
 
     private fun handleLogin(packet: RawPacket) {
@@ -440,7 +435,7 @@ private class MainClient(private val session: SessionData, private val config: C
             when (e.reason) {
                 PlayerCreationException.Reason.EMAIL_TAKEN ->
                     loginErrorPacket(packet, LoginError.EMAIL_ALREADY_IN_USE)
-                else -> {}
+                else -> empty(packet)
             }
             LOGGER.error("Failed to create player: ${e.message}")
         }
@@ -568,7 +563,7 @@ private class MainClient(private val session: SessionData, private val config: C
                     session.exip.port = port.value.toInt()
                 }
             }
-            else -> throw UnexpectBlazePairException()
+            else -> {}
         }
         empty(packet)
     }
@@ -583,7 +578,11 @@ private class MainClient(private val session: SessionData, private val config: C
             PING -> handlePing(packet)
             PRE_AUTH -> handlePreAuth(packet)
             POST_AUTH -> handlePostAuth(packet)
-            else -> throw UnexpectBlazePairException()
+            USER_SETTINGS_SAVE -> handleUserSettingsSave(packet)
+            USER_SETTINGS_LOAD_ALL -> handleUserSettingsLoadAll(packet)
+            SET_CLIENT_METRICS -> empty(packet)
+            SUSPEND_USER_PING -> handleSuspendUserPing(packet)
+            else -> empty(packet)
         }
     }
 
@@ -708,6 +707,30 @@ private class MainClient(private val session: SessionData, private val config: C
             +struct("UROP") {
                 number("TMOP", 0x1)
                 number("UID", session.id)
+            }
+        }
+    }
+
+    private fun handleUserSettingsSave(packet: RawPacket) {
+        val data = packet.getValueOrNull(StringTdf::class, "DATA")
+        val key = packet.getValueOrNull(StringTdf::class, "KEY")
+        if (data != null && key != null) {
+            // TODO: Update user settings
+        }
+        empty(packet)
+    }
+
+    private fun handleUserSettingsLoadAll(packet: RawPacket) {
+
+    }
+
+    private fun handleSuspendUserPing(packet: RawPacket) {
+        val value = packet.getValueOrNull(VarIntTdf::class, "TVAL")
+        if (value != null) {
+            if (value == 0x1312D00L) {
+                channel.error(packet, 0x12D)
+            } else if (value == 0x55D4A80L) {
+                channel.error(packet, 0x12E)
             }
         }
     }
