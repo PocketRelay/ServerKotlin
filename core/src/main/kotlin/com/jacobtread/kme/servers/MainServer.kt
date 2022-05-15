@@ -22,7 +22,6 @@ import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import java.io.IOException
-import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -112,6 +111,7 @@ class SessionData(
 
 data class NetData(var address: Long, var port: Int)
 
+@Suppress("SpellCheckingInspection")
 private class MainClient(private val session: SessionData, private val config: Config, private val database: Database) : SimpleChannelInboundHandler<RawPacket>() {
 
     companion object {
@@ -122,16 +122,18 @@ private class MainClient(private val session: SessionData, private val config: C
         private val SKEY = createSKey()
 
         private fun createSKey(): String {
-           return String(byteArrayOf(
-                94, -118, -53, -35, -8, -20, -63, -107, -104, -103, -7, -108, -64, -83, -18,
-                -4, -50, -92, -121, -34, -118, -90, -50, -36, -80, -18, -24, -27, -77, -11,
-                -83, -102, -78, -27, -28, -79, -103, -122, -57, -114, -101, -80, -12, -64, -127,
-                -93, -89, -115, -100, -70, -62, -119, -45, -61, -84, -104, -106, -92, -32, -64,
-                -127, -125, -122, -116, -104, -80, -32, -52, -119, -109, -58, -52, -102, -28, -56,
-                -103, -29, -126, -18, -40, -105, -19, -62, -51, -101, -41, -52, -103, -77, -27,
-                -58, -47, -21, -78, -90, -117, -72, -29, -40, -60, -95, -125, -58, -116, -100,
-                -74, -16, -48, -63, -109, -121, -53, -78, -18, -120, -107, -46, -128, -128
-            ), Charsets.UTF_8)
+            return String(
+                byteArrayOf(
+                    94, -118, -53, -35, -8, -20, -63, -107, -104, -103, -7, -108, -64, -83, -18,
+                    -4, -50, -92, -121, -34, -118, -90, -50, -36, -80, -18, -24, -27, -77, -11,
+                    -83, -102, -78, -27, -28, -79, -103, -122, -57, -114, -101, -80, -12, -64, -127,
+                    -93, -89, -115, -100, -70, -62, -119, -45, -61, -84, -104, -106, -92, -32, -64,
+                    -127, -125, -122, -116, -104, -80, -32, -52, -119, -109, -58, -52, -102, -28, -56,
+                    -103, -29, -126, -18, -40, -105, -19, -62, -51, -101, -41, -52, -103, -77, -27,
+                    -58, -47, -21, -78, -90, -117, -72, -29, -40, -60, -95, -125, -58, -116, -100,
+                    -74, -16, -48, -63, -109, -121, -53, -78, -18, -120, -107, -46, -128, -128
+                ), Charsets.UTF_8
+            )
         }
     }
 
@@ -193,7 +195,6 @@ private class MainClient(private val session: SessionData, private val config: C
 
             if (!session.sendOffers) {
                 session.sendOffers = true
-                @Suppress("SpellCheckingInspection")
                 val sessPacket = unique(USER_SESSIONS, START_SESSION) {
                     +struct("DATA") {
                         +session.createAddrUnion("ADDR")
@@ -326,7 +327,6 @@ private class MainClient(private val session: SessionData, private val config: C
         val sessionToken = getSessionToken()
         val lastLoginTime = Instant.now().epochSecond
 
-        @Suppress("SpellCheckingInspection")
         channel.respond(packet) {
             number("AGUP", 0)
             text("LDHT", "")
@@ -358,7 +358,6 @@ private class MainClient(private val session: SessionData, private val config: C
 
     private fun sessionDetailsPackets() {
         val player = session.getPlayer()
-        @Suppress("SpellCheckingInspection")
         channel.unique(
             USER_SESSIONS,
             SESSION_DETAILS,
@@ -390,7 +389,6 @@ private class MainClient(private val session: SessionData, private val config: C
             }
         }
 
-        @Suppress("SpellCheckingInspection")
         channel.unique(
             USER_SESSIONS,
             UPDATE_EXTENDED_DATA_ATTRIBUTE
@@ -421,7 +419,6 @@ private class MainClient(private val session: SessionData, private val config: C
     }
 
     private fun loginErrorPacket(packet: RawPacket, reason: LoginError) {
-        @Suppress("SpellCheckingInspection")
         channel.error(packet, reason.value) {
             text("PNAM", "")
             number("UID", 0)
@@ -434,7 +431,6 @@ private class MainClient(private val session: SessionData, private val config: C
         try {
             val player = database.playerRepository.createPlayer(email, email, password)
             session.setPlayer(player)
-            @Suppress("SpellCheckingInspection")
             channel.respond(packet) {
                 text("PNAM", player.displayName)
                 number("UID", player.id)
@@ -459,7 +455,6 @@ private class MainClient(private val session: SessionData, private val config: C
         }
 
         val lastLoginTime = Instant.now().epochSecond
-        @Suppress("SpellCheckingInspection")
         channel.respond(packet) {
             number("BUID", player.id)
             number("FRST", 0)
@@ -508,7 +503,38 @@ private class MainClient(private val session: SessionData, private val config: C
     //region Association Lists Component Region
 
     private fun handleAssociationLists(packet: RawPacket) {
-
+        when (packet.command) {
+            GET_LISTS -> {
+                channel.respond(packet) {
+                    list("LMAP", listOf(
+                        struct {
+                            +struct("INFO") {
+                                tripple("BOID", 0x19, 0x1, 0x28557f3)
+                                number("FLGS", 4)
+                                +struct("LID") {
+                                    text("LNM", "friendList")
+                                    number("TYPE", 1)
+                                }
+                                number("LMS", 0xC8)
+                                number("PRID", 0)
+                            }
+                            number("OFRC", 0)
+                            number("TOCT", 0)
+                        }
+                    ))
+                }
+            }
+            ADD_USERS_TO_LIST,
+            REMOVE_USERS_FROM_LIST,
+            CLEAR_LISTS,
+            SET_USERS_TO_LIST,
+            GET_LIST_FOR_USER,
+            SUBSCRIBE_TO_LISTS,
+            UNSUBSCRIBE_FROM_LISTS,
+            GET_CONFIG_LISTS_INFO,
+            -> empty(packet)
+            else -> return
+        }
     }
 
     //endregion
@@ -528,21 +554,23 @@ private class MainClient(private val session: SessionData, private val config: C
             UPDATE_HARDWARE_FLAGS,
             UPDATE_NETWORK_INFO,
             -> {
-                val addr = packet.get(UnionTdf::class, "ADDR")
-                val value = addr.value as StructTdf
-                val inip = value.get(StructTdf::class, "INIP")
-                val port = inip.get(VarIntTdf::class, "PORT")
-                val remoteAddress = channel.remoteAddress()
-                val addressEncoded = IPAddress.asLong(remoteAddress)
-                session.inip.address = addressEncoded
-                session.inip.port = port.value.toInt()
+                val addr = packet.getOrNull(UnionTdf::class, "ADDR")
+                if (addr != null) {
+                    val value = addr.value as StructTdf
+                    val inip = value.get(StructTdf::class, "INIP")
+                    val port = inip.get(VarIntTdf::class, "PORT")
+                    val remoteAddress = channel.remoteAddress()
+                    val addressEncoded = IPAddress.asLong(remoteAddress)
+                    session.inip.address = addressEncoded
+                    session.inip.port = port.value.toInt()
 
-                session.exip.address = addressEncoded
-                session.exip.port = port.value.toInt()
+                    session.exip.address = addressEncoded
+                    session.exip.port = port.value.toInt()
+                }
             }
             else -> throw UnexpectBlazePairException()
         }
-        empty(packet, 0x1000)
+        empty(packet)
     }
 
     //endregion
