@@ -4,6 +4,7 @@ import com.jacobtread.kme.LOGGER
 import com.jacobtread.kme.game.Player
 import com.jacobtread.kme.utils.hashPassword
 import java.sql.Connection
+import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
 
@@ -124,8 +125,7 @@ abstract class PlayersRepository : DatabaseRepository() {
             if (isDisplayNameTaken(displayName)) throw PlayerCreationException(PlayerCreationException.Reason.EMAIL_TAKEN)
             val hashed = hashPassword(password)
             val id = createPlayerInternal(email, displayName, hashed)
-
-            return Player(id, email, displayName, 0, 0, null, hashed)
+            return Player(id, email, displayName, null, hashed)
         } catch (e: Exception) {
             if (e is PlayerCreationException) throw e
             throw PlayerCreationException(PlayerCreationException.Reason.OTHER, e)
@@ -153,10 +153,9 @@ abstract class PlayersRepository : DatabaseRepository() {
                     `id` INT(255) AUTO_INCREMENT,
                     `email` VARCHAR(254),
                     `display_name` VARCHAR(99),
-                    `credits` INT(10) UNSIGNED DEFAULT 0,
-                    `games_played` INT(10) UNSIGNED DEFAULT 0,
                     `session_token` VARCHAR(128) DEFAULT NULL,
                     `password` VARCHAR(128) DEFAULT NULL,
+                    `base` TEXT DEFAULT NULL,
                     UNIQUE KEY `id_index` (`id`) USING BTREE,
                     UNIQUE KEY `name_index` (`display_name`) USING BTREE,
                     PRIMARY KEY (`id`)
@@ -201,41 +200,36 @@ abstract class PlayersRepository : DatabaseRepository() {
             return resultSet.getLong(1)
         }
 
+        private fun getPlayerFromResult(result: ResultSet): Player {
+            return Player(
+                id = result.getLong("id"),
+                email = result.getString("email"),
+                displayName = result.getString("display_name"),
+                sessionToken = result.getString("session_token"),
+                password = result.getString("password"),
+            )
+        }
+
         override fun getPlayerByName(displayName: String): Player {
             try {
-                val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `display_name` = ?")
+                val statement = connection.prepareStatement("SELECT `id`, `email`, `display_name`, `session_token`, `password` FROM `players` WHERE `display_name` = ?")
                 statement.setString(1, displayName)
                 val result = statement.executeQuery()
                 if (!result.next()) throw PlayerNotFoundException()
-                return Player(
-                    result.getLong("id"),
-                    result.getString("email"),
-                    result.getString("display_name"),
-                    result.getInt("credits"),
-                    result.getInt("games_played"),
-                    result.getString("session_token"),
-                    result.getString("password"),
-                )
+                return getPlayerFromResult(result)
             } catch (e: SQLException) {
                 throw ServerErrorException(e)
             }
         }
 
+
         override fun getPlayerByEmail(email: String): Player {
             try {
-                val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `email` = ?")
+                val statement = connection.prepareStatement("SELECT `id`, `email`, `display_name`, `session_token`, `password` FROM `players` WHERE `email` = ?")
                 statement.setString(1, email)
                 val result = statement.executeQuery()
                 if (!result.next()) throw PlayerNotFoundException()
-                return Player(
-                    result.getLong("id"),
-                    result.getString("email"),
-                    result.getString("display_name"),
-                    result.getInt("credits"),
-                    result.getInt("games_played"),
-                    result.getString("session_token"),
-                    result.getString("password"),
-                )
+                return getPlayerFromResult(result)
             } catch (e: SQLException) {
                 throw ServerErrorException(e)
             }
@@ -243,19 +237,11 @@ abstract class PlayersRepository : DatabaseRepository() {
 
         override fun getPlayerByID(id: Long): Player {
             try {
-                val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `id` = ?")
+                val statement = connection.prepareStatement("SELECT `id`, `email`, `display_name`, `session_token`, `password` FROM `players` WHERE `id` = ?")
                 statement.setLong(1, id)
                 val result = statement.executeQuery()
                 if (!result.next()) throw PlayerNotFoundException()
-                return Player(
-                    result.getLong("id"),
-                    result.getString("email"),
-                    result.getString("display_name"),
-                    result.getInt("credits"),
-                    result.getInt("games_played"),
-                    result.getString("session_token"),
-                    result.getString("password"),
-                )
+                return getPlayerFromResult(result)
             } catch (e: SQLException) {
                 throw ServerErrorException(e)
             }
