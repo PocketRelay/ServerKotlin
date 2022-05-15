@@ -153,7 +153,7 @@ abstract class PlayersRepository : DatabaseRepository() {
                     `id` INT(255) AUTO_INCREMENT,
                     `email` VARCHAR(254),
                     `display_name` VARCHAR(99),
-                    `credits` INT(10) UNSIGNED,
+                    `credits` INT(10) UNSIGNED DEFAULT 0,
                     `games_played` INT(10) UNSIGNED DEFAULT 0,
                     `session_token` VARCHAR(128) DEFAULT NULL,
                     `password` VARCHAR(128) DEFAULT NULL,
@@ -284,7 +284,7 @@ abstract class PlayersRepository : DatabaseRepository() {
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE ,
                 `email` TEXT UNIQUE ,
                 `display_name` TEXT UNIQUE,
-                `credits` INTEGER,
+                `credits` INTEGER DEFAULT 0,
                 `games_played` INTEGER DEFAULT 0,
                 `session_token` TEXT DEFAULT NULL,
                 `password` TEXT DEFAULT NULL

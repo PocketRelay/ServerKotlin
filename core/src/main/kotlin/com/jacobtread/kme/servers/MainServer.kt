@@ -452,7 +452,12 @@ private class MainClient(private val session: SessionData, private val config: C
 
 
     private fun handleLoginPersona(packet: RawPacket) {
+        val playerName = packet.getValue(StringTdf::class, "PNAM")
         val player = session.getPlayer()
+        if (playerName != player.displayName) {
+            return
+        }
+
         val lastLoginTime = Instant.now().epochSecond
         @Suppress("SpellCheckingInspection")
         channel.respond(packet) {
@@ -460,7 +465,7 @@ private class MainClient(private val session: SessionData, private val config: C
             number("FRST", 0)
             text("KEY", "11229301_9b171d92cc562b293e602ee8325612e7")
             number("LLOG", lastLoginTime)
-            text("MAIL", player.email)
+            text("MAIL", "")
             +struct("PDTL") {
                 text("DSNM", player.displayName)
                 number("LAST", lastLoginTime)
@@ -644,7 +649,7 @@ private class MainClient(private val session: SessionData, private val config: C
             +struct("PSS") {
                 text("ADRS", "playersyncservice.ea.com")
                 blob("CSIG", EMPTY_BYTE_ARRAY)
-                number("PJID", 303107)
+                text("PJID", "303107")
                 number("PORT", 443)
                 number("RPRT", 0xF)
                 number("TIID", 0x0)
