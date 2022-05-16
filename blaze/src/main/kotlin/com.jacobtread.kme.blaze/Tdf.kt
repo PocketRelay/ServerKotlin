@@ -180,7 +180,7 @@ class StructTdf(label: String, val start2: Boolean, override val value: List<Tdf
     override fun toString(): String = "Struct($label: $value)"
 }
 
-class ListTdf(label: String, override val value: List<Any>) : Tdf(label, LIST), TdfValue<List<Any>> {
+class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf(label, LIST), TdfValue<List<Any>> {
 
     companion object {
         fun from(label: String, input: ByteBuf): ListTdf {
@@ -190,17 +190,17 @@ class ListTdf(label: String, override val value: List<Any>) : Tdf(label, LIST), 
                 VARINT_LIST -> {
                     val values = ArrayList<Long>(count)
                     repeat(count) { values.add(input.readVarInt()) }
-                    ListTdf(label, values)
+                    ListTdf(label, subType, values)
                 }
                 STRING_LIST -> {
                     val values = ArrayList<String>(count)
                     repeat(count) { values.add(input.readString()) }
-                    ListTdf(label, values)
+                    ListTdf(label, subType,values)
                 }
                 STRUCT_LIST -> {
                     val values = ArrayList<StructTdf>(count)
                     repeat(count) { values.add(StructTdf.from("", input)) }
-                    ListTdf(label, values)
+                    ListTdf(label, subType, values)
                 }
                 TRIPPLE_LIST -> {
                     val values = ArrayList<VTripple>(count)
@@ -213,31 +213,27 @@ class ListTdf(label: String, override val value: List<Any>) : Tdf(label, LIST), 
                             )
                         )
                     }
-                    ListTdf(label, values)
+                    ListTdf(label, subType, values)
                 }
                 else -> throw IllegalStateException("Unknown list subtype $subType")
             }
         }
 
-    }
-
-    private val subType: Int
-
-    init {
-        require(value.isNotEmpty()) { "ListTdf contents cannot be empty" }
-        subType = when (value[0]) {
-            is Long, is Int -> VARINT_LIST
-            is String -> STRING_LIST
-            is StructTdf -> STRUCT_LIST
-            is VTripple -> TRIPPLE_LIST
-            else -> throw IllegalArgumentException("Don't know how to handle type \"${value[0]::class.java.simpleName}")
+        fun getType(valueType: KClass<*>): Int {
+            return when (valueType) {
+                Long::class, Int::class -> VARINT_LIST
+                String::class -> STRING_LIST
+                StructTdf::class -> STRUCT_LIST
+                VTripple::class -> TRIPPLE_LIST
+                else -> throw IllegalArgumentException("Don't know how to handle type \"${valueType.java.simpleName}")
+            }
         }
     }
 
     override fun write(out: ByteBuf) {
-        out.writeByte(subType)
+        out.writeByte(this.type)
         out.writeVarInt(value.size.toLong())
-        when (subType) {
+        when (this.type) {
             VARINT_LIST -> value.forEach {
                 if (it is Int) {
                     out.writeVarInt(it.toLong())
@@ -264,7 +260,6 @@ class ListTdf(label: String, override val value: List<Any>) : Tdf(label, LIST), 
         return type.cast(value)
     }
 }
-
 
 
 class EmptyMapTdf(label: String, keyType: KClass<*>, valueType: KClass<*>) : Tdf(label, MAP) {
@@ -319,7 +314,7 @@ class MapTdf(label: String, private val keyType: Int, private val valueType: Int
                 }
                 out[key] = value
             }
-            return MapTdf(label, keyType, valueType,  out);
+            return MapTdf(label, keyType, valueType, out);
         }
 
         fun getKeyType(keyType: KClass<*>): Int {

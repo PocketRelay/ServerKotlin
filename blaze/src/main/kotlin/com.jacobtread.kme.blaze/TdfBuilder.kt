@@ -3,7 +3,6 @@ package com.jacobtread.kme.blaze
 import com.jacobtread.kme.utils.VPair
 import com.jacobtread.kme.utils.VTripple
 import io.netty.buffer.ByteBuf
-import kotlin.reflect.KClass
 
 /**
  * TdfBuilder Builder class used to create Tdf structures easily
@@ -127,8 +126,9 @@ class TdfBuilder {
      * @param label The label of the Tdf
      * @param value The list value
      */
-    fun list(label: String, value: List<Any>) {
-        values.add(ListTdf(label, value))
+    inline fun <reified A : Any> list(label: String, value: List<A>) {
+        val type = ListTdf.getType(A::class)
+        values.add(ListTdf(label, type, value))
     }
 
     /**
@@ -138,8 +138,9 @@ class TdfBuilder {
      * @param label The label of the Tdf
      * @param values The values to create the list from
      */
-    fun list(label: String, vararg values: Any) {
-        this.values.add(ListTdf(label, values.toList()))
+    inline fun <reified A : Any> list(label: String, vararg values: A) {
+        val type = ListTdf.getType(A::class)
+        this.values.add(ListTdf(label, type, values.toList()))
     }
 
     /**
@@ -149,7 +150,7 @@ class TdfBuilder {
      * @param label The label of the Tdf
      * @param value The map value
      */
-    inline fun <reified A: Any, reified B: Any> map(label: String, value: Map<A, B>) {
+    inline fun <reified A : Any, reified B : Any> map(label: String, value: Map<A, B>) {
 
         val keyType = MapTdf.getKeyType(A::class)
         val valueType = MapTdf.getValueType(B::class)
