@@ -265,62 +265,90 @@ class ListTdf(label: String, override val value: List<Any>) : Tdf(label, LIST), 
     }
 }
 
-class MapTdf(label: String, val map: Map<out Any, out Any>) : Tdf(label, MAP) {
 
-    companion object {
-        fun from(label: String, input: ByteBuf): MapTdf {
-            val subTypeA = input.readUnsignedByte().toInt()
-            val subTypeB = input.readUnsignedByte().toInt()
-            val count = input.readVarInt().toInt()
 
-            val out = HashMap<Any, Any>()
-            repeat(count) {
-                val key: Any = when (subTypeA) {
-                    VARINT_LIST -> input.readVarInt()
-                    STRING_LIST -> input.readString()
-                    else -> throw IllegalStateException("Unknown list subtype $subTypeA")
-                }
-                val value: Any = when (subTypeB) {
-                    VARINT_LIST -> input.readVarInt()
-                    STRING_LIST -> input.readString()
-                    STRUCT_LIST -> StructTdf.from("", input)
-                    FLOAT_LIST -> input.readFloat()
-                    else -> throw IllegalStateException("Unknown list subtype $subTypeA")
-                }
-                out[key] = value
-            }
-            return MapTdf(label, out);
-        }
-    }
+class EmptyMapTdf(label: String, keyType: KClass<*>, valueType: KClass<*>) : Tdf(label, MAP) {
 
     private val keySubType: Int
     private val valueSubType: Int
 
     init {
-        require(map.isNotEmpty()) { "PairListTdf contents cannot be empty" }
-        val (key, value) = map.entries.first()
-        keySubType = when (key) {
-            is Long, is Int -> VARINT_LIST
-            is String -> STRING_LIST
-            is Float -> FLOAT_LIST
-            else -> throw IllegalArgumentException("Don't know how to handle type \"${key::class.java.simpleName}")
+        keySubType = when (keyType) {
+            Long::class, Int::class -> VARINT_LIST
+            String::class -> STRING_LIST
+            Float::class -> FLOAT_LIST
+            else -> throw IllegalArgumentException("Don't know how to handle type \"${keyType.java.simpleName}")
         }
-        valueSubType = when (value) {
-            is Long, is Int -> VARINT_LIST
-            is String -> STRING_LIST
-            is StructTdf -> STRUCT_LIST
-            is Float -> FLOAT_LIST
-            else -> throw IllegalArgumentException("Don't know how to handle type \"${value::class.java.simpleName}")
+        valueSubType = when (valueType) {
+            Long::class, Int::class -> VARINT_LIST
+            String::class -> STRING_LIST
+            StructTdf::class -> STRUCT_LIST
+            Float::class -> FLOAT_LIST
+            else -> throw IllegalArgumentException("Don't know how to handle type \"${valueType.java.simpleName}")
         }
     }
 
     override fun write(out: ByteBuf) {
         out.writeByte(keySubType)
         out.writeByte(valueSubType)
+        out.writeVarInt(0)
+    }
+}
+
+class MapTdf(label: String, private val keyType: Int, private val valueType: Int, val map: Map<out Any, Any>) : Tdf(label, MAP) {
+
+    companion object {
+        fun from(label: String, input: ByteBuf): MapTdf {
+            val keyType = input.readUnsignedByte().toInt()
+            val valueType = input.readUnsignedByte().toInt()
+            val count = input.readVarInt().toInt()
+
+            val out = HashMap<Any, Any>()
+            repeat(count) {
+                val key: Any = when (keyType) {
+                    VARINT_LIST -> input.readVarInt()
+                    STRING_LIST -> input.readString()
+                    else -> throw IllegalStateException("Unknown list subtype $keyType")
+                }
+                val value: Any = when (valueType) {
+                    VARINT_LIST -> input.readVarInt()
+                    STRING_LIST -> input.readString()
+                    STRUCT_LIST -> StructTdf.from("", input)
+                    FLOAT_LIST -> input.readFloat()
+                    else -> throw IllegalStateException("Unknown list subtype $keyType")
+                }
+                out[key] = value
+            }
+            return MapTdf(label, keyType, valueType,  out);
+        }
+
+        fun getKeyType(keyType: KClass<*>): Int {
+            return when (keyType) {
+                Long::class, Int::class -> VARINT_LIST
+                String::class -> STRING_LIST
+                Float::class -> FLOAT_LIST
+                else -> throw IllegalArgumentException("Don't know how to handle type \"${keyType.java.simpleName}")
+            }
+        }
+
+        fun getValueType(valueType: KClass<*>): Int {
+            return when (valueType) {
+                Long::class, Int::class -> VARINT_LIST
+                String::class -> STRING_LIST
+                StructTdf::class -> STRUCT_LIST
+                Float::class -> FLOAT_LIST
+                else -> throw IllegalArgumentException("Don't know how to handle type \"${valueType.java.simpleName}")
+            }
+        }
+    }
+
+    override fun write(out: ByteBuf) {
+        out.writeByte(keyType)
+        out.writeByte(valueType)
         val entries = map.entries
         out.writeVarInt(entries.size.toLong())
         for ((key, value) in entries) {
-            when (keySubType) {
+            when (keyType) {
                 VARINT_LIST -> {
                     if (key is Long) {
                         out.writeVarInt(key)
@@ -331,7 +359,7 @@ class MapTdf(label: String, val map: Map<out Any, out Any>) : Tdf(label, MAP) {
                 STRING_LIST -> out.writeString(key as String)
                 FLOAT_LIST -> out.writeFloat(key as Float)
             }
-            when (valueSubType) {
+            when (valueType) {
                 VARINT_LIST -> {
                     if (key is Long) {
                         out.writeVarInt(key)
@@ -346,7 +374,7 @@ class MapTdf(label: String, val map: Map<out Any, out Any>) : Tdf(label, MAP) {
         }
     }
 
-    override fun toString(): String = "PairList($label: $map)"
+    override fun toString(): String = "Map($label: $map)"
 }
 
 class UnionTdf(label: String, val type: Int = 0x7F, val value: Tdf? = null) : Tdf(label, UNION) {

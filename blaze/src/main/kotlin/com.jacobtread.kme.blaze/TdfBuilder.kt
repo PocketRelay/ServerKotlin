@@ -3,6 +3,7 @@ package com.jacobtread.kme.blaze
 import com.jacobtread.kme.utils.VPair
 import com.jacobtread.kme.utils.VTripple
 import io.netty.buffer.ByteBuf
+import kotlin.reflect.KClass
 
 /**
  * TdfBuilder Builder class used to create Tdf structures easily
@@ -148,8 +149,12 @@ class TdfBuilder {
      * @param label The label of the Tdf
      * @param value The map value
      */
-    fun map(label: String, value: Map<out Any, out Any>) {
-        values.add(MapTdf(label, value))
+    inline fun <reified A: Any, reified B: Any> map(label: String, value: Map<A, B>) {
+
+        val keyType = MapTdf.getKeyType(A::class)
+        val valueType = MapTdf.getValueType(B::class)
+
+        values.add(MapTdf(label, keyType, valueType, value))
     }
 
     /**
