@@ -487,8 +487,8 @@ private class MainClient(private val session: SessionData, private val config: C
         when (packet.command) {
             GET_LEADERBOARD_GROUP -> handleLeaderboardGroup(packet)
             GET_FILTERED_LEADERBOARD -> handleFilteredLeaderboard(packet)
-            GET_LEADERBOARD_ENTITY_COUNT -> {}
-            GET_CENTERED_LEADERBOARD -> {}
+            GET_LEADERBOARD_ENTITY_COUNT -> handleLeaderboardEntityCount(packet)
+            GET_CENTERED_LEADERBOARD -> handleCenteredLeadboard(packet)
             else -> {}
         }
     }
@@ -629,6 +629,19 @@ private class MainClient(private val session: SessionData, private val config: C
         }
     }
 
+    private fun handleLeaderboardEntityCount(packet: RawPacket) {
+        val playerCount = database.playerRepository.getPlayerCount()
+        channel.respond(packet) {
+            number("CNT", playerCount)
+        }
+    }
+
+    private fun handleCenteredLeadboard(packet: RawPacket) {
+        // TODO: Currenlty not implemented
+        channel.respond(packet) {
+            list("LDLS", emptyList<StructTdf>())
+        }
+    }
 
     //endregion
 

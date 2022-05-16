@@ -140,6 +140,14 @@ abstract class PlayersRepository : DatabaseRepository() {
     }
 
     /**
+     * getPlayerCount Counts the total number of players stored in this
+     * database
+     *
+     * @return The number of players
+     */
+    abstract fun getPlayerCount(): Long
+
+    /**
      * MySQL Defines the behavior for the players' repository behavior when using
      * a MySQL database. The SQLite database inherits its behavior from this
      *
@@ -285,6 +293,21 @@ abstract class PlayersRepository : DatabaseRepository() {
             statement.setString(1, token)
             statement.setLong(2, player.id)
             statement.executeUpdate()
+        }
+
+        override fun getPlayerCount(): Long {
+            try {
+                // If users are deleted this count becomes inaccurate
+                // alternative would be:
+                // SELECT COUNT(*) AS count FROM `players`
+                // However this could be slower at larger user counts
+                val statement = connection.prepareStatement("SELECT MAX(`id`) AS `count` FROM `players`")
+                val result = statement.executeQuery()
+                if (!result.next()) return 0
+                return result.getLong("count")
+            } catch (e: SQLException) {
+                throw ServerErrorException(e)
+            }
         }
     }
 
