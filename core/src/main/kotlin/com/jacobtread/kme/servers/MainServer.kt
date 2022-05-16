@@ -106,7 +106,6 @@ class SessionData(
             }
         })
 
-
 }
 
 data class NetData(var address: Long, var port: Int)
@@ -219,7 +218,7 @@ private class MainClient(private val session: SessionData, private val config: C
     private fun handleGetAuthToken(packet: RawPacket) {
         val player = session.getPlayer()
         channel.respond(packet) {
-            text("AUTH", player.id.toString(16))
+            text("AUTH", player.id.toString(16).uppercase())
         }
     }
 
@@ -485,8 +484,151 @@ private class MainClient(private val session: SessionData, private val config: C
     //region Stats Component Region
 
     private fun handleStats(packet: RawPacket) {
-
+        when (packet.command) {
+            GET_LEADERBOARD_GROUP -> handleLeaderboardGroup(packet)
+            GET_FILTERED_LEADERBOARD -> handleFilteredLeaderboard(packet)
+            GET_LEADERBOARD_ENTITY_COUNT -> {}
+            GET_CENTERED_LEADERBOARD -> {}
+            else -> {}
+        }
     }
+
+    private fun getLocalName(code: String): String {
+        return when (code.lowercase()) {
+            "global" -> "Global"
+            "de" -> "Germany"
+            "en" -> "English"
+            "es" -> "Spain"
+            "fr" -> "France"
+            "it" -> "Italy"
+            "ja" -> "Japan"
+            "pl" -> "Poland"
+            "ru" -> "Russia"
+            else -> code
+        }
+    }
+
+    private fun handleLeaderboardGroup(packet: RawPacket) {
+        val name = packet.getValueOrNull(StringTdf::class, "NAME") ?: return
+        if (name.startsWith("NZRating")) {
+            val locale = name.substring(8)
+            val isGlobal = locale == "Global"
+            val localeName = getLocalName(locale)
+            val desc = "N7 Rating - $localeName"
+            val ksvl = if (isGlobal) mapOf(0x0 to 0x0) else mapOf(0x4445 to 0x4445)
+            val lbsz = if (isGlobal) 0x7270e0 else 0x8a77c
+            channel.respond(packet) {
+                number("ACSD", 0x0)
+                text("BNAM", name)
+                text("DESC", desc)
+                pair("ETYP", 0x7802, 0x1)
+                map("KSUM", mapOf(
+                    "accountcountry" to struct {
+                        map("KSVL", ksvl)
+                    }
+                ))
+                number("LBSZ", lbsz)
+                list("LIST", listOf(
+                    struct {
+                        text("CATG", "MassEffectStats")
+                        text("DFLT", "0")
+                        number("DRVD", 0x0)
+                        text("FRMT", "%d")
+                        text("KIND", "")
+                        text("LDSC", "N7 Rating")
+                        text("META", "W=200, HMC=tableColHeader3, REMC=tableRowEntry3")
+                        text("NAME", "n7rating")
+                        text("SDSC", "N7 Rating")
+                        number("TYPE", 0x0)
+                    }
+                ))
+                text("META", "RF=@W=150, HMC=tableColHeader1, REMC=tableRowEntry1@ UF=@W=670, HMC=tableColHeader2, REMC=tableRowEntry2@")
+                text("NAME", "ME3LeaderboardGroup")
+                text("SNAM", "n7rating")
+            }
+        } else if (name.startsWith("ChallengePoints")) {
+            val locale = name.substring(15)
+            val isGlobal = locale == "Global"
+            val localeName = getLocalName(locale)
+            val desc = "Challenge Points - $localeName"
+            val ksvl = if (isGlobal) mapOf(0x0 to 0x0) else mapOf(0x4445 to 0x4445)
+            val lbsz = if (isGlobal) 0x7270e0 else 0x8a77c
+            channel.respond(packet) {
+                number("ACSD", 0x0)
+                text("BNAM", name)
+                text("DESC", desc)
+                pair("ETYP", 0x7802, 0x1)
+                map("KSUM", mapOf(
+                    "accountcountry" to struct {
+                        map("KSVL", ksvl)
+                    }
+                ))
+                number("LBSZ", lbsz)
+                list("LIST", listOf(
+                    struct {
+                        text("CATG", "ME3ChallengeStats")
+                        text("DFLT", "0")
+                        number("DRVD", 0x0)
+                        text("FRMT", "%d")
+                        text("KIND", "")
+                        text("LDSC", "Challenge Points")
+                        text("META", "W=200, HMC=tableColHeader3, REMC=tableRowEntry3")
+                        text("NAME", "ChallengePoints")
+                        text("SDSC", "Challenge Points")
+                        number("TYPE", 0x0)
+                    }
+                ))
+                text("META", "RF=@W=150, HMC=tableColHeader1, REMC=tableRowEntry1@ UF=@W=670, HMC=tableColHeader2, REMC=tableRowEntry2@")
+                text("NAME", "ME3ChallengePoints")
+                text("SNAM", "ChallengePoints")
+            }
+        } else {
+            empty(packet)
+        }
+    }
+
+    private fun handleFilteredLeaderboard(packet: RawPacket) {
+        val name = packet.getValueOrNull(StringTdf::class, "NAME") ?: return
+        val player = session.getPlayer()
+        when (name) {
+            "N7RatingGlobal" -> {
+                val rating = player.getN7Rating().toString()
+                channel.respond(packet) {
+                    list("LDLS", listOf(
+                        struct {
+                            text("ENAM", player.displayName)
+                            number("ENID", player.id)
+                            number("RANK", 0x58c86)
+                            text("RSTA", rating)
+                            number("RWFG", 0x0)
+                            union("RWST", 0x7f, null)
+                            list("STAT", listOf(rating))
+                            number("UATT", 0x0)
+                        }
+                    ))
+                }
+            }
+            "ChallengePointsGlobal" -> {
+                val challengePoints = player.getChallengePoints().toString()
+                channel.respond(packet) {
+                    list("LDLS", listOf(
+                        struct {
+                            text("ENAM", player.displayName)
+                            number("ENID", player.id)
+                            number("RANK", 0x48f8c)
+                            text("RSTA", challengePoints)
+                            number("RWFG", 0x0)
+                            union("RWST", 0x7f, null)
+                            list("STAT", listOf(challengePoints))
+                            number("UATT", 0x0)
+                        }
+                    ))
+                }
+            }
+            else -> empty(packet)
+        }
+    }
+
 
     //endregion
 

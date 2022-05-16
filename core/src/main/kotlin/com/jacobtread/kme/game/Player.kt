@@ -6,13 +6,15 @@ import com.jacobtread.kme.database.repos.ServerErrorException
 import com.jacobtread.kme.utils.compareHashPassword
 import io.netty.buffer.Unpooled
 
+typealias SettingsMap = HashMap<String, String>
+
 data class Player(
     val id: Long,
     val email: String,
     val displayName: String,
     val sessionToken: String?,
     val password: String,
-    val settings: HashMap<String, String>,
+    val settings: SettingsMap,
 ) {
 
     companion object {
@@ -47,6 +49,7 @@ data class Player(
 
     private var base: Base? = null
     private var classes: List<PlayerClass>? = null
+    private var challengeStats: ChallengeStats? = null
     private var characters: List<PlayerCharacter>? = null
 
     fun encodeSettings(): ByteArray {
@@ -61,6 +64,38 @@ data class Player(
         val bytes = ByteArray(buf.readableBytes())
         buf.readBytes(bytes)
         return bytes
+    }
+
+    private fun getChallengeStats(): ChallengeStats {
+        var challengeStats = this.challengeStats
+        if (challengeStats != null) return challengeStats
+        challengeStats = ChallengeStats.parse(settings)
+        this.challengeStats = challengeStats
+        return challengeStats
+    }
+
+    private fun getClasses(): List<PlayerClass> {
+        var classes = this.classes
+        if (classes != null) return classes
+        classes = loadClasses()
+        this.classes = classes
+        return classes
+    }
+
+    fun getChallengePoints(): Int {
+        val stats = getChallengeStats()
+        if (stats.completion.size < 2) return 0
+        return stats.completion[1]
+    }
+
+    fun getN7Rating(): Int {
+        val classes = getClasses()
+        val totalLevel = classes
+            .sumOf { it.level }
+        val totalPromotions = classes
+            .sumOf { it.promotions }
+            .times(30)
+        return totalLevel + totalPromotions
     }
 
     fun updateSetting(key: String, value: String, repo: PlayersRepository) {
@@ -101,17 +136,75 @@ data class Player(
         }
     }
 
+    class ChallengeStats(
+        val completion: IntArray,
+        val progress: IntArray,
+        val cscompletion: IntArray,
+        val cstimestamps: IntArray,
+        val cstimestamps2: IntArray,
+        val cstimestamps3: IntArray,
+    ) {
+
+        companion object {
+            fun parse(values: SettingsMap): ChallengeStats {
+                val completion = parseIntArray(values["Completion"])
+                val progress = parseIntArray(values["Progress"])
+                val cscompletion = parseIntArray(values["cscompletion"])
+                val cstimestamps = parseIntArray(values["cstimestamps"])
+                val cstimestamps2 = parseIntArray(values["cstimestamps2"])
+                val cstimestamps3 = parseIntArray(values["cstimestamps3"])
+                return ChallengeStats(
+                    completion, progress, cscompletion,
+                    cstimestamps, cstimestamps2, cstimestamps3
+                )
+            }
+
+            private fun parseIntArray(value: String?): IntArray {
+                return if (value == null) {
+                    IntArray(0)
+                } else {
+                    val parts = value.split(',')
+                    val out = IntArray(parts.size)
+                    parts.forEachIndexed { index, value ->
+                        out[index] = value.toInt()
+                    }
+                    out
+                }
+            }
+        }
+
+    }
+
     data class PlayerClass(
-        val index: Int,
         val name: String,
         val level: Int,
         val exp: Float,
         val promotions: Int,
     ) {
+        companion object {
+            val CLASS_NAMES = arrayOf(
+                "Adept",
+                "Soldier",
+                "Engineer",
+                "Sentinel",
+                "Infiltrator",
+                "Vanguard"
+            )
+
+            fun parse(value: String): PlayerClass {
+                val parts = value.split(";", limit = 6)
+                require(parts.size == 6) { "Invalid player class" }
+                val name = parts[2]
+                val level = parts[3].toIntOrNull() ?: 1
+                val exp = parts[4].toFloatOrNull() ?: 0f
+                val promotions = parts[5].toIntOrNull() ?: 0
+                return PlayerClass(name, level, exp, promotions)
+            }
+        }
+
         override fun toString(): String {
             val builder = StringBuilder()
-            builder.append("class").append(index)
-                .append("=20;4;")
+                .append("20;4;")
                 .append(name).append(';')
                 .append(level).append(';')
                 .append(exp).append(';')
@@ -120,12 +213,16 @@ data class Player(
         }
     }
 
-    fun loadClasses(value: String): Array<PlayerClass> {
-        return emptyArray()
+    private fun loadClasses(): List<PlayerClass> {
+        val out = ArrayList<PlayerClass>(6)
+        for (i in 1..6) {
+            val clazz = settings["class$i"] ?: break
+            out.add(PlayerClass.parse(clazz))
+        }
+        return out
     }
 
     data class PlayerCharacter(
-        val index: Int,
         val kitName: String,
         val characterName: String,
         val tint1: Int,
@@ -149,8 +246,7 @@ data class Player(
     ) {
         override fun toString(): String {
             val builder = StringBuilder()
-            builder.append("char").append(index)
-                .append("=20;4;")
+            builder.append("20;4;")
                 .append(kitName).append(';')
                 .append(characterName).append(';')
                 .append(tint1).append(';')
