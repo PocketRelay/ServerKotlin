@@ -601,7 +601,7 @@ object Data {
         val reader = getResourceReader(path)
         val lines = reader.readLines()
         var length = ""
-        val out = HashMap<String, String>()
+        val out = LinkedHashMap<String, String>()
         lines.forEach {
             val parts = it.split(':', limit = 2)
             if (parts[0] == "SIZE") {

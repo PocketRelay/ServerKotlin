@@ -30,10 +30,17 @@ data class Config(
     val natType: Int = 4,
 
     @Comment("ME3Data")
-    val me3data: Map<String, String> = mapOf(
-        "" to ""
-    )
+    val me3data: Map<String, String> = mapOf("" to ""),
 
+    @Comment(
+        """
+    The message displayed in the main menu format codes:
+    {v}  : KME3 Version
+    {n}  : Player Name
+    {ip} : Player IP
+    """)
+    @SerialName("menu_message")
+    val menuMessage: String = "<font color='#B2B2B2'>KME3</font> - <font color='#FFFF66'>Logged as: {n}</font>",
 ) {
 
 

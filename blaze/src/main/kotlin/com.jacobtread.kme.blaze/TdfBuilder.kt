@@ -3,6 +3,7 @@ package com.jacobtread.kme.blaze
 import com.jacobtread.kme.utils.VPair
 import com.jacobtread.kme.utils.VTripple
 import io.netty.buffer.ByteBuf
+import io.netty.buffer.Unpooled
 
 /**
  * TdfBuilder Builder class used to create Tdf structures easily
@@ -193,13 +194,18 @@ class TdfBuilder {
     }
 
     /**
-     * write Writes all the tdf values to the provided
-     * byte buffer
+     * createByteArray Converts all the contents of this builder
+     * into a byte array by first writing them all to a buffer
      *
-     * @param out The byte buffer to write to
+     * @return The ByteArray of contents
      */
-    fun write(out: ByteBuf) {
-        values.forEach { it.writeFully(out) }
+    fun createByteArray(): ByteArray {
+        val buffer = Unpooled.buffer()
+        values.forEach { it.writeFully(buffer) }
+        val length = buffer.readableBytes()
+        val content = ByteArray(length)
+        buffer.readBytes(content)
+        return content
     }
 }
 
@@ -212,7 +218,7 @@ class TdfBuilder {
  * @receiver
  * @return The newly created struct
  */
-fun struct(label: String = "", start2: Boolean = false, init: TdfBuilder.() -> Unit): StructTdf {
+inline fun struct(label: String = "", start2: Boolean = false, init: TdfBuilder.() -> Unit): StructTdf {
     val context = TdfBuilder()
     context.init()
     return StructTdf(label, start2, context.values)

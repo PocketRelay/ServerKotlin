@@ -12,6 +12,7 @@ import com.jacobtread.kme.database.repos.PlayerCreationException
 import com.jacobtread.kme.database.repos.PlayerNotFoundException
 import com.jacobtread.kme.database.repos.ServerErrorException
 import com.jacobtread.kme.game.Player
+import com.jacobtread.kme.utils.KME_VERSION
 import com.jacobtread.kme.utils.customThreadFactory
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
@@ -134,6 +135,8 @@ private class MainClient(private val session: SessionData, private val config: C
                 ), Charsets.UTF_8
             )
         }
+
+        fun getUnixTimeSeconds(): Long = Instant.now().epochSecond
     }
 
     fun empty(packet: RawPacket, qtype: Int = RESPONSE) = channel.send(RawPacket(packet.rawComponent, packet.rawCommand, 0, qtype, packet.id, EMPTY_BYTE_ARRAY))
@@ -245,7 +248,7 @@ private class MainClient(private val session: SessionData, private val config: C
             session.setPlayer(player)
 
             val sessionToken = getSessionToken()
-            val lastLoginTime = Instant.now().epochSecond
+            val lastLoginTime = getUnixTimeSeconds()
 
             channel.respond(packet) {
                 text("LDHT", "")
@@ -320,7 +323,7 @@ private class MainClient(private val session: SessionData, private val config: C
         val player = session.getPlayer()
 
         val sessionToken = getSessionToken()
-        val lastLoginTime = Instant.now().epochSecond
+        val lastLoginTime = getUnixTimeSeconds()
 
         channel.respond(packet) {
             number("AGUP", 0)
@@ -449,7 +452,7 @@ private class MainClient(private val session: SessionData, private val config: C
             return
         }
 
-        val lastLoginTime = Instant.now().epochSecond
+        val lastLoginTime = getUnixTimeSeconds()
         channel.respond(packet) {
             number("BUID", player.id)
             number("FRST", 0)
@@ -490,7 +493,41 @@ private class MainClient(private val session: SessionData, private val config: C
     //region Messaging Component Region
 
     private fun handleMessaging(packet: RawPacket) {
+        when (packet.command) {
+            FETCH_MESSAGES -> {
+                channel.write(respond(packet) {
+                    number("MCNT", 0x1)
+                })
+                val ip = channel.remoteAddress().toString()
+                val player = session.getPlayer()
+                val menuMessage = config.menuMessage
+                    .replace("{v}", KME_VERSION)
+                    .replace("{n}", player.displayName)
+                    .replace("{ip}", ip) + 0xA.toChar()
 
+                channel.write(unique(
+                    MESSAGING,
+                    SEND_MESSAGE
+                ) {
+                    number("FLAG", 0x01)
+                    number("MGID", 0x01)
+                    text("NAME", menuMessage)
+                    +struct("PYLD") {
+                        map("ATTR", mapOf("B0000" to "160"))
+                        number("FLAG", 0x01)
+                        number("STAT", 0x00)
+                        number("TAG", 0x00)
+                        tripple("TARG", 0x7802, 0x01, player.id)
+                        number("TYPE", 0x0)
+                    }
+                    tripple("SRCE", 0x7802, 0x01, player.id)
+                    number("TIME", getUnixTimeSeconds())
+                })
+
+                channel.flush()
+            }
+            else -> {}
+        }
     }
 
     //endregion
@@ -614,8 +651,7 @@ private class MainClient(private val session: SessionData, private val config: C
         LOGGER.logIfDebug { "Received ping update from client: ${session.id}" }
         session.lastPingTime = System.currentTimeMillis()
         channel.respond(packet) {
-            // Server Time (in Epoch Seconds)
-            number("STIM", Instant.now().epochSecond)
+            number("STIM", getUnixTimeSeconds())
         }
     }
 
