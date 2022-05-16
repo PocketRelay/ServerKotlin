@@ -55,6 +55,7 @@ abstract class PlayersRepository : DatabaseRepository() {
      */
     protected abstract fun createPlayerInternal(email: String, displayName: String, hashedPassword: String): Long
 
+
     /**
      * getPlayerByName Retrieves a player from the repository that has a matching
      * name to the provided display name
@@ -108,6 +109,12 @@ abstract class PlayersRepository : DatabaseRepository() {
         }
     }
 
+    @Throws(ServerErrorException::class, PlayerNotFoundException::class)
+    abstract fun getPlayerSettings(player: Player)
+
+    @Throws(ServerErrorException::class, PlayerNotFoundException::class)
+    abstract fun updatePlayerSettings(player: Player)
+
     /**
      * createPlayer Creates a new player using the underlying repository implementations
      * along with hashing the password and ensuring the account is unique and doesn't
@@ -125,7 +132,7 @@ abstract class PlayersRepository : DatabaseRepository() {
             if (isDisplayNameTaken(displayName)) throw PlayerCreationException(PlayerCreationException.Reason.EMAIL_TAKEN)
             val hashed = hashPassword(password)
             val id = createPlayerInternal(email, displayName, hashed)
-            return Player(id, email, displayName, null, hashed)
+            return Player(id, email, displayName, null, hashed, HashMap())
         } catch (e: Exception) {
             if (e is PlayerCreationException) throw e
             throw PlayerCreationException(PlayerCreationException.Reason.OTHER, e)
@@ -155,7 +162,7 @@ abstract class PlayersRepository : DatabaseRepository() {
                     `display_name` VARCHAR(99),
                     `session_token` VARCHAR(128) DEFAULT NULL,
                     `password` VARCHAR(128) DEFAULT NULL,
-                    `base` TEXT DEFAULT NULL,
+                    `settings` BLOB,
                     UNIQUE KEY `id_index` (`id`) USING BTREE,
                     UNIQUE KEY `name_index` (`display_name`) USING BTREE,
                     PRIMARY KEY (`id`)
@@ -188,31 +195,57 @@ abstract class PlayersRepository : DatabaseRepository() {
 
         override fun createPlayerInternal(email: String, displayName: String, hashedPassword: String): Long {
             val statement = connection.prepareStatement(
-                "INSERT INTO `players` (`email`, `display_name`, `password`) VALUES (?, ?, ?)",
+                "INSERT INTO `players` (`email`, `display_name`, `password`, `settings`) VALUES (?, ?, ?, ?)",
                 Statement.RETURN_GENERATED_KEYS
             )
             statement.setString(1, email)
             statement.setString(2, displayName)
             statement.setString(3, hashedPassword)
+            statement.setBytes(4, ByteArray(0))
             statement.executeUpdate()
             val resultSet = statement.generatedKeys
             if (!resultSet.next()) throw IllegalStateException("Missing ID from created player")
             return resultSet.getLong(1)
         }
 
+        override fun getPlayerSettings(player: Player) {
+            try {
+                val statement = connection.prepareStatement("SELECT `settings` FROM `players` WHERE `id` = ?")
+                statement.setLong(1, player.id)
+                val result = statement.executeQuery()
+                if (!result.next()) throw PlayerNotFoundException()
+                val stream = result.getBinaryStream("settings")
+                val bytes = stream.readAllBytes()
+                player.setSettings(Player.decodeSettings(bytes))
+            } catch (e: SQLException) {
+                throw ServerErrorException(e)
+            }
+        }
+
+        override fun updatePlayerSettings(player: Player) {
+            val settingsBytes = player.encodeSettings()
+            val statement = connection.prepareStatement("UPDATE `players` SET `settings` = ? WHERE `id` = ?")
+            statement.setBytes(1, settingsBytes)
+            statement.setLong(2, player.id)
+            statement.executeUpdate()
+        }
+
         private fun getPlayerFromResult(result: ResultSet): Player {
+            val stream = result.getBinaryStream("settings")
+            val bytes = stream.readAllBytes()
             return Player(
                 id = result.getLong("id"),
                 email = result.getString("email"),
                 displayName = result.getString("display_name"),
                 sessionToken = result.getString("session_token"),
                 password = result.getString("password"),
+                settings = Player.decodeSettings(bytes)
             )
         }
 
         override fun getPlayerByName(displayName: String): Player {
             try {
-                val statement = connection.prepareStatement("SELECT `id`, `email`, `display_name`, `session_token`, `password` FROM `players` WHERE `display_name` = ?")
+                val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `display_name` = ?")
                 statement.setString(1, displayName)
                 val result = statement.executeQuery()
                 if (!result.next()) throw PlayerNotFoundException()
@@ -225,7 +258,7 @@ abstract class PlayersRepository : DatabaseRepository() {
 
         override fun getPlayerByEmail(email: String): Player {
             try {
-                val statement = connection.prepareStatement("SELECT `id`, `email`, `display_name`, `session_token`, `password` FROM `players` WHERE `email` = ?")
+                val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `email` = ?")
                 statement.setString(1, email)
                 val result = statement.executeQuery()
                 if (!result.next()) throw PlayerNotFoundException()
@@ -237,7 +270,7 @@ abstract class PlayersRepository : DatabaseRepository() {
 
         override fun getPlayerByID(id: Long): Player {
             try {
-                val statement = connection.prepareStatement("SELECT `id`, `email`, `display_name`, `session_token`, `password` FROM `players` WHERE `id` = ?")
+                val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `id` = ?")
                 statement.setLong(1, id)
                 val result = statement.executeQuery()
                 if (!result.next()) throw PlayerNotFoundException()
@@ -270,10 +303,9 @@ abstract class PlayersRepository : DatabaseRepository() {
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE ,
                 `email` TEXT UNIQUE ,
                 `display_name` TEXT UNIQUE,
-                `credits` INTEGER DEFAULT 0,
-                `games_played` INTEGER DEFAULT 0,
                 `session_token` TEXT DEFAULT NULL,
-                `password` TEXT DEFAULT NULL
+                `password` TEXT DEFAULT NULL,
+                `settings` BLOB
             );
             """.trimIndent()
     }

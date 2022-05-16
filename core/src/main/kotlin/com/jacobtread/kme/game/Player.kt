@@ -1,6 +1,10 @@
 package com.jacobtread.kme.game
 
+import com.jacobtread.kme.database.repos.PlayerNotFoundException
+import com.jacobtread.kme.database.repos.PlayersRepository
+import com.jacobtread.kme.database.repos.ServerErrorException
 import com.jacobtread.kme.utils.compareHashPassword
+import io.netty.buffer.Unpooled
 
 data class Player(
     val id: Long,
@@ -8,7 +12,67 @@ data class Player(
     val displayName: String,
     val sessionToken: String?,
     val password: String,
+    val settings: HashMap<String, String>,
 ) {
+
+    companion object {
+        fun decodeSettings(bytes: ByteArray): HashMap<String, String> {
+            if (bytes.size < 4) return HashMap()
+            try {
+                val buf = Unpooled.wrappedBuffer(bytes)
+                val size = buf.readInt()
+                val map = HashMap<String, String>(size)
+                repeat(size) {
+                    try {
+                        val keySize = buf.readInt()
+                        val keyBytes = ByteArray(keySize)
+                        buf.readBytes(keyBytes)
+                        val key = String(keyBytes, Charsets.UTF_8)
+
+                        val valueSize = buf.readInt()
+                        val valueBytes = ByteArray(valueSize)
+                        buf.readBytes(valueBytes)
+                        val value = String(valueBytes, Charsets.UTF_8)
+
+                        map[key] = value
+                    } catch (_: Throwable) {
+                    }
+                }
+                return map
+            } catch (e: Throwable) {
+                return HashMap()
+            }
+        }
+    }
+
+    private var base: Base? = null
+    private var classes: List<PlayerClass>? = null
+    private var characters: List<PlayerCharacter>? = null
+
+    fun encodeSettings(): ByteArray {
+        val buf = Unpooled.buffer()
+        buf.writeInt(settings.size)
+        settings.forEach { (key, value) ->
+            buf.writeInt(key.length)
+            buf.writeBytes(key.toByteArray())
+            buf.writeInt(value.length)
+            buf.writeBytes(value.toByteArray())
+        }
+        val bytes = ByteArray(buf.readableBytes())
+        buf.readBytes(bytes)
+        return bytes
+    }
+
+    fun updateSetting(key: String, value: String, repo: PlayersRepository) {
+        try {
+            settings[key] = value
+            repo.updatePlayerSettings(this)
+        } catch (e: PlayerNotFoundException) {
+            e.printStackTrace()
+        } catch (e: ServerErrorException) {
+            e.printStackTrace()
+        }
+    }
 
     data class Base(
         val credits: Long = 0,
@@ -56,6 +120,10 @@ data class Player(
         }
     }
 
+    fun loadClasses(value: String): Array<PlayerClass> {
+        return emptyArray()
+    }
+
     data class PlayerCharacter(
         val index: Int,
         val kitName: String,
@@ -77,7 +145,7 @@ data class Player(
         val weapons: String,
         val weaponMods: String,
         val deployed: Boolean,
-        val leveledUp: Boolean
+        val leveledUp: Boolean,
     ) {
         override fun toString(): String {
             val builder = StringBuilder()
@@ -101,27 +169,20 @@ data class Player(
                 .append(hotkeys).append(';')
                 .append(weapons).append(';')
                 .append(weaponMods).append(';')
-                .append(if(deployed) "True" else "False").append(';')
-                .append(if(leveledUp) "True" else "False")
+                .append(if (deployed) "True" else "False").append(';')
+                .append(if (leveledUp) "True" else "False")
             return builder.toString()
         }
     }
 
 
-    var credits: Int = 0
-    var creditsSpent: Int = 0
-    var gamesPlayed: Int = 0
-    var secondsPlayed: Int = 0
-    private var inventory: String? = null
-
-    fun setInventory(value: String) {
-        inventory = value
-    }
-
-    fun getInventory(): String = inventory ?: "0".repeat(1342)
-
     fun isMatchingPassword(value: String): Boolean {
         return compareHashPassword(value, this.password)
+    }
+
+    fun setSettings(settings: MutableMap<String, String>) {
+        this.settings.clear()
+        this.settings.putAll(settings)
     }
 
 }

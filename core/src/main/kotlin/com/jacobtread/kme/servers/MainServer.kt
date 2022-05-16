@@ -712,16 +712,20 @@ private class MainClient(private val session: SessionData, private val config: C
     }
 
     private fun handleUserSettingsSave(packet: RawPacket) {
-        val data = packet.getValueOrNull(StringTdf::class, "DATA")
+        val value = packet.getValueOrNull(StringTdf::class, "DATA")
         val key = packet.getValueOrNull(StringTdf::class, "KEY")
-        if (data != null && key != null) {
-            // TODO: Update user settings
+        if (value != null && key != null) {
+            val player = session.getPlayer()
+            player.updateSetting(key, value, database.playerRepository);
         }
         empty(packet)
     }
 
     private fun handleUserSettingsLoadAll(packet: RawPacket) {
-
+        val player = session.getPlayer()
+        channel.respond(packet) {
+            map("SMAP", player.settings)
+        }
     }
 
     private fun handleSuspendUserPing(packet: RawPacket) {
