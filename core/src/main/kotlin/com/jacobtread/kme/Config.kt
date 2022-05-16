@@ -83,8 +83,6 @@ data class Config(
         val addr: Int = 0x0,
         @Comment("Host to redirect to")
         val host: String = "383933-gosprapp396.ea.com",
-        @Comment("The address to redirect to")
-        val ip: String = "127.0.0.1",
         @Comment("Port to redirect to")
         val port: Int = 14219,
         val secu: Int = 0x0,

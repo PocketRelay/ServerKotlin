@@ -21,6 +21,7 @@ import io.netty.channel.ChannelInitializer
 import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
+import io.netty.handler.logging.LoggingHandler
 import java.io.IOException
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicInteger
@@ -38,7 +39,6 @@ fun startMainServer(config: Config, database: Database) {
                 .childHandler(object : ChannelInitializer<Channel>() {
                     override fun initChannel(ch: Channel) {
                         println("Main Server Connection")
-                        val remoteAddress = ch.remoteAddress()
                         val session = SessionData(
                             clientId.getAndIncrement(),
                             config.origin.uid,

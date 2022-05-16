@@ -22,11 +22,6 @@ import java.io.IOException
  */
 fun startRedirector(config: Config) {
     Thread {
-        LOGGER.info("===== Redirection Configuration =====")
-        LOGGER.info("Host: ${config.redirectorPacket.host}")
-        LOGGER.info("IP:   ${config.redirectorPacket.ip}")
-        LOGGER.info("Port: ${config.redirectorPacket.port}")
-        LOGGER.info("=====================================")
         val context = createContext() // Create a SSL context
         val bossGroup = NioEventLoopGroup(customThreadFactory("Redirector Boss #{ID}"))
         val workerGroup = NioEventLoopGroup(customThreadFactory("Redirector Worker #{ID}"))
@@ -42,7 +37,7 @@ fun startRedirector(config: Config) {
                             // Add handler for decoding packet
                             .addLast(PacketDecoder())
                             // Add handler for processing packets
-                            .addLast(RedirectClient(config.redirectorPacket))
+                            .addLast(RedirectClient(config))
                             .addLast(PacketEncoder())
                     }
                 })
@@ -76,7 +71,7 @@ fun startRedirector(config: Config) {
  * @property config The config for redirection packets
  * @constructor Create empty RedirectClient
  */
-private class RedirectClient(private val config: Config.RedirectorPacket) : SimpleChannelInboundHandler<RawPacket>() {
+private class RedirectClient(private val config: Config) : SimpleChannelInboundHandler<RawPacket>() {
 
     /**
      * channelRead0 Handles incoming RawPackets and sends back a redirect packet
@@ -94,18 +89,20 @@ private class RedirectClient(private val config: Config.RedirectorPacket) : Simp
             val remoteAddress = channel.remoteAddress()
             LOGGER.info("Sending redirection to client ($remoteAddress) -> on platform ${platform ?: "Unknown"}")
 
+            val redirectorConfig = config.redirectorPacket
+
             // Create a redirect response packet for the client
             val packet = respond(msg) {
                 union("ADDR",
-                    config.addr,
+                    redirectorConfig.addr,
                     struct("VALU") {
-                        text("HOST", config.host)
-                        number("IP", IPAddress.asLong(config.ip))
-                        number("PORT", config.port)
+                        text("HOST", redirectorConfig.host)
+                        number("IP", IPAddress.asLong(config.host))
+                        number("PORT", config.ports.main)
                     }
                 )
-                number("SECU", config.secu)
-                number("XDNS", config.xdns)
+                number("SECU", redirectorConfig.secu)
+                number("XDNS", redirectorConfig.xdns)
             }
 
             // Write the packet, flush and then close the channel
