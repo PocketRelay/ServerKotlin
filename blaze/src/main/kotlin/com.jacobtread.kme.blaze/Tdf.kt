@@ -37,12 +37,6 @@ abstract class Tdf(val label: String, private val tagType: Int) {
         const val TRIPPLE = 0x9
         const val FLOAT = 0xA
 
-        const val VARINT_LIST = 0x0
-        const val STRING_LIST = 0x1
-        const val STRUCT_LIST = 0x3
-        const val TRIPPLE_LIST = 0x9
-        const val FLOAT_LIST = 0xA
-
         fun read(input: ByteBuf): Tdf {
             val head = input.readUnsignedInt()
             val tag = (head and 0xFFFFFF00)
@@ -187,22 +181,22 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
             val subType = input.readUnsignedByte().toInt()
             val count = input.readVarInt().toInt()
             return when (subType) {
-                VARINT_LIST -> {
+                VARINT -> {
                     val values = ArrayList<Long>(count)
                     repeat(count) { values.add(input.readVarInt()) }
                     ListTdf(label, subType, values)
                 }
-                STRING_LIST -> {
+                STRING -> {
                     val values = ArrayList<String>(count)
                     repeat(count) { values.add(input.readString()) }
-                    ListTdf(label, subType,values)
+                    ListTdf(label, subType, values)
                 }
-                STRUCT_LIST -> {
+                STRUCT -> {
                     val values = ArrayList<StructTdf>(count)
                     repeat(count) { values.add(StructTdf.from("", input)) }
                     ListTdf(label, subType, values)
                 }
-                TRIPPLE_LIST -> {
+                TRIPPLE -> {
                     val values = ArrayList<VTripple>(count)
                     repeat(count) {
                         values.add(
@@ -221,10 +215,10 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
 
         fun getType(valueType: KClass<*>): Int {
             return when (valueType) {
-                Long::class, Int::class -> VARINT_LIST
-                String::class -> STRING_LIST
-                StructTdf::class -> STRUCT_LIST
-                VTripple::class -> TRIPPLE_LIST
+                Long::class, Int::class -> VARINT
+                String::class -> STRING
+                StructTdf::class -> STRUCT
+                VTripple::class -> TRIPPLE
                 else -> throw IllegalArgumentException("Don't know how to handle type \"${valueType.java.simpleName}")
             }
         }
@@ -234,16 +228,16 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
         out.writeByte(this.type)
         out.writeVarInt(value.size.toLong())
         when (this.type) {
-            VARINT_LIST -> value.forEach {
+            VARINT -> value.forEach {
                 if (it is Int) {
                     out.writeVarInt(it.toLong())
                 } else {
                     out.writeVarInt(it as Long)
                 }
             }
-            STRING_LIST -> value.forEach { out.writeString(it as String) }
-            STRUCT_LIST -> value.forEach { (it as StructTdf).write(out) }
-            TRIPPLE_LIST -> value.forEach {
+            STRING -> value.forEach { out.writeString(it as String) }
+            STRUCT -> value.forEach { (it as StructTdf).write(out) }
+            TRIPPLE -> value.forEach {
                 val tripple = it as VTripple
                 out.writeVarInt(tripple.a)
                 out.writeVarInt(tripple.b)
@@ -269,16 +263,16 @@ class EmptyMapTdf(label: String, keyType: KClass<*>, valueType: KClass<*>) : Tdf
 
     init {
         keySubType = when (keyType) {
-            Long::class, Int::class -> VARINT_LIST
-            String::class -> STRING_LIST
-            Float::class -> FLOAT_LIST
+            Long::class, Int::class -> VARINT
+            String::class -> STRING
+            Float::class -> FLOAT
             else -> throw IllegalArgumentException("Don't know how to handle type \"${keyType.java.simpleName}")
         }
         valueSubType = when (valueType) {
-            Long::class, Int::class -> VARINT_LIST
-            String::class -> STRING_LIST
-            StructTdf::class -> STRUCT_LIST
-            Float::class -> FLOAT_LIST
+            Long::class, Int::class -> VARINT
+            String::class -> STRING
+            StructTdf::class -> STRUCT
+            Float::class -> FLOAT
             else -> throw IllegalArgumentException("Don't know how to handle type \"${valueType.java.simpleName}")
         }
     }
@@ -301,15 +295,15 @@ class MapTdf(label: String, private val keyType: Int, private val valueType: Int
             val out = HashMap<Any, Any>()
             repeat(count) {
                 val key: Any = when (keyType) {
-                    VARINT_LIST -> input.readVarInt()
-                    STRING_LIST -> input.readString()
+                    VARINT -> input.readVarInt()
+                    STRING -> input.readString()
                     else -> throw IllegalStateException("Unknown list subtype $keyType")
                 }
                 val value: Any = when (valueType) {
-                    VARINT_LIST -> input.readVarInt()
-                    STRING_LIST -> input.readString()
-                    STRUCT_LIST -> StructTdf.from("", input)
-                    FLOAT_LIST -> input.readFloat()
+                    VARINT -> input.readVarInt()
+                    STRING -> input.readString()
+                    STRUCT -> StructTdf.from("", input)
+                    FLOAT -> input.readFloat()
                     else -> throw IllegalStateException("Unknown list subtype $keyType")
                 }
                 out[key] = value
@@ -319,19 +313,19 @@ class MapTdf(label: String, private val keyType: Int, private val valueType: Int
 
         fun getKeyType(keyType: KClass<*>): Int {
             return when (keyType) {
-                Long::class, Int::class -> VARINT_LIST
-                String::class -> STRING_LIST
-                Float::class -> FLOAT_LIST
+                Long::class, Int::class -> VARINT
+                String::class -> STRING
+                Float::class -> FLOAT
                 else -> throw IllegalArgumentException("Don't know how to handle type \"${keyType.java.simpleName}")
             }
         }
 
         fun getValueType(valueType: KClass<*>): Int {
             return when (valueType) {
-                Long::class, Int::class -> VARINT_LIST
-                String::class -> STRING_LIST
-                StructTdf::class -> STRUCT_LIST
-                Float::class -> FLOAT_LIST
+                Long::class, Int::class -> VARINT
+                String::class -> STRING
+                StructTdf::class -> STRUCT
+                Float::class -> FLOAT
                 else -> throw IllegalArgumentException("Don't know how to handle type \"${valueType.java.simpleName}")
             }
         }
@@ -344,27 +338,27 @@ class MapTdf(label: String, private val keyType: Int, private val valueType: Int
         out.writeVarInt(entries.size.toLong())
         for ((key, value) in entries) {
             when (keyType) {
-                VARINT_LIST -> {
+                VARINT -> {
                     if (key is Long) {
                         out.writeVarInt(key)
                     } else {
                         out.writeVarInt((key as Int).toLong())
                     }
                 }
-                STRING_LIST -> out.writeString(key as String)
-                FLOAT_LIST -> out.writeFloat(key as Float)
+                STRING -> out.writeString(key as String)
+                FLOAT -> out.writeFloat(key as Float)
             }
             when (valueType) {
-                VARINT_LIST -> {
+                VARINT -> {
                     if (key is Long) {
                         out.writeVarInt(key)
                     } else {
                         out.writeVarInt((key as Int).toLong())
                     }
                 }
-                STRING_LIST -> out.writeString(value as String)
-                STRUCT_LIST -> (value as StructTdf).write(out)
-                FLOAT_LIST -> out.writeFloat(value as Float)
+                STRING -> out.writeString(value as String)
+                STRUCT -> (value as StructTdf).write(out)
+                FLOAT -> out.writeFloat(value as Float)
             }
         }
     }
