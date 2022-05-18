@@ -522,13 +522,35 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
 
     private fun handleLeaderboardGroup(packet: Packet) {
         val name: String = packet.getValueOrNull("NAME") ?: return
-        if (name.startsWith("NZRating")) {
-            val locale = name.substring(8)
+        val isN7 = name.startsWith("N7Rating")
+        if (isN7 || name.startsWith("ChallengePoints")) {
+            val locale: String = name.substring(if (isN7) 8 else 15)
             val isGlobal = locale == "Global"
             val localeName = getLocalName(locale)
-            val desc = "N7 Rating - $localeName"
-            val ksvl = if (isGlobal) mapOf(0x0 to 0x0) else mapOf(0x4445 to 0x4445)
-            val lbsz = if (isGlobal) 0x7270e0 else 0x8a77c
+            val ksvl: Map<Int, Int>
+            val lbsz: Int
+            if (isGlobal) {
+                ksvl = mapOf(0x0 to 0x0)
+                lbsz = 0x7270e0
+            } else {
+                ksvl = mapOf(0x4445 to 0x4445)
+                lbsz = 0x8a77c
+            }
+            val desc: String
+            val sname: String
+            val sdsc: String
+            val gname: String
+            if (isN7) {
+                desc = "N7 Rating - $localeName"
+                sname = "n7rating"
+                sdsc = "N7 Rating"
+                gname = "ME3LeaderboardGroup"
+            } else {
+                desc = "Challenge Points - $localeName"
+                sname = "ChallengePoints"
+                sdsc = "Challenge Points"
+                gname = "ME3ChallengePoints"
+            }
             channel.respond(packet) {
                 number("ACSD", 0x0)
                 text("BNAM", name)
@@ -547,56 +569,21 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
                         number("DRVD", 0x0)
                         text("FRMT", "%d")
                         text("KIND", "")
-                        text("LDSC", "N7 Rating")
+                        text("LDSC", sdsc)
                         text("META", "W=200, HMC=tableColHeader3, REMC=tableRowEntry3")
-                        text("NAME", "n7rating")
-                        text("SDSC", "N7 Rating")
+                        text("NAME", sname)
+                        text("SDSC", sdsc)
                         number("TYPE", 0x0)
                     }
                 ))
                 text("META", "RF=@W=150, HMC=tableColHeader1, REMC=tableRowEntry1@ UF=@W=670, HMC=tableColHeader2, REMC=tableRowEntry2@")
-                text("NAME", "ME3LeaderboardGroup")
-                text("SNAM", "n7rating")
-            }
-        } else if (name.startsWith("ChallengePoints")) {
-            val locale = name.substring(15)
-            val isGlobal = locale == "Global"
-            val localeName = getLocalName(locale)
-            val desc = "Challenge Points - $localeName"
-            val ksvl = if (isGlobal) mapOf(0x0 to 0x0) else mapOf(0x4445 to 0x4445)
-            val lbsz = if (isGlobal) 0x7270e0 else 0x8a77c
-            channel.respond(packet) {
-                number("ACSD", 0x0)
-                text("BNAM", name)
-                text("DESC", desc)
-                pair("ETYP", 0x7802, 0x1)
-                map("KSUM", mapOf(
-                    "accountcountry" to struct {
-                        map("KSVL", ksvl)
-                    }
-                ))
-                number("LBSZ", lbsz)
-                list("LIST", listOf(
-                    struct {
-                        text("CATG", "ME3ChallengeStats")
-                        text("DFLT", "0")
-                        number("DRVD", 0x0)
-                        text("FRMT", "%d")
-                        text("KIND", "")
-                        text("LDSC", "Challenge Points")
-                        text("META", "W=200, HMC=tableColHeader3, REMC=tableRowEntry3")
-                        text("NAME", "ChallengePoints")
-                        text("SDSC", "Challenge Points")
-                        number("TYPE", 0x0)
-                    }
-                ))
-                text("META", "RF=@W=150, HMC=tableColHeader1, REMC=tableRowEntry1@ UF=@W=670, HMC=tableColHeader2, REMC=tableRowEntry2@")
-                text("NAME", "ME3ChallengePoints")
-                text("SNAM", "ChallengePoints")
+                text("NAME", gname)
+                text("SNAM", sname)
             }
         } else {
             empty(packet)
         }
+
     }
 
     private fun handleFilteredLeaderboard(packet: Packet) {
@@ -655,7 +642,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         }
     }
 
-//endregion
+    //endregion
 
     //region Messaging Component Region
 
@@ -671,7 +658,6 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
                     .replace("{v}", KME_VERSION)
                     .replace("{n}", player.displayName)
                     .replace("{ip}", ip) + 0xA.toChar()
-
                 channel.write(unique(
                     MESSAGING,
                     SEND_MESSAGE
@@ -736,7 +722,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         }
     }
 
-//endregion
+    //endregion
 
     //region Game Reporting Component Region
 
@@ -744,7 +730,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
 
     }
 
-//endregion
+    //endregion
 
     //region User Sessions Component Region
 
@@ -772,7 +758,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         empty(packet)
     }
 
-//endregion
+    //endregion
 
     //region Util Component Region
 
