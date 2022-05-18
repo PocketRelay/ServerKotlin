@@ -18,18 +18,6 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory
 import java.io.IOException
 import java.security.KeyStore
 import javax.net.ssl.KeyManagerFactory
-import kotlin.io.path.Path
-import kotlin.io.path.outputStream
-
-// DNS REPLACEMENTS:
-// gosredirector.ea.com:42127 -> THIS SERVER (Redirector)
-// 383933-gosprapp396.ea.com:14219 -> MAIN SERVER
-// gosgvaprod-qos01.ea.com: (likely 17502) -> UNKNOWN
-// gosiadprod-qos01.ea.com: (likely 17502) -> UNKNOWN
-// gossjcprod-qos01.ea.com: (likely 17502) -> UNKNOWN
-// reports.tools.gos.ea.com:9988 -> TELEMETRY
-// waleu2.tools.gos.ea.com:8999 -> TICKER
-// me3.goscontent.ea.com:80 -> HTTP
 
 /**
  * startRedirector Starts the Redirector server in a new thread. This server
