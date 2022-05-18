@@ -20,7 +20,6 @@ dependencies {
     implementation(project(":utils"))
 }
 
-
 tasks.create("fatJar", Jar::class.java) {
     manifest {
         attributes["Implementation-Title"] = "KME Bundle Fat Jar"

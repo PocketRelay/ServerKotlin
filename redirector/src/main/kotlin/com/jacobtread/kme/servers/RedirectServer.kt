@@ -1,3 +1,5 @@
+@file:JvmName("RedirectServer")
+
 package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.blaze.*
@@ -87,7 +89,7 @@ private fun loadConfig(): RedirectorConfig {
  *
  * @param config The configuration for the redirector
  */
-fun startRedirector(config: RedirectorConfig = loadConfig()) {
+fun startRedirector(config: RedirectorConfig = loadConfig(), keepAlive: Boolean = true) {
     Thread {
         // Clears the disabled algorithms necessary for SSLv3
         Security.setProperty("jdk.tls.disabledAlgorithms", "")
@@ -132,7 +134,7 @@ fun startRedirector(config: RedirectorConfig = loadConfig()) {
                 .bind(listenPort)
                 // Wait for the channel to bind
                 .sync()
-            info("Started Redirector Server $listenPort")
+            info("Started Redirector Server on port $listenPort")
             bind.channel()
                 // Get the closing future
                 .closeFuture()
@@ -149,6 +151,7 @@ fun startRedirector(config: RedirectorConfig = loadConfig()) {
         // Start the redirector thread
         start()
     }
+    if (keepAlive) while (true) {}
 }
 
 /**

@@ -19,7 +19,7 @@ import kotlin.io.path.writeText
  */
 fun loadConfigFile(): Config {
     val config: Config
-    val configFile = Path("config.yml")
+    val configFile = Path("main.yml")
     if (configFile.exists()) {
         val contents = configFile.readText()
         config = Yaml.decodeFromString(Config.serializer(), contents)
@@ -39,11 +39,14 @@ fun loadConfigFile(): Config {
 
 @Serializable
 data class Config(
+    @Comment("Port for the main server")
+    val main: Int = 14219,
+    @Comment("Port for the ticker server")
+    val ticker: Int = 8999,
+    @Comment("Port for the telemetry server")
+    val telemetry: Int = 9988,
+
     val logging: Logger.Config = Logger.Config(),
-
-    @Comment("Ports for the different child servers of this server")
-    val ports: Ports = Ports(),
-
     @Comment(
         """
     The message displayed in the main menu format codes:
@@ -55,28 +58,4 @@ data class Config(
 
     @Comment("Database connection info")
     val database: DatabaseConfig = DatabaseConfig(),
-) {
-
-
-    /**
-     * Ports Configuration section that stores the different ports
-     * used by each service
-     *
-     * @property redirector The port for the redirector server
-     * @property ticker The port for the ticker server
-     * @property telemetry The port for the telemetry server
-     * @property main The port for the main server
-     * @constructor Create empty Ports
-     */
-    @Serializable
-    data class Ports(
-
-        val redirector: Int = 42127,
-        @Comment("Port for the ticker server")
-        val ticker: Int = 8999,
-        @Comment("Port for the telemetry server")
-        val telemetry: Int = 9988,
-        @Comment("Port for the main server")
-        val main: Int = 14219,
-    )
-}
+)

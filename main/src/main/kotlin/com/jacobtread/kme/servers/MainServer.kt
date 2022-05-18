@@ -30,25 +30,13 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicInteger
 
-@Serializable
-data class MainServerConfig(
-    val host: String = "383933-gosprapp396.ea.com",
-    @SerialName("port")
-    @Comment(
-        """
-        The port the main server will listen on.
-        """
-    )
-    val port: Int = 42127,
-)
-
 fun startMainServer() {
     Thread {
         val bossGroup = NioEventLoopGroup(customThreadFactory("Main Server Boss #{ID}"))
         val workerGroup = NioEventLoopGroup(customThreadFactory("Main Server Worker #{ID}"))
         val bootstrap = ServerBootstrap() // Create a server bootstrap
         try {
-            val port = CONFIG.ports.main
+            val port = CONFIG.main
             val clientId = AtomicInteger(0)
             val bind = bootstrap.group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel::class.java)
@@ -862,6 +850,8 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
 
             val telemetryAddress = "127.0.0.1"
             val tickerAddress = "127.0.0.1"
+            val telemetryPort = 9988
+            val tickerPort = 8999
 
             +struct("TELE") {
                 text("ADRS", telemetryAddress) // Server Address
@@ -870,7 +860,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
                 text("FILT", "-UION/****") // Telemetry filter?
                 number("LOC", 1701725253)
                 text("NOOK", "US,CA,MX")
-                number("PORT", CONFIG.ports.telemetry)
+                number("PORT", CONFIG.telemetry)
                 number("SDLY", 15000)
                 text("SESS", "JMhnT9dXSED")
                 text("SKEY", Data.SKEY)
@@ -880,7 +870,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
 
             +struct("TICK") {
                 text("ADRS", tickerAddress)
-                number("port", CONFIG.ports.ticker)
+                number("port", CONFIG.ticker)
                 text("SKEY", "823287263,10.23.15.2:8999,masseffect-3-pc,10,50,50,50,50,0,12")
             }
 
