@@ -77,7 +77,8 @@ private class HTTPHandler : SimpleChannelInboundHandler<HttpRequest>() {
 
     fun fileSystemResponse(ctx: ChannelHandlerContext, url: String) {
         val fileName = url.substringAfterLast('/')
-        val pathName = "public/$fileName"
+        val pathName = "/public/$fileName"
+        println(pathName)
         val inputStream = HTTPHandler::class.java.getResourceAsStream(pathName);
         if (inputStream == null) {
             respond404(ctx)
