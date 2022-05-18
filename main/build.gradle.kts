@@ -23,7 +23,7 @@ dependencies {
 tasks.create("fatJar", Jar::class.java) {
     manifest {
         attributes["Implementation-Title"] = "KME Bundle Fat Jar"
-        attributes["Main-Class"] = "com.jacobtread.kme.AppKt"
+        attributes["Main-Class"] = "com.jacobtread.kme.App"
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
