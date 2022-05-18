@@ -46,7 +46,6 @@ fun startDiscardServer(name: String, port: Int) {
                 })
                 .bind(port)
                 .sync();
-            Logger.info("Started $name Server on port $port")
             bind.channel().closeFuture().sync()
         } catch (e: IOException) {
             Logger.error("Exception in $name server", e)

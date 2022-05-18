@@ -1,5 +1,7 @@
 package com.jacobtread.kme.logging
 
+import kotlinx.serialization.Serializable
+import net.mamoe.yamlkt.Comment
 import java.io.IOException
 import java.io.RandomAccessFile
 import java.nio.ByteBuffer
@@ -14,6 +16,14 @@ import kotlin.system.exitProcess
 
 object Logger {
 
+    @Serializable
+    data class Config(
+        @Comment("The level of logging that should be used: INFO, WARN, ERROR, FATAL, DEBUG")
+        val level: Level = Level.INFO,
+        @Comment("Enable to keep track of logs in the logs/ directory will archive old logs with gzip")
+        val save: Boolean = true,
+    )
+
     private const val COLOR_REST = "\u001B[0m"
     private const val DEFAULT_BUFFER_SIZE = 4024
 
@@ -21,13 +31,10 @@ object Logger {
     private val printDateFormat = SimpleDateFormat("HH:mm:ss")
     private val loggingPath: Path = Paths.get("logs")
     private val logFile: Path = loggingPath.resolve("latest.log")
-    private val file: RandomAccessFile
+    private var file: RandomAccessFile? = null
     private val outputBuffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE)
     private var logLevel: Level = Level.INFO
-
-    fun setLevelFrom(value: String) {
-        logLevel = Level.fromName(value)
-    }
+    private var logToFile = true
 
     /**
      * isDebugEnabled Checks whether the current
@@ -38,14 +45,19 @@ object Logger {
     val isDebugEnabled: Boolean get() = logLevel == Level.DEBUG
 
 
-    init {
-        try {
-            archiveOld()
-            file = createFile()
-            Runtime.getRuntime().addShutdownHook(Thread(this::close))
-        } catch (e: IOException) {
-            System.err.println("Failed to open RandomAccessFile to the logging path")
-            throw e
+
+    fun init(config: Config) {
+        logLevel = config.level
+        logToFile = config.save
+        if (logToFile) {
+            try {
+                archiveOld()
+                file = createFile()
+                Runtime.getRuntime().addShutdownHook(Thread(this::close))
+            } catch (e: IOException) {
+                System.err.println("Failed to open RandomAccessFile to the logging path")
+                throw e
+            }
         }
     }
 
@@ -76,9 +88,10 @@ object Logger {
      */
     @Synchronized
     private fun close() {
+        if (!logToFile) return
         try {
             flush()
-            file.close()
+            file!!.close()
         } catch (e: Exception) {
             println("Failed to save log")
             e.printStackTrace()
@@ -91,9 +104,10 @@ object Logger {
      */
     @Synchronized
     private fun flush() {
+        if (!logToFile) return
         outputBuffer.flip()
         try {
-            file.channel.write(outputBuffer)
+            file!!.channel.write(outputBuffer)
         } finally {
             outputBuffer.clear()
         }
@@ -180,11 +194,12 @@ object Logger {
      * @param text The text to write to the log
      */
     private fun write(text: String) {
+        if (!logToFile) return
         val bytes = text.toByteArray()
         if (bytes.size > outputBuffer.remaining()) {
-            synchronized(file) {
+            synchronized(file!!) {
                 flush()
-                file.write(bytes)
+                file!!.write(bytes)
             }
         } else {
             outputBuffer.put(bytes)

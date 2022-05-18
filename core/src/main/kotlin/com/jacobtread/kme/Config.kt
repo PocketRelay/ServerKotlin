@@ -39,9 +39,7 @@ fun loadConfigFile(): Config {
 
 @Serializable
 data class Config(
-    @Comment("The level of logging that should be used: INFO, WARN, ERROR, FATAL, DEBUG")
-    @SerialName("log_level")
-    val logLevel: String = "INFO",
+    val logging: Logger.Config = Logger.Config(),
 
     @Comment("Ports for the different child servers of this server")
     val ports: Ports = Ports(),
