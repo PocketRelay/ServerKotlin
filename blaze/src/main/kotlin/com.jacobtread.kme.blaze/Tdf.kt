@@ -37,6 +37,18 @@ abstract class Tdf(val label: String, private val tagType: Int) {
         const val TRIPPLE = 0x9
         const val FLOAT = 0xA
 
+        fun getTypeFromClass(valueType: Class<*>): Int {
+            return when (valueType) {
+                Long::class.java,
+                Int::class.java, -> VARINT
+                String::class.java -> STRING
+                Float::class.java -> FLOAT
+                StructTdf::class.java -> STRUCT
+                VTripple::class.java -> TRIPPLE
+                else -> throw IllegalArgumentException("Don't know how to handle type \"${valueType.simpleName}")
+            }
+        }
+
         fun read(input: ByteBuf): Tdf {
             val head = input.readUnsignedInt()
             val tag = (head and 0xFFFFFF00)
@@ -212,16 +224,6 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
                 else -> throw IllegalStateException("Unknown list subtype $subType")
             }
         }
-
-        fun getType(valueType: KClass<*>): Int {
-            return when (valueType) {
-                Long::class, Int::class -> VARINT
-                String::class -> STRING
-                StructTdf::class -> STRUCT
-                VTripple::class -> TRIPPLE
-                else -> throw IllegalArgumentException("Don't know how to handle type \"${valueType.java.simpleName}")
-            }
-        }
     }
 
     override fun write(out: ByteBuf) {
@@ -256,34 +258,6 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
 }
 
 
-class EmptyMapTdf(label: String, keyType: KClass<*>, valueType: KClass<*>) : Tdf(label, MAP) {
-
-    private val keySubType: Int
-    private val valueSubType: Int
-
-    init {
-        keySubType = when (keyType) {
-            Long::class, Int::class -> VARINT
-            String::class -> STRING
-            Float::class -> FLOAT
-            else -> throw IllegalArgumentException("Don't know how to handle type \"${keyType.java.simpleName}")
-        }
-        valueSubType = when (valueType) {
-            Long::class, Int::class -> VARINT
-            String::class -> STRING
-            StructTdf::class -> STRUCT
-            Float::class -> FLOAT
-            else -> throw IllegalArgumentException("Don't know how to handle type \"${valueType.java.simpleName}")
-        }
-    }
-
-    override fun write(out: ByteBuf) {
-        out.writeByte(keySubType)
-        out.writeByte(valueSubType)
-        out.writeVarInt(0)
-    }
-}
-
 class MapTdf(label: String, private val keyType: Int, private val valueType: Int, val map: Map<out Any, Any>) : Tdf(label, MAP) {
 
     companion object {
@@ -309,25 +283,6 @@ class MapTdf(label: String, private val keyType: Int, private val valueType: Int
                 out[key] = value
             }
             return MapTdf(label, keyType, valueType, out);
-        }
-
-        fun getKeyType(keyType: KClass<*>): Int {
-            return when (keyType) {
-                Long::class, Int::class -> VARINT
-                String::class -> STRING
-                Float::class -> FLOAT
-                else -> throw IllegalArgumentException("Don't know how to handle type \"${keyType.java.simpleName}")
-            }
-        }
-
-        fun getValueType(valueType: KClass<*>): Int {
-            return when (valueType) {
-                Long::class, Int::class -> VARINT
-                String::class -> STRING
-                StructTdf::class -> STRUCT
-                Float::class -> FLOAT
-                else -> throw IllegalArgumentException("Don't know how to handle type \"${valueType.java.simpleName}")
-            }
         }
     }
 

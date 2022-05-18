@@ -127,7 +127,7 @@ class TdfBuilder {
      * @param value The list value
      */
     inline fun <reified A : Any> list(label: String, value: List<A>) {
-        val type = ListTdf.getType(A::class)
+        val type = Tdf.getTypeFromClass(A::class.java)
         values.add(ListTdf(label, type, value))
     }
 
@@ -139,7 +139,7 @@ class TdfBuilder {
      * @param values The values to create the list from
      */
     inline fun <reified A : Any> list(label: String, vararg values: A) {
-        val type = ListTdf.getType(A::class)
+        val type = Tdf.getTypeFromClass(A::class.java)
         this.values.add(ListTdf(label, type, values.toList()))
     }
 
@@ -152,8 +152,8 @@ class TdfBuilder {
      */
     inline fun <reified A : Any, reified B : Any> map(label: String, value: Map<A, B>) {
 
-        val keyType = MapTdf.getKeyType(A::class)
-        val valueType = MapTdf.getValueType(B::class)
+        val keyType = Tdf.getTypeFromClass(A::class.java)
+        val valueType = Tdf.getTypeFromClass(B::class.java)
 
         values.add(MapTdf(label, keyType, valueType, value))
     }
