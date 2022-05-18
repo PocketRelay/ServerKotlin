@@ -25,6 +25,7 @@ import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.IOException
+import java.sql.Struct
 import java.util.concurrent.atomic.AtomicInteger
 
 
@@ -89,8 +90,8 @@ class SessionData(
     var sendOffers: Boolean = false
     var lastPingTime: Long = -1L
 
-    fun getPlayer(): Player = player!!
-    fun hasPlayer(): Boolean = player != null
+    fun getPlayer(): Player = player ?: throw IllegalStateException("Tried to access player on session without logging in")
+
 
     fun setPlayer(player: Player) {
         this.player = player
@@ -107,6 +108,16 @@ class SessionData(
                 number("PORT", inip.port)
             }
         })
+
+    fun createPDTL(player: Player): StructTdf = struct("PDTL") {
+        val lastLoginTime = unixTimeSeconds()
+        text("DSNM", player.displayName)
+        number("LAST", lastLoginTime)
+        number("PID", player.id.value)
+        number("STAS", 0)
+        number("XREF", 0)
+        number("XTYP", 0)
+    }
 
 }
 
@@ -146,6 +157,14 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
                 UTIL -> handleUtil(msg)
                 else -> respondEmpty(msg)
             }
+        } catch (e: IllegalStateException) {
+            Logger.warn("Failed to handle packet: $msg", e)
+        } catch (e: MissingTdfException) {
+            Logger.warn("Failed to handle packet: $msg", e)
+            // TODO: Custom handling for missing tdfs
+        }  catch (e: InvalidTdfException) {
+            Logger.warn("Failed to handle packet: $msg", e)
+            // TODO: Custom handling for invalid tdfs
         } catch (e: Exception) {
             Logger.warn("Failed to handle packet: $msg", e)
         }
@@ -168,7 +187,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
 
 
     private fun handleListUserEntitlements2(packet: Packet) {
-        val etag: String = packet.getValue("ETAG")
+        val etag: String = packet["ETAG"]
         if (etag.isEmpty()) {
             channel.send(Data.makeUserEntitlements2(packet))
 
@@ -209,8 +228,8 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
     }
 
     private fun handleLogin(packet: Packet) {
-        val email: String = packet.getValue("MAIL")
-        val password: String = packet.getValue("PASS")
+        val email: String = packet["MAIL"]
+        val password: String = packet["PASS"]
         if (email.isBlank() || password.isBlank()) {
             loginErrorPacket(packet, LoginError.INVALID_INFORMATION)
             return
@@ -240,26 +259,12 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         }
 
         session.setPlayer(player)
-
         val sessionToken = getSessionToken()
-        val lastLoginTime = unixTimeSeconds()
-
         channel.respond(packet) {
             text("LDHT", "")
             number("NTOS", 0)
             text("PCTK", sessionToken)
-
-            list("PLST", listOf(
-                struct {
-                    text("DSNM", player.displayName)
-                    number("LAST", lastLoginTime)
-                    number("PID", player.id.value)
-                    number("STAS", 0)
-                    number("XREF", 0)
-                    number("XTYP", 0)
-                }
-            ))
-
+            list("PLST", listOf(session.createPDTL(player)))
             text("PRIV", "")
             text("SKEY", "11229301_9b171d92cc562b293e602ee8325612e7")
             number("SPAM", 0)
@@ -271,8 +276,8 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
     }
 
     private fun handleSilentLogin(packet: Packet) {
-        val pid: Long = packet.getValue("PID")
-        val auth: String = packet.getValue("AUTH")
+        val pid: Long = packet["PID"]
+        val auth: String = packet["AUTH"]
         val player = transaction { Player.findById(pid.toInt()) }
         if (player == null) {
             loginErrorPacket(packet, LoginError.INVALID_ACCOUNT)
@@ -325,14 +330,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
                 text("KEY", "11229301_9b171d92cc562b293e602ee8325612e7")
                 number("LLOG", lastLoginTime)
                 text("MAIL", player.email)
-                +struct("PDTL") {
-                    text("DSNM", player.displayName)
-                    number("LAST", lastLoginTime)
-                    number("PID", player.id.value)
-                    number("STAS", 0)
-                    number("XREF", 0)
-                    number("XTYP", 0)
-                }
+                +session.createPDTL(player)
                 number("UID", player.id.value)
             }
             number("SPAM", 0)
@@ -413,8 +411,8 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
     }
 
     private fun handleCreateAccount(packet: Packet) {
-        val email: String = packet.getValue("MAIL")
-        val password: String = packet.getValue("PASS")
+        val email: String = packet["MAIL"]
+        val password: String = packet["PASS"]
         // Check for existing emails
         if (transaction { !Player.find { Players.email eq email }.limit(1).empty() }) {
             loginErrorPacket(packet, LoginError.EMAIL_ALREADY_IN_USE)
@@ -437,9 +435,8 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         sessionDetailsPackets()
     }
 
-
     private fun handleLoginPersona(packet: Packet) {
-        val playerName: String = packet.getValue("PNAM")
+        val playerName: String = packet["PNAM"]
         val player = session.getPlayer()
         if (playerName != player.displayName) {
             return
@@ -451,14 +448,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
             text("KEY", "11229301_9b171d92cc562b293e602ee8325612e7")
             number("LLOG", lastLoginTime)
             text("MAIL", "")
-            +struct("PDTL") {
-                text("DSNM", player.displayName)
-                number("LAST", lastLoginTime)
-                number("PID", player.id.value)
-                number("STAS", 0)
-                number("XREF", 0)
-                number("XTYP", 0)
-            }
+            +session.createPDTL(player)
             number("UID", player.id.value)
         }
         sessionDetailsPackets()
@@ -502,7 +492,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
     }
 
     private fun handleLeaderboardGroup(packet: Packet) {
-        val name: String = packet.getValueOrNull("NAME") ?: return
+        val name: String = packet.getOrNull("NAME") ?: return
         val isN7 = name.startsWith("N7Rating")
         if (isN7 || name.startsWith("ChallengePoints")) {
             val locale: String = name.substring(if (isN7) 8 else 15)
@@ -568,7 +558,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
     }
 
     private fun handleFilteredLeaderboard(packet: Packet) {
-        val name: String = packet.getValueOrNull("NAME") ?: return
+        val name: String = packet.getOrNull("NAME") ?: return
         val player = session.getPlayer()
         when (name) {
             "N7RatingGlobal" -> {
@@ -720,11 +710,11 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
             UPDATE_HARDWARE_FLAGS,
             UPDATE_NETWORK_INFO,
             -> {
-                val addr: UnionTdf? = packet.getOrNull("ADDR")
+                val addr: UnionTdf? = packet.getTdfOrNull("ADDR")
                 if (addr != null) {
                     val value = addr.value as StructTdf
-                    val inip: StructTdf = value.get("INIP")
-                    val port: Long = inip.getValue("PORT")
+                    val inip: StructTdf = value.getTdf("INIP")
+                    val port: Long = inip["PORT"]
                     val remoteAddress = channel.remoteAddress()
                     val addressEncoded = IPAddress.asLong(remoteAddress)
                     session.inip.address = addressEncoded
@@ -758,7 +748,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
     }
 
     private fun handleFetchClientConfig(packet: Packet) {
-        val type: String = packet.getValue("CFID")
+        val type: String = packet["CFID"]
         if (type.startsWith("ME3_LIVE_TLK_PC_")) {
             val lang = type.substring(16)
             val tlk = Data.loadTLK(lang)
@@ -885,8 +875,8 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
     }
 
     private fun handleUserSettingsSave(packet: Packet) {
-        val value: String? = packet.getValueOrNull("DATA")
-        val key: String? = packet.getValueOrNull("KEY")
+        val value: String? = packet.getOrNull("DATA")
+        val key: String? = packet.getOrNull("KEY")
         if (value != null && key != null) {
             val player = session.getPlayer()
             player.setSetting(key, value)
@@ -903,7 +893,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
     }
 
     private fun handleSuspendUserPing(packet: Packet) {
-        val value: Long? = packet.getValueOrNull("TVAL")
+        val value: Long? = packet.getOrNull("TVAL")
         if (value != null) {
             if (value == 0x1312D00L) {
                 channel.error(packet, 0x12D)
