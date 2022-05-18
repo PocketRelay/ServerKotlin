@@ -39,35 +39,37 @@ fun loadConfigFile(): Config {
 
 @Serializable
 data class Config(
-    @Comment("The level of logging that should be used: INFO,WARN,ERROR,FATAL,DEBUG")
+    @Comment("The level of logging that should be used: INFO, WARN, ERROR, FATAL, DEBUG")
     @SerialName("log_level")
     val logLevel: String = "INFO",
 
-    @Comment("Ports for the different servers")
+    @Comment("Ports for the different child servers of this server")
     val ports: Ports = Ports(),
 
-    @Comment("Database connection info")
-    val database: DatabaseConfig = DatabaseConfig(),
 
-    @Comment("""
+    @Comment(
+        """
     The message displayed in the main menu format codes:
-    {v}  : KME3 Version
-    {n}  : Player Name
-    {ip} : Player IP
+    {v} = version, {n} = player name, {ip} = player ip
     """
     )
     @SerialName("menu_message")
     val menuMessage: String = "<font color='#B2B2B2'>KME3</font> - <font color='#FFFF66'>Logged as: {n}</font>",
-) {
+
+    @Comment("Database connection info")
+    val database: DatabaseConfig = DatabaseConfig(),
+
+    ) {
 
 
     /**
-     * Ports
+     * Ports Configuration section that stores the different ports
+     * used by each service
      *
      * @property redirector The port for the redirector server
      * @property ticker The port for the ticker server
      * @property telemetry The port for the telemetry server
-     * @property main
+     * @property main The port for the main server
      * @constructor Create empty Ports
      */
     @Serializable

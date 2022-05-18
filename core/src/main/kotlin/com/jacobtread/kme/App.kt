@@ -11,10 +11,11 @@ import com.jacobtread.kme.servers.startMainServer
 import com.jacobtread.kme.servers.startRedirector
 import java.security.Security
 
-
+// Load the config as a global variable
 val CONFIG = loadConfigFile()
 
 fun main() {
+    // Clears the disabled algorithms necessary for SSLv3
     Security.setProperty("jdk.tls.disabledAlgorithms", "")
     Thread.currentThread().name = "Main"
     Logger.logLevel = Level.fromName(CONFIG.logLevel)
