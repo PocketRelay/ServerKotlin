@@ -1,3 +1,5 @@
+@file:JvmName("App")
+
 package com.jacobtread.kme
 
 import com.jacobtread.kme.database.startDatabase
@@ -9,6 +11,7 @@ import java.nio.file.Paths
 import kotlin.io.path.exists
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
+
 
 val LOGGER = Logger.get()
 
@@ -45,11 +48,8 @@ fun main() {
     startDatabase(config)
     startMainServer(config)
 
-    val sysIn = System.`in`
-    val inputReader = sysIn.bufferedReader()
-    var input: String
     while (true) {
-        input = inputReader.readLine()
+        val input = readLine() ?: continue
         LOGGER.info("Unknown command: $input")
     }
 }
