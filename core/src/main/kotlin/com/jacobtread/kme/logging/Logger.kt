@@ -1,6 +1,7 @@
 package com.jacobtread.kme.logging
 
-import java.io.BufferedOutputStream
+import java.io.DataOutput
+import java.io.DataOutputStream
 import java.io.IOException
 import java.io.RandomAccessFile
 import java.nio.ByteBuffer
@@ -52,11 +53,11 @@ class Logger {
         try {
             archiveOld()
             file = createFile()
+            Runtime.getRuntime().addShutdownHook(Thread(this::close))
         } catch (e: IOException) {
             System.err.println("Failed to open RandomAccessFile to the logging path")
             throw e
         }
-        Runtime.getRuntime().addShutdownHook(Thread(this::close))
     }
 
     fun info(text: String, vararg args: Any? = emptyArray()) = append(Level.INFO, text, *args)
@@ -89,7 +90,9 @@ class Logger {
         try {
             flush()
             file.close()
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            println("Failed to save log")
+            e.printStackTrace()
         }
     }
 
@@ -101,11 +104,7 @@ class Logger {
     private fun flush() {
         outputBuffer.flip()
         try {
-            file.write(
-                outputBuffer.array(),
-                outputBuffer.arrayOffset() + outputBuffer.position(),
-                outputBuffer.remaining()
-            )
+            file.channel.write(outputBuffer)
         } finally {
             outputBuffer.clear()
         }
