@@ -1,6 +1,7 @@
 plugins {
     kotlin("jvm") version "1.6.20"
     kotlin("plugin.serialization") version "1.6.20"
+    application
 }
 
 group = "com.jacobtread.kme"
@@ -31,10 +32,7 @@ tasks.create("fatJar", Jar::class.java) {
     with(tasks.jar.get() as CopySpec)
 }
 
-
-tasks.create("start", JavaExec::class.java) {
-    classpath = sourceSets["main"].runtimeClasspath
-    args = listOf()
+application {
     mainClass.set("com.jacobtread.kme.App")
-    workingDir = File(projectDir, "run")
+    tasks.run.get().workingDir = File(projectDir, "run")
 }
