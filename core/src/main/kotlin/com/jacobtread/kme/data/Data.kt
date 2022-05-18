@@ -3,10 +3,8 @@ package com.jacobtread.kme.data
 import com.jacobtread.kme.blaze.RawPacket
 import com.jacobtread.kme.blaze.respond
 import com.jacobtread.kme.blaze.struct
-import com.jacobtread.kme.logging.Logger
 import java.io.BufferedReader
 import java.io.IOException
-import kotlin.system.measureTimeMillis
 
 /**
  * Data Pre constructed data and retrieval of data that's used throughout the app
@@ -605,25 +603,21 @@ object Data {
 
     fun loadBiniCompressed(): Map<String, String> = loadChunkedFile("data/bini.txt")
 
-    private fun loadChunkedFile(path: String): Map< String, String> {
-        val out: Map<String, String>
-        val elapsed = measureTimeMillis {
-            val reader = getResourceReader(path)
-            val lines = reader.readLines()
-            var length = ""
-            out = LinkedHashMap<String, String>(lines.size + 1)
-            lines.forEach {
-                val parts = it.split(':', limit = 2)
-                if (parts[0] == "SIZE") {
-                    length = parts[1]
-                } else {
-                    out[parts[0]] = parts[1]
-                }
+    private fun loadChunkedFile(path: String): Map<String, String> {
+        val reader = getResourceReader(path)
+        val lines = reader.readLines()
+        var length = ""
+        val out = LinkedHashMap<String, String>(lines.size + 1)
+        lines.forEach {
+            val parts = it.split(':', limit = 2)
+            if (parts[0] == "SIZE") {
+                length = parts[1]
+            } else {
+                out[parts[0]] = parts[1]
             }
-            out["CHUNK_SIZE"] = "255"
-            out["DATA_SIZE"] = length
         }
-        Logger.info("Loaded chunked file in: ${elapsed}ms")
+        out["CHUNK_SIZE"] = "255"
+        out["DATA_SIZE"] = length
         return out
     }
 
