@@ -1,10 +1,6 @@
 package com.jacobtread.kme.blaze.tdf
 
-import com.jacobtread.kme.blaze.utils.readString
-import com.jacobtread.kme.blaze.utils.readVarInt
-import com.jacobtread.kme.blaze.utils.writeString
-import com.jacobtread.kme.blaze.utils.writeVarInt
-import com.jacobtread.kme.blaze.utils.VarTripple
+import com.jacobtread.kme.blaze.utils.*
 import io.netty.buffer.ByteBuf
 import kotlin.reflect.KClass
 import kotlin.reflect.cast
@@ -51,15 +47,9 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
 
     override fun write(out: ByteBuf) {
         out.writeByte(this.type)
-        out.writeVarInt(value.size.toLong())
+        out.writeVarInt(value.size)
         when (this.type) {
-            VARINT -> value.forEach {
-                if (it is Int) {
-                    out.writeVarInt(it.toLong())
-                } else {
-                    out.writeVarInt(it as Long)
-                }
-            }
+            VARINT -> value.forEach { out.writeVarInt(it) }
             STRING -> value.forEach { out.writeString(it as String) }
             STRUCT -> value.forEach { (it as StructTdf).write(out) }
             TRIPPLE -> value.forEach {

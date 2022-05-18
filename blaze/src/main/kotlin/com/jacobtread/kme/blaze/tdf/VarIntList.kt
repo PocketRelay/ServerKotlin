@@ -15,7 +15,7 @@ class VarIntList(label: String, override val value: List<Long>) : Tdf(label, INT
     }
 
     override fun write(out: ByteBuf) {
-        out.writeVarInt(value.size.toLong())
+        out.writeVarInt(value.size)
         value.forEach { out.writeVarInt(it) }
     }
 

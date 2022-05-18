@@ -15,7 +15,7 @@ class BlobTdf(label: String, override val value: ByteArray) : Tdf(label, BLOB), 
     }
 
     override fun write(out: ByteBuf) {
-        out.writeVarInt(value.size.toLong())
+        out.writeVarInt(value.size)
         if (value.isNotEmpty()) {
             out.writeBytes(value)
         }

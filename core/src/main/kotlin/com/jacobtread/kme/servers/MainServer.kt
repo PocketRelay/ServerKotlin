@@ -15,6 +15,7 @@ import com.jacobtread.kme.logging.Logger
 import com.jacobtread.kme.utils.comparePasswordHash
 import com.jacobtread.kme.utils.customThreadFactory
 import com.jacobtread.kme.utils.hashPassword
+import com.jacobtread.kme.utils.unixTimeSeconds
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
@@ -24,7 +25,6 @@ import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.IOException
-import java.time.Instant
 import java.util.concurrent.atomic.AtomicInteger
 
 
@@ -116,32 +116,15 @@ data class NetData(var address: Long, var port: Int)
 private class MainClient(private val session: SessionData) : SimpleChannelInboundHandler<Packet>() {
 
     companion object {
-        private const val NAT_TYPE = 4
         private val EMPTY_BYTE_ARRAY = ByteArray(0)
-        private val CIDS = listOf(1, 25, 4, 28, 7, 9, 63490, 30720, 15, 30721, 30722, 30723, 30725, 30726, 2000)
-        private val TELE_DISA =
-            "AD,AF,AG,AI,AL,AM,AN,AO,AQ,AR,AS,AW,AX,AZ,BA,BB,BD,BF,BH,BI,BJ,BM,BN,BO,BR,BS,BT,BV,BW,BY,BZ,CC,CD,CF,CG,CI,CK,CL,CM,CN,CO,CR,CU,CV,CX,DJ,DM,DO,DZ,EC,EG,EH,ER,ET,FJ,FK,FM,FO,GA,GD,GE,GF,GG,GH,GI,GL,GM,GN,GP,GQ,GS,GT,GU,GW,GY,HM,HN,HT,ID,IL,IM,IN,IO,IQ,IR,IS,JE,JM,JO,KE,KG,KH,KI,KM,KN,KP,KR,KW,KY,KZ,LA,LB,LC,LI,LK,LR,LS,LY,MA,MC,MD,ME,MG,MH,ML,MM,MN,MO,MP,MQ,MR,MS,MU,MV,MW,MY,MZ,NA,NC,NE,NF,NG,NI,NP,NR,NU,OM,PA,PE,PF,PG,PH,PK,PM,PN,PS,PW,PY,QA,RE,RS,RW,SA,SB,SC,SD,SG,SH,SJ,SL,SM,SN,SO,SR,ST,SV,SY,SZ,TC,TD,TF,TG,TH,TJ,TK,TL,TM,TN,TO,TT,TV,TZ,UA,UG,UM,UY,UZ,VA,VC,VE,VG,VN,VU,WF,WS,YE,YT,ZM,ZW,ZZ"
-        private val SKEY = createSKey()
-
-        private fun createSKey(): String {
-            return String(
-                byteArrayOf(
-                    94, -118, -53, -35, -8, -20, -63, -107, -104, -103, -7, -108, -64, -83, -18,
-                    -4, -50, -92, -121, -34, -118, -90, -50, -36, -80, -18, -24, -27, -77, -11,
-                    -83, -102, -78, -27, -28, -79, -103, -122, -57, -114, -101, -80, -12, -64, -127,
-                    -93, -89, -115, -100, -70, -62, -119, -45, -61, -84, -104, -106, -92, -32, -64,
-                    -127, -125, -122, -116, -104, -80, -32, -52, -119, -109, -58, -52, -102, -28, -56,
-                    -103, -29, -126, -18, -40, -105, -19, -62, -51, -101, -41, -52, -103, -77, -27,
-                    -58, -47, -21, -78, -90, -117, -72, -29, -40, -60, -95, -125, -58, -116, -100,
-                    -74, -16, -48, -63, -109, -121, -53, -78, -18, -120, -107, -46, -128, -128
-                ), Charsets.UTF_8
-            )
-        }
-
-        fun getUnixTimeSeconds(): Long = Instant.now().epochSecond
     }
 
-    fun empty(packet: Packet, qtype: Int = RESPONSE) = channel.send(Packet(packet.rawComponent, packet.rawCommand, 0, qtype, packet.id, EMPTY_BYTE_ARRAY))
+    /**
+     * respondEmpty Used for sending a respond that has no content
+     *
+     * @param packet The packet to respond to
+     */
+    fun respondEmpty(packet: Packet) = channel.respond(packet)
 
     lateinit var channel: Channel
 
@@ -161,7 +144,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
                 GAME_REPORTING -> handleGameReporting(msg)
                 USER_SESSIONS -> handleUserSessions(msg)
                 UTIL -> handleUtil(msg)
-                else -> empty(msg)
+                else -> respondEmpty(msg)
             }
         } catch (e: Exception) {
             Logger.warn("Failed to handle packet: $msg", e)
@@ -179,7 +162,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
             LOGIN_PERSONA -> handleLoginPersona(packet)
             ORIGIN_LOGIN -> {}
             CREATE_ACCOUNT -> handleCreateAccount(packet)
-            else -> empty(packet)
+            else -> respondEmpty(packet)
         }
     }
 
@@ -202,7 +185,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
                         list("PSLM", listOf(0xfff0fff, 0xfff0fff, 0xfff0fff))
                         +struct("QDAT") {
                             number("DBPS", 0x0)
-                            number("NATT", NAT_TYPE)
+                            number("NATT", Data.NAT_TYPE)
                             number("UBPS", 0x0)
                         }
                         number("UATT", 0x0)
@@ -214,7 +197,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
             }
 
         } else {
-            empty(packet)
+            respondEmpty(packet)
         }
     }
 
@@ -259,7 +242,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         session.setPlayer(player)
 
         val sessionToken = getSessionToken()
-        val lastLoginTime = getUnixTimeSeconds()
+        val lastLoginTime = unixTimeSeconds()
 
         channel.respond(packet) {
             text("LDHT", "")
@@ -328,7 +311,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         val player = session.getPlayer()
 
         val sessionToken = getSessionToken()
-        val lastLoginTime = getUnixTimeSeconds()
+        val lastLoginTime = unixTimeSeconds()
 
         channel.respond(packet) {
             number("AGUP", 0)
@@ -375,7 +358,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
 
                 +struct("QDAT") {
                     number("DBPS", 0)
-                    number("NATT", NAT_TYPE)
+                    number("NATT", Data.NAT_TYPE)
                     number("UBPS", 0)
                 }
 
@@ -446,7 +429,6 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
                 this.password = hashedPassword
             }
         }
-
         session.setPlayer(player)
         channel.respond(packet) {
             text("PNAM", player.displayName)
@@ -462,8 +444,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         if (playerName != player.displayName) {
             return
         }
-
-        val lastLoginTime = getUnixTimeSeconds()
+        val lastLoginTime = unixTimeSeconds()
         channel.respond(packet) {
             number("BUID", player.id.value)
             number("FRST", 0)
@@ -581,7 +562,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
                 text("SNAM", sname)
             }
         } else {
-            empty(packet)
+            respondEmpty(packet)
         }
 
     }
@@ -624,7 +605,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
                     ))
                 }
             }
-            else -> empty(packet)
+            else -> respondEmpty(packet)
         }
     }
 
@@ -674,7 +655,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
                         number("TYPE", 0x0)
                     }
                     tripple("SRCE", 0x7802, 0x01, player.id.value.toLong())
-                    number("TIME", getUnixTimeSeconds())
+                    number("TIME", unixTimeSeconds())
                 })
 
                 channel.flush()
@@ -717,7 +698,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
             SUBSCRIBE_TO_LISTS,
             UNSUBSCRIBE_FROM_LISTS,
             GET_CONFIG_LISTS_INFO,
-            -> empty(packet)
+            -> respondEmpty(packet)
             else -> return
         }
     }
@@ -755,7 +736,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
             }
             else -> {}
         }
-        empty(packet)
+        respondEmpty(packet)
     }
 
     //endregion
@@ -770,9 +751,9 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
             POST_AUTH -> handlePostAuth(packet)
             USER_SETTINGS_SAVE -> handleUserSettingsSave(packet)
             USER_SETTINGS_LOAD_ALL -> handleUserSettingsLoadAll(packet)
-            SET_CLIENT_METRICS -> empty(packet)
+            SET_CLIENT_METRICS -> respondEmpty(packet)
             SUSPEND_USER_PING -> handleSuspendUserPing(packet)
-            else -> empty(packet)
+            else -> respondEmpty(packet)
         }
     }
 
@@ -804,7 +785,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         Logger.logIfDebug { "Received ping update from client: ${session.id}" }
         session.lastPingTime = System.currentTimeMillis()
         channel.respond(packet) {
-            number("STIM", getUnixTimeSeconds())
+            number("STIM", unixTimeSeconds())
         }
     }
 
@@ -812,7 +793,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         channel.respond(packet) {
             number("ANON", 0x0)
             number("ASRC", 303107)
-            list("CIDS", CIDS)
+            list("CIDS", Data.CIDS)
             text("CNGN", "")
             +struct("CONF") {
                 map(
@@ -878,14 +859,14 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
             +struct("TELE") {
                 text("ADRS", telemetryAddress) // Server Address
                 number("ANON", 0)
-                text("DISA", TELE_DISA)
+                text("DISA", Data.TELE_DISA)
                 text("FILT", "-UION/****") // Telemetry filter?
                 number("LOC", 1701725253)
                 text("NOOK", "US,CA,MX")
                 number("PORT", CONFIG.ports.telemetry)
                 number("SDLY", 15000)
                 text("SESS", "JMhnT9dXSED")
-                text("SKEY", SKEY)
+                text("SKEY", Data.SKEY)
                 number("SPCT", 0x4B)
                 text("STIM", "")
             }
@@ -911,7 +892,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
             player.setSetting(key, value)
 
         }
-        empty(packet)
+        respondEmpty(packet)
     }
 
     private fun handleUserSettingsLoadAll(packet: Packet) {

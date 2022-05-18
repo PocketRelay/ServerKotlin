@@ -38,27 +38,15 @@ class MapTdf(label: String, private val keyType: Int, private val valueType: Int
         out.writeByte(keyType)
         out.writeByte(valueType)
         val entries = map.entries
-        out.writeVarInt(entries.size.toLong())
+        out.writeVarInt(entries.size)
         for ((key, value) in entries) {
             when (keyType) {
-                VARINT -> {
-                    if (key is Long) {
-                        out.writeVarInt(key)
-                    } else {
-                        out.writeVarInt((key as Int).toLong())
-                    }
-                }
+                VARINT -> out.writeVarInt(key)
                 STRING -> out.writeString(key as String)
                 FLOAT -> out.writeFloat(key as Float)
             }
             when (valueType) {
-                VARINT -> {
-                    if (key is Long) {
-                        out.writeVarInt(key)
-                    } else {
-                        out.writeVarInt((key as Int).toLong())
-                    }
-                }
+                VARINT -> out.writeVarInt(value)
                 STRING -> out.writeString(value as String)
                 STRUCT -> (value as StructTdf).write(out)
                 FLOAT -> out.writeFloat(value as Float)

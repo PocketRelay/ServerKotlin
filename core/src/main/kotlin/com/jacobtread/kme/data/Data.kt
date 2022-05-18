@@ -5,6 +5,7 @@ import com.jacobtread.kme.blaze.respond
 import com.jacobtread.kme.blaze.struct
 import java.io.BufferedReader
 import java.io.IOException
+import java.time.Instant
 
 /**
  * Data Pre constructed data and retrieval of data that's used throughout the app
@@ -13,6 +14,29 @@ import java.io.IOException
  * @constructor Create empty Data
  */
 object Data {
+
+    const val TELE_DISA = "AD,AF,AG,AI,AL,AM,AN,AO,AQ,AR,AS,AW,AX,AZ,BA,BB,BD,BF,BH,BI,BJ,BM,BN,BO,BR,BS,BT,BV,BW,BY,BZ,CC,CD,CF,CG,CI,CK,CL,CM,CN,CO,CR,CU,CV,CX,DJ,DM,DO,DZ,EC,EG,EH,ER,ET,FJ,FK,FM,FO,GA,GD,GE,GF,GG,GH,GI,GL,GM,GN,GP,GQ,GS,GT,GU,GW,GY,HM,HN,HT,ID,IL,IM,IN,IO,IQ,IR,IS,JE,JM,JO,KE,KG,KH,KI,KM,KN,KP,KR,KW,KY,KZ,LA,LB,LC,LI,LK,LR,LS,LY,MA,MC,MD,ME,MG,MH,ML,MM,MN,MO,MP,MQ,MR,MS,MU,MV,MW,MY,MZ,NA,NC,NE,NF,NG,NI,NP,NR,NU,OM,PA,PE,PF,PG,PH,PK,PM,PN,PS,PW,PY,QA,RE,RS,RW,SA,SB,SC,SD,SG,SH,SJ,SL,SM,SN,SO,SR,ST,SV,SY,SZ,TC,TD,TF,TG,TH,TJ,TK,TL,TM,TN,TO,TT,TV,TZ,UA,UG,UM,UY,UZ,VA,VC,VE,VG,VN,VU,WF,WS,YE,YT,ZM,ZW,ZZ"
+    const val NAT_TYPE = 4
+    val SKEY = createSKey()
+    val CIDS = listOf(1, 25, 4, 28, 7, 9, 63490, 30720, 15, 30721, 30722, 30723, 30725, 30726, 2000)
+
+    private fun createSKey(): String {
+        return String(
+            byteArrayOf(
+                94, -118, -53, -35, -8, -20, -63, -107, -104, -103, -7, -108, -64, -83, -18,
+                -4, -50, -92, -121, -34, -118, -90, -50, -36, -80, -18, -24, -27, -77, -11,
+                -83, -102, -78, -27, -28, -79, -103, -122, -57, -114, -101, -80, -12, -64, -127,
+                -93, -89, -115, -100, -70, -62, -119, -45, -61, -84, -104, -106, -92, -32, -64,
+                -127, -125, -122, -116, -104, -80, -32, -52, -119, -109, -58, -52, -102, -28, -56,
+                -103, -29, -126, -18, -40, -105, -19, -62, -51, -101, -41, -52, -103, -77, -27,
+                -58, -47, -21, -78, -90, -117, -72, -29, -40, -60, -95, -125, -58, -116, -100,
+                -74, -16, -48, -63, -109, -121, -53, -78, -18, -120, -107, -46, -128, -128
+            ),
+            Charsets.UTF_8
+        )
+    }
+
+    //region ME3 Data
 
     fun makeUserEntitlements2(packet: Packet): Packet {
         @Suppress("SpellCheckingInspection")
@@ -201,7 +225,6 @@ object Data {
             ))
         }
     }
-
     fun makeME3Data(): Map<String, String> = mapOf(
         "GAW_SERVER_BASE_URL" to "http://waleu2.tools.gos.ea.com/wal/masseffect-gaw-pc",
         "IMG_MNGR_BASE_URL" to "http://me3.goscontent.ea.com/editorial/MassEffect/3/",
@@ -220,7 +243,6 @@ object Data {
         "TEL_SEND_PCT" to "75",
         "TEL_SERVER" to "159.153.235.32",
     )
-
     fun makeME3MSG(): Map<String, String> = mapOf("" to "")
     fun makeME3ENT(): Map<String, String> = mapOf(
         "CERBERUS_OFFER_ID" to "101",
@@ -568,6 +590,7 @@ object Data {
         "STORE_CATALOG_ID" to "13332",
     )
 
+    //endregion
 
     fun getResource(name: String): ByteArray {
         val stream = Data::class.java.getResourceAsStream("/$name")
@@ -585,7 +608,7 @@ object Data {
         }
     }
 
-    fun getResourceReader(name: String): BufferedReader {
+    private fun getResourceReader(name: String): BufferedReader {
         val stream = Data::class.java.getResourceAsStream("/$name")
             ?: throw IllegalStateException("Missing internal resource: $name")
         return stream.bufferedReader()
