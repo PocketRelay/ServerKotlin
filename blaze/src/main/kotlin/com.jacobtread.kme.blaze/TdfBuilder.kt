@@ -2,7 +2,6 @@ package com.jacobtread.kme.blaze
 
 import com.jacobtread.kme.utils.VPair
 import com.jacobtread.kme.utils.VTripple
-import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 
 /**
@@ -25,7 +24,7 @@ class TdfBuilder {
      * @param label The label of the Tdf
      * @param value The string value of the Tdf
      */
-    fun text(label: String, value: String) {
+    fun text(label: String, value: String = "") {
         values.add(StringTdf(label, value))
     }
 
@@ -36,7 +35,7 @@ class TdfBuilder {
      * @param label The label of the Tdf
      * @param value The long value of the Tdf
      */
-    fun number(label: String, value: Long) {
+    fun number(label: String, value: Long = 0L) {
         values.add(VarIntTdf(label, value))
     }
 
@@ -47,7 +46,7 @@ class TdfBuilder {
      * @param label The label of the Tdf
      * @param value The int value of the Tdf
      */
-    fun number(label: String, value: Int) {
+    fun number(label: String, value: Int = 0) {
         values.add(VarIntTdf(label, value.toLong()))
     }
 
@@ -179,6 +178,18 @@ class TdfBuilder {
      * @param value The value of the union
      */
     fun union(label: String, type: Int = 0x7F, value: Tdf? = null) {
+        values.add(UnionTdf(label, type, value))
+    }
+
+    /**
+     * union Adds a new union value to the builder.
+     * This becomes a UnionTdf when created
+     *
+     * @param label The label of the Tdf
+     * @param value The value of the union
+     * @param type The type of union
+     */
+    fun union(label: String, value: Tdf, type: Int = 0x0) {
         values.add(UnionTdf(label, type, value))
     }
 

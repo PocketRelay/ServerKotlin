@@ -7,6 +7,7 @@ import com.jacobtread.kme.blaze.utils.IPAddress
 import com.jacobtread.kme.utils.customThreadFactory
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
+import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInitializer
 import io.netty.channel.SimpleChannelInboundHandler
@@ -14,19 +15,33 @@ import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.ssl.SslContextBuilder
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory
+import kotlinx.serialization.Serializable
+import net.mamoe.yamlkt.Comment
 import java.io.IOException
 import java.security.KeyStore
 import javax.net.ssl.KeyManagerFactory
 
+// DNS REPLACEMENTS:
+// gosredirector.ea.com:42127 -> THIS SERVER (Redirector)
+// 383933-gosprapp396.ea.com:14219 -> MAIN SERVER
+// gosgvaprod-qos01.ea.com: (likely 17502) -> UNKNOWN
+// gosiadprod-qos01.ea.com: (likely 17502) -> UNKNOWN
+// gossjcprod-qos01.ea.com: (likely 17502) -> UNKNOWN
+// reports.tools.gos.ea.com:9988 -> TELEMETRY
+// waleu2.tools.gos.ea.com:8999 -> TICKER
+// me3.goscontent.ea.com:80 -> HTTP
+
 /**
- * startRedirector Starts the Redirector server in a new thread
+ * startRedirector Starts the Redirector server in a new thread. This server
+ * handles pointing clients to the correct IP address and port of the main server.
+ * This is the only one of the servers that requires SSLv3
  *
  * @param config The server configuration
  */
 fun startRedirector(config: Config) {
     Thread {
         val keyStorePassword = charArrayOf('1', '2', '3', '4', '5', '6')
-        val keyStoreStream = RedirectClient::class.java.getResourceAsStream("/redirector.pfx")
+        val keyStoreStream = Config::class.java.getResourceAsStream("/redirector.pfx")
             ?: throw IllegalStateException("Missing required keystore for SSLv3")
         val keyStore = KeyStore.getInstance("PKCS12")
         keyStore.load(keyStoreStream, keyStorePassword)
@@ -43,6 +58,7 @@ fun startRedirector(config: Config) {
         val workerGroup = NioEventLoopGroup(customThreadFactory("Redirector Worker #{ID}"))
         val bootstrap = ServerBootstrap() // Create a server bootstrap
         try {
+            val handler = RedirectHandler(config)
             val bind = bootstrap.group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel::class.java)
                 .childHandler(object : ChannelInitializer<Channel>() {
@@ -53,7 +69,7 @@ fun startRedirector(config: Config) {
                             // Add handler for decoding packet
                             .addLast(PacketDecoder())
                             // Add handler for processing packets
-                            .addLast(RedirectClient(config))
+                            .addLast(handler)
                             .addLast(PacketEncoder())
                     }
                 })
@@ -80,53 +96,35 @@ fun startRedirector(config: Config) {
     }
 }
 
-
 /**
- * RedirectClient Creates a client that handles the redirect handshake
- * to direct the client to the desired main server
+ * RedirectHandler a handler shared by all connections
+ * that connect to the redirect server. Ignores all packets that aren't
+ * REDIRECTOR + GET_SERVER_INSTANCE and when it gets them it sends the
+ * client a redirect
  *
- * @property config The config for redirection packets
- * @constructor Create empty RedirectClient
+ * @param config The server configuration
+ * @constructor Create empty RedirectHandler
  */
-private class RedirectClient(private val config: Config) : SimpleChannelInboundHandler<RawPacket>() {
-
-    /**
-     * channelRead0 Handles incoming RawPackets and sends back a redirect packet
-     * when the REDIRECTOR + REQUEST_REDIRECT packet is received
-     *
-     * @param ctx
-     * @param msg
-     */
+@Sharable
+class RedirectHandler(private val config: Config) : SimpleChannelInboundHandler<RawPacket>() {
     override fun channelRead0(ctx: ChannelHandlerContext, msg: RawPacket) {
         if (msg.component == Component.REDIRECTOR
             && msg.command == Command.GET_SERVER_INSTANCE
         ) {
-            val platform = msg.getValueOrNull(StringTdf::class, "PLAT")
             val channel = ctx.channel()
             val remoteAddress = channel.remoteAddress()
-            LOGGER.info("Sending redirection to client ($remoteAddress) -> on platform ${platform ?: "Unknown"}")
-
-            val redirectorConfig = config.redirectorPacket
-
-            // Create a redirect response packet for the client
-            val packet = respond(msg) {
-                union("ADDR",
-                    redirectorConfig.addr,
-                    struct("VALU") {
-                        text("HOST", redirectorConfig.host)
-                        number("IP", IPAddress.asLong(config.host))
-                        number("PORT", config.ports.main)
-                    }
+            channel.respond(msg) {
+                union("ADDR", struct("VALU") {
+                    text("HOST", "383933-gosprapp396.ea.com")
+                    number("IP", IPAddress.asLong(config.host))
+                    number("PORT", config.ports.main)
+                }
                 )
-                number("SECU", redirectorConfig.secu)
-                number("XDNS", redirectorConfig.xdns)
+                number("SECU", 0x0)
+                number("XDNS", 0x0)
             }
-
-            // Write the packet, flush and then close the channel
-            channel.write(packet)
-            channel.flush()
+            LOGGER.info("Sent redirection to client at $remoteAddress. Closing Connection.")
             channel.close()
-            LOGGER.info("Terminating connection to $remoteAddress (Finished redirect)")
         }
     }
 }

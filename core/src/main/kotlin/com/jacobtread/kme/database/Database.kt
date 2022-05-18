@@ -2,8 +2,6 @@ package com.jacobtread.kme.database
 
 import com.jacobtread.kme.Config
 import com.jacobtread.kme.utils.MEStringParser
-import com.jacobtread.kme.utils.compareHashPassword
-import com.jacobtread.kme.utils.comparePasswordHash
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID

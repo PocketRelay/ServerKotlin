@@ -15,9 +15,6 @@ data class Config(
 
     @Comment("Ports for the different servers")
     val ports: Ports = Ports(),
-    @Comment("Settings for the redirect packet")
-    @SerialName("redirector_packet")
-    val redirectorPacket: RedirectorPacket = RedirectorPacket(),
 
     @Comment("Database connection info")
     val database: Database = Database(),
@@ -89,17 +86,6 @@ data class Config(
         val main: Int = 14219,
         @Comment("Port for the http server")
         val http: Int = 80,
-    )
-
-    @Serializable
-    data class RedirectorPacket(
-        val addr: Int = 0x0,
-        @Comment("Host to redirect to")
-        val host: String = "383933-gosprapp396.ea.com",
-        @Comment("Port to redirect to")
-        val port: Int = 14219,
-        val secu: Int = 0x0,
-        val xdns: Int = 0x0,
     )
 
     @Serializable
