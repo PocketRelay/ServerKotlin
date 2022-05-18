@@ -4,11 +4,15 @@ import com.jacobtread.kme.utils.MEStringParser
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.mamoe.yamlkt.Comment
+import org.jetbrains.exposed.dao.Entity
+import org.jetbrains.exposed.dao.EntityClass
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
+import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.SqlExpressionBuilder
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.nio.file.Paths
@@ -117,6 +121,30 @@ fun startDatabase(config: DatabaseConfig) {
     }
 }
 
+//region Helpers
+
+/**
+ * findOne Shorthand for finding a singular entry or null limits the number
+ * of rows to find to 1 and returns the first row or null
+ *
+ * @param ID The ID type
+ * @param T The entity type
+ * @param op The SQL operation builder
+ * @receiver
+ * @return The found row or null
+ */
+private fun <ID : Comparable<ID>, T : Entity<ID>> EntityClass<ID, T>.findOne(op: SqlExpressionBuilder.() -> Op<Boolean>): T? = transaction {
+    find(op).limit(1).firstOrNull()
+}
+
+private fun <ID : Comparable<ID>, T : Entity<ID>>
+        EntityClass<ID, T>.updateOrCreate(op: SqlExpressionBuilder.() -> Op<Boolean>, apply: T.() -> Unit) = transaction {
+    val value = find(op).limit(1).firstOrNull()
+    value?.apply() ?: new(apply)
+}
+
+//endregion
+
 //region Tables and Models
 
 /**
@@ -160,40 +188,24 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
     private val settings by PlayerSetting referrersOn PlayerSettings.player
 
     /**
-     * setSetting
+     * setSetting Updates a user setting. Settings that are parsed such
+     * as classes, characters, and the base setting are handled separately
+     * and other settings get their own rows in the setting table
      *
-     * @param key
-     * @param value
+     * @param key The key of the setting
+     * @param value The value of the setting
      */
     fun setSetting(key: String, value: String) {
         if (key.startsWith("class")) { // Class Setting
             val index = key.substring(5).toInt()
-            PlayerClass.setFromValue(this, index, value)
+            PlayerClass.setClassFrom(this, index, value)
         } else if (key.startsWith("char")) { // Character Setting
             val index = key.substring(4).toInt()
-            PlayerCharacter.setFromValue(this, index, value)
+            PlayerCharacter.setCharacterFrom(this, index, value)
         } else if (key == "Base") { // Base Setting
             transaction { settingsBase = value }
         } else { // Other Setting
-            setSettingUnknown(key, value)
-        }
-    }
-
-    private fun setSettingUnknown(key: String, value: String) {
-        transaction {
-            val playerId = this@Player.id
-            val setting = PlayerSetting
-                .find { (PlayerSettings.player eq playerId) and (PlayerSettings.key eq key) }
-                .firstOrNull()
-            if (setting != null) {
-                setting.value = value
-            } else {
-                PlayerSetting.new {
-                    this.player = playerId
-                    this.key = key
-                    this.value = value
-                }
-            }
+            PlayerSetting.setSetting(this, key, value)
         }
     }
 
@@ -228,6 +240,7 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
             for (setting in settings) {
                 out[setting.key] = setting.value
             }
+            settingsBase?.let { out["Base"] = it }
         }
         return out
     }
@@ -251,6 +264,20 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
     }
 }
 
+/**
+ * PlayerSettingsBase
+ *
+ * @property credits The number of spendable credits the player has
+ * @property c Unknown
+ * @property d Unknown
+ * @property creditsSpent The number of credits the player has spent
+ * @property e Unknown
+ * @property gamesPlayed The number of complete games the player has played
+ * @property secondsPlayed The number of seconds the player has played for
+ * @property f Unknown
+ * @property inventory Complex string of the player inventory contents (Not yet parsed)
+ * @constructor Create empty PlayerSettingsBase
+ */
 class PlayerSettingsBase(
     val credits: Int = 0,
     val c: Int = -1,
@@ -295,18 +322,14 @@ class PlayerSettingsBase(
         .toString()
 }
 
-
+/**
+ * PlayerClasses Stores the class information for each class
+ * that the player owns. This is created by the game rather
+ * than the server
+ *
+ * @constructor Create empty PlayerClasses
+ */
 object PlayerClasses : IntIdTable("player_classes") {
-
-    val CLASS_NAMES = arrayOf(
-        "Adept",
-        "Soldier",
-        "Engineer",
-        "Sentinel",
-        "Infiltrator",
-        "Vanguard"
-    )
-
     val player = reference("player_id", Players)
     val index = integer("index")
     val name = varchar("name", length = 18)
@@ -318,24 +341,25 @@ object PlayerClasses : IntIdTable("player_classes") {
 class PlayerClass(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<PlayerClass>(PlayerClasses) {
 
-        fun setFromValue(player: Player, index: Int, value: String) {
-            transaction {
-                val existing = PlayerClass.find {
-                    (PlayerClasses.player eq player.id)
-                        .and(PlayerClasses.index eq index)
-                }.firstOrNull()
-                if (existing != null) {
-                    parseAndApply(index, value, existing)
-                } else {
-                    PlayerClass.new { parseAndApply(index, value, this) }
-                }
+        /**
+         * setClassFrom Sets the player's class from the provided index and value.
+         * This will update existing data or create a new row in the classes table
+         *
+         * @param player The player this class belongs to
+         * @param index The index/id of this player class
+         * @param value The encoded class data
+         */
+        fun setClassFrom(player: Player, index: Int, value: String) {
+            PlayerClass.updateOrCreate({ (PlayerClasses.player eq player.id) and (PlayerClasses.index eq index) }) {
+                this.player = player.id
+                parse(index, value, this)
             }
         }
 
-        private fun parseAndApply(index: Int, value: String, player: PlayerClass) {
+        private fun parse(index: Int, value: String, out: PlayerClass) {
             val parser = MEStringParser(value, 6)
             parser.skip(2)
-            player.apply {
+            out.apply {
                 this.index = index
                 name = parser.str()
                 level = parser.int(1)
@@ -390,26 +414,37 @@ object PlayerCharacters : IntIdTable("player_characters") {
     val leveledUp = bool("leveled_up")
 }
 
+
 class PlayerCharacter(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<PlayerCharacter>(PlayerCharacters) {
-        fun setFromValue(player: Player, index: Int, value: String) {
-            transaction {
-                val existing = PlayerCharacter.find {
-                    (PlayerCharacters.player eq player.id)
-                        .and(PlayerCharacters.index eq index)
-                }.firstOrNull()
-                if (existing != null) {
-                    parseAndApply(index, value, existing)
-                } else {
-                    PlayerCharacter.new { parseAndApply(index, value, this) }
-                }
+        /**
+         * setCharacterFrom Sets the player's character from the provided index
+         * and value. This will update existing data or create a new row in the
+         * characters table
+         *
+         * @param player The player this character belongs to
+         * @param index The index/id of this character
+         * @param value The encoded value of this character data
+         */
+        fun setCharacterFrom(player: Player, index: Int, value: String) {
+            PlayerCharacter.updateOrCreate({ (PlayerCharacters.player eq player.id) and (PlayerCharacters.index eq index) }) {
+                this.player = player.id
+                parse(index, value, this)
             }
         }
 
-        private fun parseAndApply(index: Int, value: String, player: PlayerCharacter) {
+        /**
+         * parse Parses the player character and applies the parsed
+         * values to the provided PlayerCharacter object
+         *
+         * @param index The index of the character
+         * @param value The encoded character value
+         * @param out The object to update
+         */
+        private fun parse(index: Int, value: String, out: PlayerCharacter) {
             val parser = MEStringParser(value, 22)
             parser.skip(2)
-            player.apply {
+            out.apply {
                 this.index = index
                 kitName = parser.str()
                 name = parser.str()
@@ -484,6 +519,11 @@ class PlayerCharacter(id: EntityID<Int>) : IntEntity(id) {
         .toString()
 }
 
+/**
+ * PlayerSettings
+ *
+ * @constructor Create empty PlayerSettings
+ */
 object PlayerSettings : IntIdTable("player_settings") {
     val player = reference("player_id", Players)
 
@@ -492,7 +532,25 @@ object PlayerSettings : IntIdTable("player_settings") {
 }
 
 class PlayerSetting(id: EntityID<Int>) : IntEntity(id) {
-    companion object : IntEntityClass<PlayerSetting>(PlayerSettings)
+    companion object : IntEntityClass<PlayerSetting>(PlayerSettings) {
+        /**
+         * setSettingUnknown Stores setting key values pairs for settings
+         * that are not parsed. Will update existing values if there are
+         * any otherwise will create new row
+         *
+         * @param player The player to set the setting for
+         * @param key The setting key
+         * @param value The setting value
+         */
+        fun setSetting(player: Player, key: String, value: String) {
+            val playerId = player.id
+            PlayerSetting.updateOrCreate({ (PlayerSettings.player eq playerId) and (PlayerSettings.key eq key) }) {
+                this.player = playerId
+                this.key = key
+                this.value = value
+            }
+        }
+    }
 
     var player by PlayerSettings.player
     var key by PlayerSettings.key
