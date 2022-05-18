@@ -241,17 +241,11 @@ class Logger {
                 file = path
             }
 
-            logFile.inputStream().use { input ->
-                GZIPOutputStream(BufferedOutputStream(file.outputStream(StandardOpenOption.CREATE))).use { output ->
-                    var read: Int
-                    val buffer = ByteArray(2048)
-                    while (true) {
-                        read = input.read(buffer)
-                        if (read == -1) break
-                        output.write(buffer)
-                    }
-                }
-            }
+            val inputStream = logFile.inputStream()
+            val outputStream = GZIPOutputStream(file.outputStream(StandardOpenOption.CREATE).buffered())
+            inputStream.copyTo(outputStream)
+            inputStream.close()
+            outputStream.close()
             logFile.deleteExisting()
         }
     }
