@@ -1,12 +1,10 @@
 package com.jacobtread.kme
 
 import com.jacobtread.kme.database.Database
-import com.jacobtread.kme.database.DatabaseTest
 import com.jacobtread.kme.logging.Level
 import com.jacobtread.kme.logging.Logger
 import com.jacobtread.kme.servers.*
 import net.mamoe.yamlkt.Yaml
-import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
 import kotlin.io.path.exists
 import kotlin.io.path.readText
@@ -45,8 +43,9 @@ fun main() {
     startTelemetryServer(config)
     startHttpServer(config)
 
-    val database = Database.connect(config)
-    startMainServer(config, database)
+    Database.connect(config)
+
+    startMainServer(config)
 
     val sysIn = System.`in`
     val inputReader = sysIn.bufferedReader()

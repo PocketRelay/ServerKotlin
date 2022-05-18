@@ -1,7 +1,5 @@
 package com.jacobtread.kme
 
-import com.jacobtread.kme.database.adapter.MySQLAdapter
-import com.jacobtread.kme.database.adapter.SQLiteAdapter
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.mamoe.yamlkt.Comment
@@ -38,7 +36,8 @@ data class Config(
     {v}  : KME3 Version
     {n}  : Player Name
     {ip} : Player IP
-    """)
+    """
+    )
     @SerialName("menu_message")
     val menuMessage: String = "<font color='#B2B2B2'>KME3</font> - <font color='#FFFF66'>Logged as: {n}</font>",
 ) {
@@ -54,13 +53,27 @@ data class Config(
     }
 
     @Serializable
+    data class MySQLConfig(
+        val host: String = "127.0.0.1",
+        val port: String = "3306",
+        val user: String = "root",
+        val password: String = "password",
+        val database: String = "kme",
+    )
+
+    @Serializable
+    data class SQLiteConfig(
+        val file: String = "data/app.db",
+    )
+
+    @Serializable
     data class Database(
         @Comment("The type of database to use MySQL or SQLite")
         val type: DatabaseType = DatabaseType.MySQL,
         @Comment("Settings for connecting to MySQL database")
-        val mysql: MySQLAdapter.DatabaseConfig = MySQLAdapter.DatabaseConfig(),
+        val mysql: MySQLConfig = MySQLConfig(),
         @Comment("Settings used for connecting to SQLite database")
-        val sqlite: SQLiteAdapter.DatabaseConfig = SQLiteAdapter.DatabaseConfig(),
+        val sqlite: SQLiteConfig = SQLiteConfig(),
     )
 
 

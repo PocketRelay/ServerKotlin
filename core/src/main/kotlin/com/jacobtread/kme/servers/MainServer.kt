@@ -8,12 +8,11 @@ import com.jacobtread.kme.blaze.Component.*
 import com.jacobtread.kme.blaze.utils.IPAddress
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Database
-import com.jacobtread.kme.database.repos.PlayerCreationException
-import com.jacobtread.kme.database.repos.PlayerNotFoundException
-import com.jacobtread.kme.database.repos.ServerErrorException
-import com.jacobtread.kme.game.Player
+import com.jacobtread.kme.database.Database.Player
+import com.jacobtread.kme.database.Database.Players
 import com.jacobtread.kme.utils.KME_VERSION
 import com.jacobtread.kme.utils.customThreadFactory
+import com.jacobtread.kme.utils.hashPassword
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
@@ -21,13 +20,13 @@ import io.netty.channel.ChannelInitializer
 import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
-import io.netty.handler.logging.LoggingHandler
+import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.IOException
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicInteger
 
 
-fun startMainServer(config: Config, database: Database) {
+fun startMainServer(config: Config) {
     Thread {
         val bossGroup = NioEventLoopGroup(customThreadFactory("Main Server Boss #{ID}"))
         val workerGroup = NioEventLoopGroup(customThreadFactory("Main Server Worker #{ID}"))
@@ -49,7 +48,7 @@ fun startMainServer(config: Config, database: Database) {
                             // Add handler for decoding packet
                             .addLast(PacketDecoder())
                             // Add handler for processing packets
-                            .addLast(MainClient(session, config, database))
+                            .addLast(MainClient(session, config))
                             .addLast(PacketEncoder())
                     }
                 })
@@ -111,7 +110,7 @@ class SessionData(
 data class NetData(var address: Long, var port: Int)
 
 @Suppress("SpellCheckingInspection")
-private class MainClient(private val session: SessionData, private val config: Config, private val database: Database) : SimpleChannelInboundHandler<RawPacket>() {
+private class MainClient(private val session: SessionData, private val config: Config) : SimpleChannelInboundHandler<RawPacket>() {
 
     companion object {
         private val EMPTY_BYTE_ARRAY = ByteArray(0)
@@ -218,7 +217,7 @@ private class MainClient(private val session: SessionData, private val config: C
     private fun handleGetAuthToken(packet: RawPacket) {
         val player = session.getPlayer()
         channel.respond(packet) {
-            text("AUTH", player.id.toString(16).uppercase())
+            text("AUTH", player.id.value.toString(16).uppercase())
         }
     }
 
@@ -236,68 +235,69 @@ private class MainClient(private val session: SessionData, private val config: C
             return
         }
 
-        val playerRepo = database.playerRepository
-        try {
-            val player = playerRepo.getPlayerByEmail(email)
-            if (!player.isMatchingPassword(password)) {
-                loginErrorPacket(packet, LoginError.WRONG_PASSWORD)
-                return
-            }
+        val player = transaction {
+            Player
+                .find { Players.email eq email }
+                .limit(1)
+                .firstOrNull()
+        }
 
-            session.setPlayer(player)
-
-            val sessionToken = getSessionToken()
-            val lastLoginTime = getUnixTimeSeconds()
-
-            channel.respond(packet) {
-                text("LDHT", "")
-                number("NTOS", 0)
-                text("PCTK", sessionToken)
-
-                list("PLST", listOf(
-                    struct {
-                        text("DSNM", player.displayName)
-                        number("LAST", lastLoginTime)
-                        number("PID", player.id)
-                        number("STAS", 0)
-                        number("XREF", 0)
-                        number("XTYP", 0)
-                    }
-                ))
-
-                text("PRIV", "")
-                text("SKEY", "11229301_9b171d92cc562b293e602ee8325612e7")
-                number("SPAM", 0)
-                text("THST", "")
-                text("TSUI", "")
-                text("TURI", "")
-                number("UID", player.id)
-            }
-
-
-        } catch (e: PlayerNotFoundException) {
+        if (player == null) {
             loginErrorPacket(packet, LoginError.EMAIL_NOT_FOUND)
-        } catch (e: ServerErrorException) {
-            loginErrorPacket(packet, LoginError.SERVER_UNAVAILABLE)
+            return
+        }
+
+        if (!player.isMatchingPassword(password)) {
+            loginErrorPacket(packet, LoginError.WRONG_PASSWORD)
+            return
+        }
+
+        session.setPlayer(player)
+
+        val sessionToken = getSessionToken()
+        val lastLoginTime = getUnixTimeSeconds()
+
+        channel.respond(packet) {
+            text("LDHT", "")
+            number("NTOS", 0)
+            text("PCTK", sessionToken)
+
+            list("PLST", listOf(
+                struct {
+                    text("DSNM", player.displayName)
+                    number("LAST", lastLoginTime)
+                    number("PID", player.id.value)
+                    number("STAS", 0)
+                    number("XREF", 0)
+                    number("XTYP", 0)
+                }
+            ))
+
+            text("PRIV", "")
+            text("SKEY", "11229301_9b171d92cc562b293e602ee8325612e7")
+            number("SPAM", 0)
+            text("THST", "")
+            text("TSUI", "")
+            text("TURI", "")
+            number("UID", player.id.value)
         }
     }
 
     private fun handleSilentLogin(packet: RawPacket) {
         val pid = packet.getValue(VarIntTdf::class, "PID")
         val auth = packet.getValue(StringTdf::class, "AUTH")
-        try {
-            val player = database.playerRepository.getPlayerByID(pid)
-            if (player.sessionToken == auth) {
-                session.setPlayer(player)
-                authResponsePacket(packet)
-                sessionDetailsPackets()
-            } else {
-                loginErrorPacket(packet, LoginError.INVALID_ACCOUNT)
-            }
-        } catch (e: PlayerNotFoundException) {
+        val player = transaction { Player.findById(pid.toInt()) }
+        if (player == null) {
             loginErrorPacket(packet, LoginError.INVALID_ACCOUNT)
-        } catch (e: ServerErrorException) {
-            loginErrorPacket(packet, LoginError.SERVER_UNAVAILABLE)
+            return
+        }
+
+        if (player.sessionToken == auth) {
+            session.setPlayer(player)
+            authResponsePacket(packet)
+            sessionDetailsPackets()
+        } else {
+            loginErrorPacket(packet, LoginError.INVALID_ACCOUNT)
         }
     }
 
@@ -313,7 +313,9 @@ private class MainClient(private val session: SessionData, private val config: C
         var sessionToken = player.sessionToken
         if (sessionToken == null) {
             sessionToken = createSessionToken()
-            database.playerRepository.setPlayerSessionToken(player, sessionToken)
+            transaction {
+                player.sessionToken = sessionToken
+            }
         }
         return sessionToken
     }
@@ -331,7 +333,7 @@ private class MainClient(private val session: SessionData, private val config: C
             text("PCTK", sessionToken)
             text("PRIV", "")
             +struct("SESS") {
-                number("BUID", player.id)
+                number("BUID", player.id.value)
                 number("FRST", 0)
                 text("KEY", "11229301_9b171d92cc562b293e602ee8325612e7")
                 number("LLOG", lastLoginTime)
@@ -339,12 +341,12 @@ private class MainClient(private val session: SessionData, private val config: C
                 +struct("PDTL") {
                     text("DSNM", player.displayName)
                     number("LAST", lastLoginTime)
-                    number("PID", player.id)
+                    number("PID", player.id.value)
                     number("STAS", 0)
                     number("XREF", 0)
                     number("XTYP", 0)
                 }
-                number("UID", player.id)
+                number("UID", player.id.value)
             }
             number("SPAM", 0)
             text("THST", "")
@@ -377,11 +379,11 @@ private class MainClient(private val session: SessionData, private val config: C
             }
 
             +struct("USER") {
-                number("AID", player.id)
+                number("AID", player.id.value)
                 number("ALOC", 0x64654445)
                 blob("EXBB", EMPTY_BYTE_ARRAY)
                 number("EXID", 0)
-                number("ID", player.id)
+                number("ID", player.id.value)
                 text("NAME", player.displayName)
             }
         }
@@ -391,7 +393,7 @@ private class MainClient(private val session: SessionData, private val config: C
             UPDATE_EXTENDED_DATA_ATTRIBUTE
         ) {
             number("FLGS", 3)
-            number("ID", player.id)
+            number("ID", player.id.value)
         }
     }
 
@@ -425,22 +427,27 @@ private class MainClient(private val session: SessionData, private val config: C
     private fun handleCreateAccount(packet: RawPacket) {
         val email = packet.getValue(StringTdf::class, "MAIL")
         val password = packet.getValue(StringTdf::class, "PASS")
-        try {
-            val player = database.playerRepository.createPlayer(email, email, password)
-            session.setPlayer(player)
-            channel.respond(packet) {
-                text("PNAM", player.displayName)
-                number("UID", player.id)
-            }
-            sessionDetailsPackets()
-        } catch (e: PlayerCreationException) {
-            when (e.reason) {
-                PlayerCreationException.Reason.EMAIL_TAKEN ->
-                    loginErrorPacket(packet, LoginError.EMAIL_ALREADY_IN_USE)
-                else -> empty(packet)
-            }
-            LOGGER.error("Failed to create player: ${e.message}")
+        // Check for existing emails
+        if (transaction { !Player.find { Players.email eq email }.limit(1).empty() }) {
+            loginErrorPacket(packet, LoginError.EMAIL_ALREADY_IN_USE)
         }
+
+        val hashedPassword = hashPassword(password)
+
+        val player = transaction {
+            Player.new {
+                this.email = email
+                this.displayName = email
+                this.password = hashedPassword
+            }
+        }
+
+        session.setPlayer(player)
+        channel.respond(packet) {
+            text("PNAM", player.displayName)
+            number("UID", player.id.value)
+        }
+        sessionDetailsPackets()
     }
 
 
@@ -453,7 +460,7 @@ private class MainClient(private val session: SessionData, private val config: C
 
         val lastLoginTime = getUnixTimeSeconds()
         channel.respond(packet) {
-            number("BUID", player.id)
+            number("BUID", player.id.value)
             number("FRST", 0)
             text("KEY", "11229301_9b171d92cc562b293e602ee8325612e7")
             number("LLOG", lastLoginTime)
@@ -461,17 +468,17 @@ private class MainClient(private val session: SessionData, private val config: C
             +struct("PDTL") {
                 text("DSNM", player.displayName)
                 number("LAST", lastLoginTime)
-                number("PID", player.id)
+                number("PID", player.id.value)
                 number("STAS", 0)
                 number("XREF", 0)
                 number("XTYP", 0)
             }
-            number("UID", player.id)
+            number("UID", player.id.value)
         }
         sessionDetailsPackets()
     }
 
-    //endregion
+//endregion
 
     //region Game Manager Component Region
 
@@ -597,7 +604,7 @@ private class MainClient(private val session: SessionData, private val config: C
                     list("LDLS", listOf(
                         struct {
                             text("ENAM", player.displayName)
-                            number("ENID", player.id)
+                            number("ENID", player.id.value)
                             number("RANK", 0x58c86)
                             text("RSTA", rating)
                             number("RWFG", 0x0)
@@ -614,7 +621,7 @@ private class MainClient(private val session: SessionData, private val config: C
                     list("LDLS", listOf(
                         struct {
                             text("ENAM", player.displayName)
-                            number("ENID", player.id)
+                            number("ENID", player.id.value)
                             number("RANK", 0x48f8c)
                             text("RSTA", challengePoints)
                             number("RWFG", 0x0)
@@ -630,7 +637,7 @@ private class MainClient(private val session: SessionData, private val config: C
     }
 
     private fun handleLeaderboardEntityCount(packet: RawPacket) {
-        val playerCount = database.playerRepository.getPlayerCount()
+        val playerCount = Player.count()
         channel.respond(packet) {
             number("CNT", playerCount)
         }
@@ -643,7 +650,7 @@ private class MainClient(private val session: SessionData, private val config: C
         }
     }
 
-    //endregion
+//endregion
 
     //region Messaging Component Region
 
@@ -672,10 +679,10 @@ private class MainClient(private val session: SessionData, private val config: C
                         number("FLAG", 0x01)
                         number("STAT", 0x00)
                         number("TAG", 0x00)
-                        tripple("TARG", 0x7802, 0x01, player.id)
+                        tripple("TARG", 0x7802, 0x01, player.id.value.toLong())
                         number("TYPE", 0x0)
                     }
-                    tripple("SRCE", 0x7802, 0x01, player.id)
+                    tripple("SRCE", 0x7802, 0x01, player.id.value.toLong())
                     number("TIME", getUnixTimeSeconds())
                 })
 
@@ -724,7 +731,7 @@ private class MainClient(private val session: SessionData, private val config: C
         }
     }
 
-    //endregion
+//endregion
 
     //region Game Reporting Component Region
 
@@ -732,7 +739,7 @@ private class MainClient(private val session: SessionData, private val config: C
 
     }
 
-    //endregion
+//endregion
 
     //region User Sessions Component Region
 
@@ -760,7 +767,7 @@ private class MainClient(private val session: SessionData, private val config: C
         empty(packet)
     }
 
-    //endregion
+//endregion
 
     //region Util Component Region
 
@@ -907,7 +914,8 @@ private class MainClient(private val session: SessionData, private val config: C
         val key = packet.getValueOrNull(StringTdf::class, "KEY")
         if (value != null && key != null) {
             val player = session.getPlayer()
-            player.updateSetting(key, value, database.playerRepository);
+            player.setSetting(key, value)
+
         }
         empty(packet)
     }
@@ -915,7 +923,7 @@ private class MainClient(private val session: SessionData, private val config: C
     private fun handleUserSettingsLoadAll(packet: RawPacket) {
         val player = session.getPlayer()
         channel.respond(packet) {
-            map("SMAP", player.settings)
+            map("SMAP", player.makeSettingsMap())
         }
     }
 
@@ -930,6 +938,6 @@ private class MainClient(private val session: SessionData, private val config: C
         }
     }
 
-    //endregion
+//endregion
 
 }
