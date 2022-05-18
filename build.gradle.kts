@@ -21,6 +21,17 @@ dependencies {
     implementation(project(":core"))
 }
 
+tasks.create("fatJar", Jar::class.java) {
+    manifest {
+        attributes["Implementation-Title"] = "KME Bundle Fat Jar"
+        attributes["Main-Class"] = "com.jacobtread.kme.AppKt"
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
+    with(tasks.jar.get() as CopySpec)
+}
+
+
 tasks.create("start", JavaExec::class.java) {
     classpath = sourceSets["main"].runtimeClasspath
     args = listOf()
