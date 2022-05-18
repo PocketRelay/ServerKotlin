@@ -608,7 +608,7 @@ private class MainClient(private val session: SessionData, private val config: C
                             number("RANK", 0x58c86)
                             text("RSTA", rating)
                             number("RWFG", 0x0)
-                            union("RWST", 0x7f, null)
+                            union("RWST")
                             list("STAT", listOf(rating))
                             number("UATT", 0x0)
                         }
@@ -625,7 +625,7 @@ private class MainClient(private val session: SessionData, private val config: C
                             number("RANK", 0x48f8c)
                             text("RSTA", challengePoints)
                             number("RWFG", 0x0)
-                            union("RWST", 0x7f, null)
+                            union("RWST")
                             list("STAT", listOf(challengePoints))
                             number("UATT", 0x0)
                         }

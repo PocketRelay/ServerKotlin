@@ -62,5 +62,4 @@ fun main() {
 fun configureSystemProperties() {
     Thread.currentThread().name = "Main"
     java.security.Security.setProperty("jdk.tls.disabledAlgorithms", "")
-    System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "error")
 }

@@ -15,11 +15,11 @@ import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.ssl.SslContextBuilder
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory
-import kotlinx.serialization.Serializable
-import net.mamoe.yamlkt.Comment
 import java.io.IOException
 import java.security.KeyStore
 import javax.net.ssl.KeyManagerFactory
+import kotlin.io.path.Path
+import kotlin.io.path.outputStream
 
 // DNS REPLACEMENTS:
 // gosredirector.ea.com:42127 -> THIS SERVER (Redirector)
@@ -47,6 +47,7 @@ fun startRedirector(config: Config) {
         keyStore.load(keyStoreStream, keyStorePassword)
         val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
         kmf.init(keyStore, keyStorePassword)
+
         // Create new SSLv3 compatible context
         val context = SslContextBuilder.forServer(kmf)
             .ciphers(listOf("TLS_RSA_WITH_RC4_128_SHA", "TLS_RSA_WITH_RC4_128_MD5"))
@@ -118,8 +119,7 @@ class RedirectHandler(private val config: Config) : SimpleChannelInboundHandler<
                     text("HOST", "383933-gosprapp396.ea.com")
                     number("IP", IPAddress.asLong(config.host))
                     number("PORT", config.ports.main)
-                }
-                )
+                })
                 number("SECU", 0x0)
                 number("XDNS", 0x0)
             }
