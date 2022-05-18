@@ -5,9 +5,9 @@ import com.jacobtread.kme.blaze.utils.writeVarInt
 import com.jacobtread.kme.blaze.utils.VarPair
 import io.netty.buffer.ByteBuf
 
-class PairTdf(label: String, override val value: VarPair) : Tdf(label, PAIR), TdfValue<VarPair> {
+class PairTdf(label: String, override val value: VarPair) : Tdf<VarPair>(label, PAIR) {
     companion object {
-        fun from(label: String, input: ByteBuf): PairTdf {
+        fun read(label: String, input: ByteBuf): PairTdf {
             val a = input.readVarInt()
             val b = input.readVarInt()
             return PairTdf(label, VarPair(a, b))

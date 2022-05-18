@@ -2,13 +2,11 @@ package com.jacobtread.kme.blaze.tdf
 
 import com.jacobtread.kme.blaze.utils.*
 import io.netty.buffer.ByteBuf
-import kotlin.reflect.KClass
-import kotlin.reflect.cast
 
-class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf(label, LIST), TdfValue<List<Any>> {
+class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf<List<Any>>(label, LIST) {
 
     companion object {
-        fun from(label: String, input: ByteBuf): ListTdf {
+        fun read(label: String, input: ByteBuf): ListTdf {
             val subType = input.readUnsignedByte().toInt()
             val count = input.readVarInt().toInt()
             return when (subType) {
@@ -24,7 +22,7 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
                 }
                 STRUCT -> {
                     val values = ArrayList<StructTdf>(count)
-                    repeat(count) { values.add(StructTdf.from("", input)) }
+                    repeat(count) { values.add(StructTdf.read("", input)) }
                     ListTdf(label, subType, values)
                 }
                 TRIPPLE -> {
@@ -62,10 +60,4 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
     }
 
     override fun toString(): String = "List($label: $value)"
-
-    fun <T : Any> getAtIndex(type: KClass<T>, index: Int): T? {
-        val value = value.getOrNull(index) ?: return null
-        if (!value.javaClass.isAssignableFrom(type.java)) return null
-        return type.cast(value)
-    }
 }

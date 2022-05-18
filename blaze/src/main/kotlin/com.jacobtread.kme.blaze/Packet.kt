@@ -31,9 +31,9 @@ class Packet(
 
     val component = Component.from(rawComponent)
     val command = Command.from(rawComponent, rawCommand)
-    val content: List<Tdf> by lazy {
+    val content: List<Tdf<*>> by lazy {
         val buffer = Unpooled.wrappedBuffer(rawContent)
-        val values = ArrayList<Tdf>()
+        val values = ArrayList<Tdf<*>>()
         try {
             while (buffer.readableBytes() > 0) {
                 values.add(Tdf.read(buffer))
@@ -44,7 +44,7 @@ class Packet(
         values
     }
 
-    override fun getTdfByLabel(label: String): Tdf? = content.find { it.label == label }
+    override fun getTdfByLabel(label: String): Tdf<*>? = content.find { it.label == label }
 
 
     override fun toString(): String {

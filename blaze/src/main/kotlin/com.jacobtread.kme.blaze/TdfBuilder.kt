@@ -16,7 +16,7 @@ import io.netty.buffer.Unpooled
  */
 class TdfBuilder {
 
-    val values = ArrayList<Tdf>()
+    val values = ArrayList<Tdf<*>>()
 
     /**
      * text Adds a new text value to the builder. This
@@ -178,7 +178,7 @@ class TdfBuilder {
      * @param type The type of union
      * @param value The value of the union
      */
-    fun union(label: String, type: Int = 0x7F, value: Tdf? = null) {
+    fun union(label: String, type: Int = 0x7F, value: Tdf<*>? = null) {
         values.add(UnionTdf(label, type, value))
     }
 
@@ -190,7 +190,7 @@ class TdfBuilder {
      * @param value The value of the union
      * @param type The type of union
      */
-    fun union(label: String, value: Tdf, type: Int = 0x0) {
+    fun union(label: String, value: Tdf<*>, type: Int = 0x0) {
         values.add(UnionTdf(label, type, value))
     }
 
@@ -201,7 +201,7 @@ class TdfBuilder {
      * +struct("LABEL") {}
      * ```
      */
-    operator fun Tdf.unaryPlus() {
+    operator fun Tdf<*>.unaryPlus() {
         values.add(this)
     }
 

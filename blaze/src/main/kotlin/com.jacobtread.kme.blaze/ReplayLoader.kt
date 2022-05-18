@@ -18,7 +18,7 @@ fun main(args: Array<String>) {
             while (buffer.readableBytes() > 0) {
                 try {
                     val packet = Packet.read(buffer)
-                    outBuilder.append(PacketDumper.dump(packet))
+                    outBuilder.append(packetToBuilder(packet))
                     outBuilder.append('\n')
                 } catch (e: Throwable) {
                     e.printStackTrace()

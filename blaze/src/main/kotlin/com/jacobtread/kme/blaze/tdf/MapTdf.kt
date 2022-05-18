@@ -6,10 +6,15 @@ import com.jacobtread.kme.blaze.utils.writeString
 import com.jacobtread.kme.blaze.utils.writeVarInt
 import io.netty.buffer.ByteBuf
 
-class MapTdf(label: String, private val keyType: Int, private val valueType: Int, val map: Map<out Any, Any>) : Tdf(label, MAP) {
+class MapTdf(
+    label: String,
+    private val keyType: Int,
+    private val valueType: Int,
+    override val value: Map<out Any, Any>,
+) : Tdf<Map<out Any, Any>>(label, MAP) {
 
     companion object {
-        fun from(label: String, input: ByteBuf): MapTdf {
+        fun read(label: String, input: ByteBuf): MapTdf {
             val keyType = input.readUnsignedByte().toInt()
             val valueType = input.readUnsignedByte().toInt()
             val count = input.readVarInt().toInt()
@@ -24,7 +29,7 @@ class MapTdf(label: String, private val keyType: Int, private val valueType: Int
                 val value: Any = when (valueType) {
                     VARINT -> input.readVarInt()
                     STRING -> input.readString()
-                    STRUCT -> StructTdf.from("", input)
+                    STRUCT -> StructTdf.read("", input)
                     FLOAT -> input.readFloat()
                     else -> throw IllegalStateException("Unknown list subtype $keyType")
                 }
@@ -37,7 +42,7 @@ class MapTdf(label: String, private val keyType: Int, private val valueType: Int
     override fun write(out: ByteBuf) {
         out.writeByte(keyType)
         out.writeByte(valueType)
-        val entries = map.entries
+        val entries = value.entries
         out.writeVarInt(entries.size)
         for ((key, value) in entries) {
             when (keyType) {
@@ -54,5 +59,5 @@ class MapTdf(label: String, private val keyType: Int, private val valueType: Int
         }
     }
 
-    override fun toString(): String = "Map($label: $map)"
+    override fun toString(): String = "Map($label: $value)"
 }

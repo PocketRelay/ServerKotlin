@@ -4,9 +4,9 @@ import com.jacobtread.kme.blaze.utils.readVarInt
 import com.jacobtread.kme.blaze.utils.writeVarInt
 import io.netty.buffer.ByteBuf
 
-class BlobTdf(label: String, override val value: ByteArray) : Tdf(label, BLOB), TdfValue<ByteArray> {
+class BlobTdf(label: String, override val value: ByteArray) : Tdf<ByteArray>(label, BLOB) {
     companion object {
-        fun from(label: String, input: ByteBuf): BlobTdf {
+        fun read(label: String, input: ByteBuf): BlobTdf {
             val size = input.readVarInt().toInt()
             val byteArray = ByteArray(size)
             if (size > 0) input.readBytes(byteArray)

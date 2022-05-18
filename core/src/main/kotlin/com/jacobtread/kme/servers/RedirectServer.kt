@@ -1,6 +1,6 @@
 package com.jacobtread.kme.servers
 
-import com.jacobtread.kme.CONFIG
+import com.jacobtread.kme.Config
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.utils.IPAddress
 import com.jacobtread.kme.logging.Logger.error
@@ -31,7 +31,7 @@ fun startRedirector(
 ) {
     Thread {
         val keyStorePassword = charArrayOf('1', '2', '3', '4', '5', '6')
-        val keyStoreStream = CONFIG::class.java.getResourceAsStream("/redirector.pfx")
+        val keyStoreStream = RedirectHandler::class.java.getResourceAsStream("/redirector.pfx")
             ?: throw IllegalStateException("Missing required keystore for SSLv3")
         val keyStore = KeyStore.getInstance("PKCS12")
         keyStore.load(keyStoreStream, keyStorePassword)
@@ -49,8 +49,7 @@ fun startRedirector(
         val workerGroup = NioEventLoopGroup(customThreadFactory("Redirector Worker #{ID}"))
         val bootstrap = ServerBootstrap() // Create a server bootstrap
         try {
-            val port = CONFIG.ports.redirector
-            val handler = RedirectHandler()
+            val handler = RedirectHandler(targetPort)
             val bind = bootstrap.group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel::class.java)
                 .childHandler(object : ChannelInitializer<Channel>() {
@@ -66,10 +65,10 @@ fun startRedirector(
                     }
                 })
                 // Bind the server to the host and port
-                .bind(port)
+                .bind(listenPort)
                 // Wait for the channel to bind
                 .sync()
-            info("Started Redirector Server $port")
+            info("Started Redirector Server $listenPort")
             bind.channel()
                 // Get the closing future
                 .closeFuture()
@@ -97,7 +96,7 @@ fun startRedirector(
  * @constructor Create empty RedirectHandler
  */
 @Sharable
-class RedirectHandler : SimpleChannelInboundHandler<Packet>() {
+class RedirectHandler(private val targetPort: Int) : SimpleChannelInboundHandler<Packet>() {
     override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
         if (msg.component == Component.REDIRECTOR
             && msg.command == Command.GET_SERVER_INSTANCE
@@ -107,9 +106,9 @@ class RedirectHandler : SimpleChannelInboundHandler<Packet>() {
             val remoteAddress = channel.remoteAddress()
             channel.respond(msg) {
                 union("ADDR", struct("VALU") {
-                    text("HOST", "383933-gosprapp396.ea.com")
+                    text("HOST", "jacobtread.local" /* Main server host must stay the same */)
                     number("IP", IPAddress.asLong(mainAddress))
-                    number("PORT", CONFIG.ports.main)
+                    number("PORT", targetPort)
                 })
                 number("SECU", 0x0)
                 number("XDNS", 0x0)

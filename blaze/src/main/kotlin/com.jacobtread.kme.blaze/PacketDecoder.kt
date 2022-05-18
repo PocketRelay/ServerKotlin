@@ -7,19 +7,11 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class PacketDecoder : ByteToMessageDecoder() {
-    private val printDateFormat = SimpleDateFormat("HH:mm:ss")
 
     override fun decode(ctx: ChannelHandlerContext, input: ByteBuf, out: MutableList<Any>) {
         try {
             while (input.readableBytes() > 0) {
-                val packet = Packet.read(input)
-
-                val time = printDateFormat.format(Date())
-                println("== $time == IN ======")
-                println(PacketDumper.dump(packet))
-                println("=".repeat(16 + time.length))
-
-                out.add(packet)
+                out.add(Packet.read(input))
             }
         } catch (e: Throwable) {
             e.printStackTrace()

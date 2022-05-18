@@ -2,9 +2,9 @@ package com.jacobtread.kme.blaze.tdf
 
 import io.netty.buffer.ByteBuf
 
-class UnionTdf(label: String, val type: Int = 0x7F, val value: Tdf? = null) : Tdf(label, UNION) {
+class UnionTdf(label: String, val type: Int = 0x7F, override val value: Tdf<*>? = null) : Tdf<Tdf<*>?>(label, UNION) {
     companion object {
-        fun from(label: String, input: ByteBuf): UnionTdf {
+        fun read(label: String, input: ByteBuf): UnionTdf {
             val type = input.readUnsignedByte().toInt()
             val value = if (type != 0x7F) {
                 read(input)

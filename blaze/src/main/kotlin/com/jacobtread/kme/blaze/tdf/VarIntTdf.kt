@@ -4,11 +4,9 @@ import com.jacobtread.kme.blaze.utils.readVarInt
 import com.jacobtread.kme.blaze.utils.writeVarInt
 import io.netty.buffer.ByteBuf
 
-class VarIntTdf(label: String, override val value: Long) : Tdf(label, VARINT), TdfValue<Long> {
+class VarIntTdf(label: String, override val value: Long) : Tdf<Long>(label, VARINT) {
     companion object {
-        fun from(label: String, input: ByteBuf): VarIntTdf {
-            return VarIntTdf(label, input.readVarInt())
-        }
+        fun read(label: String, input: ByteBuf): VarIntTdf = VarIntTdf(label, input.readVarInt())
     }
 
     override fun write(out: ByteBuf) = out.writeVarInt(value)

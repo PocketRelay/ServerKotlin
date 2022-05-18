@@ -4,7 +4,7 @@ import com.jacobtread.kme.blaze.utils.Labels
 import com.jacobtread.kme.blaze.utils.VarTripple
 import io.netty.buffer.ByteBuf
 
-abstract class Tdf(val label: String, private val tagType: Int) {
+abstract class Tdf<V>(val label: String, private val tagType: Int) {
     companion object {
         const val VARINT = 0x0
         const val STRING = 0x1
@@ -21,35 +21,38 @@ abstract class Tdf(val label: String, private val tagType: Int) {
         fun getTypeFromClass(valueType: Class<*>): Int {
             return when (valueType) {
                 Long::class.java,
+                Integer::class.java,
                 Int::class.java, -> VARINT
                 String::class.java -> STRING
                 Float::class.java -> FLOAT
                 StructTdf::class.java -> STRUCT
                 VarTripple::class.java -> TRIPPLE
-                else -> throw IllegalArgumentException("Don't know how to handle type \"${valueType.simpleName}")
+                else -> throw IllegalArgumentException("Don't know how to handle type \"${valueType.simpleName}\"")
             }
         }
 
-        fun read(input: ByteBuf): Tdf {
+        fun read(input: ByteBuf): Tdf<*> {
             val head = input.readUnsignedInt()
             val tag = (head and 0xFFFFFF00)
             val label = Labels.fromTag(tag).trimEnd()
             return when (val type = (head and 0xFF).toInt()) {
-                VARINT -> VarIntTdf.from(label, input)
-                STRING -> StringTdf.from(label, input)
-                BLOB -> BlobTdf.from(label, input)
-                STRUCT -> StructTdf.from(label, input)
-                LIST -> ListTdf.from(label, input)
-                MAP -> MapTdf.from(label, input)
-                UNION -> UnionTdf.from(label, input)
-                INT_LIST -> VarIntList.from(label, input)
-                PAIR -> PairTdf.from(label, input)
-                TRIPPLE -> TrippleTdf.from(label, input)
-                FLOAT -> FloatTdf.from(label, input)
+                VARINT -> VarIntTdf.read(label, input)
+                STRING -> StringTdf.read(label, input)
+                BLOB -> BlobTdf.read(label, input)
+                STRUCT -> StructTdf.read(label, input)
+                LIST -> ListTdf.read(label, input)
+                MAP -> MapTdf.read(label, input)
+                UNION -> UnionTdf.read(label, input)
+                INT_LIST -> VarIntList.read(label, input)
+                PAIR -> PairTdf.read(label, input)
+                TRIPPLE -> TrippleTdf.read(label, input)
+                FLOAT -> FloatTdf.read(label, input)
                 else -> throw IllegalStateException("Unknown Tdf type: $type")
             }
         }
     }
+
+    abstract val value: V
 
     abstract fun write(out: ByteBuf)
 
