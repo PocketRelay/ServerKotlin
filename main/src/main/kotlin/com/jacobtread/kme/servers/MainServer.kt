@@ -848,8 +848,8 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
                 number("TIID", 0x0)
             }
 
-            val telemetryAddress = "127.0.0.1"
-            val tickerAddress = "127.0.0.1"
+            val telemetryAddress = "reports.tools.gos.ea.com"
+            val tickerAddress = "waleu2.tools.gos.ea.com"
             val telemetryPort = 9988
             val tickerPort = 8999
 

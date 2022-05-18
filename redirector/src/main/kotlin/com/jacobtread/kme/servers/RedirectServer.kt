@@ -113,9 +113,10 @@ fun startRedirector(config: RedirectorConfig = loadConfig(), keepAlive: Boolean 
         val workerGroup = NioEventLoopGroup(customThreadFactory("Redirector Worker #{ID}"))
         val bootstrap = ServerBootstrap() // Create a server bootstrap
         try {
+            val targetPort = config.targetPort
             val listenPort = config.port
             val address = lookupServerAddress(config.targetHost)
-            val handler = RedirectHandler(address, config.targetPort)
+            val handler = RedirectHandler(address, targetPort)
             val bind = bootstrap.group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel::class.java)
                 .childHandler(object : ChannelInitializer<Channel>() {
@@ -134,7 +135,10 @@ fun startRedirector(config: RedirectorConfig = loadConfig(), keepAlive: Boolean 
                 .bind(listenPort)
                 // Wait for the channel to bind
                 .sync()
-            info("Started Redirector Server on port $listenPort")
+            info("Started Redirector Server on port $listenPort redirecting to:")
+            info("Host: ${address.host}")
+            info("IP: ${address.ip}")
+            info("Port: $targetPort")
             bind.channel()
                 // Get the closing future
                 .closeFuture()

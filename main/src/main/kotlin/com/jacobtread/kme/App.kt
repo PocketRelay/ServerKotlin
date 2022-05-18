@@ -32,6 +32,10 @@ fun main() {
     // Infinite loop to read commands from System in
     while (true) {
         val input = readLine() ?: continue
-        Logger.info("Unknown command: $input")
+        if (input == "stop") {
+            break
+        } else {
+            Logger.info("Unknown command: $input")
+        }
     }
 }
