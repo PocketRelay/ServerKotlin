@@ -7,9 +7,8 @@ import com.jacobtread.kme.blaze.Command.*
 import com.jacobtread.kme.blaze.Component.*
 import com.jacobtread.kme.blaze.utils.IPAddress
 import com.jacobtread.kme.data.Data
-import com.jacobtread.kme.database.Database
-import com.jacobtread.kme.database.Database.Player
-import com.jacobtread.kme.database.Database.Players
+import com.jacobtread.kme.database.Player
+import com.jacobtread.kme.database.Players
 import com.jacobtread.kme.utils.KME_VERSION
 import com.jacobtread.kme.utils.customThreadFactory
 import com.jacobtread.kme.utils.hashPassword

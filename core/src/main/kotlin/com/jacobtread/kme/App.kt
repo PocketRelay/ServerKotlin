@@ -1,6 +1,7 @@
 package com.jacobtread.kme
 
 import com.jacobtread.kme.database.Database
+import com.jacobtread.kme.database.startDatabase
 import com.jacobtread.kme.logging.Level
 import com.jacobtread.kme.logging.Logger
 import com.jacobtread.kme.servers.*
@@ -42,9 +43,7 @@ fun main() {
     startTickerServer(config)
     startTelemetryServer(config)
     startHttpServer(config)
-
-    Database.connect(config)
-
+    startDatabase(config)
     startMainServer(config)
 
     val sysIn = System.`in`
