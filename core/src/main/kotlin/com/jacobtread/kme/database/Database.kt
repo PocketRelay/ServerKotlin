@@ -54,7 +54,8 @@ fun startDatabase(baseConfig: Config) {
 //region Tables and Models
 
 /**
- * Players
+ * Players The table which stores all the players credentials,
+ * session information and basic account data
  *
  * @constructor Create empty Players
  */
@@ -78,11 +79,11 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
     var password by Players.password
 
     var sessionToken by Players.sessionToken
-    var settingsBase by Players.settingsBase
+    private var settingsBase by Players.settingsBase
 
-    val classes by PlayerClass referrersOn PlayerClasses.player
-    val characters by PlayerCharacter referrersOn PlayerCharacters.player
-    val settings by PlayerSetting referrersOn PlayerSettings.player
+    private val classes by PlayerClass referrersOn PlayerClasses.player
+    private val characters by PlayerCharacter referrersOn PlayerCharacters.player
+    private val settings by PlayerSetting referrersOn PlayerSettings.player
 
     fun setSetting(key: String, value: String) {
         val playerId = this.id
