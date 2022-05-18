@@ -18,8 +18,6 @@ const val KME_VERSION = "1.0.0"
 val CONFIG = loadConfigFile()
 
 fun main() {
-    // Clears the disabled algorithms necessary for SSLv3
-    Security.setProperty("jdk.tls.disabledAlgorithms", "")
     nameThread("Main")
 
     Logger.init(CONFIG.logging)

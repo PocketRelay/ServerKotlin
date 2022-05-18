@@ -21,6 +21,7 @@ import net.mamoe.yamlkt.Comment
 import net.mamoe.yamlkt.Yaml
 import java.io.IOException
 import java.security.KeyStore
+import java.security.Security
 import javax.net.ssl.KeyManagerFactory
 import kotlin.io.path.Path
 import kotlin.io.path.exists
@@ -88,6 +89,9 @@ private fun loadConfig(): RedirectorConfig {
  */
 fun startRedirector(config: RedirectorConfig = loadConfig()) {
     Thread {
+        // Clears the disabled algorithms necessary for SSLv3
+        Security.setProperty("jdk.tls.disabledAlgorithms", "")
+
         val keyStorePassword = charArrayOf('1', '2', '3', '4', '5', '6')
         val keyStoreStream = RedirectHandler::class.java.getResourceAsStream("/redirector.pfx")
             ?: throw IllegalStateException("Missing required keystore for SSLv3")
