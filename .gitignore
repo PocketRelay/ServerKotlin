@@ -18,5 +18,4 @@ gradle-app.setting
 /run
 */build
 /logs
-/replay
-/tlk
+/data
