@@ -1,6 +1,7 @@
 package com.jacobtread.kme.blaze.tdf
 
 import com.jacobtread.kme.blaze.utils.*
+import com.jacobtread.kme.utils.VarTripple
 import io.netty.buffer.ByteBuf
 
 class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf<List<Any>>(label, LIST) {

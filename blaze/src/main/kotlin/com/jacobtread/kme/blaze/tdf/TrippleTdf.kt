@@ -2,7 +2,7 @@ package com.jacobtread.kme.blaze.tdf
 
 import com.jacobtread.kme.blaze.utils.readVarInt
 import com.jacobtread.kme.blaze.utils.writeVarInt
-import com.jacobtread.kme.blaze.utils.VarTripple
+import com.jacobtread.kme.utils.VarTripple
 import io.netty.buffer.ByteBuf
 
 class TrippleTdf(label: String, override val value: VarTripple) : Tdf<VarTripple>(label, TRIPPLE) {

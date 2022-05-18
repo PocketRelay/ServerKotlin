@@ -1,7 +1,7 @@
 package com.jacobtread.kme.blaze.tdf
 
 import com.jacobtread.kme.blaze.utils.Labels
-import com.jacobtread.kme.blaze.utils.VarTripple
+import com.jacobtread.kme.utils.VarTripple
 import io.netty.buffer.ByteBuf
 
 abstract class Tdf<V>(val label: String, private val tagType: Int) {

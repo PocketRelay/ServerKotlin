@@ -1,7 +1,7 @@
 package com.jacobtread.kme.blaze
 
 import com.jacobtread.kme.blaze.tdf.*
-import com.jacobtread.kme.blaze.utils.VarTripple
+import com.jacobtread.kme.utils.VarTripple
 
 
 fun packetToBuilder(rawPacket: Packet): String {

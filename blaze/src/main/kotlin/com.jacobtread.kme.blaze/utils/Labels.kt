@@ -1,5 +1,7 @@
 package com.jacobtread.kme.blaze.utils
 
+import com.jacobtread.kme.utils.BigEndian
+
 object Labels {
 
     fun toTag(labelIn: String): Long {

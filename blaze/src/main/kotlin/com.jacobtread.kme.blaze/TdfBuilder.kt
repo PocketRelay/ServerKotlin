@@ -1,8 +1,8 @@
 package com.jacobtread.kme.blaze
 
 import com.jacobtread.kme.blaze.tdf.*
-import com.jacobtread.kme.blaze.utils.VarPair
-import com.jacobtread.kme.blaze.utils.VarTripple
+import com.jacobtread.kme.utils.VarPair
+import com.jacobtread.kme.utils.VarTripple
 import io.netty.buffer.Unpooled
 
 /**

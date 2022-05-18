@@ -2,7 +2,7 @@ package com.jacobtread.kme.blaze.tdf
 
 import com.jacobtread.kme.blaze.utils.readVarInt
 import com.jacobtread.kme.blaze.utils.writeVarInt
-import com.jacobtread.kme.blaze.utils.VarPair
+import com.jacobtread.kme.utils.VarPair
 import io.netty.buffer.ByteBuf
 
 class PairTdf(label: String, override val value: VarPair) : Tdf<VarPair>(label, PAIR) {
