@@ -1,7 +1,5 @@
 package com.jacobtread.kme.logging
 
-import java.io.DataOutput
-import java.io.DataOutputStream
 import java.io.IOException
 import java.io.RandomAccessFile
 import java.nio.ByteBuffer
@@ -14,23 +12,10 @@ import java.util.zip.GZIPOutputStream
 import kotlin.io.path.*
 import kotlin.system.exitProcess
 
-class Logger {
+object Logger {
 
-    companion object {
-        const val COLOR_REST = "\u001B[0m"
-        private val ROOT = Logger()
-        const val DEFAULT_BUFFER_SIZE = 4024
-
-        @JvmStatic
-        fun setLogLevel(level: Level) {
-            ROOT.logLevel = level
-        }
-
-        @JvmStatic
-        fun get(): Logger {
-            return ROOT
-        }
-    }
+    private const val COLOR_REST = "\u001B[0m"
+    private const val DEFAULT_BUFFER_SIZE = 4024
 
 
     private val printDateFormat = SimpleDateFormat("HH:mm:ss")
@@ -38,7 +23,7 @@ class Logger {
     private val logFile: Path = loggingPath.resolve("latest.log")
     private val file: RandomAccessFile
     private val outputBuffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE)
-    private var logLevel: Level = Level.INFO
+    var logLevel: Level = Level.INFO
 
     /**
      * isDebugEnabled Checks whether the current

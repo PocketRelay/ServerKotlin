@@ -1,7 +1,6 @@
 package com.jacobtread.kme.servers
 
-import com.jacobtread.kme.Config
-import com.jacobtread.kme.LOGGER
+import com.jacobtread.kme.CONFIG
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.Command.*
 import com.jacobtread.kme.blaze.Component.*
@@ -9,6 +8,7 @@ import com.jacobtread.kme.blaze.utils.IPAddress
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.database.Players
+import com.jacobtread.kme.logging.Logger
 import com.jacobtread.kme.utils.KME_VERSION
 import com.jacobtread.kme.utils.comparePasswordHash
 import com.jacobtread.kme.utils.customThreadFactory
@@ -26,12 +26,13 @@ import java.time.Instant
 import java.util.concurrent.atomic.AtomicInteger
 
 
-fun startMainServer(config: Config) {
+fun startMainServer() {
     Thread {
         val bossGroup = NioEventLoopGroup(customThreadFactory("Main Server Boss #{ID}"))
         val workerGroup = NioEventLoopGroup(customThreadFactory("Main Server Worker #{ID}"))
         val bootstrap = ServerBootstrap() // Create a server bootstrap
         try {
+            val port = CONFIG.ports.main
             val clientId = AtomicInteger(0)
             val bind = bootstrap.group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel::class.java)
@@ -40,7 +41,7 @@ fun startMainServer(config: Config) {
                         println("Main Server Connection")
                         val session = SessionData(
                             clientId.getAndIncrement(),
-                            config.origin.uid,
+                            0x12345678,
                             NetData(0, 0),
                             NetData(0, 0)
                         )
@@ -48,22 +49,22 @@ fun startMainServer(config: Config) {
                             // Add handler for decoding packet
                             .addLast(PacketDecoder())
                             // Add handler for processing packets
-                            .addLast(MainClient(session, config))
+                            .addLast(MainClient(session))
                             .addLast(PacketEncoder())
                     }
                 })
                 // Bind the server to the host and port
-                .bind(config.host, config.ports.main)
+                .bind(port)
                 // Wait for the channel to bind
                 .sync()
-            LOGGER.info("Started Main Server (${config.host}:${config.ports.main})")
+            Logger.info("Started Main Server on port $port")
             bind.channel()
                 // Get the closing future
                 .closeFuture()
                 // Wait for the closing
                 .sync()
         } catch (e: IOException) {
-            LOGGER.error("Exception in redirector server", e)
+            Logger.error("Exception in redirector server", e)
         }
     }.apply {
         // Name the main server thread
@@ -110,9 +111,10 @@ class SessionData(
 data class NetData(var address: Long, var port: Int)
 
 @Suppress("SpellCheckingInspection")
-private class MainClient(private val session: SessionData, private val config: Config) : SimpleChannelInboundHandler<RawPacket>() {
+private class MainClient(private val session: SessionData) : SimpleChannelInboundHandler<RawPacket>() {
 
     companion object {
+        private const val NAT_TYPE = 4
         private val EMPTY_BYTE_ARRAY = ByteArray(0)
         private val CIDS = listOf(1, 25, 4, 28, 7, 9, 63490, 30720, 15, 30721, 30722, 30723, 30725, 30726, 2000)
         private val TELE_DISA =
@@ -160,7 +162,7 @@ private class MainClient(private val session: SessionData, private val config: C
                 else -> empty(msg)
             }
         } catch (e: Exception) {
-            LOGGER.warn("Failed to handle packet: $msg", e)
+            Logger.warn("Failed to handle packet: $msg", e)
         }
     }
 
@@ -198,7 +200,7 @@ private class MainClient(private val session: SessionData, private val config: C
                         list("PSLM", listOf(0xfff0fff, 0xfff0fff, 0xfff0fff))
                         +struct("QDAT") {
                             number("DBPS", 0x0)
-                            number("NATT", config.natType)
+                            number("NATT", NAT_TYPE)
                             number("UBPS", 0x0)
                         }
                         number("UATT", 0x0)
@@ -371,7 +373,7 @@ private class MainClient(private val session: SessionData, private val config: C
 
                 +struct("QDAT") {
                     number("DBPS", 0)
-                    number("NATT", config.natType)
+                    number("NATT", NAT_TYPE)
                     number("UBPS", 0)
                 }
 
@@ -662,7 +664,7 @@ private class MainClient(private val session: SessionData, private val config: C
                 })
                 val ip = channel.remoteAddress().toString()
                 val player = session.getPlayer()
-                val menuMessage = config.menuMessage
+                val menuMessage = CONFIG.menuMessage
                     .replace("{v}", KME_VERSION)
                     .replace("{n}", player.displayName)
                     .replace("{ip}", ip) + 0xA.toChar()
@@ -810,7 +812,7 @@ private class MainClient(private val session: SessionData, private val config: C
     }
 
     private fun handlePing(packet: RawPacket) {
-        LOGGER.logIfDebug { "Received ping update from client: ${session.id}" }
+        Logger.logIfDebug { "Received ping update from client: ${session.id}" }
         session.lastPingTime = System.currentTimeMillis()
         channel.respond(packet) {
             number("STIM", getUnixTimeSeconds())
@@ -881,14 +883,17 @@ private class MainClient(private val session: SessionData, private val config: C
                 number("TIID", 0x0)
             }
 
+            val telemetryAddress = "127.0.0.1"
+            val tickerAddress = "127.0.0.1"
+
             +struct("TELE") {
-                text("ADRS", config.host) // Server Address
+                text("ADRS", telemetryAddress) // Server Address
                 number("ANON", 0)
                 text("DISA", TELE_DISA)
                 text("FILT", "-UION/****") // Telemetry filter?
                 number("LOC", 1701725253)
                 text("NOOK", "US,CA,MX")
-                number("PORT", config.ports.telemetry)
+                number("PORT", CONFIG.ports.telemetry)
                 number("SDLY", 15000)
                 text("SESS", "JMhnT9dXSED")
                 text("SKEY", SKEY)
@@ -897,8 +902,8 @@ private class MainClient(private val session: SessionData, private val config: C
             }
 
             +struct("TICK") {
-                text("ADRS", config.host)
-                number("port", config.ports.ticker)
+                text("ADRS", tickerAddress)
+                number("port", CONFIG.ports.ticker)
                 text("SKEY", "823287263,10.23.15.2:8999,masseffect-3-pc,10,50,50,50,50,0,12")
             }
 
@@ -923,7 +928,7 @@ private class MainClient(private val session: SessionData, private val config: C
     private fun handleUserSettingsLoadAll(packet: RawPacket) {
         val player = session.getPlayer()
         channel.respond(packet) {
-            map("SMAP", player.makeSettingsMap())
+            map("SMAP", player.createSettingsMap())
         }
     }
 

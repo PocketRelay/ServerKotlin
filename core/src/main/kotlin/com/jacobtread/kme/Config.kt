@@ -1,14 +1,44 @@
 package com.jacobtread.kme
 
+import com.jacobtread.kme.database.DatabaseConfig
+import com.jacobtread.kme.logging.Logger
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.mamoe.yamlkt.Comment
+import net.mamoe.yamlkt.Yaml
+import kotlin.io.path.Path
+import kotlin.io.path.exists
+import kotlin.io.path.readText
+import kotlin.io.path.writeText
+
+/**
+ * loadConfigFile Loads the configuration from the YAML config file
+ * config.yml if the config file doesn't exist a new one is created
+ *
+ * @return The loaded config file or default config if none
+ */
+fun loadConfigFile(): Config {
+    val config: Config
+    val configFile = Path("config.yml")
+    if (configFile.exists()) {
+        val contents = configFile.readText()
+        config = Yaml.decodeFromString(Config.serializer(), contents)
+        Logger.info("Loaded Configuration from: $configFile")
+    } else {
+        Logger.info("No configuration found. Using default")
+        config = Config()
+        try {
+            Logger.debug("Saving newly created config to: $configFile")
+            configFile.writeText(Yaml.encodeToString(config))
+        } catch (e: Exception) {
+            Logger.error("Failed to write newly created config file", e)
+        }
+    }
+    return config
+}
 
 @Serializable
 data class Config(
-    @Comment("The host address to use when listening applied to all servers")
-    val host: String = "127.0.0.1",
-
     @Comment("The level of logging that should be used: INFO,WARN,ERROR,FATAL,DEBUG")
     @SerialName("log_level")
     val logLevel: String = "INFO",
@@ -17,18 +47,9 @@ data class Config(
     val ports: Ports = Ports(),
 
     @Comment("Database connection info")
-    val database: Database = Database(),
+    val database: DatabaseConfig = DatabaseConfig(),
 
-    @Comment("OriginDummy")
-    val origin: Origin = Origin(),
-
-    val natType: Int = 4,
-
-    @Comment("ME3Data")
-    val me3data: Map<String, String> = mapOf("" to ""),
-
-    @Comment(
-        """
+    @Comment("""
     The message displayed in the main menu format codes:
     {v}  : KME3 Version
     {n}  : Player Name
@@ -40,43 +61,24 @@ data class Config(
 ) {
 
 
-    @Serializable
-    enum class DatabaseType {
-        @SerialName("mysql")
-        MySQL,
-
-        @SerialName("sqlite")
-        SQLite
-    }
-
-    @Serializable
-    data class MySQLConfig(
-        val host: String = "127.0.0.1",
-        val port: String = "3306",
-        val user: String = "root",
-        val password: String = "password",
-        val database: String = "kme",
-    )
-
-    @Serializable
-    data class SQLiteConfig(
-        val file: String = "data/app.db",
-    )
-
-    @Serializable
-    data class Database(
-        @Comment("The type of database to use MySQL or SQLite")
-        val type: DatabaseType = DatabaseType.MySQL,
-        @Comment("Settings for connecting to MySQL database")
-        val mysql: MySQLConfig = MySQLConfig(),
-        @Comment("Settings used for connecting to SQLite database")
-        val sqlite: SQLiteConfig = SQLiteConfig(),
-    )
-
-
+    /**
+     * Ports
+     *
+     * @property redirector The port for the redirector server
+     * @property ticker The port for the ticker server
+     * @property telemetry The port for the telemetry server
+     * @property main
+     * @constructor Create empty Ports
+     */
     @Serializable
     data class Ports(
-        @Comment("Port for the redirector server")
+        @Comment(
+            """
+        The port the redirector server will listen on. NOTE: Clients will only
+        connect to 42127 so changing this will make users unable to connect unless
+        you are behind some sort of proxy that's mapping the port
+        """
+        )
         val redirector: Int = 42127,
         @Comment("Port for the ticker server")
         val ticker: Int = 8999,
@@ -84,15 +86,5 @@ data class Config(
         val telemetry: Int = 9988,
         @Comment("Port for the main server")
         val main: Int = 14219,
-        @Comment("Port for the http server")
-        val http: Int = 80,
     )
-
-    @Serializable
-    data class Origin(
-        val name: String = "OriginPlayer",
-        val pid: Int = 0x12345678,
-        val uid: Int = 0x12345678,
-    )
-
 }

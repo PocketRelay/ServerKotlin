@@ -1,7 +1,9 @@
 package com.jacobtread.kme.database
 
-import com.jacobtread.kme.Config
 import com.jacobtread.kme.utils.MEStringParser
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import net.mamoe.yamlkt.Comment
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
@@ -13,30 +15,95 @@ import java.nio.file.Paths
 import kotlin.io.path.absolute
 import kotlin.io.path.createDirectories
 import kotlin.io.path.notExists
-import org.jetbrains.exposed.sql.Database as EDatabase
+import org.jetbrains.exposed.sql.Database as ExposedDatabase
 
-interface TdfMappable {
-    fun mapKey(): String
-    fun mapValue(): String
+/**
+ * DatabaseType Enum containing the different supported Database
+ * connection types. Currently, only MySQL and SQLite may add more
+ * such as PostgresSQL when releasing for production
+ *
+ * @constructor Create empty DatabaseType
+ */
+@Serializable
+enum class DatabaseType {
+    @SerialName("mysql")
+    MYSQL,
+
+    @SerialName("sqlite")
+    SQLITE;
 }
 
-fun startDatabase(baseConfig: Config) {
-    val dbConfig = baseConfig.database
-    when (dbConfig.type) {
-        Config.DatabaseType.MySQL -> {
-            val config = dbConfig.mysql
-            EDatabase.connect(
-                url = "jdbc:mysql://${config.host}:${config.port}/${config.database}",
-                user = config.user,
-                password = config.password
+/**
+ * DatabaseConfig Stores configuration information about the database
+ *
+ * @property type Defines which database connection type to use
+ * @property mysql The config for a MySQL database connection
+ * @property sqlite The config for a SQLite database connection
+ * @constructor Create empty DatabaseConfig
+ */
+@Serializable
+data class DatabaseConfig(
+    @Comment("The type of database to use MySQL or SQLite")
+    val type: DatabaseType = DatabaseType.SQLITE,
+    @Comment("Settings for connecting to MySQL database")
+    val mysql: MySQLConfig = MySQLConfig(),
+    @Comment("Settings used for connecting to SQLite database")
+    val sqlite: SQLiteConfig = SQLiteConfig(),
+)
+
+/**
+ * MySQLConfig The config to use when targeting a MySQL database
+ *
+ * @property host The host address of the MySQL server
+ * @property port The port of the MySQL server
+ * @property user The user account for the MySQL server
+ * @property password The password for the MySQL server account
+ * @property database The database on the MySQL server to use
+ * @constructor Create empty MySQLConfig
+ */
+@Serializable
+data class MySQLConfig(
+    val host: String = "127.0.0.1",
+    val port: String = "3306",
+    val user: String = "root",
+    val password: String = "password",
+    val database: String = "kme",
+)
+
+/**
+ * SQLiteConfig The config to use when targeting a SQLite
+ * database takes only a file path
+ *
+ * @property file The file to use as the SQLite database
+ * @constructor Create empty SQLiteConfig
+ */
+@Serializable
+data class SQLiteConfig(
+    val file: String = "data/app.db",
+)
+
+/**
+ * startDatabase "Starts" the database by connecting to the database
+ * that was specified in the configuration file. Then creates the
+ * necessary tables if they don't already exist
+ *
+ * @param config The database configuration
+ */
+fun startDatabase(config: DatabaseConfig) {
+    when (config.type) {
+        DatabaseType.MYSQL -> {
+            val mysql = config.mysql
+            ExposedDatabase.connect(
+                url = "jdbc:mysql://${mysql.host}:${mysql.port}/${mysql.database}",
+                user = mysql.user,
+                password = mysql.password
             )
         }
-        Config.DatabaseType.SQLite -> {
-            val config = dbConfig.sqlite
-            val file = config.file
+        DatabaseType.SQLITE -> {
+            val file = config.sqlite.file
             val parentDir = Paths.get(file).absolute().parent
             if (parentDir.notExists()) parentDir.createDirectories()
-            EDatabase.connect("jdbc:sqlite:" + baseConfig.database.sqlite.file)
+            ExposedDatabase.connect("jdbc:sqlite:$file")
         }
     }
 
@@ -70,6 +137,14 @@ object Players : IntIdTable("players") {
         .default(null)
 }
 
+/**
+ * Player Represents a player stored in the database each player
+ * has a related collection of classes, characters, and settings
+ *
+ * @constructor
+ *
+ * @param id The unique identifier for this player
+ */
 class Player(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<Player>(Players)
 
@@ -84,66 +159,95 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
     private val characters by PlayerCharacter referrersOn PlayerCharacters.player
     private val settings by PlayerSetting referrersOn PlayerSettings.player
 
+    /**
+     * setSetting
+     *
+     * @param key
+     * @param value
+     */
     fun setSetting(key: String, value: String) {
-        val playerId = this.id
-        if (key.startsWith("class")) {
+        if (key.startsWith("class")) { // Class Setting
             val index = key.substring(5).toInt()
             PlayerClass.setFromValue(this, index, value)
-        } else if (key.startsWith("char")) {
+        } else if (key.startsWith("char")) { // Character Setting
             val index = key.substring(4).toInt()
             PlayerCharacter.setFromValue(this, index, value)
-        } else if (key == "Base") {
-            transaction {
-                settingsBase = value
-            }
-        } else {
-            transaction {
-                val setting: PlayerSetting? = PlayerSetting.find { (PlayerSettings.player eq playerId) and (PlayerSettings.key eq key) }
-                    .firstOrNull()
-                if (setting != null) {
-                    setting.value = value
-                } else {
-                    PlayerSetting.new {
-                        this.player = playerId
-                        this.key = key
-                        this.value = value
-                    }
+        } else if (key == "Base") { // Base Setting
+            transaction { settingsBase = value }
+        } else { // Other Setting
+            setSettingUnknown(key, value)
+        }
+    }
+
+    private fun setSettingUnknown(key: String, value: String) {
+        transaction {
+            val playerId = this@Player.id
+            val setting = PlayerSetting
+                .find { (PlayerSettings.player eq playerId) and (PlayerSettings.key eq key) }
+                .firstOrNull()
+            if (setting != null) {
+                setting.value = value
+            } else {
+                PlayerSetting.new {
+                    this.player = playerId
+                    this.key = key
+                    this.value = value
                 }
             }
         }
     }
 
+
+    /**
+     * getSettingsBase Parses the base settings field and returns
+     * it as a PlayerSettingsBase object if parsing fails then a
+     * default PlayerSettingsBase is returned instead
+     *
+     * @return The player settings base
+     */
     fun getSettingsBase(): PlayerSettingsBase {
         val base = settingsBase
         return if (base != null) PlayerSettingsBase.createFromValue(base) else PlayerSettingsBase()
     }
 
-    fun makeSettingsMap(): LinkedHashMap<String, String> {
+    /**
+     * createSettingsMap Stores all the settings from this in a LinkedHashMap
+     * so that they can be sent to the client
+     *
+     * @return
+     */
+    fun createSettingsMap(): LinkedHashMap<String, String> {
         val out = LinkedHashMap<String, String>()
         transaction {
             for (playerClass in classes) {
-                println(playerClass.level)
-
                 out[playerClass.mapKey()] = playerClass.mapValue()
             }
             for (character in characters) {
                 out[character.mapKey()] = character.mapValue()
             }
             for (setting in settings) {
-                out[setting.mapKey()] = setting.mapValue()
+                out[setting.key] = setting.value
             }
         }
         return out
     }
 
+    /**
+     * getN7Rating Produces a rating value based on the total
+     * level and number of promotions this player has.
+     *
+     * @return The calculated N7 rating
+     */
     fun getN7Rating(): Int {
-        var level = 0
-        var promotions = 0
-        for (playerClass in classes) {
-            level += playerClass.level
-            promotions += playerClass.promotions
+        return transaction {
+            var level = 0
+            var promotions = 0
+            for (playerClass in classes) {
+                level += playerClass.level
+                promotions += playerClass.promotions
+            }
+            level + promotions * 30
         }
-        return level + promotions * 30
     }
 }
 
@@ -157,7 +261,7 @@ class PlayerSettingsBase(
     val secondsPlayed: Long = 0,
     val f: Int = 0,
     val inventory: String = "",
-) : TdfMappable {
+) {
     companion object {
         fun createFromValue(value: String): PlayerSettingsBase {
             val parser = MEStringParser(value, 11)
@@ -176,8 +280,8 @@ class PlayerSettingsBase(
         }
     }
 
-    override fun mapKey(): String = "Base"
-    override fun mapValue(): String = StringBuilder()
+    fun mapKey(): String = "Base"
+    fun mapValue(): String = StringBuilder()
         .append("20;4;")
         .append(credits).append(';')
         .append(c).append(';')
@@ -211,7 +315,7 @@ object PlayerClasses : IntIdTable("player_classes") {
     val promotions = integer("promotions")
 }
 
-class PlayerClass(id: EntityID<Int>) : IntEntity(id), TdfMappable {
+class PlayerClass(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<PlayerClass>(PlayerClasses) {
 
         fun setFromValue(player: Player, index: Int, value: String) {
@@ -248,8 +352,8 @@ class PlayerClass(id: EntityID<Int>) : IntEntity(id), TdfMappable {
     var exp by PlayerClasses.exp
     var promotions by PlayerClasses.promotions
 
-    override fun mapKey(): String = "class$index"
-    override fun mapValue(): String = StringBuilder()
+    fun mapKey(): String = "class$index"
+    fun mapValue(): String = StringBuilder()
         .append("20;4;")
         .append(name).append(';')
         .append(level).append(';')
@@ -286,7 +390,7 @@ object PlayerCharacters : IntIdTable("player_characters") {
     val leveledUp = bool("leveled_up")
 }
 
-class PlayerCharacter(id: EntityID<Int>) : IntEntity(id), TdfMappable {
+class PlayerCharacter(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<PlayerCharacter>(PlayerCharacters) {
         fun setFromValue(player: Player, index: Int, value: String) {
             transaction {
@@ -354,9 +458,8 @@ class PlayerCharacter(id: EntityID<Int>) : IntEntity(id), TdfMappable {
     var deployed by PlayerCharacters.deployed
     var leveledUp by PlayerCharacters.leveledUp
 
-    override fun mapKey(): String = "char$index"
-
-    override fun mapValue(): String = StringBuilder()
+    fun mapKey(): String = "char$index"
+    fun mapValue(): String = StringBuilder()
         .append("20;4;")
         .append(kitName).append(';')
         .append(name).append(';')
@@ -388,15 +491,12 @@ object PlayerSettings : IntIdTable("player_settings") {
     val value = text("value")
 }
 
-class PlayerSetting(id: EntityID<Int>) : IntEntity(id), TdfMappable {
+class PlayerSetting(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<PlayerSetting>(PlayerSettings)
 
     var player by PlayerSettings.player
     var key by PlayerSettings.key
     var value by PlayerSettings.value
-
-    override fun mapKey(): String = key
-    override fun mapValue(): String = value
 }
 
 //endregion

@@ -5,61 +5,33 @@ package com.jacobtread.kme
 import com.jacobtread.kme.database.startDatabase
 import com.jacobtread.kme.logging.Level
 import com.jacobtread.kme.logging.Logger
-import com.jacobtread.kme.servers.*
-import net.mamoe.yamlkt.Yaml
-import java.nio.file.Paths
-import kotlin.io.path.exists
-import kotlin.io.path.readText
-import kotlin.io.path.writeText
+import com.jacobtread.kme.servers.startDiscardServer
+import com.jacobtread.kme.servers.startHttpServer
+import com.jacobtread.kme.servers.startMainServer
+import com.jacobtread.kme.servers.startRedirector
+import java.security.Security
 
 
-val LOGGER = Logger.get()
+val CONFIG = loadConfigFile()
 
 fun main() {
-    configureSystemProperties()
+    Security.setProperty("jdk.tls.disabledAlgorithms", "")
+    Thread.currentThread().name = "Main"
+    Logger.logLevel = Level.fromName(CONFIG.logLevel)
 
-    val rootPath = Paths.get(".")
+    Logger.info("Starting ME3 Server")
 
-    LOGGER.info("Starting ME3 Server")
-    val configFile = rootPath.resolve("config.yml")
-    val config: Config
+    startRedirector(CONFIG.ports.redirector, CONFIG.ports.main)
+    startDatabase(CONFIG.database)
+    startHttpServer()
+    startMainServer()
 
-    if (configFile.exists()) {
-        val contents = configFile.readText()
-        config = Yaml.decodeFromString(Config.serializer(), contents)
-        LOGGER.info("Loaded Configuration from: $configFile")
-    } else {
-        LOGGER.info("No configuration found. Using default")
-        config = Config()
-        try {
-            LOGGER.debug("Saving newly created config to: $configFile")
-            configFile.writeText(Yaml.encodeToString(config))
-        } catch (e: Exception) {
-            LOGGER.error("Failed to write newly created config file", e)
-        }
-    }
-
-    Logger.setLogLevel(Level.fromName(config.logLevel))
-
-    startRedirector(config)
-    startTickerServer(config)
-    startTelemetryServer(config)
-    startHttpServer(config)
-    startDatabase(config)
-    startMainServer(config)
+    // Telemetry & Ticker servers just discard any contents they receive
+    startDiscardServer("Telemetry", CONFIG.ports.telemetry)
+    startDiscardServer("Ticker", CONFIG.ports.ticker)
 
     while (true) {
         val input = readLine() ?: continue
-        LOGGER.info("Unknown command: $input")
+        Logger.info("Unknown command: $input")
     }
-}
-
-/**
- * configureSystemProperties Tweaks the java system properties to
- * remove unwanted alerts as well as enabling SSLv3
- *
- */
-fun configureSystemProperties() {
-    Thread.currentThread().name = "Main"
-    java.security.Security.setProperty("jdk.tls.disabledAlgorithms", "")
 }

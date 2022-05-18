@@ -1,7 +1,7 @@
 package com.jacobtread.kme.servers
 
-import com.jacobtread.kme.Config
-import com.jacobtread.kme.LOGGER
+import com.jacobtread.kme.CONFIG
+import com.jacobtread.kme.logging.Logger
 import com.jacobtread.kme.utils.customThreadFactory
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.Unpooled
@@ -14,12 +14,8 @@ import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.codec.http.*
 import java.io.IOException
 
-/**
- * startTickerServer HTTP server
- *
- * @param config The server configuration
- */
-fun startHttpServer(config: Config) {
+
+fun startHttpServer() {
     Thread {
         val bossGroup = NioEventLoopGroup(customThreadFactory("HTTP Boss #{ID}"))
         val workerGroup = NioEventLoopGroup(customThreadFactory("HTTP Worker #{ID}"))
@@ -37,17 +33,17 @@ fun startHttpServer(config: Config) {
                     }
                 })
                 // Bind the server to the host and port
-                .bind(config.host, config.ports.http)
+                .bind(80)
                 // Wait for the channel to bind
                 .sync();
-            LOGGER.info("Started HTTP Server (${config.host}:${config.ports.http})")
+            Logger.info("Started HTTP Server on port 80")
             bind.channel()
                 // Get the closing future
                 .closeFuture()
                 // Wait for the closing
                 .sync()
         } catch (e: IOException) {
-            LOGGER.error("Exception in HTTP server", e)
+            Logger.error("Exception in HTTP server", e)
         }
     }.apply {
         // Name the HTTP thread
@@ -108,7 +104,5 @@ private class HTTPHandler : SimpleChannelInboundHandler<HttpRequest>() {
             respond404(ctx)
             return
         }
-
     }
-
 }

@@ -1,9 +1,10 @@
 package com.jacobtread.kme.servers
 
-import com.jacobtread.kme.Config
-import com.jacobtread.kme.LOGGER
+import com.jacobtread.kme.CONFIG
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.utils.IPAddress
+import com.jacobtread.kme.logging.Logger.error
+import com.jacobtread.kme.logging.Logger.info
 import com.jacobtread.kme.utils.customThreadFactory
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
@@ -23,13 +24,14 @@ import javax.net.ssl.KeyManagerFactory
  * startRedirector Starts the Redirector server in a new thread. This server
  * handles pointing clients to the correct IP address and port of the main server.
  * This is the only one of the servers that requires SSLv3
- *
- * @param config The server configuration
  */
-fun startRedirector(config: Config) {
+fun startRedirector(
+    listenPort: Int,
+    targetPort: Int,
+) {
     Thread {
         val keyStorePassword = charArrayOf('1', '2', '3', '4', '5', '6')
-        val keyStoreStream = Config::class.java.getResourceAsStream("/redirector.pfx")
+        val keyStoreStream = CONFIG::class.java.getResourceAsStream("/redirector.pfx")
             ?: throw IllegalStateException("Missing required keystore for SSLv3")
         val keyStore = KeyStore.getInstance("PKCS12")
         keyStore.load(keyStoreStream, keyStorePassword)
@@ -47,7 +49,8 @@ fun startRedirector(config: Config) {
         val workerGroup = NioEventLoopGroup(customThreadFactory("Redirector Worker #{ID}"))
         val bootstrap = ServerBootstrap() // Create a server bootstrap
         try {
-            val handler = RedirectHandler(config)
+            val port = CONFIG.ports.redirector
+            val handler = RedirectHandler()
             val bind = bootstrap.group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel::class.java)
                 .childHandler(object : ChannelInitializer<Channel>() {
@@ -63,17 +66,17 @@ fun startRedirector(config: Config) {
                     }
                 })
                 // Bind the server to the host and port
-                .bind(config.host, config.ports.redirector)
+                .bind(port)
                 // Wait for the channel to bind
                 .sync()
-            LOGGER.info("Started Redirector Server (${config.host}:${config.ports.redirector})")
+            info("Started Redirector Server $port")
             bind.channel()
                 // Get the closing future
                 .closeFuture()
                 // Wait for the closing
                 .sync()
         } catch (e: IOException) {
-            LOGGER.error("Exception in redirector server", e)
+            error("Exception in redirector server", e)
         }
     }.apply {
         // Name the redirector thread
@@ -91,27 +94,27 @@ fun startRedirector(config: Config) {
  * REDIRECTOR + GET_SERVER_INSTANCE and when it gets them it sends the
  * client a redirect
  *
- * @param config The server configuration
  * @constructor Create empty RedirectHandler
  */
 @Sharable
-class RedirectHandler(private val config: Config) : SimpleChannelInboundHandler<RawPacket>() {
+class RedirectHandler : SimpleChannelInboundHandler<RawPacket>() {
     override fun channelRead0(ctx: ChannelHandlerContext, msg: RawPacket) {
         if (msg.component == Component.REDIRECTOR
             && msg.command == Command.GET_SERVER_INSTANCE
         ) {
+            val mainAddress = "127.0.0.1"
             val channel = ctx.channel()
             val remoteAddress = channel.remoteAddress()
             channel.respond(msg) {
                 union("ADDR", struct("VALU") {
                     text("HOST", "383933-gosprapp396.ea.com")
-                    number("IP", IPAddress.asLong(config.host))
-                    number("PORT", config.ports.main)
+                    number("IP", IPAddress.asLong(mainAddress))
+                    number("PORT", CONFIG.ports.main)
                 })
                 number("SECU", 0x0)
                 number("XDNS", 0x0)
             }
-            LOGGER.info("Sent redirection to client at $remoteAddress. Closing Connection.")
+            info("Sent redirection to client at $remoteAddress. Closing Connection.")
             channel.close()
         }
     }
