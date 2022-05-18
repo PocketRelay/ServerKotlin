@@ -1,7 +1,7 @@
 package com.jacobtread.kme.blaze
 
 import com.jacobtread.kme.blaze.tdf.*
-import com.jacobtread.kme.utils.VTripple
+import com.jacobtread.kme.blaze.utils.VarTripple
 
 object PacketDumper {
 
@@ -129,9 +129,9 @@ object PacketDumper {
                         }
                         out.append("))")
                     }
-                    is VTripple -> {
+                    is VarTripple -> {
                         for (i in content.indices) {
-                            val tripple = content[i] as VTripple
+                            val tripple = content[i] as VarTripple
                             out.append("VTripple(0x")
                                 .append(tripple.a.toString(16))
                                 .append(", 0x")

@@ -4,7 +4,7 @@ import com.jacobtread.kme.blaze.utils.readString
 import com.jacobtread.kme.blaze.utils.readVarInt
 import com.jacobtread.kme.blaze.utils.writeString
 import com.jacobtread.kme.blaze.utils.writeVarInt
-import com.jacobtread.kme.utils.VTripple
+import com.jacobtread.kme.blaze.utils.VarTripple
 import io.netty.buffer.ByteBuf
 import kotlin.reflect.KClass
 import kotlin.reflect.cast
@@ -32,10 +32,10 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
                     ListTdf(label, subType, values)
                 }
                 TRIPPLE -> {
-                    val values = ArrayList<VTripple>(count)
+                    val values = ArrayList<VarTripple>(count)
                     repeat(count) {
                         values.add(
-                            VTripple(
+                            VarTripple(
                                 input.readVarInt(),
                                 input.readVarInt(),
                                 input.readVarInt(),
@@ -63,7 +63,7 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
             STRING -> value.forEach { out.writeString(it as String) }
             STRUCT -> value.forEach { (it as StructTdf).write(out) }
             TRIPPLE -> value.forEach {
-                val tripple = it as VTripple
+                val tripple = it as VarTripple
                 out.writeVarInt(tripple.a)
                 out.writeVarInt(tripple.b)
                 out.writeVarInt(tripple.c)

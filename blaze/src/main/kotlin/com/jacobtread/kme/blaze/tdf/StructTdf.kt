@@ -4,6 +4,7 @@ import com.jacobtread.kme.blaze.exception.InvalidTdfException
 import io.netty.buffer.ByteBuf
 import kotlin.reflect.KClass
 import kotlin.reflect.cast
+import kotlin.system.measureNanoTime
 
 class StructTdf(label: String, val start2: Boolean, override val value: List<Tdf>) : Tdf(label, STRUCT), TdfValue<List<Tdf>> {
     companion object {
@@ -25,10 +26,11 @@ class StructTdf(label: String, val start2: Boolean, override val value: List<Tdf
         }
     }
 
+    inline fun <reified C: Tdf> get(label: String): C = get(C::class.java, label)
 
-    fun <C : Tdf> get(type: KClass<C>, label: String): C {
+    fun <C : Tdf> get(type: Class<C>, label: String): C {
         val value = this.value.find { it.label == label }
-        if (value == null || !value.javaClass.isAssignableFrom(type.java)) throw InvalidTdfException(label, "No tdf found")
+        if (value == null || !value.javaClass.isAssignableFrom(type)) throw InvalidTdfException(label, "No tdf found")
         try {
             return type.cast(value)
         } catch (e: ClassCastException) {
@@ -36,16 +38,20 @@ class StructTdf(label: String, val start2: Boolean, override val value: List<Tdf
         }
     }
 
-    fun <C : Tdf> getOrNull(type: KClass<C>, label: String): C? {
+    inline fun <reified C: Tdf> getOrNull(label: String): C? = getOrNull(C::class.java, label)
+
+    fun <C : Tdf> getOrNull(type: Class<C>, label: String): C? {
         val value = this.value.find { it.label == label }
-        if (value == null || !value.javaClass.isAssignableFrom(type.java)) return null
+        if (value == null || !value.javaClass.isAssignableFrom(type)) return null
         return type.cast(value)
     }
 
+    inline fun <reified C: TdfValue<T>, T> getValue(label: String): T = getValue(C::class.java, label)
+
     @Throws(InvalidTdfException::class)
-    fun <C : TdfValue<T>, T> getValue(type: KClass<C>, label: String): T {
+    fun <C : TdfValue<T>, T> getValue(type: Class<C>, label: String): T {
         val value = this.value.find { it.label == label } ?: throw InvalidTdfException(label, "No value found")
-        if (!value.javaClass.isAssignableFrom(type.java)) throw InvalidTdfException(label, "Value not of type: ${value.javaClass.simpleName}")
+        if (!value.javaClass.isAssignableFrom(type)) throw InvalidTdfException(label, "Value not of type: ${value.javaClass.simpleName}")
         try {
             return type.cast(value).value
         } catch (e: ClassCastException) {
@@ -53,18 +59,16 @@ class StructTdf(label: String, val start2: Boolean, override val value: List<Tdf
         }
     }
 
-    fun <C : TdfValue<T>, T> getValueOrNull(type: KClass<C>, label: String): T? {
+    inline fun <reified C: TdfValue<T>, T> getValueOrNull(label: String): T? = getValueOrNull(C::class.java, label)
+
+    fun <C : TdfValue<T>, T> getValueOrNull(type: Class<C>, label: String): T? {
         val value = this.value.find { it.label == label }
-        if (value == null || !value.javaClass.isAssignableFrom(type.java)) return null
+        if (value == null || !value.javaClass.isAssignableFrom(type)) return null
         return try {
             type.cast(value).value
         } catch (e: ClassCastException) {
             null
         }
-    }
-
-    fun getByLabel(label: String): Tdf? {
-        return value.find { it.label == label }
     }
 
     override fun write(out: ByteBuf) {

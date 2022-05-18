@@ -1,7 +1,7 @@
 package com.jacobtread.kme.blaze.tdf
 
 import com.jacobtread.kme.blaze.utils.Labels
-import com.jacobtread.kme.utils.VTripple
+import com.jacobtread.kme.blaze.utils.VarTripple
 import io.netty.buffer.ByteBuf
 
 abstract class Tdf(val label: String, private val tagType: Int) {
@@ -25,7 +25,7 @@ abstract class Tdf(val label: String, private val tagType: Int) {
                 String::class.java -> STRING
                 Float::class.java -> FLOAT
                 StructTdf::class.java -> STRUCT
-                VTripple::class.java -> TRIPPLE
+                VarTripple::class.java -> TRIPPLE
                 else -> throw IllegalArgumentException("Don't know how to handle type \"${valueType.simpleName}")
             }
         }

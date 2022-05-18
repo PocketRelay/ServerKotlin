@@ -1,7 +1,7 @@
 package com.jacobtread.kme.blaze
 
 import com.jacobtread.kme.blaze.tdf.*
-import com.jacobtread.kme.utils.VTripple
+import com.jacobtread.kme.blaze.utils.VarTripple
 
 object TdfDumper {
 
@@ -82,7 +82,7 @@ object TdfDumper {
             is Long -> "0x${value.toString(16)}"
             is String -> "\"$value\""
             is StructTdf -> dumpStruct(value, indent, inline)
-            is VTripple -> "(0x${value.a.toString(16)}, 0x${value.b.toString(16)}, 0x${value.c.toString(16)})"
+            is VarTripple -> "(0x${value.a.toString(16)}, 0x${value.b.toString(16)}, 0x${value.c.toString(16)})"
             else -> value.toString()
         }
     }

@@ -1,8 +1,8 @@
 package com.jacobtread.kme.blaze
 
 import com.jacobtread.kme.blaze.tdf.*
-import com.jacobtread.kme.utils.VPair
-import com.jacobtread.kme.utils.VTripple
+import com.jacobtread.kme.blaze.utils.VarPair
+import com.jacobtread.kme.blaze.utils.VarTripple
 import io.netty.buffer.Unpooled
 
 /**
@@ -36,7 +36,7 @@ class TdfBuilder {
      * @param label The label of the Tdf
      * @param value The long value of the Tdf
      */
-    fun number(label: String, value: Long = 0L) {
+    fun number(label: String, value: Long) {
         values.add(VarIntTdf(label, value))
     }
 
@@ -47,7 +47,7 @@ class TdfBuilder {
      * @param label The label of the Tdf
      * @param value The int value of the Tdf
      */
-    fun number(label: String, value: Int = 0) {
+    fun number(label: String, value: Int) {
         values.add(VarIntTdf(label, value.toLong()))
     }
 
@@ -72,7 +72,7 @@ class TdfBuilder {
      * @param c The third value of the tripple
      */
     fun tripple(label: String, a: Long, b: Long, c: Long) {
-        values.add(TrippleTdf(label, VTripple(a, b, c)))
+        values.add(TrippleTdf(label, VarTripple(a, b, c)))
     }
 
     /**
@@ -82,7 +82,7 @@ class TdfBuilder {
      * @param label The label of the Tdf
      * @param value The tripple value
      */
-    fun tripple(label: String, value: VTripple) {
+    fun tripple(label: String, value: VarTripple) {
         values.add(TrippleTdf(label, value))
     }
 
@@ -95,7 +95,7 @@ class TdfBuilder {
      * @param b The second value of the pair
      */
     fun pair(label: String, a: Long, b: Long) {
-        values.add(PairTdf(label, VPair(a, b)))
+        values.add(PairTdf(label, VarPair(a, b)))
     }
 
     /**
@@ -105,7 +105,7 @@ class TdfBuilder {
      * @param label The label of the Tdf
      * @param value The pair of values
      */
-    fun pair(label: String, value: VPair) {
+    fun pair(label: String, value: VarPair) {
         values.add(PairTdf(label, value))
     }
 

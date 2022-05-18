@@ -2,16 +2,16 @@ package com.jacobtread.kme.blaze.tdf
 
 import com.jacobtread.kme.blaze.utils.readVarInt
 import com.jacobtread.kme.blaze.utils.writeVarInt
-import com.jacobtread.kme.utils.VTripple
+import com.jacobtread.kme.blaze.utils.VarTripple
 import io.netty.buffer.ByteBuf
 
-class TrippleTdf(label: String, override val value: VTripple) : Tdf(label, TRIPPLE), TdfValue<VTripple> {
+class TrippleTdf(label: String, override val value: VarTripple) : Tdf(label, TRIPPLE), TdfValue<VarTripple> {
     companion object {
         fun from(label: String, input: ByteBuf): TrippleTdf {
             val a = input.readVarInt()
             val b = input.readVarInt()
             val c = input.readVarInt()
-            return TrippleTdf(label, VTripple(a, b, c))
+            return TrippleTdf(label, VarTripple(a, b, c))
         }
     }
 
