@@ -3,6 +3,7 @@ package com.jacobtread.kme.database
 import com.jacobtread.kme.Config
 import com.jacobtread.kme.utils.MEStringParser
 import com.jacobtread.kme.utils.compareHashPassword
+import com.jacobtread.kme.utils.comparePasswordHash
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
@@ -146,8 +147,6 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
         }
         return level + promotions * 30
     }
-
-    fun isMatchingPassword(password: String): Boolean = compareHashPassword(password, this.password)
 }
 
 class PlayerSettingsBase(

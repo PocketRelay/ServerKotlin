@@ -16,7 +16,7 @@ import kotlin.io.path.writeText
 val LOGGER = Logger.get()
 
 fun main() {
-    Thread.currentThread().name = "Main"
+    configureSystemProperties()
 
     val rootPath = Paths.get(".")
 
@@ -54,3 +54,13 @@ fun main() {
     }
 }
 
+/**
+ * configureSystemProperties Tweaks the java system properties to
+ * remove unwanted alerts as well as enabling SSLv3
+ *
+ */
+fun configureSystemProperties() {
+    Thread.currentThread().name = "Main"
+    java.security.Security.setProperty("jdk.tls.disabledAlgorithms", "")
+    System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "error")
+}

@@ -4,7 +4,6 @@ import com.jacobtread.kme.Config
 import com.jacobtread.kme.LOGGER
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.utils.IPAddress
-import com.jacobtread.kme.utils.createContext
 import com.jacobtread.kme.utils.customThreadFactory
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
@@ -13,7 +12,11 @@ import io.netty.channel.ChannelInitializer
 import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
+import io.netty.handler.ssl.SslContextBuilder
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory
 import java.io.IOException
+import java.security.KeyStore
+import javax.net.ssl.KeyManagerFactory
 
 /**
  * startRedirector Starts the Redirector server in a new thread
@@ -22,7 +25,20 @@ import java.io.IOException
  */
 fun startRedirector(config: Config) {
     Thread {
-        val context = createContext() // Create a SSL context
+        val keyStorePassword = charArrayOf('1', '2', '3', '4', '5', '6')
+        val keyStoreStream = RedirectClient::class.java.getResourceAsStream("/redirector.pfx")
+            ?: throw IllegalStateException("Missing required keystore for SSLv3")
+        val keyStore = KeyStore.getInstance("PKCS12")
+        keyStore.load(keyStoreStream, keyStorePassword)
+        val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
+        kmf.init(keyStore, keyStorePassword)
+        // Create new SSLv3 compatible context
+        val context = SslContextBuilder.forServer(kmf)
+            .ciphers(listOf("TLS_RSA_WITH_RC4_128_SHA", "TLS_RSA_WITH_RC4_128_MD5"))
+            .protocols("SSLv3", "TLSv1.2", "TLSv1.3")
+            .startTls(true)
+            .trustManager(InsecureTrustManagerFactory.INSTANCE)
+            .build() ?: throw IllegalStateException("Unable to create SSL Context")
         val bossGroup = NioEventLoopGroup(customThreadFactory("Redirector Boss #{ID}"))
         val workerGroup = NioEventLoopGroup(customThreadFactory("Redirector Worker #{ID}"))
         val bootstrap = ServerBootstrap() // Create a server bootstrap
@@ -64,6 +80,7 @@ fun startRedirector(config: Config) {
     }
 }
 
+
 /**
  * RedirectClient Creates a client that handles the redirect handshake
  * to direct the client to the desired main server
@@ -84,7 +101,7 @@ private class RedirectClient(private val config: Config) : SimpleChannelInboundH
         if (msg.component == Component.REDIRECTOR
             && msg.command == Command.GET_SERVER_INSTANCE
         ) {
-            val platform = msg.getValue(StringTdf::class, "PLAT")
+            val platform = msg.getValueOrNull(StringTdf::class, "PLAT")
             val channel = ctx.channel()
             val remoteAddress = channel.remoteAddress()
             LOGGER.info("Sending redirection to client ($remoteAddress) -> on platform ${platform ?: "Unknown"}")

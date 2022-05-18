@@ -10,6 +10,7 @@ import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.database.Players
 import com.jacobtread.kme.utils.KME_VERSION
+import com.jacobtread.kme.utils.comparePasswordHash
 import com.jacobtread.kme.utils.customThreadFactory
 import com.jacobtread.kme.utils.hashPassword
 import io.netty.bootstrap.ServerBootstrap
@@ -246,7 +247,7 @@ private class MainClient(private val session: SessionData, private val config: C
             return
         }
 
-        if (!player.isMatchingPassword(password)) {
+        if (!comparePasswordHash(password, player.password)) {
             loginErrorPacket(packet, LoginError.WRONG_PASSWORD)
             return
         }
