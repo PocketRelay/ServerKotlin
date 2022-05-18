@@ -1,6 +1,7 @@
 package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.CONFIG
+import com.jacobtread.kme.KME_VERSION
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.Command.*
 import com.jacobtread.kme.blaze.Component.*
@@ -9,7 +10,6 @@ import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.database.Players
 import com.jacobtread.kme.logging.Logger
-import com.jacobtread.kme.utils.KME_VERSION
 import com.jacobtread.kme.utils.comparePasswordHash
 import com.jacobtread.kme.utils.customThreadFactory
 import com.jacobtread.kme.utils.hashPassword

@@ -9,17 +9,20 @@ import com.jacobtread.kme.servers.startDiscardServer
 import com.jacobtread.kme.servers.startHttpServer
 import com.jacobtread.kme.servers.startMainServer
 import com.jacobtread.kme.servers.startRedirector
+import com.jacobtread.kme.utils.nameThread
 import java.security.Security
 
+// The version of KME
+const val KME_VERSION = "1.0.0"
 // Load the config as a global variable
 val CONFIG = loadConfigFile()
 
 fun main() {
     // Clears the disabled algorithms necessary for SSLv3
     Security.setProperty("jdk.tls.disabledAlgorithms", "")
-    Thread.currentThread().name = "Main"
-    Logger.logLevel = Level.fromName(CONFIG.logLevel)
+    nameThread("Main")
 
+    Logger.setLevelFrom(CONFIG.logLevel)
     Logger.info("Starting ME3 Server")
 
     startRedirector(CONFIG.ports.redirector, CONFIG.ports.main)
@@ -31,6 +34,7 @@ fun main() {
     startDiscardServer("Telemetry", CONFIG.ports.telemetry)
     startDiscardServer("Ticker", CONFIG.ports.ticker)
 
+    // Infinite loop to read commands from System in
     while (true) {
         val input = readLine() ?: continue
         Logger.info("Unknown command: $input")

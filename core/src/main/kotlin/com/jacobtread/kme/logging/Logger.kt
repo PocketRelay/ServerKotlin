@@ -23,7 +23,11 @@ object Logger {
     private val logFile: Path = loggingPath.resolve("latest.log")
     private val file: RandomAccessFile
     private val outputBuffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE)
-    var logLevel: Level = Level.INFO
+    private var logLevel: Level = Level.INFO
+
+    fun setLevelFrom(value: String) {
+        logLevel = Level.fromName(value)
+    }
 
     /**
      * isDebugEnabled Checks whether the current
