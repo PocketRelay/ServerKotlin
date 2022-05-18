@@ -50,32 +50,4 @@ class Packet(
     override fun toString(): String {
         return "Packet (Component: $component ($rawComponent), Command: $command ($rawCommand), Error; $error, QType: $qtype, Id: $id, Content: [${rawContent.joinToString(", ") { "${it.toInt().and(0xFF)}" }})"
     }
-
-    fun toDebugString(raw: Boolean = false): String {
-        val builder = StringBuilder()
-        builder.apply {
-            append("====== Packet Dump ======\n")
-            append("Component: $component (9x${rawComponent.toString(16)})\n")
-            append("Command: $command (0x${rawCommand.toString(16)})\n")
-            append("Error: 0x${error.toString(16)}\n")
-            append("QType: 0x${qtype.toString(16)}\n")
-            append("ID: 0x${id.toString(16)}\n")
-            val content = content
-            append("Raw Content Length: ${content.size}\n")
-            if (raw) {
-                append('[')
-                rawContent.forEach {
-                    append(it.toInt().and(0xFF))
-                    append(", ")
-                }
-                append("]\n")
-            }
-            append("Content Length: ${content.size}\n")
-            append("=== Content ==\n")
-            append(TdfDumper.dump(content))
-            append("==== End Packet Dump ====\n")
-        }
-        return builder.toString()
-    }
-
 }
