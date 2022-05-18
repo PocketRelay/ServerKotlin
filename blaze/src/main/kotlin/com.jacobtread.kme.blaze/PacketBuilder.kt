@@ -10,29 +10,29 @@ const val ERROR = 0x3000
 const val NO_ERROR = 0
 
 @Suppress("NOTHING_TO_INLINE")
-inline fun Channel.send(packet: RawPacket) {
+inline fun Channel.send(packet: Packet) {
     write(packet)
     flush()
 }
 
 inline fun Channel.respond(
-    responding: RawPacket,
+    responding: Packet,
     error: Int = NO_ERROR,
     populate: TdfBuilder.() -> Unit = {},
 ) = send(createPacket(responding.rawComponent, responding.rawCommand, RESPONSE, responding.id, error, populate))
 
 inline fun Channel.error(
-    responding: RawPacket,
+    responding: Packet,
     error: Int,
     populate: TdfBuilder.() -> Unit = {},
 ) = send(createPacket(responding.rawComponent, responding.rawCommand, ERROR, responding.id, error, populate))
 
 
 inline fun respond(
-    responding: RawPacket,
+    responding: Packet,
     error: Int = NO_ERROR,
     populate: TdfBuilder.() -> Unit = {},
-): RawPacket = createPacket(
+): Packet = createPacket(
     responding.rawComponent,
     responding.rawCommand,
     RESPONSE,
@@ -56,7 +56,7 @@ inline fun unique(
     id: Int = 0x0,
     error: Int = NO_ERROR,
     populate: TdfBuilder.() -> Unit = {},
-): RawPacket = createPacket(component.id, command.value, UNIQUE, id, error, populate)
+): Packet = createPacket(component.id, command.value, UNIQUE, id, error, populate)
 
 inline fun Channel.packet(
     component: Int,
@@ -75,10 +75,10 @@ inline fun createPacket(
     id: Int = 0x0,
     error: Int = NO_ERROR,
     populate: TdfBuilder.() -> Unit = {},
-): RawPacket {
+): Packet {
     val contentBuilder = TdfBuilder()
     contentBuilder.populate()
-    return RawPacket(
+    return Packet(
         component,
         command,
         error,

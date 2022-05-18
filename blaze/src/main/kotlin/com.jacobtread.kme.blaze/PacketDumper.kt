@@ -1,10 +1,11 @@
 package com.jacobtread.kme.blaze
 
+import com.jacobtread.kme.blaze.tdf.*
 import com.jacobtread.kme.utils.VTripple
 
 object PacketDumper {
 
-    fun dump(rawPacket: RawPacket): String {
+    fun dump(rawPacket: Packet): String {
         val out = StringBuilder("packet(")
         if (rawPacket.command == Command.UNKNOWN
             || rawPacket.component == Component.UNKNOWN

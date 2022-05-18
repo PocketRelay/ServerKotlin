@@ -1,12 +1,15 @@
 package com.jacobtread.kme.blaze
 
 import com.jacobtread.kme.blaze.exception.InvalidTdfException
+import com.jacobtread.kme.blaze.tdf.StringTdf
+import com.jacobtread.kme.blaze.tdf.Tdf
+import com.jacobtread.kme.blaze.tdf.TdfValue
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import kotlin.reflect.KClass
 import kotlin.reflect.cast
 
-class RawPacket(
+class Packet(
     val rawComponent: Int,
     val rawCommand: Int,
     val error: Int,
@@ -15,7 +18,7 @@ class RawPacket(
     val rawContent: ByteArray,
 ) {
     companion object {
-        fun read(input: ByteBuf): RawPacket {
+        fun read(input: ByteBuf): Packet {
             val length = input.readUnsignedShort();
             val component = input.readUnsignedShort()
             val command = input.readUnsignedShort()
@@ -26,7 +29,7 @@ class RawPacket(
             val contentLength = length + (extLength shl 16)
             val content = ByteArray(contentLength)
             input.readBytes(content)
-            return RawPacket(component, command, error, qtype, id, content)
+            return Packet(component, command, error, qtype, id, content)
         }
     }
 

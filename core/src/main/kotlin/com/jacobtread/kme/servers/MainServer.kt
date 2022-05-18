@@ -5,6 +5,10 @@ import com.jacobtread.kme.KME_VERSION
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.Command.*
 import com.jacobtread.kme.blaze.Component.*
+import com.jacobtread.kme.blaze.tdf.StringTdf
+import com.jacobtread.kme.blaze.tdf.StructTdf
+import com.jacobtread.kme.blaze.tdf.UnionTdf
+import com.jacobtread.kme.blaze.tdf.VarIntTdf
 import com.jacobtread.kme.blaze.utils.IPAddress
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Player
@@ -111,7 +115,7 @@ class SessionData(
 data class NetData(var address: Long, var port: Int)
 
 @Suppress("SpellCheckingInspection")
-private class MainClient(private val session: SessionData) : SimpleChannelInboundHandler<RawPacket>() {
+private class MainClient(private val session: SessionData) : SimpleChannelInboundHandler<Packet>() {
 
     companion object {
         private const val NAT_TYPE = 4
@@ -139,7 +143,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         fun getUnixTimeSeconds(): Long = Instant.now().epochSecond
     }
 
-    fun empty(packet: RawPacket, qtype: Int = RESPONSE) = channel.send(RawPacket(packet.rawComponent, packet.rawCommand, 0, qtype, packet.id, EMPTY_BYTE_ARRAY))
+    fun empty(packet: Packet, qtype: Int = RESPONSE) = channel.send(Packet(packet.rawComponent, packet.rawCommand, 0, qtype, packet.id, EMPTY_BYTE_ARRAY))
 
     lateinit var channel: Channel
 
@@ -148,7 +152,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         this.channel = ctx.channel()
     }
 
-    override fun channelRead0(ctx: ChannelHandlerContext, msg: RawPacket) {
+    override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
         try {
             when (msg.component) {
                 AUTHENTICATION -> handleAuthentication(msg)
@@ -168,7 +172,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
 
     //region Authentication Component Region
 
-    private fun handleAuthentication(packet: RawPacket) {
+    private fun handleAuthentication(packet: Packet) {
         when (packet.command) {
             LIST_USER_ENTITLEMENTS_2 -> handleListUserEntitlements2(packet)
             GET_AUTH_TOKEN -> handleGetAuthToken(packet)
@@ -182,7 +186,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
     }
 
 
-    private fun handleListUserEntitlements2(packet: RawPacket) {
+    private fun handleListUserEntitlements2(packet: Packet) {
         val etag = packet.getValue(StringTdf::class, "ETAG")
         if (etag.isEmpty()) {
             channel.send(Data.makeUserEntitlements2(packet))
@@ -216,14 +220,14 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         }
     }
 
-    private fun handleGetAuthToken(packet: RawPacket) {
+    private fun handleGetAuthToken(packet: Packet) {
         val player = session.getPlayer()
         channel.respond(packet) {
             text("AUTH", player.id.value.toString(16).uppercase())
         }
     }
 
-    private fun handleLogin(packet: RawPacket) {
+    private fun handleLogin(packet: Packet) {
         val email = packet.getValue(StringTdf::class, "MAIL")
         val password = packet.getValue(StringTdf::class, "PASS")
         if (email.isBlank() || password.isBlank()) {
@@ -285,7 +289,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         }
     }
 
-    private fun handleSilentLogin(packet: RawPacket) {
+    private fun handleSilentLogin(packet: Packet) {
         val pid = packet.getValue(VarIntTdf::class, "PID")
         val auth = packet.getValue(StringTdf::class, "AUTH")
         val player = transaction { Player.findById(pid.toInt()) }
@@ -322,7 +326,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         return sessionToken
     }
 
-    private fun authResponsePacket(packet: RawPacket) {
+    private fun authResponsePacket(packet: Packet) {
         val player = session.getPlayer()
 
         val sessionToken = getSessionToken()
@@ -419,14 +423,14 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         CONNECTION_LOST(0x4007)
     }
 
-    private fun loginErrorPacket(packet: RawPacket, reason: LoginError) {
+    private fun loginErrorPacket(packet: Packet, reason: LoginError) {
         channel.error(packet, reason.value) {
             text("PNAM", "")
             number("UID", 0)
         }
     }
 
-    private fun handleCreateAccount(packet: RawPacket) {
+    private fun handleCreateAccount(packet: Packet) {
         val email = packet.getValue(StringTdf::class, "MAIL")
         val password = packet.getValue(StringTdf::class, "PASS")
         // Check for existing emails
@@ -453,7 +457,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
     }
 
 
-    private fun handleLoginPersona(packet: RawPacket) {
+    private fun handleLoginPersona(packet: Packet) {
         val playerName = packet.getValue(StringTdf::class, "PNAM")
         val player = session.getPlayer()
         if (playerName != player.displayName) {
@@ -484,7 +488,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
 
     //region Game Manager Component Region
 
-    private fun handleGameManager(packet: RawPacket) {
+    private fun handleGameManager(packet: Packet) {
 
     }
 
@@ -492,7 +496,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
 
     //region Stats Component Region
 
-    private fun handleStats(packet: RawPacket) {
+    private fun handleStats(packet: Packet) {
         when (packet.command) {
             GET_LEADERBOARD_GROUP -> handleLeaderboardGroup(packet)
             GET_FILTERED_LEADERBOARD -> handleFilteredLeaderboard(packet)
@@ -517,7 +521,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         }
     }
 
-    private fun handleLeaderboardGroup(packet: RawPacket) {
+    private fun handleLeaderboardGroup(packet: Packet) {
         val name = packet.getValueOrNull(StringTdf::class, "NAME") ?: return
         if (name.startsWith("NZRating")) {
             val locale = name.substring(8)
@@ -596,7 +600,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         }
     }
 
-    private fun handleFilteredLeaderboard(packet: RawPacket) {
+    private fun handleFilteredLeaderboard(packet: Packet) {
         val name = packet.getValueOrNull(StringTdf::class, "NAME") ?: return
         val player = session.getPlayer()
         when (name) {
@@ -638,14 +642,14 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         }
     }
 
-    private fun handleLeaderboardEntityCount(packet: RawPacket) {
+    private fun handleLeaderboardEntityCount(packet: Packet) {
         val playerCount = Player.count()
         channel.respond(packet) {
             number("CNT", playerCount)
         }
     }
 
-    private fun handleCenteredLeadboard(packet: RawPacket) {
+    private fun handleCenteredLeadboard(packet: Packet) {
         // TODO: Currenlty not implemented
         channel.respond(packet) {
             list("LDLS", emptyList<StructTdf>())
@@ -656,7 +660,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
 
     //region Messaging Component Region
 
-    private fun handleMessaging(packet: RawPacket) {
+    private fun handleMessaging(packet: Packet) {
         when (packet.command) {
             FETCH_MESSAGES -> {
                 channel.write(respond(packet) {
@@ -698,7 +702,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
 
     //region Association Lists Component Region
 
-    private fun handleAssociationLists(packet: RawPacket) {
+    private fun handleAssociationLists(packet: Packet) {
         when (packet.command) {
             GET_LISTS -> {
                 channel.respond(packet) {
@@ -737,7 +741,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
 
     //region Game Reporting Component Region
 
-    fun handleGameReporting(packet: RawPacket) {
+    fun handleGameReporting(packet: Packet) {
 
     }
 
@@ -745,7 +749,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
 
     //region User Sessions Component Region
 
-    private fun handleUserSessions(packet: RawPacket) {
+    private fun handleUserSessions(packet: Packet) {
         when (packet.command) {
             UPDATE_HARDWARE_FLAGS,
             UPDATE_NETWORK_INFO,
@@ -773,7 +777,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
 
     //region Util Component Region
 
-    private fun handleUtil(packet: RawPacket) {
+    private fun handleUtil(packet: Packet) {
         when (packet.command) {
             FETCH_CLIENT_CONFIG -> handleFetchClientConfig(packet)
             PING -> handlePing(packet)
@@ -787,7 +791,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         }
     }
 
-    private fun handleFetchClientConfig(packet: RawPacket) {
+    private fun handleFetchClientConfig(packet: Packet) {
         val type = packet.getValue(StringTdf::class, "CFID")
         if (type.startsWith("ME3_LIVE_TLK_PC_")) {
             val lang = type.substring(16)
@@ -811,7 +815,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         }
     }
 
-    private fun handlePing(packet: RawPacket) {
+    private fun handlePing(packet: Packet) {
         Logger.logIfDebug { "Received ping update from client: ${session.id}" }
         session.lastPingTime = System.currentTimeMillis()
         channel.respond(packet) {
@@ -819,7 +823,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         }
     }
 
-    private fun handlePreAuth(packet: RawPacket) {
+    private fun handlePreAuth(packet: Packet) {
         channel.respond(packet) {
             number("ANON", 0x0)
             number("ASRC", 303107)
@@ -872,7 +876,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         }
     }
 
-    private fun handlePostAuth(packet: RawPacket) {
+    private fun handlePostAuth(packet: Packet) {
         channel.respond(packet) {
             +struct("PSS") {
                 text("ADRS", "playersyncservice.ea.com")
@@ -914,7 +918,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         }
     }
 
-    private fun handleUserSettingsSave(packet: RawPacket) {
+    private fun handleUserSettingsSave(packet: Packet) {
         val value = packet.getValueOrNull(StringTdf::class, "DATA")
         val key = packet.getValueOrNull(StringTdf::class, "KEY")
         if (value != null && key != null) {
@@ -925,14 +929,14 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
         empty(packet)
     }
 
-    private fun handleUserSettingsLoadAll(packet: RawPacket) {
+    private fun handleUserSettingsLoadAll(packet: Packet) {
         val player = session.getPlayer()
         channel.respond(packet) {
             map("SMAP", player.createSettingsMap())
         }
     }
 
-    private fun handleSuspendUserPing(packet: RawPacket) {
+    private fun handleSuspendUserPing(packet: Packet) {
         val value = packet.getValueOrNull(VarIntTdf::class, "TVAL")
         if (value != null) {
             if (value == 0x1312D00L) {

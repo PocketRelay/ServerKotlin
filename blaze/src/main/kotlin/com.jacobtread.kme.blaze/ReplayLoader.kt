@@ -17,7 +17,7 @@ fun main(args: Array<String>) {
             val buffer = Unpooled.wrappedBuffer(contents)
             while (buffer.readableBytes() > 0) {
                 try {
-                    val packet = RawPacket.read(buffer)
+                    val packet = Packet.read(buffer)
                     outBuilder.append(PacketDumper.dump(packet))
                     outBuilder.append('\n')
                 } catch (e: Throwable) {

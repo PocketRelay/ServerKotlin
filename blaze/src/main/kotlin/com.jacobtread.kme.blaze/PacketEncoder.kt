@@ -6,9 +6,9 @@ import io.netty.handler.codec.MessageToByteEncoder
 import java.text.SimpleDateFormat
 import java.util.*
 
-class PacketEncoder : MessageToByteEncoder<RawPacket>() {
+class PacketEncoder : MessageToByteEncoder<Packet>() {
     private val printDateFormat = SimpleDateFormat("HH:mm:ss")
-    override fun encode(ctx: ChannelHandlerContext, msg: RawPacket, out: ByteBuf) {
+    override fun encode(ctx: ChannelHandlerContext, msg: Packet, out: ByteBuf) {
         val time = printDateFormat.format(Date())
         println("== $time == OUT =====")
         println(PacketDumper.dump(msg))

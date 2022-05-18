@@ -97,8 +97,8 @@ fun startRedirector(
  * @constructor Create empty RedirectHandler
  */
 @Sharable
-class RedirectHandler : SimpleChannelInboundHandler<RawPacket>() {
-    override fun channelRead0(ctx: ChannelHandlerContext, msg: RawPacket) {
+class RedirectHandler : SimpleChannelInboundHandler<Packet>() {
+    override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
         if (msg.component == Component.REDIRECTOR
             && msg.command == Command.GET_SERVER_INSTANCE
         ) {

@@ -12,7 +12,7 @@ class PacketDecoder : ByteToMessageDecoder() {
     override fun decode(ctx: ChannelHandlerContext, input: ByteBuf, out: MutableList<Any>) {
         try {
             while (input.readableBytes() > 0) {
-                val packet = RawPacket.read(input)
+                val packet = Packet.read(input)
 
                 val time = printDateFormat.format(Date())
                 println("== $time == IN ======")

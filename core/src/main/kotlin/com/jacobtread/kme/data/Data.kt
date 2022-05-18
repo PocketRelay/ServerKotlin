@@ -1,6 +1,6 @@
 package com.jacobtread.kme.data
 
-import com.jacobtread.kme.blaze.RawPacket
+import com.jacobtread.kme.blaze.Packet
 import com.jacobtread.kme.blaze.respond
 import com.jacobtread.kme.blaze.struct
 import java.io.BufferedReader
@@ -14,7 +14,7 @@ import java.io.IOException
  */
 object Data {
 
-    fun makeUserEntitlements2(packet: RawPacket): RawPacket {
+    fun makeUserEntitlements2(packet: Packet): Packet {
         @Suppress("SpellCheckingInspection")
         return respond(packet) {
             list("NLST", listOf(
