@@ -3,6 +3,7 @@ package com.jacobtread.kme.game
 import com.jacobtread.kme.database.repos.PlayerNotFoundException
 import com.jacobtread.kme.database.repos.PlayersRepository
 import com.jacobtread.kme.database.repos.ServerErrorException
+import com.jacobtread.kme.utils.MEStringParser
 import com.jacobtread.kme.utils.compareHashPassword
 import io.netty.buffer.Unpooled
 
@@ -82,11 +83,6 @@ data class Player(
         return classes
     }
 
-    fun getChallengePoints(): Int {
-        val stats = getChallengeStats()
-        if (stats.completion.size < 2) return 0
-        return stats.completion[1]
-    }
 
     fun getN7Rating(): Int {
         val classes = getClasses()
@@ -175,106 +171,6 @@ data class Player(
 
     }
 
-    data class PlayerClass(
-        val name: String,
-        val level: Int,
-        val exp: Float,
-        val promotions: Int,
-    ) {
-        companion object {
-            val CLASS_NAMES = arrayOf(
-                "Adept",
-                "Soldier",
-                "Engineer",
-                "Sentinel",
-                "Infiltrator",
-                "Vanguard"
-            )
-
-            fun parse(value: String): PlayerClass {
-                val parts = value.split(";", limit = 6)
-                require(parts.size == 6) { "Invalid player class" }
-                val name = parts[2]
-                val level = parts[3].toIntOrNull() ?: 1
-                val exp = parts[4].toFloatOrNull() ?: 0f
-                val promotions = parts[5].toIntOrNull() ?: 0
-                return PlayerClass(name, level, exp, promotions)
-            }
-        }
-
-        override fun toString(): String {
-            val builder = StringBuilder()
-                .append("20;4;")
-                .append(name).append(';')
-                .append(level).append(';')
-                .append(exp).append(';')
-                .append(promotions)
-            return builder.toString()
-        }
-    }
-
-    private fun loadClasses(): List<PlayerClass> {
-        val out = ArrayList<PlayerClass>(6)
-        for (i in 1..6) {
-            val clazz = settings["class$i"] ?: break
-            out.add(PlayerClass.parse(clazz))
-        }
-        return out
-    }
-
-    data class PlayerCharacter(
-        val kitName: String,
-        val characterName: String,
-        val tint1: Int,
-        val tint2: Int,
-        val pattern: Int,
-        val patternColor: Int,
-        val phong: Int,
-        val emissive: Int,
-        val skinTone: Int,
-        val secondsPlayed: Long,
-        val timeStampYear: Int,
-        val timeStampMonth: Int,
-        val timeStampDay: Int,
-        val timeStampSeconds: Int,
-        val powers: String,
-        val hotkeys: String,
-        val weapons: String,
-        val weaponMods: String,
-        val deployed: Boolean,
-        val leveledUp: Boolean,
-    ) {
-        override fun toString(): String {
-            val builder = StringBuilder()
-            builder.append("20;4;")
-                .append(kitName).append(';')
-                .append(characterName).append(';')
-                .append(tint1).append(';')
-                .append(tint2).append(';')
-                .append(pattern).append(';')
-                .append(patternColor).append(';')
-                .append(phong).append(';')
-                .append(emissive).append(';')
-                .append(skinTone).append(';')
-                .append(secondsPlayed).append(';')
-                .append(timeStampYear).append(';')
-                .append(timeStampMonth).append(';')
-                .append(timeStampDay).append(';')
-                .append(timeStampSeconds).append(';')
-                .append(powers).append(';')
-                .append(hotkeys).append(';')
-                .append(weapons).append(';')
-                .append(weaponMods).append(';')
-                .append(if (deployed) "True" else "False").append(';')
-                .append(if (leveledUp) "True" else "False")
-            return builder.toString()
-        }
-    }
-
-
-    fun isMatchingPassword(value: String): Boolean {
-        return compareHashPassword(value, this.password)
-    }
 
     fun setSettings(settings: MutableMap<String, String>) {
         this.settings.clear()

@@ -609,7 +609,7 @@ private class MainClient(private val session: SessionData, private val config: C
                 }
             }
             "ChallengePointsGlobal" -> {
-                val challengePoints = player.getChallengePoints().toString()
+                val challengePoints = "0"
                 channel.respond(packet) {
                     list("LDLS", listOf(
                         struct {

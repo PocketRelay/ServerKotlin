@@ -1,6 +1,7 @@
 package com.jacobtread.kme
 
 import com.jacobtread.kme.database.Database
+import com.jacobtread.kme.database.DatabaseTest
 import com.jacobtread.kme.logging.Level
 import com.jacobtread.kme.logging.Logger
 import com.jacobtread.kme.servers.*
