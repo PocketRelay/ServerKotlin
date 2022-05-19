@@ -64,9 +64,6 @@ data class RedirectorConfig(
  */
 fun main() {
     startRedirector()
-
-    @Suppress("ControlFlowWithEmptyBody")
-    while(true);
 }
 
 private fun loadConfig(): RedirectorConfig {
@@ -95,70 +92,61 @@ private fun loadConfig(): RedirectorConfig {
  * @param config The configuration for the redirector
  */
 fun startRedirector(config: RedirectorConfig = loadConfig()) {
-    Thread {
-        // Clears the disabled algorithms necessary for SSLv3
-        Security.setProperty("jdk.tls.disabledAlgorithms", "")
+    // Clears the disabled algorithms necessary for SSLv3
+    Security.setProperty("jdk.tls.disabledAlgorithms", "")
 
-        val keyStorePassword = charArrayOf('1', '2', '3', '4', '5', '6')
-        val keyStoreStream = RedirectHandler::class.java.getResourceAsStream("/redirector.pfx")
-            ?: throw IllegalStateException("Missing required keystore for SSLv3")
-        val keyStore = KeyStore.getInstance("PKCS12")
-        keyStore.load(keyStoreStream, keyStorePassword)
-        val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
-        kmf.init(keyStore, keyStorePassword)
+    val keyStorePassword = charArrayOf('1', '2', '3', '4', '5', '6')
+    val keyStoreStream = RedirectHandler::class.java.getResourceAsStream("/redirector.pfx")
+        ?: throw IllegalStateException("Missing required keystore for SSLv3")
+    val keyStore = KeyStore.getInstance("PKCS12")
+    keyStore.load(keyStoreStream, keyStorePassword)
+    val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
+    kmf.init(keyStore, keyStorePassword)
 
-        // Create new SSLv3 compatible context
-        val context = SslContextBuilder.forServer(kmf)
-            .ciphers(listOf("TLS_RSA_WITH_RC4_128_SHA", "TLS_RSA_WITH_RC4_128_MD5"))
-            .protocols("SSLv3", "TLSv1.2", "TLSv1.3")
-            .startTls(true)
-            .trustManager(InsecureTrustManagerFactory.INSTANCE)
-            .build() ?: throw IllegalStateException("Unable to create SSL Context")
-        val bossGroup = NioEventLoopGroup(customThreadFactory("Redirector Boss #{ID}"))
-        val workerGroup = NioEventLoopGroup(customThreadFactory("Redirector Worker #{ID}"))
-        val bootstrap = ServerBootstrap() // Create a server bootstrap
-        try {
-            val targetPort = config.targetPort
-            val listenPort = config.port
-            val address = lookupServerAddress(config.targetHost)
-            val handler = RedirectHandler(address, targetPort)
-            val bind = bootstrap.group(bossGroup, workerGroup)
-                .channel(NioServerSocketChannel::class.java)
-                .childHandler(object : ChannelInitializer<Channel>() {
-                    override fun initChannel(ch: Channel) {
-                        ch.pipeline()
-                            // Add handler for decoding SSLv3
-                            .addLast(context.newHandler(ch.alloc()))
-                            // Add handler for decoding packet
-                            .addLast(PacketDecoder())
-                            // Add handler for processing packets
-                            .addLast(handler)
-                            .addLast(PacketEncoder())
-                    }
-                })
-                // Bind the server to the host and port
-                .bind(listenPort)
-                // Wait for the channel to bind
-                .sync()
-            info("Started Redirector on port $listenPort redirecting to:")
-            info("Host: ${address.host}")
-            info("IP: ${address.ip}")
-            info("Port: $targetPort")
-            bind.channel()
-                // Get the closing future
-                .closeFuture()
-                // Wait for the closing
-                .sync()
-        } catch (e: IOException) {
-            error("Exception in redirector server", e)
-        }
-    }.apply {
-        // Name the redirector thread
-        name = "Redirector"
-        // Close this thread when the JVM requests close
-        isDaemon = true
-        // Start the redirector thread
-        start()
+    // Create new SSLv3 compatible context
+    val context = SslContextBuilder.forServer(kmf)
+        .ciphers(listOf("TLS_RSA_WITH_RC4_128_SHA", "TLS_RSA_WITH_RC4_128_MD5"))
+        .protocols("SSLv3", "TLSv1.2", "TLSv1.3")
+        .startTls(true)
+        .trustManager(InsecureTrustManagerFactory.INSTANCE)
+        .build() ?: throw IllegalStateException("Unable to create SSL Context")
+    val bossGroup = NioEventLoopGroup(customThreadFactory("Redirector Boss #{ID}"))
+    val workerGroup = NioEventLoopGroup(customThreadFactory("Redirector Worker #{ID}"))
+    val bootstrap = ServerBootstrap() // Create a server bootstrap
+    try {
+        val targetPort = config.targetPort
+        val listenPort = config.port
+        val address = lookupServerAddress(config.targetHost)
+        val handler = RedirectHandler(address, targetPort)
+        val bind = bootstrap.group(bossGroup, workerGroup)
+            .channel(NioServerSocketChannel::class.java)
+            .childHandler(object : ChannelInitializer<Channel>() {
+                override fun initChannel(ch: Channel) {
+                    ch.pipeline()
+                        // Add handler for decoding SSLv3
+                        .addLast(context.newHandler(ch.alloc()))
+                        // Add handler for decoding packet
+                        .addLast(PacketDecoder())
+                        // Add handler for processing packets
+                        .addLast(handler)
+                        .addLast(PacketEncoder())
+                }
+            })
+            // Bind the server to the host and port
+            .bind(listenPort)
+            // Wait for the channel to bind
+            .sync()
+        info("Started Redirector on port $listenPort redirecting to:")
+        info("Host: ${address.host}")
+        info("IP: ${address.ip}")
+        info("Port: $targetPort")
+        bind.channel()
+            // Get the closing future
+            .closeFuture()
+            // Wait for the closing
+            .sync()
+    } catch (e: IOException) {
+        error("Exception in redirector server", e)
     }
 }
 
