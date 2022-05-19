@@ -1,11 +1,15 @@
 package com.jacobtread.kme.blaze
 
+import com.jacobtread.kme.utils.logging.Logger
 import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.MessageToByteEncoder
 
 class PacketEncoder : MessageToByteEncoder<Packet>() {
     override fun encode(ctx: ChannelHandlerContext, msg: Packet, out: ByteBuf) {
+        if (Logger.isDebugEnabled) {
+            Logger.debug("SENT PACKET ===========\n" + packetToBuilder(msg) + "\n======================")
+        }
         val content = msg.rawContent
         val length = content.size
         out.writeByte((length and 0xFFFF) shr 8)

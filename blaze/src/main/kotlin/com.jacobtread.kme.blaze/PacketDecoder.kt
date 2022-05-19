@@ -1,5 +1,6 @@
 package com.jacobtread.kme.blaze
 
+import com.jacobtread.kme.utils.logging.Logger
 import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.ByteToMessageDecoder
@@ -23,6 +24,9 @@ class PacketDecoder : ByteToMessageDecoder() {
 
                 if (input.readableBytes() >= contentLength) {
                     input.readBytes(packet.rawContent)
+                    if (Logger.isDebugEnabled) {
+                        Logger.debug("RECIEVED PACKET =======\n" + packetToBuilder(packet) + "\n======================")
+                    }
                     out.add(packet)
                 } else {
                     input.readerIndex(cursorStart)

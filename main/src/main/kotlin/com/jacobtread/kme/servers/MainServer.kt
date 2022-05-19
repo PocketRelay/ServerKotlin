@@ -96,9 +96,6 @@ private class MainClient(private val session: PlayerSession, private val config:
 
     override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
         try {
-            if (Logger.isDebugEnabled) {
-                Logger.debug("RECIEVED PACKET =======\n" + packetToBuilder(msg) + "\n======================")
-            }
             when (msg.component) {
                 AUTHENTICATION -> handleAuthentication(msg)
                 GAME_MANAGER -> handleGameManager(msg)
