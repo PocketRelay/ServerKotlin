@@ -19,3 +19,9 @@ This server is quite far from completion but is steadily progressing.
   - [x] Access users in database and retrieve them
   - [x] Silent login / Token based login
 - [x] Main menu message
+- [x] Character storage and selection
+- [x] Galaxy at war
+
+# Planned
+- [ ] Leaderboard support
+- [ ] Web panel interface
