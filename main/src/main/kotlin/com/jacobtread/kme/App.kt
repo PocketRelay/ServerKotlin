@@ -95,9 +95,7 @@ fun startMainServerGroup(config: Config, bossGroup: NioEventLoopGroup, workerGro
     startDatabase(config.database)
 
     // Telemetry & Ticker servers just discard any contents they receive
-    startDiscardServer("Telemetry", config.telemetry, bossGroup, workerGroup)
-    startDiscardServer("Ticker", config.ticker, bossGroup, workerGroup)
-
     startHttpServer(bossGroup, workerGroup)
     startMainServer(bossGroup, workerGroup, config)
+    startDiscardServer(bossGroup, workerGroup, intArrayOf(config.telemetry, config.ticker))
 }
