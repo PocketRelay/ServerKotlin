@@ -467,7 +467,17 @@ private class MainClient(private val session: SessionData, private val config: C
     //region Game Manager Component Region
 
     private fun handleGameManager(packet: Packet) {
-
+        when(packet.command) {
+            CREATE_GAME -> {}
+            ADVANCE_GAME_STATE -> {}
+            SET_GAME_SETTINGS -> {}
+            SET_GAME_ATTRIBUTES -> {}
+            REMOVE_PLAYER -> {}
+            START_MATCHMAKING -> {}
+            CANCEL_MATCHMAKING -> {}
+            UPDATE_MESH_CONNECTION -> {}
+            else -> respondEmpty(packet)
+        }
     }
 
     //endregion
