@@ -10,15 +10,14 @@ class MapTdf(
     label: String,
     private val keyType: Int,
     private val valueType: Int,
-    override val value: Map<out Any, Any>,
-) : Tdf<Map<out Any, Any>>(label, MAP) {
+    override val value: Map<*, *>,
+) : Tdf<Map<*, *>>(label, MAP) {
 
     companion object {
         fun read(label: String, input: ByteBuf): MapTdf {
             val keyType = input.readUnsignedByte().toInt()
             val valueType = input.readUnsignedByte().toInt()
             val count = input.readVarInt().toInt()
-
             val out = HashMap<Any, Any>()
             repeat(count) {
                 val key: Any = when (keyType) {
@@ -46,12 +45,12 @@ class MapTdf(
         out.writeVarInt(entries.size)
         for ((key, value) in entries) {
             when (keyType) {
-                VARINT -> out.writeVarInt(key)
+                VARINT -> out.writeVarInt(key as Any)
                 STRING -> out.writeString(key as String)
                 FLOAT -> out.writeFloat(key as Float)
             }
             when (valueType) {
-                VARINT -> out.writeVarInt(value)
+                VARINT -> out.writeVarInt(value as Any)
                 STRING -> out.writeString(value as String)
                 STRUCT -> (value as StructTdf).write(out)
                 FLOAT -> out.writeFloat(value as Float)
@@ -60,4 +59,13 @@ class MapTdf(
     }
 
     override fun toString(): String = "Map($label: $value)"
+
+    fun asKeyValueMap(): Map<String, String> {
+        return try {
+            @Suppress("UNCHECKED_CAST")
+            this.value as Map<String, String>
+        } catch (e: ClassCastException) {
+            emptyMap()
+        }
+    }
 }

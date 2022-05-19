@@ -10,6 +10,8 @@ import com.jacobtread.kme.blaze.tdf.UnionTdf
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.database.Players
+import com.jacobtread.kme.game.PlayerSession
+import com.jacobtread.kme.game.PlayerSession.NetData
 import com.jacobtread.kme.utils.IPAddress
 import com.jacobtread.kme.utils.comparePasswordHash
 import com.jacobtread.kme.utils.hashPassword
@@ -37,12 +39,7 @@ fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
                 override fun initChannel(ch: Channel) {
                     val remoteAddress = ch.remoteAddress()
                     Logger.info("Main started new client session with $remoteAddress")
-                    val session = SessionData(
-                        clientId.getAndIncrement(),
-                        0x12345678,
-                        NetData(0, 0),
-                        NetData(0, 0)
-                    )
+                    val session = PlayerSession(clientId.getAndIncrement())
                     ch.pipeline()
                         // Add handler for decoding packet
                         .addLast(PacketDecoder())
@@ -62,52 +59,8 @@ fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
     }
 }
 
-class SessionData(
-    val id: Int,
-    var userId: Int,
-    val exip: NetData,
-    val inip: NetData,
-) {
-
-    private var player: Player? = null
-    var sendOffers: Boolean = false
-    var lastPingTime: Long = -1L
-
-    fun getPlayer(): Player = player ?: throw IllegalStateException("Tried to access player on session without logging in")
-
-
-    fun setPlayer(player: Player) {
-        this.player = player
-    }
-
-    fun createAddrUnion(label: String): UnionTdf =
-        UnionTdf(label, 0x02, struct("VALU") {
-            +struct("EXIP") {
-                number("IP", exip.address)
-                number("PORT", exip.port)
-            }
-            +struct("INIP") {
-                number("IP", inip.address)
-                number("PORT", inip.port)
-            }
-        })
-
-    fun createPDTL(player: Player): StructTdf = struct("PDTL") {
-        val lastLoginTime = unixTimeSeconds()
-        text("DSNM", player.displayName)
-        number("LAST", lastLoginTime)
-        number("PID", player.id.value)
-        number("STAS", 0)
-        number("XREF", 0)
-        number("XTYP", 0)
-    }
-
-}
-
-data class NetData(var address: Long, var port: Int)
-
 @Suppress("SpellCheckingInspection")
-private class MainClient(private val session: SessionData, private val config: Config) : SimpleChannelInboundHandler<Packet>() {
+private class MainClient(private val session: PlayerSession, private val config: Config) : SimpleChannelInboundHandler<Packet>() {
 
     companion object {
         private val EMPTY_BYTE_ARRAY = ByteArray(0)
@@ -135,6 +88,11 @@ private class MainClient(private val session: SessionData, private val config: C
             }
         }
         cause.printStackTrace()
+    }
+
+    override fun channelInactive(ctx: ChannelHandlerContext) {
+        session.isActive = false
+        super.channelInactive(ctx)
     }
 
     override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
@@ -206,7 +164,7 @@ private class MainClient(private val session: SessionData, private val config: C
                         }
                         number("UATT", 0x0)
                     }
-                    number("USID", session.userId)
+                    number("USID", session.id)
                 }
                 channel.send(sessPacket)
                 channel.send(sessPacket)
@@ -467,7 +425,7 @@ private class MainClient(private val session: SessionData, private val config: C
     //region Game Manager Component Region
 
     private fun handleGameManager(packet: Packet) {
-        when(packet.command) {
+        when (packet.command) {
             CREATE_GAME -> {}
             ADVANCE_GAME_STATE -> {}
             SET_GAME_SETTINGS -> {}
@@ -719,7 +677,7 @@ private class MainClient(private val session: SessionData, private val config: C
         when (packet.command) {
             SUBMIT_OFFLINE_GAME_REPORT -> {
                 respondEmpty(packet)
-                channel.unique(GAME_REPORTING,GAME_REPORT_RESULT_72) {
+                channel.unique(GAME_REPORTING, GAME_REPORT_RESULT_72) {
                     varList("DATA", emptyList())
                     number("EROR", 0)
                     number("FNL", 0)
@@ -747,11 +705,8 @@ private class MainClient(private val session: SessionData, private val config: C
                     val port: Int = inip.numberInt("PORT")
                     val remoteAddress = channel.remoteAddress()
                     val addressEncoded = IPAddress.asLong(remoteAddress)
-                    session.inip.address = addressEncoded
-                    session.inip.port = port
-
-                    session.exip.address = addressEncoded
-                    session.exip.port = port
+                    session.inip = NetData(addressEncoded, port)
+                    session.exip = NetData(addressEncoded, port)
                 }
             }
             else -> {}
