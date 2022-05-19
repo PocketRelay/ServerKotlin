@@ -48,7 +48,7 @@ class Packet(
         val buffer = Unpooled.wrappedBuffer(rawContent)
         val values = ArrayList<Tdf<*>>()
         try {
-            while (buffer.readableBytes() > 0) {
+            while (buffer.readableBytes() > 4) {
                 values.add(Tdf.read(buffer))
             }
         } catch (e: Throwable) {
