@@ -78,7 +78,6 @@ private class HTTPHandler : SimpleChannelInboundHandler<HttpRequest>() {
     fun fileSystemResponse(ctx: ChannelHandlerContext, url: String) {
         val fileName = url.substringAfterLast('/')
         val pathName = "/public/$fileName"
-        println(pathName)
         val inputStream = HTTPHandler::class.java.getResourceAsStream(pathName);
         if (inputStream == null) {
             respond404(ctx)
@@ -105,5 +104,6 @@ private class HTTPHandler : SimpleChannelInboundHandler<HttpRequest>() {
             respond404(ctx)
             return
         }
+        println("GAW REQUEST $path ${parts.joinToString(", ") { it }}")
     }
 }

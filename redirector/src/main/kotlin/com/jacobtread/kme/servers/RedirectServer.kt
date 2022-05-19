@@ -62,7 +62,12 @@ data class RedirectorConfig(
 /**
  * main Entry point for standalone redirector server will use
  */
-fun main() = startRedirector()
+fun main() {
+    startRedirector()
+
+    @Suppress("ControlFlowWithEmptyBody")
+    while(true);
+}
 
 private fun loadConfig(): RedirectorConfig {
     val config: RedirectorConfig
@@ -89,7 +94,7 @@ private fun loadConfig(): RedirectorConfig {
  *
  * @param config The configuration for the redirector
  */
-fun startRedirector(config: RedirectorConfig = loadConfig(), keepAlive: Boolean = true) {
+fun startRedirector(config: RedirectorConfig = loadConfig()) {
     Thread {
         // Clears the disabled algorithms necessary for SSLv3
         Security.setProperty("jdk.tls.disabledAlgorithms", "")
@@ -135,7 +140,7 @@ fun startRedirector(config: RedirectorConfig = loadConfig(), keepAlive: Boolean 
                 .bind(listenPort)
                 // Wait for the channel to bind
                 .sync()
-            info("Started Redirector Server on port $listenPort redirecting to:")
+            info("Started Redirector on port $listenPort redirecting to:")
             info("Host: ${address.host}")
             info("IP: ${address.ip}")
             info("Port: $targetPort")
@@ -155,7 +160,6 @@ fun startRedirector(config: RedirectorConfig = loadConfig(), keepAlive: Boolean 
         // Start the redirector thread
         start()
     }
-    if (keepAlive) while (true) {}
 }
 
 /**

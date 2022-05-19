@@ -186,6 +186,7 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
     private val classes by PlayerClass referrersOn PlayerClasses.player
     private val characters by PlayerCharacter referrersOn PlayerCharacters.player
     private val settings by PlayerSetting referrersOn PlayerSettings.player
+    val galaxyAtWar by PlayerGalaxyAtWar referrersOn PlayerGalaxyAtWars.player
 
     /**
      * setSetting Updates a user setting. Settings that are parsed such
@@ -517,6 +518,27 @@ class PlayerCharacter(id: EntityID<Int>) : IntEntity(id) {
         .append(if (deployed) "True" else "False").append(';')
         .append(if (leveledUp) "True" else "False")
         .toString()
+}
+
+object PlayerGalaxyAtWars : IntIdTable("player_gaw") {
+    val player = reference("player_id", Players)
+
+    val a = integer("a").default(5000)
+    val b = integer("b").default(5000)
+    val c = integer("c").default(5000)
+    val d = integer("d").default(5000)
+    val e = integer("e").default(5000)
+}
+
+class PlayerGalaxyAtWar(id: EntityID<Int>) : IntEntity(id) {
+    companion object : IntEntityClass<PlayerGalaxyAtWar>(PlayerGalaxyAtWars)
+
+    var player by PlayerGalaxyAtWars.player
+    var a by PlayerGalaxyAtWars.a
+    var b by PlayerGalaxyAtWars.b
+    var c by PlayerGalaxyAtWars.c
+    var d by PlayerGalaxyAtWars.d
+    var e by PlayerGalaxyAtWars.e
 }
 
 /**
