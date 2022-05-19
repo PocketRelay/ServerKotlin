@@ -3,6 +3,7 @@ package com.jacobtread.kme.game
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.tdf.MapTdf
 import com.jacobtread.kme.data.Data
+import com.jacobtread.kme.utils.VarTripple
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
@@ -62,7 +63,55 @@ class Game(
             .toMutableList()
     }
 
-    fun addPlayer(player: PlayerSession) = playersLock.write { players.add(player) }
+    fun join(player: PlayerSession) = playersLock.write {
+        players.add(player)
+        sendHostPlayerJoin(player)
+    }
+
+    @Suppress("SpellCheckingInspection")
+    private fun sendHostPlayerJoin(session: PlayerSession) {
+        val player = session.getPlayer()
+        val sessionDetails = session.createMMSessionDetails(this)
+        host.channel.send(sessionDetails)
+        host.channel.unique(Component.GAME_MANAGER, Command.JOIN_GAME_BY_GROUP) {
+            number("GID", id)
+            +struct("PDAT") {
+                blob("BLOB")
+                number("EXID", 0x0)
+                number("GID", id)
+                number("LOC", 0x64654445)
+                text("NAME", player.displayName)
+                number("PID", player.playerId)
+                +session.createAddrUnion("PNET")
+                number("SID", players.size)
+                number("SLOT", 0x0)
+                number("STAT", 0x2)
+                number("TIDX", 0xffff)
+                number("TIME", 0x0)
+                tripple("UGID", 0x0, 0x0, 0x0)
+                number("UID", player.playerId)
+            }
+        }
+        host.channel.unique(Component.USER_SESSIONS, Command.START_SESSION) {
+            +struct("DATA") {
+                +session.createAddrUnion("ADDR")
+                text("BPS", "ea-sjc")
+                text("CTY", "")
+                varList("CVAR", listOf())
+                map("DMAP", mapOf(0x70001 to 0x2e))
+                number("HWFG", 0x0)
+                list("PSLM", listOf(0xfff0fff, 0xfff0fff, 0xfff0fff))
+                +struct("QDAT") {
+                    number("DBPS", 0x0)
+                    number("NATT", Data.NAT_TYPE)
+                    number("UBPS", 0x0)
+                }
+                number("UATT", 0x0)
+                list("ULST", listOf(VarTripple(0x4, 0x1, 0x5dc695)))
+            }
+            number("USID", player.playerId)
+        }
+    }
 
     fun removePlayer(playerId: Int) {
         playersLock.write {
@@ -98,7 +147,7 @@ class Game(
         }
 
     @Suppress("SpellCheckingInspection")
-    fun createPoolPacket(): Packet =
+    fun createPoolPacket(init: Boolean = true): Packet =
         unique(
             Component.GAME_MANAGER,
             Command.RETURN_DEDICATED_SERVER_TO_POOL
@@ -112,8 +161,9 @@ class Game(
                 number("GID", id)
                 text("GNAM", hostPlayer.displayName)
                 number("GPVH", 0x5a4f2b378b715c6)
-                number("GSET", 0x11f)
-                number("GSTA", 0x1)
+                number("GSET", gameSetting)
+                if (!init) number("GSID", 0x4000000618E41C)
+                number("GSTA", gameState)
                 text("GTYP", "")
                 // Host network information
                 list("HNET", listOf(
@@ -159,27 +209,45 @@ class Game(
                 blob("XNNC")
                 blob("XSES")
             }
-            list("PROS", listOf(
+
+            val pros = players.mapIndexed { index, playerSession ->
+                val tmppl = when (index) {
+                    0 -> host
+                    else -> if ((index - 1) < players.size) players[index - 1] else playerSession
+                }
+                val player = playerSession.getPlayer()
                 struct {
                     blob("BLOB")
                     number("EXID", 0x0)
-                    number("GID", id)
+                    number("GID", this@Game.id)
                     number("LOC", 0x64654445)
-                    text("NAME", hostPlayer.displayName)
-                    number("PID", hostPlayer.playerId)
+                    text("NAME", player.displayName)
+                    number("PID", player.playerId)
                     +host.createAddrUnion("PNET")
                     number("SID", 0x0)
                     number("SLOT", 0x0)
-                    number("STAT", 0x4)
+                    number("STAT", if (tmppl.playerId == player.playerId) 0x2 else 0x4)
                     number("TIDX", 0xffff)
                     number("TIME", 0x4fd4ce4f6a036)
                     tripple("UGID", 0x0, 0x0, 0x0)
-                    number("UID", hostPlayer.playerId)
+                    number("UID", player.playerId)
                 }
-            ))
-            union("REAS", struct("VALU") {
-                number("DCTX", 0x0)
-            })
+            }
+
+            list("PROS", pros)
+            if (init) {
+                union("REAS", struct("VALU") {
+                    number("DCTX", 0x0)
+                })
+            } else {
+                union("REAS", 0x3, struct("VALU") {
+                    number("FIT", 0x53fc)
+                    number("MAXF", 0x5460)
+                    number("MSID", id)
+                    number("RSLT", 0x2)
+                    number("USID", hostPlayer.playerId)
+                })
+            }
         }
 
 }

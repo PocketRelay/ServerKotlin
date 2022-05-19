@@ -423,9 +423,9 @@ private class MainClient(private val session: PlayerSession, private val config:
             SET_GAME_SETTINGS -> handleSetGameSettings(packet)
             SET_GAME_ATTRIBUTES -> handleSetGameAttributes(packet)
             REMOVE_PLAYER -> handleRemovePlayer(packet)
-            START_MATCHMAKING -> {}
-            CANCEL_MATCHMAKING -> {}
-            UPDATE_MESH_CONNECTION -> {}
+            START_MATCHMAKING -> handleStartMatchmaking(packet)
+            CANCEL_MATCHMAKING -> handleCancelMatchmaking(packet)
+            UPDATE_MESH_CONNECTION -> handleUpdateMeshConnection(packet)
             else -> respondEmpty(packet)
         }
     }
@@ -506,6 +506,67 @@ private class MainClient(private val session: PlayerSession, private val config:
         val game = GameManager.getGameById(gameId)
         game?.removePlayer(playerId)
         respondEmpty(packet)
+    }
+
+    private fun handleStartMatchmaking(packet: Packet) {
+        session.waitingForJoin = true
+        // TODO: Implement Proper Searching
+        val game = GameManager.getFreeGame()
+        if (game == null) {
+            respondEmpty(packet)
+            return
+        }
+        game.join(session)
+        channel.respond(packet) {
+            number("MSID", game.id)
+        }
+
+        val creator = game.host.createMMSessionDetails(game)
+        channel.send(creator)
+        game.getActivePlayers().forEach {
+            val sessionDetails = it.createMMSessionDetails(game)
+            channel.send(sessionDetails)
+        }
+        channel.send(game.createPoolPacket(false))
+    }
+
+    private fun handleCancelMatchmaking(packet: Packet) {
+        session.waitingForJoin = false
+        respondEmpty(packet)
+    }
+
+    private fun handleUpdateMeshConnection(packet: Packet) {
+        val gameId = packet.number("GID").toInt()
+        val game = GameManager.getGameById(gameId)
+        val player = session.getPlayer()
+        if (game != null && session.waitingForJoin) {
+            val host = game.host
+            session.waitingForJoin = false
+            val a = unique(GAME_MANAGER, GAME_MANAGER_74) {
+                number("GID", gameId)
+                number("PID", player.playerId)
+                number("STAT", 4)
+            }
+            val b = unique(GAME_MANAGER, GAME_MANAGER_1E) {
+                number("GID", gameId)
+                number("PID", player.playerId)
+            }
+            val c = unique(GAME_MANAGER, GAME_MANAGER_CA) {
+                number("ALST", player.playerId)
+                number("GID", gameId)
+                number("OPER", 0)
+                number("UID", host.playerId)
+            }
+            channel.send(a, flush = false)
+            channel.send(b, flush = false)
+            channel.send(c)
+
+            host.channel.send(a, flush = false)
+            host.channel.send(b, flush = false)
+            host.channel.send(c)
+        } else {
+            respondEmpty(packet)
+        }
     }
 
     //endregion
