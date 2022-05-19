@@ -433,8 +433,8 @@ private class MainClient(private val session: PlayerSession, private val config:
         val game = GameManager.createGame(session)
         game.attributes.setBulk(attributes)
         channel.respond(packet, flush = false) { number("GID", game.id) }
-        channel.send(game.createPoolPacket(), flush = false)
-        channel.unique(USER_SESSIONS, START_SESSION, flush = false) {
+        channel.send(game.createPoolPacket(true), flush = false)
+        channel.unique(USER_SESSIONS, START_SESSION) {
             +struct("DATA") {
                 +session.createAddrUnion("ADDR")
                 text("BPS", "ea-sjc")
@@ -451,13 +451,12 @@ private class MainClient(private val session: PlayerSession, private val config:
                 number("UATT", 0x0)
                 list("ULST", listOf(VarTripple(0x4, 0x1, 0x5dc695)))
             }
-            number("USID", player.id.value)
+            number("USID", player.playerId)
         }
-        channel.flush()
     }
 
     private fun handleAdvanceGameState(packet: Packet) {
-        val gameId = packet.number("GID").toInt()
+        val gameId = packet.number("GID")
         val gameState = packet.number("GSTA").toInt()
         val game = GameManager.getGameById(gameId)
         if (game != null) {
@@ -466,7 +465,7 @@ private class MainClient(private val session: PlayerSession, private val config:
     }
 
     private fun handleSetGameSettings(packet: Packet) {
-        val gameId = packet.number("GID").toInt()
+        val gameId = packet.number("GID")
         val setting = packet.number("GSET").toInt()
         val game = GameManager.getGameById(gameId)
         if (game != null) {
@@ -483,7 +482,7 @@ private class MainClient(private val session: PlayerSession, private val config:
     }
 
     private fun handleSetGameAttributes(packet: Packet) {
-        val gameId = packet.number("GID").toInt()
+        val gameId = packet.number("GID")
         val attributes = packet.mapKVOrNull("ATTR")
         if (attributes == null) {
             respondEmpty(packet)
@@ -499,7 +498,7 @@ private class MainClient(private val session: PlayerSession, private val config:
 
     private fun handleRemovePlayer(packet: Packet) {
         val playerId = packet.number("PID").toInt()
-        val gameId = packet.number("GID").toInt()
+        val gameId = packet.number("GID")
         val game = GameManager.getGameById(gameId)
         game?.removePlayer(playerId)
         respondEmpty(packet)
@@ -515,7 +514,7 @@ private class MainClient(private val session: PlayerSession, private val config:
         }
         game.join(session)
         channel.respond(packet) {
-            number("MSID", game.id)
+            number("MSID", game.mid)
         }
 
         val creator = game.host.createMMSessionDetails(game)
@@ -533,7 +532,7 @@ private class MainClient(private val session: PlayerSession, private val config:
     }
 
     private fun handleUpdateMeshConnection(packet: Packet) {
-        val gameId = packet.number("GID").toInt()
+        val gameId = packet.number("GID")
         val game = GameManager.getGameById(gameId)
         val player = session.getPlayer()
         if (game != null && session.waitingForJoin) {
@@ -704,9 +703,11 @@ private class MainClient(private val session: PlayerSession, private val config:
     }
 
     private fun handleLeaderboardEntityCount(packet: Packet) {
-        val playerCount = Player.count()
-        channel.respond(packet) {
-            number("CNT", playerCount)
+        transaction {
+            val playerCount = Player.count()
+            channel.respond(packet) {
+                number("CNT", playerCount)
+            }
         }
     }
 

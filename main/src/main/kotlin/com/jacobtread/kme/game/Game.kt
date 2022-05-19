@@ -9,8 +9,8 @@ import kotlin.concurrent.read
 import kotlin.concurrent.write
 
 class Game(
-    val id: Int,
-    val mid: Int,
+    val id: Long,
+    val mid: Long,
     val host: PlayerSession,
 ) {
 
@@ -55,6 +55,7 @@ class Game(
         players.add(host)
     }
 
+    fun isInActive(): Boolean = !isActive || !host.isActive
 
     fun isFull(): Boolean = playersLock.read { players.size >= MAX_PLAYERS }
     fun isJoinable(): Boolean = isActive && !isFull()
@@ -147,7 +148,7 @@ class Game(
         }
 
     @Suppress("SpellCheckingInspection")
-    fun createPoolPacket(init: Boolean = true): Packet =
+    fun createPoolPacket(init: Boolean): Packet =
         unique(
             Component.GAME_MANAGER,
             Command.RETURN_DEDICATED_SERVER_TO_POOL
@@ -182,9 +183,9 @@ class Game(
                 number("IGNO", 0x0)
                 number("MCAP", 0x4)
                 +struct("NQOS") {
-                    number("DBPS", 0x0)
+                    number("DBPS", if (init) 0x0 else 0x5b8d800)
                     number("NATT", Data.NAT_TYPE)
-                    number("UBPS", 0x0)
+                    number("UBPS", if (init) 0x0 else 0x4016400)
                 }
                 number("NRES", 0x0)
                 number("NTOP", 0x0)
@@ -224,7 +225,7 @@ class Game(
                     text("NAME", player.displayName)
                     number("PID", player.playerId)
                     +host.createAddrUnion("PNET")
-                    number("SID", 0x0)
+                    number("SID", index)
                     number("SLOT", 0x0)
                     number("STAT", if (tmppl.playerId == player.playerId) 0x2 else 0x4)
                     number("TIDX", 0xffff)
@@ -243,7 +244,7 @@ class Game(
                 union("REAS", 0x3, struct("VALU") {
                     number("FIT", 0x53fc)
                     number("MAXF", 0x5460)
-                    number("MSID", id)
+                    number("MSID", mid)
                     number("RSLT", 0x2)
                     number("USID", hostPlayer.playerId)
                 })

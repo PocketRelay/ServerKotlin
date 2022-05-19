@@ -85,7 +85,7 @@ class PlayerSession(
                 number("UBPS", 0x0)
             }
             number("UATT", 0x0)
-            list("ULST", listOf(VarTripple(0x4, 0x1, game.id.toLong())))
+            list("ULST", listOf(VarTripple(0x4, 0x1, game.id)))
         }
         +struct("USER") {
             number("AID", player.playerId)

@@ -7,18 +7,26 @@ import kotlin.concurrent.write
 object GameManager {
 
     private val gamesLock = ReentrantReadWriteLock()
-    private val games = HashMap<Int, Game>()
+    private val games = HashMap<Long, Game>()
     private var gameId: Int = 0
 
     fun createGame(host: PlayerSession): Game = gamesLock.write {
-        val id = gameId++
-        val game = Game(id, id, host)
-        games[id] = game
+        removeInactive()
+        val game = Game( gameId + 0x5DC695L, gameId + 0x1129DA20L, host)
+        games[game.id] = game
+        gameId++
         game
     }
 
+    fun removeInactive() {
+        val removeKeys = ArrayList<Long>()
+        games.forEach {(key, game) ->
+            if (game.isInActive()) removeKeys.add(key)
+        }
+        removeKeys.forEach { games.remove(it) }
+    }
     fun getFreeGame(): Game? = gamesLock.read { games.values.find { it.isJoinable() } }
-    fun getGameById(id: Int): Game? = gamesLock.read { games.values.find { it.id == id } }
+    fun getGameById(id: Long): Game? = gamesLock.read { games.values.find { it.id == id } }
     fun releaseGame(game: Game) = gamesLock.write { games.remove(game.id) }
 
 }
