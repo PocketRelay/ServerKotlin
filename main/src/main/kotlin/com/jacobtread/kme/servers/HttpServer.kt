@@ -54,7 +54,6 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
             return
         }
         val url = msg.uri()
-        println(url)
         if (url.startsWith("/wal/masseffect-gaw-pc")) {
             gawResponse(ctx, url)
         } else {
@@ -119,10 +118,6 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
         }
 
         val request = Request(path, query)
-
-        println("GAW REQUEST $rawPath")
-        println(path)
-        println(query)
 
         when (path[0]) {
             "authentication" -> handleGalaxyAtWarAuthentication(ctx, request)
