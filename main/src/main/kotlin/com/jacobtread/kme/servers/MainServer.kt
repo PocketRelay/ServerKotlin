@@ -432,8 +432,8 @@ private class MainClient(private val session: PlayerSession, private val config:
         val attributes = packet.mapKVOrNull("ATTR") ?: return
         val game = GameManager.createGame(session)
         game.attributes.setBulk(attributes)
-        channel.respond(packet, flush = false) { number("GID", game.id) }
-        channel.send(game.createPoolPacket(true), flush = false)
+        channel.respond(packet) { number("GID", game.id) }
+        channel.send(game.createPoolPacket(true))
         channel.unique(USER_SESSIONS, START_SESSION) {
             +struct("DATA") {
                 +session.createAddrUnion("ADDR")

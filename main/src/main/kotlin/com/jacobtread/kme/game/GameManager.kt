@@ -1,5 +1,6 @@
 package com.jacobtread.kme.game
 
+import com.jacobtread.kme.utils.logging.Logger
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
@@ -13,6 +14,7 @@ object GameManager {
     fun createGame(host: PlayerSession): Game = gamesLock.write {
         removeInactive()
         val game = Game( gameId + 0x5DC695L, gameId + 0x1129DA20L, host)
+        Logger.info("Created new game (${game.id}, ${game.mid}) hosted by ${host.getPlayer().displayName}")
         games[game.id] = game
         gameId++
         game
