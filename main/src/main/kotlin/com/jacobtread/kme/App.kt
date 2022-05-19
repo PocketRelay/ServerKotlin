@@ -7,9 +7,7 @@ import com.jacobtread.kme.database.startDatabase
 import com.jacobtread.kme.servers.startDiscardServer
 import com.jacobtread.kme.servers.startHttpServer
 import com.jacobtread.kme.servers.startMainServer
-import com.jacobtread.kme.utils.customThreadFactory
 import com.jacobtread.kme.utils.logging.Logger
-import com.jacobtread.kme.utils.nameThread
 import io.netty.channel.nio.NioEventLoopGroup
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -56,8 +54,11 @@ data class Config(
 
 
 fun main() {
+    val bossGroup = NioEventLoopGroup()
+    val workerGroup = NioEventLoopGroup()
+
     val config = loadConfigFile()
-    startMainServerGroup(config)
+    startMainServerGroup(config, bossGroup, workerGroup)
 }
 
 /**
@@ -86,13 +87,10 @@ fun loadConfigFile(): Config {
     return config
 }
 
-fun startMainServerGroup(config: Config) {
+fun startMainServerGroup(config: Config, bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
 
     Logger.init(config.logging)
     Logger.info("Starting ME3 Server")
-
-    val bossGroup = NioEventLoopGroup(customThreadFactory("Netty Boss #{ID}"))
-    val workerGroup = NioEventLoopGroup(customThreadFactory("Netty Worker #{ID}"))
 
     startDatabase(config.database)
 

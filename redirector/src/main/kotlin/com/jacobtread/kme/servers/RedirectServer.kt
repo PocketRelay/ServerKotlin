@@ -58,6 +58,7 @@ data class RedirectorConfig(
         """
     )
     val targetPort: Int = 14219,
+    val logging: Logger.Config = Logger.Config(),
 )
 
 /**

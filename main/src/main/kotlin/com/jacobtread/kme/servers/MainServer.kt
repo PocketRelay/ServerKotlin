@@ -50,7 +50,9 @@ fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
             // Bind the server to the host and port
             .bind(config.main)
             // Wait for the channel to bind
-            .addListener { Logger.info("Started Main Server on port ${config.main}") }
+            .addListener {
+                Logger.info("Started Main Server on port ${config.main}")
+            }
     } catch (e: IOException) {
         Logger.error("Exception in redirector server", e)
     }

@@ -1,6 +1,5 @@
 package com.jacobtread.kme.servers
 
-import com.jacobtread.kme.utils.customThreadFactory
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.Unpooled

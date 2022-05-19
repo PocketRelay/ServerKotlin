@@ -1,6 +1,5 @@
 package com.jacobtread.kme.servers
 
-import com.jacobtread.kme.utils.customThreadFactory
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.ByteBuf
@@ -42,6 +41,9 @@ fun startDiscardServer(name: String, port: Int, bossGroup: NioEventLoopGroup, wo
                 }
             })
             .bind(port)
+            .addListener {
+                Logger.info("Started $name server on port $port")
+            }
     } catch (e: IOException) {
         Logger.error("Exception in $name server", e)
     }
