@@ -406,7 +406,7 @@ class PlayerClass(id: EntityID<Int>) : IntEntity(id) {
         }
     }
 
-    var player by PlayerSettings.player
+    var player by PlayerClasses.player
     var index by PlayerClasses.index
     var name by PlayerClasses.name
     var level by PlayerClasses.level
@@ -507,7 +507,7 @@ class PlayerCharacter(id: EntityID<Int>) : IntEntity(id) {
         }
     }
 
-    var player by PlayerSettings.player
+    var player by PlayerCharacters.player
     var index by PlayerCharacters.index
     var kitName by PlayerCharacters.kitName
     var name by PlayerCharacters.name
