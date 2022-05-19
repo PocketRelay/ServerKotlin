@@ -119,7 +119,8 @@ fun startDatabase(config: DatabaseConfig) {
             Players,
             PlayerClasses,
             PlayerCharacters,
-            PlayerSettings
+            PlayerSettings,
+            PlayerGalaxyAtWars
         )
     }
 }
