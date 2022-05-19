@@ -1,6 +1,8 @@
 package com.jacobtread.kme.database
 
+import com.jacobtread.kme.GalaxyAtWarConfig
 import com.jacobtread.kme.utils.MEStringParser
+import com.jacobtread.kme.utils.unixTimeSeconds
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.mamoe.yamlkt.Comment
@@ -19,6 +21,7 @@ import java.nio.file.Paths
 import kotlin.io.path.absolute
 import kotlin.io.path.createDirectories
 import kotlin.io.path.notExists
+import kotlin.math.max
 import org.jetbrains.exposed.sql.Database as ExposedDatabase
 
 /**
@@ -165,6 +168,8 @@ object Players : IntIdTable("players") {
         .default(null)
 }
 
+const val MIN_GAW_VALUE = 5000
+
 /**
  * Player Represents a player stored in the database each player
  * has a related collection of classes, characters, and settings
@@ -186,7 +191,33 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
     private val classes by PlayerClass referrersOn PlayerClasses.player
     private val characters by PlayerCharacter referrersOn PlayerCharacters.player
     private val settings by PlayerSetting referrersOn PlayerSettings.player
-    val galaxyAtWar by PlayerGalaxyAtWar referrersOn PlayerGalaxyAtWars.player
+
+    fun getOrCreateGAW(config: GalaxyAtWarConfig): PlayerGalaxyAtWar {
+        val existing = PlayerGalaxyAtWar.findOne { (PlayerGalaxyAtWars.player eq this@Player.id) }
+        if (existing != null) {
+            if (config.readinessDailyDecay > 0f) {
+                val time = unixTimeSeconds()
+                val timeDiff = time - existing.timestamp
+                val days = timeDiff.toFloat() / 86400
+                val decayValue = (config.readinessDailyDecay * days * 100).toInt()
+                transaction {
+                    existing.a = max(MIN_GAW_VALUE, existing.a - decayValue)
+                    existing.b = max(MIN_GAW_VALUE, existing.b - decayValue)
+                    existing.c = max(MIN_GAW_VALUE, existing.c - decayValue)
+                    existing.d = max(MIN_GAW_VALUE, existing.d - decayValue)
+                    existing.e = max(MIN_GAW_VALUE, existing.e - decayValue)
+                }
+            }
+            return existing
+        }
+        val seconds = unixTimeSeconds()
+        return transaction {
+            PlayerGalaxyAtWar.new {
+                player = this@Player.id
+                timestamp = seconds
+            }
+        }
+    }
 
     /**
      * setSetting Updates a user setting. Settings that are parsed such
@@ -262,6 +293,10 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
             }
             level + promotions * 30
         }
+    }
+
+    fun getTotalPromotions(): Int {
+        return transaction { classes.sumOf { it.promotions } }
     }
 }
 
@@ -523,17 +558,21 @@ class PlayerCharacter(id: EntityID<Int>) : IntEntity(id) {
 object PlayerGalaxyAtWars : IntIdTable("player_gaw") {
     val player = reference("player_id", Players)
 
-    val a = integer("a").default(5000)
-    val b = integer("b").default(5000)
-    val c = integer("c").default(5000)
-    val d = integer("d").default(5000)
-    val e = integer("e").default(5000)
+    val timestamp = long("timestamp")
+
+    val a = integer("a").default(MIN_GAW_VALUE)
+    val b = integer("b").default(MIN_GAW_VALUE)
+    val c = integer("c").default(MIN_GAW_VALUE)
+    val d = integer("d").default(MIN_GAW_VALUE)
+    val e = integer("e").default(MIN_GAW_VALUE)
 }
 
 class PlayerGalaxyAtWar(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<PlayerGalaxyAtWar>(PlayerGalaxyAtWars)
 
     var player by PlayerGalaxyAtWars.player
+    var timestamp by PlayerGalaxyAtWars.timestamp
+
     var a by PlayerGalaxyAtWars.a
     var b by PlayerGalaxyAtWars.b
     var c by PlayerGalaxyAtWars.c

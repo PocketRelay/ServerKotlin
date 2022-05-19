@@ -50,8 +50,20 @@ data class Config(
 
     @Comment("Database connection info")
     val database: DatabaseConfig = DatabaseConfig(),
+
+    @Comment("Galaxy At War config")
+    val gaw: GalaxyAtWarConfig = GalaxyAtWarConfig()
 )
 
+@Serializable
+data class GalaxyAtWarConfig(
+    @Comment("""
+        The amount of readiness level to decay each day from last update 0.5 = -1%.
+        Set this value defaults to 0 for no decay
+    """)
+    val readinessDailyDecay: Float = 0f,
+    val enablePromotions: Boolean = true,
+)
 
 fun main() {
     val bossGroup = NioEventLoopGroup()
@@ -95,7 +107,7 @@ fun startMainServerGroup(config: Config, bossGroup: NioEventLoopGroup, workerGro
     startDatabase(config.database)
 
     // Telemetry & Ticker servers just discard any contents they receive
-    startHttpServer(bossGroup, workerGroup)
+    startHttpServer(bossGroup, workerGroup, config)
     startMainServer(bossGroup, workerGroup, config)
     startDiscardServer(bossGroup, workerGroup, intArrayOf(config.telemetry, config.ticker))
 }

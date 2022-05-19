@@ -10,8 +10,11 @@ import com.jacobtread.kme.blaze.tdf.UnionTdf
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.database.Players
-import com.jacobtread.kme.utils.*
+import com.jacobtread.kme.utils.IPAddress
+import com.jacobtread.kme.utils.comparePasswordHash
+import com.jacobtread.kme.utils.hashPassword
 import com.jacobtread.kme.utils.logging.Logger
+import com.jacobtread.kme.utils.unixTimeSeconds
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
@@ -21,6 +24,7 @@ import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.IOException
+import java.net.SocketException
 import java.util.concurrent.atomic.AtomicInteger
 
 fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup, config: Config) {
@@ -121,6 +125,16 @@ private class MainClient(private val session: SessionData, private val config: C
     override fun channelActive(ctx: ChannelHandlerContext) {
         super.channelActive(ctx)
         this.channel = ctx.channel()
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
+        if (cause is SocketException) {
+            if (cause.message?.startsWith("Connection reset") == true) {
+                return
+            }
+        }
+        cause.printStackTrace()
     }
 
     override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
