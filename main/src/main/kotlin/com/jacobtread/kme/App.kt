@@ -7,8 +7,10 @@ import com.jacobtread.kme.database.startDatabase
 import com.jacobtread.kme.servers.startDiscardServer
 import com.jacobtread.kme.servers.startHttpServer
 import com.jacobtread.kme.servers.startMainServer
+import com.jacobtread.kme.utils.customThreadFactory
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.nameThread
+import io.netty.channel.nio.NioEventLoopGroup
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.mamoe.yamlkt.Comment
@@ -20,9 +22,6 @@ import kotlin.io.path.writeText
 
 // The version of KME
 const val KME_VERSION = "1.0.0"
-
-// Load the config as a global variable
-val CONFIG = loadConfigFile()
 
 @Serializable
 data class Config(
@@ -92,12 +91,15 @@ fun startMainServerGroup(config: Config) {
     Logger.init(config.logging)
     Logger.info("Starting ME3 Server")
 
+    val bossGroup = NioEventLoopGroup(customThreadFactory("Netty Boss #{ID}"))
+    val workerGroup = NioEventLoopGroup(customThreadFactory("Netty Worker #{ID}"))
+
     startDatabase(config.database)
 
     // Telemetry & Ticker servers just discard any contents they receive
-    startDiscardServer("Telemetry", config.telemetry)
-    startDiscardServer("Ticker", config.ticker)
+    startDiscardServer("Telemetry", config.telemetry, bossGroup, workerGroup)
+    startDiscardServer("Ticker", config.ticker, bossGroup, workerGroup)
 
-    startHttpServer()
-    startMainServer()
+    startHttpServer(bossGroup, workerGroup)
+    startMainServer(bossGroup, workerGroup, config)
 }

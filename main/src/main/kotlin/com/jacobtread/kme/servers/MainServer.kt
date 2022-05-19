@@ -1,6 +1,6 @@
 package com.jacobtread.kme.servers
 
-import com.jacobtread.kme.CONFIG
+import com.jacobtread.kme.Config
 import com.jacobtread.kme.KME_VERSION
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.Command.*
@@ -23,15 +23,11 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicInteger
 
-fun startMainServer() {
-    nameThread("Main Server")
-    val bossGroup = NioEventLoopGroup(customThreadFactory("Main Server Boss #{ID}"))
-    val workerGroup = NioEventLoopGroup(customThreadFactory("Main Server Worker #{ID}"))
-    val bootstrap = ServerBootstrap() // Create a server bootstrap
+fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup, config: Config) {
     try {
-        val port = CONFIG.main
         val clientId = AtomicInteger(0)
-        val bind = bootstrap.group(bossGroup, workerGroup)
+        ServerBootstrap()
+            .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
             .childHandler(object : ChannelInitializer<Channel>() {
                 override fun initChannel(ch: Channel) {
@@ -47,20 +43,14 @@ fun startMainServer() {
                         // Add handler for decoding packet
                         .addLast(PacketDecoder())
                         // Add handler for processing packets
-                        .addLast(MainClient(session))
+                        .addLast(MainClient(session, config))
                         .addLast(PacketEncoder())
                 }
             })
             // Bind the server to the host and port
-            .bind(port)
+            .bind(config.main)
             // Wait for the channel to bind
-            .sync()
-        Logger.info("Started Main Server on port $port")
-        bind.channel()
-            // Get the closing future
-            .closeFuture()
-            // Wait for the closing
-            .sync()
+            .addListener { Logger.info("Started Main Server on port ${config.main}") }
     } catch (e: IOException) {
         Logger.error("Exception in redirector server", e)
     }
@@ -111,7 +101,7 @@ class SessionData(
 data class NetData(var address: Long, var port: Int)
 
 @Suppress("SpellCheckingInspection")
-private class MainClient(private val session: SessionData) : SimpleChannelInboundHandler<Packet>() {
+private class MainClient(private val session: SessionData, private val config: Config) : SimpleChannelInboundHandler<Packet>() {
 
     companion object {
         private val EMPTY_BYTE_ARRAY = ByteArray(0)
@@ -615,7 +605,7 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
                 })
                 val ip = channel.remoteAddress().toString()
                 val player = session.getPlayer()
-                val menuMessage = CONFIG.menuMessage
+                val menuMessage = config.menuMessage
                     .replace("{v}", KME_VERSION)
                     .replace("{n}", player.displayName)
                     .replace("{ip}", ip) + 0xA.toChar()
@@ -833,19 +823,17 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
                 number("TIID", 0x0)
             }
 
-            val telemetryAddress = "reports.tools.gos.ea.com"
-            val tickerAddress = "waleu2.tools.gos.ea.com"
-            val telemetryPort = 9988
-            val tickerPort = 8999
+            //  telemetryAddress = "reports.tools.gos.ea.com:9988"
+            //  tickerAddress = "waleu2.tools.gos.ea.com:8999"
 
             +struct("TELE") {
-                text("ADRS", telemetryAddress) // Server Address
+                text("ADRS", config.address) // Server Address
                 number("ANON", 0)
                 text("DISA", Data.TELE_DISA)
                 text("FILT", "-UION/****") // Telemetry filter?
                 number("LOC", 1701725253)
                 text("NOOK", "US,CA,MX")
-                number("PORT", CONFIG.telemetry)
+                number("PORT", config.telemetry)
                 number("SDLY", 15000)
                 text("SESS", "JMhnT9dXSED")
                 text("SKEY", Data.SKEY)
@@ -854,8 +842,8 @@ private class MainClient(private val session: SessionData) : SimpleChannelInboun
             }
 
             +struct("TICK") {
-                text("ADRS", tickerAddress)
-                number("port", CONFIG.ticker)
+                text("ADRS", config.address)
+                number("port", config.ticker)
                 text("SKEY", "823287263,10.23.15.2:8999,masseffect-3-pc,10,50,50,50,50,0,12")
             }
 

@@ -14,32 +14,21 @@ import io.netty.handler.codec.http.*
 import java.io.IOException
 
 
-fun startHttpServer() {
-    val bossGroup = NioEventLoopGroup(customThreadFactory("HTTP Boss #{ID}"))
-    val workerGroup = NioEventLoopGroup(customThreadFactory("HTTP Worker #{ID}"))
-    val bootstrap = ServerBootstrap() // Create a server bootstrap
+fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
     try {
-        val bind = bootstrap.group(bossGroup, workerGroup)
+        ServerBootstrap()
+            .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
             .childHandler(object : ChannelInitializer<Channel>() {
                 override fun initChannel(ch: Channel) {
                     ch.pipeline()
-                        // Add handler for processing ticker data
                         .addLast(HttpRequestDecoder())
                         .addLast(HttpResponseEncoder())
                         .addLast(HTTPHandler())
                 }
             })
-            // Bind the server to the host and port
             .bind(80)
-            // Wait for the channel to bind
-            .sync();
-        Logger.info("Started HTTP Server on port 80")
-        bind.channel()
-            // Get the closing future
-            .closeFuture()
-            // Wait for the closing
-            .sync()
+            .addListener { Logger.info("Started HTTP Server on port 80") }
     } catch (e: IOException) {
         Logger.error("Exception in HTTP server", e)
     }

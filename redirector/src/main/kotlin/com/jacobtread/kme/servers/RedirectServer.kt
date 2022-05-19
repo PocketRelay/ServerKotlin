@@ -4,7 +4,7 @@ package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.utils.ServerAddress
-import com.jacobtread.kme.utils.customThreadFactory
+import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.logging.Logger.error
 import com.jacobtread.kme.utils.logging.Logger.info
 import com.jacobtread.kme.utils.lookupServerAddress
@@ -22,6 +22,7 @@ import kotlinx.serialization.Serializable
 import net.mamoe.yamlkt.Comment
 import net.mamoe.yamlkt.Yaml
 import java.io.IOException
+import java.net.UnknownHostException
 import java.security.KeyStore
 import java.security.Security
 import javax.net.ssl.KeyManagerFactory
@@ -63,10 +64,9 @@ data class RedirectorConfig(
  * main Entry point for standalone redirector server will use
  */
 fun main() {
-    startRedirector(loadConfig())
-    while (true) {
-        Thread.sleep(10_000)
-    }
+    val bossGroup = NioEventLoopGroup()
+    val workerGroup = NioEventLoopGroup()
+    startRedirector(loadConfig(), bossGroup, workerGroup)
 }
 
 private fun loadConfig(): RedirectorConfig {
@@ -94,10 +94,9 @@ private fun loadConfig(): RedirectorConfig {
  *
  * @param config The configuration for the redirector
  */
-fun startRedirector(config: RedirectorConfig) {
+fun startRedirector(config: RedirectorConfig, bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
     // Clears the disabled algorithms necessary for SSLv3
     Security.setProperty("jdk.tls.disabledAlgorithms", "")
-
     val keyStorePassword = charArrayOf('1', '2', '3', '4', '5', '6')
     val keyStoreStream = RedirectHandler::class.java.getResourceAsStream("/redirector.pfx")
         ?: throw IllegalStateException("Missing required keystore for SSLv3")
@@ -113,15 +112,13 @@ fun startRedirector(config: RedirectorConfig) {
         .startTls(true)
         .trustManager(InsecureTrustManagerFactory.INSTANCE)
         .build() ?: throw IllegalStateException("Unable to create SSL Context")
-    val bossGroup = NioEventLoopGroup(customThreadFactory("Redirector Boss #{ID}"))
-    val workerGroup = NioEventLoopGroup(customThreadFactory("Redirector Worker #{ID}"))
-    val bootstrap = ServerBootstrap() // Create a server bootstrap
     try {
         val targetPort = config.targetPort
         val listenPort = config.port
         val address = lookupServerAddress(config.targetHost)
         val handler = RedirectHandler(address, targetPort)
-        bootstrap.group(bossGroup, workerGroup)
+        ServerBootstrap()
+            .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
             .childHandler(object : ChannelInitializer<Channel>() {
                 override fun initChannel(ch: Channel) {
@@ -138,11 +135,14 @@ fun startRedirector(config: RedirectorConfig) {
             // Bind the server to the host and port
             .bind(listenPort)
             // Wait for the channel to bind
-            .sync()
-        info("Started Redirector on port $listenPort redirecting to:")
-        info("Host: ${address.host}")
-        info("IP: ${address.ip}")
-        info("Port: $targetPort")
+            .addListener {
+                info("Started Redirector on port $listenPort redirecting to:")
+                info("Host: ${address.host}")
+                info("IP: ${address.ip}")
+                info("Port: $targetPort")
+            }
+    } catch (e: UnknownHostException) {
+        Logger.fatal("Unable to lookup server address \"${config.targetHost}\"", e)
     } catch (e: IOException) {
         error("Exception in redirector server", e)
     }
