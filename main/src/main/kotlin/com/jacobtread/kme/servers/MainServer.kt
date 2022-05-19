@@ -175,18 +175,19 @@ private class MainClient(private val session: SessionData, private val config: C
             LOGIN -> handleLogin(packet)
             SILENT_LOGIN -> handleSilentLogin(packet)
             LOGIN_PERSONA -> handleLoginPersona(packet)
-            ORIGIN_LOGIN -> {}
+            ORIGIN_LOGIN -> {
+                Logger.info("Recieved unsupported request for Origin Login")
+                respondEmpty(packet)
+            }
             CREATE_ACCOUNT -> handleCreateAccount(packet)
             else -> respondEmpty(packet)
         }
     }
 
-
     private fun handleListUserEntitlements2(packet: Packet) {
         val etag = packet.text("ETAG")
         if (etag.isEmpty()) {
             channel.send(Data.makeUserEntitlements2(packet))
-
             if (!session.sendOffers) {
                 session.sendOffers = true
                 val sessPacket = unique(USER_SESSIONS, START_SESSION) {
@@ -424,8 +425,19 @@ private class MainClient(private val session: SessionData, private val config: C
             }
         }
         session.setPlayer(player)
+        val sessionToken = getSessionToken()
         channel.respond(packet) {
             text("PNAM", player.displayName)
+            text("LDHT", "")
+            number("NTOS", 0)
+            text("PCTK", sessionToken)
+            list("PLST", listOf(session.createPDTL(player)))
+            text("PRIV", "")
+            text("SKEY", "11229301_9b171d92cc562b293e602ee8325612e7")
+            number("SPAM", 0)
+            text("THST", "")
+            text("TSUI", "")
+            text("TURI", "")
             number("UID", player.id.value)
         }
         sessionDetailsPackets()
