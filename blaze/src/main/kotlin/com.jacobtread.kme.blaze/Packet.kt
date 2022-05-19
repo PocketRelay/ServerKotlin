@@ -1,7 +1,6 @@
 package com.jacobtread.kme.blaze
 
 import com.jacobtread.kme.blaze.tdf.Tdf
-import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.logging.Logger.warn
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
@@ -15,8 +14,8 @@ class Packet(
     val rawContent: ByteArray,
 ) : TdfContainer {
     companion object {
-        fun read(input: ByteBuf): Packet {
-            val length = input.readUnsignedShort();
+
+        fun readHead(length: Int, input: ByteBuf): Packet {
             val component = input.readUnsignedShort()
             val command = input.readUnsignedShort()
             val error = input.readUnsignedShort()
@@ -25,20 +24,20 @@ class Packet(
             val extLength = if ((qtype and 0x10) != 0) input.readUnsignedShort() else 0
             val contentLength = length + (extLength shl 16)
             val content = ByteArray(contentLength)
+            return Packet(component, command, error, qtype, id, content)
+        }
+
+        fun read(input: ByteBuf): Packet {
+            val length = input.readUnsignedShort();
+            val head = readHead(length, input)
             try {
-                input.readBytes(content)
+                input.readBytes(head.rawContent)
             } catch (e: IndexOutOfBoundsException) {
                 warn("INDEX OUT OF BOUNDS EXCEPTION")
-                warn("PACKET DETAILS:")
-                warn("LENGTH: $length")
-                warn("COMPONENT: $component")
-                warn("COMMAND: $command")
-                warn("ERROR: $error")
-                warn("QTYPE: $qtype")
-                warn("ID: $id")
-                warn("CONTENT_LENGTH: $contentLength")
+                warn("PACKET DETAILS:\n")
+                warn(head.toString())
             }
-            return Packet(component, command, error, qtype, id, content)
+            return head
         }
     }
 
