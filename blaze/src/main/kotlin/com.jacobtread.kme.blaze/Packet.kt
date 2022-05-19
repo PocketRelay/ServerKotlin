@@ -52,6 +52,7 @@ class Packet(
                 values.add(Tdf.read(buffer))
             }
         } catch (e: Throwable) {
+            println(values.last())
             e.printStackTrace()
         }
         buffer.release()

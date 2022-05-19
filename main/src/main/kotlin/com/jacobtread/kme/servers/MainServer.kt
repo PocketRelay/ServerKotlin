@@ -694,7 +694,19 @@ private class MainClient(private val session: SessionData, private val config: C
     //region Game Reporting Component Region
 
     fun handleGameReporting(packet: Packet) {
-
+        when (packet.command) {
+            SUBMIT_OFFLINE_GAME_REPORT -> {
+                respondEmpty(packet)
+                channel.unique(GAME_REPORTING,GAME_REPORT_RESULT_72) {
+                    varList("DATA", emptyList())
+                    number("EROR", 0)
+                    number("FNL", 0)
+                    number("GHID", 0)
+                    number("GRID", 0)
+                }
+            }
+            else -> {}
+        }
     }
 
     //endregion
