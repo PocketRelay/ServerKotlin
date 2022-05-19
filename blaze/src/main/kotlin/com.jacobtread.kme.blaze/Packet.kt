@@ -1,6 +1,8 @@
 package com.jacobtread.kme.blaze
 
 import com.jacobtread.kme.blaze.tdf.Tdf
+import com.jacobtread.kme.utils.logging.Logger
+import com.jacobtread.kme.utils.logging.Logger.warn
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 
@@ -23,7 +25,19 @@ class Packet(
             val extLength = if ((qtype and 0x10) != 0) input.readUnsignedShort() else 0
             val contentLength = length + (extLength shl 16)
             val content = ByteArray(contentLength)
-            input.readBytes(content)
+            try {
+                input.readBytes(content)
+            } catch (e: IndexOutOfBoundsException) {
+                warn("INDEX OUT OF BOUNDS EXCEPTION")
+                warn("PACKET DETAILS:")
+                warn("LENGTH: $length")
+                warn("COMPONENT: $component")
+                warn("COMMAND: $command")
+                warn("ERROR: $error")
+                warn("QTYPE: $qtype")
+                warn("ID: $id")
+                warn("CONTENT_LENGTH: $contentLength")
+            }
             return Packet(component, command, error, qtype, id, content)
         }
     }
