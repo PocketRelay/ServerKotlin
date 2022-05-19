@@ -7,15 +7,11 @@ import com.jacobtread.kme.blaze.Command.*
 import com.jacobtread.kme.blaze.Component.*
 import com.jacobtread.kme.blaze.tdf.StructTdf
 import com.jacobtread.kme.blaze.tdf.UnionTdf
-import com.jacobtread.kme.utils.IPAddress
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.database.Players
+import com.jacobtread.kme.utils.*
 import com.jacobtread.kme.utils.logging.Logger
-import com.jacobtread.kme.utils.comparePasswordHash
-import com.jacobtread.kme.utils.customThreadFactory
-import com.jacobtread.kme.utils.hashPassword
-import com.jacobtread.kme.utils.unixTimeSeconds
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
@@ -23,61 +19,50 @@ import io.netty.channel.ChannelInitializer
 import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import net.mamoe.yamlkt.Comment
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicInteger
 
 fun startMainServer() {
-    Thread {
-        val bossGroup = NioEventLoopGroup(customThreadFactory("Main Server Boss #{ID}"))
-        val workerGroup = NioEventLoopGroup(customThreadFactory("Main Server Worker #{ID}"))
-        val bootstrap = ServerBootstrap() // Create a server bootstrap
-        try {
-            val port = CONFIG.main
-            val clientId = AtomicInteger(0)
-            val bind = bootstrap.group(bossGroup, workerGroup)
-                .channel(NioServerSocketChannel::class.java)
-                .childHandler(object : ChannelInitializer<Channel>() {
-                    override fun initChannel(ch: Channel) {
-                        val remoteAddress = ch.remoteAddress()
-                        Logger.info("Main started new client session with $remoteAddress")
-                        val session = SessionData(
-                            clientId.getAndIncrement(),
-                            0x12345678,
-                            NetData(0, 0),
-                            NetData(0, 0)
-                        )
-                        ch.pipeline()
-                            // Add handler for decoding packet
-                            .addLast(PacketDecoder())
-                            // Add handler for processing packets
-                            .addLast(MainClient(session))
-                            .addLast(PacketEncoder())
-                    }
-                })
-                // Bind the server to the host and port
-                .bind(port)
-                // Wait for the channel to bind
-                .sync()
-            Logger.info("Started Main Server on port $port")
-            bind.channel()
-                // Get the closing future
-                .closeFuture()
-                // Wait for the closing
-                .sync()
-        } catch (e: IOException) {
-            Logger.error("Exception in redirector server", e)
-        }
-    }.apply {
-        // Name the main server thread
-        name = "Main Server"
-        // Close this thread when the JVM requests close
-        isDaemon = true
-        // Start the main server thread
-        start()
+    nameThread("Main Server")
+    val bossGroup = NioEventLoopGroup(customThreadFactory("Main Server Boss #{ID}"))
+    val workerGroup = NioEventLoopGroup(customThreadFactory("Main Server Worker #{ID}"))
+    val bootstrap = ServerBootstrap() // Create a server bootstrap
+    try {
+        val port = CONFIG.main
+        val clientId = AtomicInteger(0)
+        val bind = bootstrap.group(bossGroup, workerGroup)
+            .channel(NioServerSocketChannel::class.java)
+            .childHandler(object : ChannelInitializer<Channel>() {
+                override fun initChannel(ch: Channel) {
+                    val remoteAddress = ch.remoteAddress()
+                    Logger.info("Main started new client session with $remoteAddress")
+                    val session = SessionData(
+                        clientId.getAndIncrement(),
+                        0x12345678,
+                        NetData(0, 0),
+                        NetData(0, 0)
+                    )
+                    ch.pipeline()
+                        // Add handler for decoding packet
+                        .addLast(PacketDecoder())
+                        // Add handler for processing packets
+                        .addLast(MainClient(session))
+                        .addLast(PacketEncoder())
+                }
+            })
+            // Bind the server to the host and port
+            .bind(port)
+            // Wait for the channel to bind
+            .sync()
+        Logger.info("Started Main Server on port $port")
+        bind.channel()
+            // Get the closing future
+            .closeFuture()
+            // Wait for the closing
+            .sync()
+    } catch (e: IOException) {
+        Logger.error("Exception in redirector server", e)
     }
 }
 

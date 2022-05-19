@@ -1,8 +1,7 @@
 package com.jacobtread.kme.servers
 
-import com.jacobtread.kme.CONFIG
-import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.customThreadFactory
+import com.jacobtread.kme.utils.logging.Logger
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.Unpooled
 import io.netty.channel.Channel
@@ -16,42 +15,33 @@ import java.io.IOException
 
 
 fun startHttpServer() {
-    Thread {
-        val bossGroup = NioEventLoopGroup(customThreadFactory("HTTP Boss #{ID}"))
-        val workerGroup = NioEventLoopGroup(customThreadFactory("HTTP Worker #{ID}"))
-        val bootstrap = ServerBootstrap() // Create a server bootstrap
-        try {
-            val bind = bootstrap.group(bossGroup, workerGroup)
-                .channel(NioServerSocketChannel::class.java)
-                .childHandler(object : ChannelInitializer<Channel>() {
-                    override fun initChannel(ch: Channel) {
-                        ch.pipeline()
-                            // Add handler for processing ticker data
-                            .addLast(HttpRequestDecoder())
-                            .addLast(HttpResponseEncoder())
-                            .addLast(HTTPHandler())
-                    }
-                })
-                // Bind the server to the host and port
-                .bind(80)
-                // Wait for the channel to bind
-                .sync();
-            Logger.info("Started HTTP Server on port 80")
-            bind.channel()
-                // Get the closing future
-                .closeFuture()
-                // Wait for the closing
-                .sync()
-        } catch (e: IOException) {
-            Logger.error("Exception in HTTP server", e)
-        }
-    }.apply {
-        // Name the HTTP thread
-        name = "HTTP"
-        // Close this thread when the JVM requests close
-        isDaemon = true
-        // Start the HTTP thread
-        start()
+    val bossGroup = NioEventLoopGroup(customThreadFactory("HTTP Boss #{ID}"))
+    val workerGroup = NioEventLoopGroup(customThreadFactory("HTTP Worker #{ID}"))
+    val bootstrap = ServerBootstrap() // Create a server bootstrap
+    try {
+        val bind = bootstrap.group(bossGroup, workerGroup)
+            .channel(NioServerSocketChannel::class.java)
+            .childHandler(object : ChannelInitializer<Channel>() {
+                override fun initChannel(ch: Channel) {
+                    ch.pipeline()
+                        // Add handler for processing ticker data
+                        .addLast(HttpRequestDecoder())
+                        .addLast(HttpResponseEncoder())
+                        .addLast(HTTPHandler())
+                }
+            })
+            // Bind the server to the host and port
+            .bind(80)
+            // Wait for the channel to bind
+            .sync();
+        Logger.info("Started HTTP Server on port 80")
+        bind.channel()
+            // Get the closing future
+            .closeFuture()
+            // Wait for the closing
+            .sync()
+    } catch (e: IOException) {
+        Logger.error("Exception in HTTP server", e)
     }
 }
 

@@ -63,7 +63,10 @@ data class RedirectorConfig(
  * main Entry point for standalone redirector server will use
  */
 fun main() {
-    startRedirector()
+    startRedirector(loadConfig())
+    while (true) {
+        Thread.sleep(10_000)
+    }
 }
 
 private fun loadConfig(): RedirectorConfig {
@@ -91,7 +94,7 @@ private fun loadConfig(): RedirectorConfig {
  *
  * @param config The configuration for the redirector
  */
-fun startRedirector(config: RedirectorConfig = loadConfig()) {
+fun startRedirector(config: RedirectorConfig) {
     // Clears the disabled algorithms necessary for SSLv3
     Security.setProperty("jdk.tls.disabledAlgorithms", "")
 
@@ -118,7 +121,7 @@ fun startRedirector(config: RedirectorConfig = loadConfig()) {
         val listenPort = config.port
         val address = lookupServerAddress(config.targetHost)
         val handler = RedirectHandler(address, targetPort)
-        val bind = bootstrap.group(bossGroup, workerGroup)
+        bootstrap.group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
             .childHandler(object : ChannelInitializer<Channel>() {
                 override fun initChannel(ch: Channel) {
@@ -140,11 +143,6 @@ fun startRedirector(config: RedirectorConfig = loadConfig()) {
         info("Host: ${address.host}")
         info("IP: ${address.ip}")
         info("Port: $targetPort")
-        bind.channel()
-            // Get the closing future
-            .closeFuture()
-            // Wait for the closing
-            .sync()
     } catch (e: IOException) {
         error("Exception in redirector server", e)
     }
@@ -159,22 +157,31 @@ fun startRedirector(config: RedirectorConfig = loadConfig()) {
  * @constructor Create empty RedirectHandler
  */
 @Sharable
-class RedirectHandler(private val target: ServerAddress, private val port: Int) : SimpleChannelInboundHandler<Packet>() {
+class RedirectHandler(target: ServerAddress, port: Int) : SimpleChannelInboundHandler<Packet>() {
+
+    private val packetBody: ByteArray
+
+    init {
+        val packetContents = TdfBuilder()
+        packetContents.apply {
+            union("ADDR", struct("VALU") {
+                text("HOST", target.host)
+                number("IP", target.address)
+                number("PORT", port)
+            })
+            number("SECU", 0x0)
+            number("XDNS", 0x0)
+        }
+        packetBody = packetContents.createByteArray()
+    }
+
     override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
         if (msg.component == Component.REDIRECTOR
             && msg.command == Command.GET_SERVER_INSTANCE
         ) {
             val channel = ctx.channel()
             val remoteAddress = channel.remoteAddress()
-            channel.respond(msg) {
-                union("ADDR", struct("VALU") {
-                    text("HOST", target.host)
-                    number("IP", target.address)
-                    number("PORT", port)
-                })
-                number("SECU", 0x0)
-                number("XDNS", 0x0)
-            }
+            channel.respond(msg, packetBody)
             info("Sent redirection to client at $remoteAddress. Closing Connection.")
             channel.close()
         }

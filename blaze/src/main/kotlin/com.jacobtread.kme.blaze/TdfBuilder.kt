@@ -217,6 +217,7 @@ class TdfBuilder {
         val length = buffer.readableBytes()
         val content = ByteArray(length)
         buffer.readBytes(content)
+        buffer.release()
         return content
     }
 }

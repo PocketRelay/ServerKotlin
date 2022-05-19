@@ -41,6 +41,7 @@ class Packet(
         } catch (e: Throwable) {
             e.printStackTrace()
         }
+        buffer.release()
         values
     }
 

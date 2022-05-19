@@ -21,6 +21,13 @@ inline fun Channel.respond(
     populate: TdfBuilder.() -> Unit = {},
 ) = send(createPacket(responding.rawComponent, responding.rawCommand, RESPONSE, responding.id, error, populate))
 
+@Suppress("NOTHING_TO_INLINE")
+inline fun Channel.respond(
+    responding: Packet,
+    content: ByteArray,
+    error: Int = NO_ERROR,
+) = send(Packet(responding.rawComponent, responding.rawCommand, error, RESPONSE, responding.id, content))
+
 inline fun Channel.error(
     responding: Packet,
     error: Int,
@@ -84,3 +91,5 @@ inline fun createPacket(
         contentBuilder.createByteArray()
     )
 }
+
+
