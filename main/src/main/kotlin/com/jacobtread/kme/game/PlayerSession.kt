@@ -5,10 +5,13 @@ import com.jacobtread.kme.blaze.tdf.StructTdf
 import com.jacobtread.kme.blaze.tdf.UnionTdf
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.utils.unixTimeSeconds
+import io.netty.channel.Channel
 
 class PlayerSession(
     val id: Int,
 ) {
+
+    lateinit var channel: Channel
 
     data class NetData(var address: Long, var port: Int) {
         companion object {
@@ -22,6 +25,8 @@ class PlayerSession(
     var exip: NetData = NetData.DEFAULT
     var inip: NetData = NetData.DEFAULT
     var isActive: Boolean = true
+
+    val playerId: Int get() = player!!.playerId
 
     fun getPlayer(): Player = player ?: throw IllegalStateException("Tried to access player on session without logging in")
 

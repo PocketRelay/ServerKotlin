@@ -4,7 +4,7 @@ import io.netty.buffer.Unpooled
 import kotlin.io.path.*
 
 fun main(args: Array<String>) {
-    val dir = Path("replay")
+    val dir = Path("data/replay")
     val decodedDir = dir / "decoded"
 
     if (!decodedDir.exists()) decodedDir.createDirectories()

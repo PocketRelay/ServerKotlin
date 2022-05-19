@@ -73,5 +73,7 @@ inline fun TdfContainer.pairOrNull(label: String): VarPair? = getTdfOrNull(PairT
 inline fun TdfContainer.varIntListOrNull(label: String): List<Long>? = getTdfOrNull(VarIntList::class.java, label)?.value
 inline fun TdfContainer.listOrNull(label: String): List<Any>? = getTdfOrNull(ListTdf::class.java, label)?.value
 inline fun TdfContainer.mapOrNull(label: String): Map<*, *>? = getTdfOrNull(MapTdf::class.java, label)?.value
+@Suppress("UNCHECKED_CAST")
+inline fun TdfContainer.mapKVOrNull(label: String): Map<String, String>? = mapOrNull(label) as Map<String, String>?
 
 //endregion

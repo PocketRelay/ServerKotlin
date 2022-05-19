@@ -16,6 +16,10 @@ import io.netty.buffer.Unpooled
  */
 class TdfBuilder {
 
+    companion object {
+        val EMPTY_BYTE_ARRAY = ByteArray(0)
+    }
+
     val values = ArrayList<Tdf<*>>()
 
     /**
@@ -58,7 +62,7 @@ class TdfBuilder {
      * @param label The label of the Tdf
      * @param value The byte array to be used as the blob
      */
-    fun blob(label: String, value: ByteArray) {
+    fun blob(label: String, value: ByteArray = EMPTY_BYTE_ARRAY) {
         values.add(BlobTdf(label, value))
     }
 

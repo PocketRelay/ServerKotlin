@@ -10,13 +10,11 @@ import com.jacobtread.kme.blaze.tdf.UnionTdf
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.database.Players
+import com.jacobtread.kme.game.GameManager
 import com.jacobtread.kme.game.PlayerSession
 import com.jacobtread.kme.game.PlayerSession.NetData
-import com.jacobtread.kme.utils.IPAddress
-import com.jacobtread.kme.utils.comparePasswordHash
-import com.jacobtread.kme.utils.hashPassword
+import com.jacobtread.kme.utils.*
 import com.jacobtread.kme.utils.logging.Logger
-import com.jacobtread.kme.utils.unixTimeSeconds
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
@@ -78,6 +76,7 @@ private class MainClient(private val session: PlayerSession, private val config:
     override fun channelActive(ctx: ChannelHandlerContext) {
         super.channelActive(ctx)
         this.channel = ctx.channel()
+        session.channel = channel
     }
 
     @Deprecated("Deprecated in Java")
@@ -111,16 +110,9 @@ private class MainClient(private val session: PlayerSession, private val config:
                 UTIL -> handleUtil(msg)
                 else -> respondEmpty(msg)
             }
-        } catch (e: IllegalStateException) {
-            Logger.warn("Failed to handle packet: $msg", e)
-        } catch (e: MissingTdfException) {
-            Logger.warn("Failed to handle packet: $msg", e)
-            // TODO: Custom handling for missing tdfs
-        } catch (e: InvalidTdfException) {
-            Logger.warn("Failed to handle packet: $msg", e)
-            // TODO: Custom handling for invalid tdfs
         } catch (e: Exception) {
             Logger.warn("Failed to handle packet: $msg", e)
+            respondEmpty(msg)
         }
     }
 
@@ -426,16 +418,94 @@ private class MainClient(private val session: PlayerSession, private val config:
 
     private fun handleGameManager(packet: Packet) {
         when (packet.command) {
-            CREATE_GAME -> {}
-            ADVANCE_GAME_STATE -> {}
-            SET_GAME_SETTINGS -> {}
-            SET_GAME_ATTRIBUTES -> {}
-            REMOVE_PLAYER -> {}
+            CREATE_GAME -> handleCreateGame(packet)
+            ADVANCE_GAME_STATE -> handleAdvanceGameState(packet)
+            SET_GAME_SETTINGS -> handleSetGameSettings(packet)
+            SET_GAME_ATTRIBUTES -> handleSetGameAttributes(packet)
+            REMOVE_PLAYER -> handleRemovePlayer(packet)
             START_MATCHMAKING -> {}
             CANCEL_MATCHMAKING -> {}
             UPDATE_MESH_CONNECTION -> {}
             else -> respondEmpty(packet)
         }
+    }
+
+    private fun handleCreateGame(packet: Packet) {
+        val player = session.getPlayer()
+        val attributes = packet.mapKVOrNull("ATTR") ?: return
+        val game = GameManager.createGame(session)
+        game.attributes.setBulk(attributes)
+        channel.respond(packet, flush = false) { number("GID", game.id) }
+        channel.send(game.createPoolPacket(), flush = false)
+        channel.unique(USER_SESSIONS, START_SESSION, flush = false) {
+            +struct("DATA") {
+                +session.createAddrUnion("ADDR")
+                text("BPS", "ea-sjc")
+                text("CTY", "")
+                varList("CVAR", emptyList())
+                map("DMAP", mapOf(0x70001 to 0x2e))
+                number("HWFG", 0x0)
+                list("PSLM", listOf(0xfff0fff, 0xfff0fff, 0xfff0fff))
+                +struct("QDAT") {
+                    number("DBPS", 0x0)
+                    number("NATT", Data.NAT_TYPE)
+                    number("UBPS", 0x0)
+                }
+                number("UATT", 0x0)
+                list("ULST", listOf(VarTripple(0x4, 0x1, 0x5dc695)))
+            }
+            number("USID", player.id.value)
+        }
+        channel.flush()
+    }
+
+    private fun handleAdvanceGameState(packet: Packet) {
+        val gameId = packet.number("GID").toInt()
+        val gameState = packet.number("GSTA").toInt()
+        val game = GameManager.getGameById(gameId)
+        if (game != null) {
+            game.gameState = gameState
+        }
+    }
+
+    private fun handleSetGameSettings(packet: Packet) {
+        val gameId = packet.number("GID").toInt()
+        val setting = packet.number("GSET").toInt()
+        val game = GameManager.getGameById(gameId)
+        if (game != null) {
+            game.gameSetting = setting
+        }
+        respondEmpty(packet)
+        channel.unique(
+            GAME_MANAGER,
+            MIGRATE_ADMIN_PLAYER,
+        ) {
+            number("ATTR", setting)
+            number("GID", gameId)
+        }
+    }
+
+    private fun handleSetGameAttributes(packet: Packet) {
+        val gameId = packet.number("GID").toInt()
+        val attributes = packet.mapKVOrNull("ATTR")
+        if (attributes == null) {
+            respondEmpty(packet)
+            return
+        }
+        val game = GameManager.getGameById(gameId)
+        if (game != null) {
+            game.attributes.setBulk(attributes)
+            game.broadcastAttributeUpdate()
+        }
+        respondEmpty(packet)
+    }
+
+    private fun handleRemovePlayer(packet: Packet) {
+        val playerId = packet.number("PID").toInt()
+        val gameId = packet.number("GID").toInt()
+        val game = GameManager.getGameById(gameId)
+        game?.removePlayer(playerId)
+        respondEmpty(packet)
     }
 
     //endregion

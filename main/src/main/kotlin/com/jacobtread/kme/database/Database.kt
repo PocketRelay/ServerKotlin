@@ -182,6 +182,8 @@ const val MIN_GAW_VALUE = 5000
 class Player(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<Player>(Players)
 
+    val playerId: Int get() = id.value
+
     var email by Players.email
     var displayName by Players.displayName
     var password by Players.password

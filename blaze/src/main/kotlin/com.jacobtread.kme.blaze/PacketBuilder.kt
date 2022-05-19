@@ -10,29 +10,32 @@ const val ERROR = 0x3000 // This packet contains an error
 const val NO_ERROR = 0
 
 @Suppress("NOTHING_TO_INLINE")
-inline fun Channel.send(packet: Packet) {
+inline fun Channel.send(packet: Packet, flush: Boolean = true) {
     write(packet)
-    flush()
+    if (flush) flush()
 }
 
 inline fun Channel.respond(
     responding: Packet,
     error: Int = NO_ERROR,
+    flush: Boolean = true,
     populate: TdfBuilder.() -> Unit = {},
-) = send(createPacket(responding.rawComponent, responding.rawCommand, RESPONSE, responding.id, error, populate))
+) = send(createPacket(responding.rawComponent, responding.rawCommand, RESPONSE, responding.id, error, populate), flush)
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Channel.respond(
     responding: Packet,
     content: ByteArray,
+    flush: Boolean = true,
     error: Int = NO_ERROR,
-) = send(Packet(responding.rawComponent, responding.rawCommand, error, RESPONSE, responding.id, content))
+) = send(Packet(responding.rawComponent, responding.rawCommand, error, RESPONSE, responding.id, content), flush)
 
 inline fun Channel.error(
     responding: Packet,
     error: Int,
+    flush: Boolean = true,
     populate: TdfBuilder.() -> Unit = {},
-) = send(createPacket(responding.rawComponent, responding.rawCommand, ERROR, responding.id, error, populate))
+) = send(createPacket(responding.rawComponent, responding.rawCommand, ERROR, responding.id, error, populate), flush)
 
 inline fun respond(
     responding: Packet,
@@ -52,8 +55,9 @@ inline fun Channel.unique(
     command: Command,
     id: Int = 0x0,
     error: Int = NO_ERROR,
+    flush: Boolean = true,
     populate: TdfBuilder.() -> Unit = {},
-) = send(createPacket(component.id, command.value, UNIQUE, id, error, populate))
+) = send(createPacket(component.id, command.value, UNIQUE, id, error, populate), flush)
 
 inline fun unique(
     component: Component,
@@ -69,8 +73,9 @@ inline fun Channel.packet(
     qtype: Int,
     id: Int = 0x0,
     error: Int = NO_ERROR,
+    flush: Boolean = true,
     populate: TdfBuilder.() -> Unit = {},
-) = send(createPacket(component, command, qtype, id, error, populate))
+) = send(createPacket(component, command, qtype, id, error, populate), flush)
 
 inline fun createPacket(
     component: Int,
