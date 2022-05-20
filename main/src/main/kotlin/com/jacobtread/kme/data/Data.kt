@@ -7,7 +7,6 @@ import com.jacobtread.kme.blaze.struct
 import com.jacobtread.kme.utils.logging.Logger
 import java.io.BufferedReader
 import java.io.IOException
-import java.time.Instant
 import kotlin.random.Random
 
 /**
@@ -18,7 +17,8 @@ import kotlin.random.Random
  */
 object Data {
 
-    const val TELE_DISA = "AD,AF,AG,AI,AL,AM,AN,AO,AQ,AR,AS,AW,AX,AZ,BA,BB,BD,BF,BH,BI,BJ,BM,BN,BO,BR,BS,BT,BV,BW,BY,BZ,CC,CD,CF,CG,CI,CK,CL,CM,CN,CO,CR,CU,CV,CX,DJ,DM,DO,DZ,EC,EG,EH,ER,ET,FJ,FK,FM,FO,GA,GD,GE,GF,GG,GH,GI,GL,GM,GN,GP,GQ,GS,GT,GU,GW,GY,HM,HN,HT,ID,IL,IM,IN,IO,IQ,IR,IS,JE,JM,JO,KE,KG,KH,KI,KM,KN,KP,KR,KW,KY,KZ,LA,LB,LC,LI,LK,LR,LS,LY,MA,MC,MD,ME,MG,MH,ML,MM,MN,MO,MP,MQ,MR,MS,MU,MV,MW,MY,MZ,NA,NC,NE,NF,NG,NI,NP,NR,NU,OM,PA,PE,PF,PG,PH,PK,PM,PN,PS,PW,PY,QA,RE,RS,RW,SA,SB,SC,SD,SG,SH,SJ,SL,SM,SN,SO,SR,ST,SV,SY,SZ,TC,TD,TF,TG,TH,TJ,TK,TL,TM,TN,TO,TT,TV,TZ,UA,UG,UM,UY,UZ,VA,VC,VE,VG,VN,VU,WF,WS,YE,YT,ZM,ZW,ZZ"
+    const val TELE_DISA =
+        "AD,AF,AG,AI,AL,AM,AN,AO,AQ,AR,AS,AW,AX,AZ,BA,BB,BD,BF,BH,BI,BJ,BM,BN,BO,BR,BS,BT,BV,BW,BY,BZ,CC,CD,CF,CG,CI,CK,CL,CM,CN,CO,CR,CU,CV,CX,DJ,DM,DO,DZ,EC,EG,EH,ER,ET,FJ,FK,FM,FO,GA,GD,GE,GF,GG,GH,GI,GL,GM,GN,GP,GQ,GS,GT,GU,GW,GY,HM,HN,HT,ID,IL,IM,IN,IO,IQ,IR,IS,JE,JM,JO,KE,KG,KH,KI,KM,KN,KP,KR,KW,KY,KZ,LA,LB,LC,LI,LK,LR,LS,LY,MA,MC,MD,ME,MG,MH,ML,MM,MN,MO,MP,MQ,MR,MS,MU,MV,MW,MY,MZ,NA,NC,NE,NF,NG,NI,NP,NR,NU,OM,PA,PE,PF,PG,PH,PK,PM,PN,PS,PW,PY,QA,RE,RS,RW,SA,SB,SC,SD,SG,SH,SJ,SL,SM,SN,SO,SR,ST,SV,SY,SZ,TC,TD,TF,TG,TH,TJ,TK,TL,TM,TN,TO,TT,TV,TZ,UA,UG,UM,UY,UZ,VA,VC,VE,VG,VN,VU,WF,WS,YE,YT,ZM,ZW,ZZ"
     const val NAT_TYPE = 4
     val SKEY = createSKey()
     val CIDS = listOf(1, 25, 4, 28, 7, 9, 63490, 30720, 15, 30721, 30722, 30723, 30725, 30726, 2000)
@@ -228,8 +228,15 @@ object Data {
             ))
         }
     }
+
     fun makeME3Data(config: Config): Map<String, String> {
-        val host = config.address
+        val address = config.address
+        val port = config.http
+        val host = if (port != 80) {
+            "$address:$port"
+        } else {
+            address
+        }
         return mapOf(
             "GAW_SERVER_BASE_URL" to "http://$host/wal/masseffect-gaw-pc",
             "IMG_MNGR_BASE_URL" to "http://$host/editorial/MassEffect/3/",
@@ -249,6 +256,7 @@ object Data {
             "TEL_SERVER" to "159.153.235.32",
         )
     }
+
     fun makeME3MSG(): Map<String, String> = mapOf(
         "MSG_1_endDate" to "10:03:2025",
         "MSG_1_image" to "Promo_n7.dds",
@@ -269,9 +277,10 @@ object Data {
         "MSG_1_title_ja" to "KME Server",
         "MSG_1_title_pl" to "KME Server",
         "MSG_1_title_ru" to "KME Server",
-        "MSG_1_trackingId" to Random.nextInt(0,15).toString(),
+        "MSG_1_trackingId" to Random.nextInt(0, 15).toString(),
         "MSG_1_type" to "8",
     )
+
     fun makeME3ENT(): Map<String, String> = mapOf(
         "CERBERUS_OFFER_ID" to "101",
         "ENT_100_entitlement" to "ME3_PRC_MP5",

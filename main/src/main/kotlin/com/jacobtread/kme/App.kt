@@ -30,6 +30,9 @@ data class Config(
     @Comment("Port for the telemetry server")
     val telemetry: Int = 9988,
 
+    @Comment("Port for the http server")
+    val http: Int = 80,
+
     @Comment(
         """
         This is the address used for telling the clients where the telemetry and ticker servers are located.

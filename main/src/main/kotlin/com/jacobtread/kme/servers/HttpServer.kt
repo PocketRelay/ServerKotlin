@@ -23,6 +23,7 @@ import kotlin.math.min
 
 fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup, config: Config) {
     try {
+        val port = config.http
         ServerBootstrap()
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
@@ -34,8 +35,8 @@ fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
                         .addLast(HTTPHandler(config))
                 }
             })
-            .bind(80)
-            .addListener { Logger.info("Started HTTP Server on port 80") }
+            .bind(port)
+            .addListener { Logger.info("Started HTTP Server on port $port") }
     } catch (e: IOException) {
         Logger.error("Exception in HTTP server", e)
     }
