@@ -1,2 +1,2 @@
 rootProject.name = "kme"
-include("blaze", "main", "utils")
+include("blaze", "utils")
