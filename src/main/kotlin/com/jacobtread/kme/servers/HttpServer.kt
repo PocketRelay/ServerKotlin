@@ -85,11 +85,13 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
     private fun ChannelHandlerContext.notFound() {
         val response = DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND)
         writeAndFlush(response)
+        Logger.debug("HTTP 404")
     }
 
     private fun ChannelHandlerContext.badRequest() {
         val response = DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
         writeAndFlush(response)
+        Logger.debug("HTTP 400")
     }
 
     private fun parseQuery(value: String): Map<String, String> {
@@ -139,7 +141,7 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
             ctx.badRequest()
             return
         }
-        val playerId = request.query["auth"]?.toIntOrNull()
+        val playerId = request.query["auth"]?.toIntOrNull(16)
         if (playerId == null) {
             ctx.badRequest()
             return
@@ -149,6 +151,7 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
             ctx.badRequest()
             return
         }
+        Logger.debug("Authenticated GAW User ${player.displayName}")
         @Suppress("SpellCheckingInspection")
         val content = """
             <?xml version="1.0" encoding="UTF-8"?>

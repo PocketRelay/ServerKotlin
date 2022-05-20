@@ -132,26 +132,28 @@ private class MainClient(private val session: PlayerSession, private val config:
     }
 
     /**
-     * handleListUserEntitlements2 Sends back the player a list of content,offers,etc.
-     * that the player has access too these values are currently static and stored in
-     * Data.
+     * handleListUserEntitlements2 Sends back the player a list of "entitlements"
+     * (content,offers,etc) that the player has access to these values are currently
+     * static and stored in Data.
      *
-     * @param packet
+     * @param packet The packet requesting the user entitlements
      */
     private fun handleListUserEntitlements2(packet: Packet) {
         val etag = packet.text("ETAG")
-        if (etag.isNotEmpty()) {
+        if (etag.isNotEmpty()) { // Empty responses for packets with ETAG's
             respondEmpty(packet)
             return
         }
 
+        // Respond with the already generated entitlements
+        // (This is a lazy value that's the same for everyone)
         channel.respond(packet, Data.USER_ENTITLEMENTS)
 
         // If the player hasn't yet recieved their session info send them it
         if (!session.sendSession) {
             session.sendSession = true
-            val sessPacket = session.createSetSession()
-            channel.send(sessPacket)
+            // Send a set session packet for the current player
+            channel.send(session.createSetSession())
         }
     }
 
@@ -306,9 +308,7 @@ private class MainClient(private val session: PlayerSession, private val config:
         if (transaction { !Player.find { Players.email eq email }.limit(1).empty() }) {
             loginErrorPacket(packet, LoginError.EMAIL_ALREADY_IN_USE)
         }
-
         val hashedPassword = hashPassword(password)
-
         val player = transaction {
             Player.new {
                 this.email = email
