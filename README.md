@@ -21,7 +21,7 @@ I plan on making a tool for doing this automatically
 - [x] Clean and easy builders for creating packets
   - (similar to compose uses a DSL making it super easy to use)
 - [x] Initial database structure
-- [x] Create Account with server (Partial Auth flow not entirely working)
+- [x] Create Account with server 
   - [x] Store user in database
 - [x] Login 
   - [x] Access users in database and retrieve them
