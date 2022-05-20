@@ -8,6 +8,7 @@ import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.utils.VarTripple
 import com.jacobtread.kme.utils.unixTimeSeconds
 import io.netty.channel.Channel
+import org.jetbrains.exposed.sql.transactions.transaction
 
 class PlayerSession(
     val id: Int,
@@ -21,7 +22,11 @@ class PlayerSession(
         }
     }
 
-    private var player: Player? = null
+
+    private var _player: Player? = null
+    val player: Player get() = _player ?: throw throw IllegalStateException("Tried to access player on session without logging in")
+    val playerId: Int get() = player.playerId
+
     var sendOffers = false
     var lastPingTime = -1L
     var exip = NetData.DEFAULT
@@ -29,15 +34,11 @@ class PlayerSession(
     var isActive = true
     var waitingForJoin = false
 
-
-    val playerId: Int get() = player!!.playerId
-
-    fun getPlayer(): Player = player ?: throw IllegalStateException("Tried to access player on session without logging in")
-
-
-    fun setPlayer(player: Player) {
-        this.player = player
+    fun setAuthenticated(player: Player) {
+        this._player = player
     }
+
+
 
     @Suppress("SpellCheckingInspection")
     fun createAddrUnion(label: String): UnionTdf =
@@ -68,7 +69,6 @@ class PlayerSession(
         Component.USER_SESSIONS,
         Command.SESSION_DETAILS
     ) {
-        val player = getPlayer()
         +struct("DATA") {
             +createAddrUnion("ADDR")
             text("BPS", "rs-lhr")

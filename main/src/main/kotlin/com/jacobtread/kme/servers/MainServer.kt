@@ -57,7 +57,7 @@ fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
 
 @Suppress("SpellCheckingInspection")
 private class MainClient(private val session: PlayerSession, private val config: Config) : SimpleChannelInboundHandler<Packet>() {
-    
+
     /**
      * respondEmpty Used for sending a respond that has no content
      *
@@ -158,9 +158,8 @@ private class MainClient(private val session: PlayerSession, private val config:
     }
 
     private fun handleGetAuthToken(packet: Packet) {
-        val player = session.getPlayer()
         channel.respond(packet) {
-            text("AUTH", player.id.value.toString(16).uppercase())
+            text("AUTH", session.playerId.toString(16).uppercase())
         }
     }
 
@@ -195,8 +194,8 @@ private class MainClient(private val session: PlayerSession, private val config:
             return
         }
 
-        session.setPlayer(player)
-        val sessionToken = getSessionToken()
+        session.setAuthenticated(player)
+        val sessionToken = player.sessionToken
         channel.respond(packet) {
             text("LDHT", "")
             number("NTOS", 0)
@@ -222,7 +221,7 @@ private class MainClient(private val session: PlayerSession, private val config:
         }
 
         if (player.sessionToken == auth) {
-            session.setPlayer(player)
+            session.setAuthenticated(player)
             authResponsePacket(packet)
             sessionDetailsPackets()
         } else {
@@ -230,31 +229,10 @@ private class MainClient(private val session: PlayerSession, private val config:
         }
     }
 
-    private fun createSessionToken(): String {
-        val chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPSQRSTUVWXYZ0123456789-"
-        val output = StringBuilder()
-        repeat(128) { output.append(chars.random()) }
-        return output.toString()
-    }
-
-    private fun getSessionToken(): String {
-        val player = session.getPlayer()
-        var sessionToken = player.sessionToken
-        if (sessionToken == null) {
-            sessionToken = createSessionToken()
-            transaction {
-                player.sessionToken = sessionToken
-            }
-        }
-        return sessionToken
-    }
-
     private fun authResponsePacket(packet: Packet) {
-        val player = session.getPlayer()
-
-        val sessionToken = getSessionToken()
+        val player = session.player
+        val sessionToken = player.sessionToken
         val lastLoginTime = unixTimeSeconds()
-
         channel.respond(packet) {
             number("AGUP", 0)
             text("LDHT", "")
@@ -278,7 +256,7 @@ private class MainClient(private val session: PlayerSession, private val config:
     }
 
     private fun sessionDetailsPackets() {
-        val player = session.getPlayer()
+        val player = session.player
         channel.unique(
             USER_SESSIONS,
             SESSION_DETAILS,
@@ -301,11 +279,11 @@ private class MainClient(private val session: PlayerSession, private val config:
             }
 
             +struct("USER") {
-                number("AID", player.id.value)
+                number("AID", player.playerId)
                 number("ALOC", 0x64654445)
                 blob("EXBB")
                 number("EXID", 0)
-                number("ID", player.id.value)
+                number("ID", player.playerId)
                 text("NAME", player.displayName)
             }
         }
@@ -315,7 +293,7 @@ private class MainClient(private val session: PlayerSession, private val config:
             UPDATE_EXTENDED_DATA_ATTRIBUTE
         ) {
             number("FLGS", 3)
-            number("ID", player.id.value)
+            number("ID", player.playerId)
         }
     }
 
@@ -364,8 +342,8 @@ private class MainClient(private val session: PlayerSession, private val config:
                 this.password = hashedPassword
             }
         }
-        session.setPlayer(player)
-        val sessionToken = getSessionToken()
+        session.setAuthenticated(player)
+        val sessionToken = player.sessionToken
         channel.respond(packet) {
             text("PNAM", player.displayName)
             text("LDHT", "")
@@ -385,7 +363,7 @@ private class MainClient(private val session: PlayerSession, private val config:
 
     private fun handleLoginPersona(packet: Packet) {
         val playerName: String = packet.text("PNAM")
-        val player = session.getPlayer()
+        val player = session.player
         if (playerName != player.displayName) {
             return
         }
@@ -421,7 +399,6 @@ private class MainClient(private val session: PlayerSession, private val config:
     }
 
     private fun handleCreateGame(packet: Packet) {
-        val player = session.getPlayer()
         val attributes = packet.mapKVOrNull("ATTR") ?: return
         val game = GameManager.createGame(session)
         game.attributes.setBulk(attributes)
@@ -444,7 +421,7 @@ private class MainClient(private val session: PlayerSession, private val config:
                 number("UATT", 0x0)
                 list("ULST", listOf(VarTripple(0x4, 0x1, 0x5dc695)))
             }
-            number("USID", player.playerId)
+            number("USID", session.playerId)
         }
     }
 
@@ -528,8 +505,8 @@ private class MainClient(private val session: PlayerSession, private val config:
     private fun handleUpdateMeshConnection(packet: Packet) {
         val gameId = packet.number("GID")
         val game = GameManager.getGameById(gameId)
-        val player = session.getPlayer()
         if (game != null && session.waitingForJoin) {
+            val player = session.player
             val host = game.host
             session.waitingForJoin = false
             val a = unique(GAME_MANAGER, GAME_MANAGER_74) {
@@ -656,7 +633,7 @@ private class MainClient(private val session: PlayerSession, private val config:
 
     private fun handleFilteredLeaderboard(packet: Packet) {
         val name: String = packet.text("NAME")
-        val player = session.getPlayer()
+        val player = session.player
         when (name) {
             "N7RatingGlobal" -> {
                 val rating = player.getN7Rating().toString()
@@ -723,7 +700,7 @@ private class MainClient(private val session: PlayerSession, private val config:
                     number("MCNT", 0x1)
                 })
                 val ip = channel.remoteAddress().toString()
-                val player = session.getPlayer()
+                val player = session.player
                 val menuMessage = config.menuMessage
                     .replace("{v}", KME_VERSION)
                     .replace("{n}", player.displayName)
@@ -992,16 +969,14 @@ private class MainClient(private val session: PlayerSession, private val config:
         val value = packet.textOrNull("DATA")
         val key = packet.textOrNull("KEY")
         if (value != null && key != null) {
-            val player = session.getPlayer()
-            player.setSetting(key, value)
+            session.player.setSetting(key, value)
         }
         respondEmpty(packet)
     }
 
     private fun handleUserSettingsLoadAll(packet: Packet) {
-        val player = session.getPlayer()
         channel.respond(packet) {
-            map("SMAP", player.createSettingsMap())
+            map("SMAP", session.player.createSettingsMap())
         }
     }
 

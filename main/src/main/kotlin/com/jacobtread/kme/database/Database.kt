@@ -188,7 +188,7 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
     var displayName by Players.displayName
     var password by Players.password
 
-    var sessionToken by Players.sessionToken
+    private var _sessionToken by Players.sessionToken
     private var settingsBase by Players.settingsBase
 
     private val classes by PlayerClass referrersOn PlayerClasses.player
@@ -221,6 +221,25 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
             }
         }
     }
+
+    private fun createSessionToken(): String {
+        val chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPSQRSTUVWXYZ0123456789-"
+        val output = StringBuilder()
+        repeat(128) { output.append(chars.random()) }
+        return output.toString()
+    }
+
+    val sessionToken: String
+        get() {
+            var sessionToken = _sessionToken
+            if (sessionToken == null) {
+                sessionToken = createSessionToken()
+                transaction { _sessionToken = sessionToken }
+            }
+            return sessionToken
+        }
+
+
 
     /**
      * setSetting Updates a user setting. Settings that are parsed such
