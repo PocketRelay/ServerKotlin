@@ -16,10 +16,7 @@ import com.jacobtread.kme.game.PlayerSession.NetData
 import com.jacobtread.kme.utils.*
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.bootstrap.ServerBootstrap
-import io.netty.channel.Channel
-import io.netty.channel.ChannelHandlerContext
-import io.netty.channel.ChannelInitializer
-import io.netty.channel.SimpleChannelInboundHandler
+import io.netty.channel.*
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -60,11 +57,7 @@ fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
 
 @Suppress("SpellCheckingInspection")
 private class MainClient(private val session: PlayerSession, private val config: Config) : SimpleChannelInboundHandler<Packet>() {
-
-    companion object {
-        private val EMPTY_BYTE_ARRAY = ByteArray(0)
-    }
-
+    
     /**
      * respondEmpty Used for sending a respond that has no content
      *
@@ -310,7 +303,7 @@ private class MainClient(private val session: PlayerSession, private val config:
             +struct("USER") {
                 number("AID", player.id.value)
                 number("ALOC", 0x64654445)
-                blob("EXBB", EMPTY_BYTE_ARRAY)
+                blob("EXBB")
                 number("EXID", 0)
                 number("ID", player.id.value)
                 text("NAME", player.displayName)
@@ -957,7 +950,7 @@ private class MainClient(private val session: PlayerSession, private val config:
         channel.respond(packet) {
             +struct("PSS") {
                 text("ADRS", "playersyncservice.ea.com")
-                blob("CSIG", EMPTY_BYTE_ARRAY)
+                blob("CSIG")
                 text("PJID", "303107")
                 number("PORT", 443)
                 number("RPRT", 0xF)
