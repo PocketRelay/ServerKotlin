@@ -2,6 +2,7 @@
 
 package com.jacobtread.kme.servers
 
+import com.jacobtread.kme.Config
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.utils.ServerAddress
 import com.jacobtread.kme.utils.logging.Logger
@@ -18,84 +19,14 @@ import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.ssl.SslContextBuilder
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory
-import kotlinx.serialization.Serializable
-import net.mamoe.yamlkt.Comment
-import net.mamoe.yamlkt.Yaml
 import java.io.IOException
 import java.net.UnknownHostException
 import java.security.KeyStore
 import java.security.Security
 import javax.net.ssl.KeyManagerFactory
-import kotlin.io.path.Path
-import kotlin.io.path.exists
-import kotlin.io.path.readText
-import kotlin.io.path.writeText
 
-@Serializable
-data class RedirectorConfig(
-    @Comment(
-        """
-        The port the redirector server will listen on. NOTE: Clients will only
-        connect to 42127 so changing this will make users unable to connect unless
-        you are behind some sort of proxy that's mapping the port
-        """
-    )
-    val port: Int = 42127,
-    @Comment(
-        """
-        The host to redirect to. If you are hosting the server at a custom domain you
-        can use that domain here and it will be used otherwise leave it as default.
-        NOTE: If you don't change this domain this value needs to be added to the user's
-        hosts file as a redirect 
-        NOTE 2: You can specify a direct IP address here instead of a domain 
-        """
-    )
-    val targetHost: String = "383933-gosprapp396.ea.com",
-    @Comment(
-        """
-        The port to redirect to. This is dependant on your configuration of the main server.
-        Make sure this matches up with whats in the main config server as the port.
-        """
-    )
-    val targetPort: Int = 14219,
-    val logging: Logger.Config = Logger.Config(),
-)
 
-/**
- * main Entry point for standalone redirector server will use
- */
-fun main() {
-    val bossGroup = NioEventLoopGroup()
-    val workerGroup = NioEventLoopGroup()
-    startRedirector(loadConfig(), bossGroup, workerGroup)
-}
-
-private fun loadConfig(): RedirectorConfig {
-    val config: RedirectorConfig
-    val configFile = Path("redirector.yml")
-    if (configFile.exists()) {
-        val contents = configFile.readText()
-        config = Yaml.decodeFromString(RedirectorConfig.serializer(), contents)
-    } else {
-        info("No redirector configuration found. Using default")
-        config = RedirectorConfig()
-        try {
-            configFile.writeText(Yaml.encodeToString(config))
-        } catch (e: Exception) {
-            error("Failed to write newly created redirector config file", e)
-        }
-    }
-    return config
-}
-
-/**
- * startRedirector Starts the Redirector server in a new thread. This server
- * handles pointing clients to the correct IP address and port of the main server.
- * This is the only one of the servers that requires SSLv3
- *
- * @param config The configuration for the redirector
- */
-fun startRedirector(config: RedirectorConfig, bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
+fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup, config: Config) {
     // Clears the disabled algorithms necessary for SSLv3
     Security.setProperty("jdk.tls.disabledAlgorithms", "")
     val keyStorePassword = charArrayOf('1', '2', '3', '4', '5', '6')
@@ -114,9 +45,9 @@ fun startRedirector(config: RedirectorConfig, bossGroup: NioEventLoopGroup, work
         .trustManager(InsecureTrustManagerFactory.INSTANCE)
         .build() ?: throw IllegalStateException("Unable to create SSL Context")
     try {
-        val targetPort = config.targetPort
-        val listenPort = config.port
-        val address = lookupServerAddress(config.targetHost)
+        val targetPort = config.main
+        val listenPort = config.redirector
+        val address = lookupServerAddress(config.address)
         val handler = RedirectHandler(address, targetPort)
         ServerBootstrap()
             .group(bossGroup, workerGroup)
@@ -143,7 +74,7 @@ fun startRedirector(config: RedirectorConfig, bossGroup: NioEventLoopGroup, work
                 info("Port: $targetPort")
             }
     } catch (e: UnknownHostException) {
-        Logger.fatal("Unable to lookup server address \"${config.targetHost}\"", e)
+        Logger.fatal("Unable to lookup server address \"${config.address}\"", e)
     } catch (e: IOException) {
         error("Exception in redirector server", e)
     }

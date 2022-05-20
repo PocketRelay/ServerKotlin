@@ -1,6 +1,6 @@
 package com.jacobtread.kme.database
 
-import com.jacobtread.kme.GalaxyAtWarConfig
+import com.jacobtread.kme.Config
 import com.jacobtread.kme.utils.MEStringParser
 import com.jacobtread.kme.utils.unixTimeSeconds
 import kotlinx.serialization.SerialName
@@ -195,7 +195,7 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
     private val characters by PlayerCharacter referrersOn PlayerCharacters.player
     private val settings by PlayerSetting referrersOn PlayerSettings.player
 
-    fun getOrCreateGAW(config: GalaxyAtWarConfig): PlayerGalaxyAtWar {
+    fun getOrCreateGAW(config: Config.GalaxyAtWarConfig): PlayerGalaxyAtWar {
         val existing = PlayerGalaxyAtWar.findOne { (PlayerGalaxyAtWars.player eq this@Player.id) }
         if (existing != null) {
             if (config.readinessDailyDecay > 0f) {
