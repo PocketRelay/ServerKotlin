@@ -10,6 +10,7 @@ import com.jacobtread.kme.blaze.tdf.OptionalTdf
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.data.LoginError
 import com.jacobtread.kme.database.Player
+import com.jacobtread.kme.exceptions.NotAuthenticatedException
 import com.jacobtread.kme.game.GameManager
 import com.jacobtread.kme.game.PlayerSession
 import com.jacobtread.kme.game.PlayerSession.NetData
@@ -74,7 +75,7 @@ private class MainClient(private val session: PlayerSession, private val config:
     override fun channelActive(ctx: ChannelHandlerContext) {
         super.channelActive(ctx)
         this.channel = ctx.channel()
-        session.channel = channel
+        session.setChannel(channel)
     }
 
     @Deprecated("Deprecated in Java")
@@ -88,7 +89,7 @@ private class MainClient(private val session: PlayerSession, private val config:
     }
 
     override fun channelInactive(ctx: ChannelHandlerContext) {
-        session.isActive = false
+        session.release()
         super.channelInactive(ctx)
     }
 
@@ -105,6 +106,10 @@ private class MainClient(private val session: PlayerSession, private val config:
                 UTIL -> handleUtil(msg)
                 else -> respondEmpty(msg)
             }
+        } catch (e: NotAuthenticatedException) {
+            val address= channel.remoteAddress()
+            channel.send(LoginError.INVALID_ACCOUNT(msg))
+            Logger.warn("Client at $address tried to access a authenticated route without authenticating")
         } catch (e: Exception) {
             Logger.warn("Failed to handle packet: $msg", e)
             respondEmpty(msg)
@@ -201,7 +206,7 @@ private class MainClient(private val session: PlayerSession, private val config:
             text("LDHT", "")
             number("NTOS", 0)
             text("PCTK", player.sessionToken)
-            list("PLST", listOf(session.createPersonaList(player)))
+            list("PLST", listOf(session.createPersonaList()))
             text("PRIV", "")
             text("SKEY", Data.SKEY2)
             number("SPAM", 0)
@@ -238,7 +243,7 @@ private class MainClient(private val session: PlayerSession, private val config:
             number("NTOS", 0)
             text("PCTK", sessionToken)
             text("PRIV", "")
-            +group("SESS") { session.appendSession(this) }
+            +group("SESS") { session.appendPlayerSession(this) }
             number("SPAM", 0)
             text("THST", "")
             text("TSUI", "")
@@ -269,7 +274,7 @@ private class MainClient(private val session: PlayerSession, private val config:
     }
 
     private fun handleLoginPersona(packet: Packet) {
-        channel.respond(packet) { session.appendSession(this) }
+        channel.respond(packet) { session.appendPlayerSession(this) }
         channel.send(session.createSessionDetails())
         channel.send(session.createIdentityUpdate())
     }
@@ -295,7 +300,7 @@ private class MainClient(private val session: PlayerSession, private val config:
     private fun handleCreateGame(packet: Packet) {
         val attributes = packet.mapKVOrNull("ATTR") ?: return
         val game = GameManager.createGame(session)
-        game.attributes.setBulk(attributes)
+        game.attributes.setValues(attributes)
         channel.respond(packet) { number("GID", game.id) }
         channel.send(game.createPoolPacket(true))
         channel.send(session.createSetSession())
@@ -337,7 +342,7 @@ private class MainClient(private val session: PlayerSession, private val config:
         }
         val game = GameManager.getGameById(gameId)
         if (game != null) {
-            game.attributes.setBulk(attributes)
+            game.attributes.setValues(attributes)
             game.broadcastAttributeUpdate()
         }
         respondEmpty(packet)
@@ -404,9 +409,7 @@ private class MainClient(private val session: PlayerSession, private val config:
             channel.send(b, flush = false)
             channel.send(c)
 
-            host.channel.send(a, flush = false)
-            host.channel.send(b, flush = false)
-            host.channel.send(c)
+            host.send(a, b, c)
         } else {
             respondEmpty(packet)
         }
@@ -681,8 +684,8 @@ private class MainClient(private val session: PlayerSession, private val config:
                     val port: Int = inip.numberInt("PORT")
                     val remoteAddress = channel.remoteAddress()
                     val addressEncoded = IPAddress.asLong(remoteAddress)
-                    session.inip = NetData(addressEncoded, port)
-                    session.exip = NetData(addressEncoded, port)
+
+                    session.netData = NetData(addressEncoded, port)
                 }
             }
             else -> {}

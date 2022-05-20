@@ -1,7 +1,6 @@
 package com.jacobtread.kme.game
 
 import com.jacobtread.kme.blaze.*
-import com.jacobtread.kme.blaze.tdf.MapTdf
 import com.jacobtread.kme.data.Data
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
@@ -22,17 +21,9 @@ class Game(
     class GameAttributes {
         private val values = HashMap<String, String>()
         private var isDirty = false
-        private var tdfMap: MapTdf? = null
         private val lock = ReentrantReadWriteLock()
 
-        fun setAttribute(key: String, value: String) {
-            lock.write {
-                isDirty = true
-                values[key] = value
-            }
-        }
-
-        fun setBulk(values: Map<String, String>) {
+        fun setValues(values: Map<String, String>) {
             lock.write {
                 isDirty = true
                 this.values.putAll(values)
@@ -44,8 +35,8 @@ class Game(
         }
     }
 
-    var gameState: Int = 0x1;
-    var gameSetting: Int = 0x11f;
+    var gameState: Int = 0x1
+    var gameSetting: Int = 0x11f
     val attributes = GameAttributes()
     private var isActive = true
 
@@ -75,28 +66,33 @@ class Game(
     private fun sendHostPlayerJoin(session: PlayerSession) {
         val player = session.player
         val sessionDetails = session.createSessionDetails()
-        host.channel.send(sessionDetails)
-        host.channel.unique(Component.GAME_MANAGER, Command.JOIN_GAME_BY_GROUP) {
-            number("GID", id)
-            +group("PDAT") {
-                blob("BLOB")
-                number("EXID", 0x0)
+        host.send(
+            sessionDetails,
+            unique(Component.GAME_MANAGER, Command.JOIN_GAME_BY_GROUP) {
                 number("GID", id)
-                number("LOC", 0x64654445)
-                text("NAME", player.displayName)
-                number("PID", player.playerId)
-                +session.createAddrOptional("PNET")
-                number("SID", players.size)
-                number("SLOT", 0x0)
-                number("STAT", 0x2)
-                number("TIDX", 0xffff)
-                number("TIME", 0x0)
-                tripple("UGID", 0x0, 0x0, 0x0)
-                number("UID", player.playerId)
-            }
-        }
+                +group("PDAT") {
+                    blob("BLOB")
+                    number("EXID", 0x0)
+                    number("GID", id)
+                    number("LOC", 0x64654445)
+                    text("NAME", player.displayName)
+                    number("PID", player.playerId)
+                    +session.createAddrOptional("PNET")
+                    number("SID", players.size)
+                    number("SLOT", 0x0)
+                    number("STAT", 0x2)
+                    number("TIDX", 0xffff)
+                    number("TIME", 0x0)
+                    tripple("UGID", 0x0, 0x0, 0x0)
+                    number("UID", player.playerId)
+                }
+            },
+            session.createSetSession()
+        )
+    }
 
-        host.channel.send(session.createSetSession())
+    fun removePlayer(player: PlayerSession) {
+        playersLock.write { players.remove(player) }
     }
 
     fun removePlayer(playerId: Int) {
@@ -108,15 +104,24 @@ class Game(
                 return
             }
         }
-        playersLock.write {
-            players.removeIf { it.playerId == playerId }
+        playersLock.read {
+            val index = players.indexOfFirst { it.playerId == playerId }
+            if (index != -1) {
+                val player: PlayerSession = players[index]
+                player.game = null
+                player.waitingForJoin = false
+                playersLock.write {
+                    players.removeAt(index)
+                }
+            }
         }
+
         playersLock.read {
             val hostPacket = unique(Component.USER_SESSIONS, Command.FETCH_EXTENDED_DATA) { number("BUID", host.playerId) }
             players.forEach {
                 val userPacket = unique(Component.USER_SESSIONS, Command.FETCH_EXTENDED_DATA) { number("BUID", it.playerId) }
-                it.channel.send(hostPacket)
-                host.channel.send(userPacket)
+                it.send(hostPacket)
+                host.send(userPacket)
             }
         }
     }
@@ -124,9 +129,7 @@ class Game(
     fun broadcastAttributeUpdate() {
         playersLock.read {
             val packet = createNotifyPacket()
-            players.forEach {
-                it.channel.send(packet)
-            }
+            players.forEach { it.send(packet) }
         }
     }
 
@@ -163,12 +166,12 @@ class Game(
                 list("HNET", listOf(
                     group(start2 = true) {
                         +group("EXIP") {
-                            number("IP", host.exip.address)
-                            number("PORT", host.exip.port)
+                            number("IP", host.netData.address)
+                            number("PORT", host.netData.port)
                         }
                         +group("INIP") {
-                            number("IP", host.inip.address)
-                            number("PORT", host.inip.port)
+                            number("IP", host.netData.address)
+                            number("PORT", host.netData.port)
                         }
                     }
                 ))
