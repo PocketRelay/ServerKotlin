@@ -4,7 +4,6 @@ import com.jacobtread.kme.Config
 import com.jacobtread.kme.blaze.Packet
 import com.jacobtread.kme.blaze.respond
 import com.jacobtread.kme.blaze.struct
-import com.jacobtread.kme.utils.logging.Logger
 import java.io.BufferedReader
 import java.io.IOException
 import kotlin.random.Random
@@ -654,7 +653,6 @@ object Data {
     fun makeME3DIME(): Map<String, String> {
         val dime = getResource("data/dime.xml")
             .toString(Charsets.UTF_8);
-        Logger.info("DIME CONFIG\n$dime")
         return mapOf("Config" to dime)
     }
 
@@ -663,31 +661,25 @@ object Data {
         "VERSION" to "40128"
     )
 
-    fun loadBiniCompressed(): Map<String, String> = loadChunkedFile("data/bini.txt")
+    fun loadBiniCompressed(): Map<String, String> = loadChunkedFile("data/bini.bin.chunked")
 
     private fun loadChunkedFile(path: String): Map<String, String> {
         val reader = getResourceReader(path)
         val lines = reader.readLines()
-        var length = ""
         val out = LinkedHashMap<String, String>(lines.size + 1)
         lines.forEach {
             val parts = it.split(':', limit = 2)
-            if (parts[0] == "SIZE") {
-                length = parts[1]
-            } else {
-                out[parts[0]] = parts[1]
-            }
+            if (parts.size > 2) throw RuntimeException("ERR TOO MANY VALUES")
+            out[parts[0]] = parts[1]
         }
-        out["CHUNK_SIZE"] = "255"
-        out["DATA_SIZE"] = length
         return out
     }
 
     fun loadTLK(name: String = "default"): Map<String, String> {
         return try {
-            loadChunkedFile("data/tlk/$name.txt")
+            loadChunkedFile("data/tlk/$name.tlk.chunked")
         } catch (e: IOException) {
-            loadChunkedFile("data/tlk/default.txt")
+            loadChunkedFile("data/tlk/default.tlk.chunked")
         }
     }
 }

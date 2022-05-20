@@ -1,12 +1,9 @@
 import com.jacobtread.kme.utils.BigEndian
-import com.jacobtread.kme.data.Data
 import java.io.ByteArrayOutputStream
 import java.nio.file.Paths
 import java.util.*
-import java.util.zip.GZIPOutputStream
-import kotlin.io.path.createFile
-import kotlin.io.path.exists
-import kotlin.io.path.writeText
+import java.util.zip.Deflater
+import kotlin.io.path.*
 
 /**
  * main Small function for converting the ME3BINI into the compressed
@@ -14,32 +11,32 @@ import kotlin.io.path.writeText
  *
  */
 fun main() {
-    val contents = Data.getResource("data/bini.bin")
-    val gc: ByteArray = ByteArrayOutputStream()
-        .apply {
-            val gz = GZIPOutputStream(this)
-            gz.write(contents)
-            gz.flush()
+    val contents = Path("data/bini.bin").readBytes()
+    val deflater = Deflater()
+    deflater.setLevel(6)
+    deflater.setInput(contents)
+
+    val gc: ByteArray = ByteArrayOutputStream(contents.size).use { outputStream ->
+        deflater.finish()
+        val buffer = ByteArray(1024)
+        while (!deflater.finished()) {
+            val count = deflater.deflate(buffer)
+            outputStream.write(buffer, 0, count)
         }
-        .toByteArray()
-    val final: ByteArray = ByteArrayOutputStream(gc.size + 16)
-        .apply {
-            write(BigEndian.uint32ToBytes(1))
-            write(BigEndian.uint32ToBytes(gc.size))
-            write(BigEndian.uint32ToBytes(contents.size))
-            write(gc)
-            flush()
-        }
-        .toByteArray()
+        outputStream.toByteArray()
+    }
+
+    val final =
+        BigEndian.uint32ToBytes(1) +
+                BigEndian.uint32ToBytes(gc.size) +
+                BigEndian.uint32ToBytes(contents.size) +
+                gc
+
     val base64 = Base64.getEncoder().encodeToString(final)
 
     val chunks = base64.chunked(255)
 
     val outBuilder = StringBuilder()
-
-    outBuilder.append("SIZE:")
-        .append(base64.length)
-        .append('\n')
 
     chunks.forEachIndexed { index, value ->
         outBuilder.append("CHUNK_")
@@ -49,8 +46,10 @@ fun main() {
             .append('\n')
     }
 
-
-    val outFile = Paths.get("run/data/bini.txt")
+    outBuilder.append("CHUNK_SIZE:255\nDATA_SIZE:")
+        .append(base64.length)
+        .append('\n')
+    val outFile = Path("data/bini.bin.chunked")
     if (!outFile.exists()) outFile.createFile()
     outFile.writeText(outBuilder.toString().dropLast(1))
 }

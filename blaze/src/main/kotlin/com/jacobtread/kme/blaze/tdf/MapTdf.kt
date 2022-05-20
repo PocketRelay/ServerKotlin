@@ -18,7 +18,7 @@ class MapTdf(
             val keyType = input.readUnsignedByte().toInt()
             val valueType = input.readUnsignedByte().toInt()
             val count = input.readVarInt().toInt()
-            val out = HashMap<Any, Any>()
+            val out = LinkedHashMap<Any, Any>()
             repeat(count) {
                 val key: Any = when (keyType) {
                     VARINT -> input.readVarInt()
