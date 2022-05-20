@@ -61,16 +61,19 @@ private fun appendTdf(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Bo
             out.append("  ".repeat(indent))
                 .append("blob(\"")
                 .append(value.label)
-                .append("\", byteArrayOf(")
             val contents = value.value
             val length = contents.size
-            for (i in contents.indices) {
-                out.append(contents[i].toInt().and(0xFF))
-                if (i != length - 1) {
-                    out.append(", ")
+            if (length > 0) {
+                out.append("\", byteArrayOf(")
+                for (i in contents.indices) {
+                    out.append(contents[i].toInt().and(0xFF))
+                    if (i != length - 1) {
+                        out.append(", ")
+                    }
                 }
+                out.append(')')
             }
-            out.append("))")
+            out.append(')')
         }
         is StructTdf -> {
             out.append("  ".repeat(indent))
@@ -131,7 +134,7 @@ private fun appendTdf(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Bo
                 is VarTripple -> {
                     for (i in content.indices) {
                         val tripple = content[i] as VarTripple
-                        out.append("VTripple(0x")
+                        out.append("VarTripple(0x")
                             .append(tripple.a.toString(16))
                             .append(", 0x")
                             .append(tripple.b.toString(16))
