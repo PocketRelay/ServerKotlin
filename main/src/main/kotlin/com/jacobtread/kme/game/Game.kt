@@ -43,8 +43,8 @@ class Game(
         }
     }
 
-    var gameState: Int = 0;
-    var gameSetting: Int = 0;
+    var gameState: Int = 0x1;
+    var gameSetting: Int = 0x11f;
     val attributes = GameAttributes()
     private var isActive = true
 
@@ -163,7 +163,7 @@ class Game(
                 text("GNAM", hostPlayer.displayName)
                 number("GPVH", 0x5a4f2b378b715c6)
                 number("GSET", gameSetting)
-                if (!init) number("GSID", 0x4000000618E41C)
+                number("GSID", 0x4000000618E41C)
                 number("GSTA", gameState)
                 text("GTYP", "")
                 // Host network information

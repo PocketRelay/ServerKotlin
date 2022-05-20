@@ -462,6 +462,7 @@ private class MainClient(private val session: PlayerSession, private val config:
         if (game != null) {
             game.gameState = gameState
         }
+        respondEmpty(packet)
     }
 
     private fun handleSetGameSettings(packet: Packet) {

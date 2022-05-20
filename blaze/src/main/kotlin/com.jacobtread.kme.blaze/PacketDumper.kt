@@ -72,6 +72,8 @@ private fun appendTdf(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Bo
                     }
                 }
                 out.append(')')
+            } else {
+                out.append('"')
             }
             out.append(')')
         }
