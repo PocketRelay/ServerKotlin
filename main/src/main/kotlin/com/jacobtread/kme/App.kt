@@ -27,5 +27,5 @@ fun main() {
     startHttpServer(bossGroup, workerGroup, config)
     startRedirector(bossGroup, workerGroup, config)
     startMainServer(bossGroup, workerGroup, config)
-    startDiscardServer(bossGroup, workerGroup, intArrayOf(config.telemetry, config.ticker))
+    startDiscardServer(bossGroup, workerGroup, intArrayOf(config.ports.telemetry, config.ports.ticker))
 }

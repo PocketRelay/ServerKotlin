@@ -45,8 +45,8 @@ fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
         .trustManager(InsecureTrustManagerFactory.INSTANCE)
         .build() ?: throw IllegalStateException("Unable to create SSL Context")
     try {
-        val targetPort = config.main
-        val listenPort = config.redirector
+        val targetPort = config.ports.main
+        val listenPort = config.ports.redirector
         val address = lookupServerAddress(config.address)
         val handler = RedirectHandler(address, targetPort)
         ServerBootstrap()

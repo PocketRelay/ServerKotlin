@@ -230,7 +230,7 @@ object Data {
 
     fun makeME3Data(config: Config): Map<String, String> {
         val address = config.address
-        val port = config.http
+        val port = config.ports.http
         val host = if (port != 80) {
             "$address:$port"
         } else {

@@ -13,24 +13,6 @@ import kotlin.io.path.writeText
 
 @Serializable
 data class Config(
-    @Comment("Port for the main server")
-    val main: Int = 14219,
-    @Comment("Port for the ticker server")
-    val ticker: Int = 8999,
-    @Comment("Port for the telemetry server")
-    val telemetry: Int = 9988,
-    @Comment(
-        """
-        The port the redirector server will listen on. NOTE: Clients will only
-        connect to 42127 so changing this will make users unable to connect unless
-        you are behind some sort of proxy that's mapping the port
-        """
-    )
-    val redirector: Int = 42127,
-
-    @Comment("Port for the http server")
-    val http: Int = 80,
-
     @Comment(
         """
         This is the address used for telling the clients where the servers are located.
@@ -38,6 +20,9 @@ data class Config(
     """
     )
     val address: String = "383933-gosprapp396.ea.com",
+
+    @Comment("The ports for each sub server")
+    val ports: Ports = Ports(),
 
     val logging: Logger.Config = Logger.Config(),
     @Comment(
@@ -55,6 +40,26 @@ data class Config(
     @Comment("Galaxy At War config")
     val gaw: GalaxyAtWarConfig = GalaxyAtWarConfig(),
 ) {
+    @Serializable
+    data class Ports(
+        @Comment(
+            """
+        The port the redirector server will listen on. NOTE: Clients will only
+        connect to 42127 so changing this will make users unable to connect unless
+        you are behind some sort of proxy that's mapping the port
+        """
+        )
+        val redirector: Int = 42127,
+        @Comment("Port for the main server")
+        val main: Int = 14219,
+        @Comment("Port for the ticker server")
+        val ticker: Int = 8999,
+        @Comment("Port for the telemetry server")
+        val telemetry: Int = 9988,
+        @Comment("Port for the http server")
+        val http: Int = 80,
+    )
+
     @Serializable
     data class GalaxyAtWarConfig(
         @Comment(
@@ -76,7 +81,7 @@ data class Config(
  */
 fun loadConfigFile(): Config {
     val config: Config
-    val configFile = Path("main.yml")
+    val configFile = Path("config.yml")
     if (configFile.exists()) {
         val contents = configFile.readText()
         config = Yaml.decodeFromString(Config.serializer(), contents)

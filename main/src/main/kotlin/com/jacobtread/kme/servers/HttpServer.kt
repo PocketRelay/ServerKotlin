@@ -23,7 +23,7 @@ import kotlin.math.min
 
 fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup, config: Config) {
     try {
-        val port = config.http
+        val port = config.ports.http
         ServerBootstrap()
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)

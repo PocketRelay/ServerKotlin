@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup, config: Config) {
     try {
+        val port = config.ports.main
         val clientId = AtomicInteger(0)
         ServerBootstrap()
             .group(bossGroup, workerGroup)
@@ -47,10 +48,10 @@ fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
                 }
             })
             // Bind the server to the host and port
-            .bind(config.main)
+            .bind(port)
             // Wait for the channel to bind
             .addListener {
-                Logger.info("Started Main Server on port ${config.main}")
+                Logger.info("Started Main Server on port $port")
             }
     } catch (e: IOException) {
         Logger.error("Exception in redirector server", e)
@@ -967,7 +968,7 @@ private class MainClient(private val session: PlayerSession, private val config:
                 text("FILT", "-UION/****") // Telemetry filter?
                 number("LOC", 1701725253)
                 text("NOOK", "US,CA,MX")
-                number("PORT", config.telemetry)
+                number("PORT", config.ports.telemetry)
                 number("SDLY", 15000)
                 text("SESS", "JMhnT9dXSED")
                 text("SKEY", Data.SKEY)
@@ -977,7 +978,7 @@ private class MainClient(private val session: PlayerSession, private val config:
 
             +struct("TICK") {
                 text("ADRS", config.address)
-                number("port", config.ticker)
+                number("port", config.ports.ticker)
                 text("SKEY", "823287263,10.23.15.2:8999,masseffect-3-pc,10,50,50,50,50,0,12")
             }
 
