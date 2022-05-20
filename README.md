@@ -31,6 +31,10 @@ I plan on making a tool for doing this automatically
 - [x] Galaxy at war
 - [x] Matchmaking 
   - NOTE: Doesn't actually take user preferences into account just joins first not full server
+- [x] Playing games!
+
+## Whats not working
+- [ ] The store....
 
 ## Planned
 - [ ] Leaderboard support
