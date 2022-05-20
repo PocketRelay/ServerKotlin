@@ -29,6 +29,9 @@ object GameManager {
     }
     fun getFreeGame(): Game? = gamesLock.read { games.values.find { it.isJoinable() } }
     fun getGameById(id: Long): Game? = gamesLock.read { games.values.find { it.id == id } }
-    fun releaseGame(game: Game) = gamesLock.write { games.remove(game.id) }
+    fun releaseGame(game: Game) = gamesLock.write {
+        Logger.info("Releasing game back to pool (${game.id}, ${game.mid})")
+        games.remove(game.id)
+    }
 
 }

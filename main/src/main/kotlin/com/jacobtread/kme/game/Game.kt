@@ -115,6 +115,14 @@ class Game(
     }
 
     fun removePlayer(playerId: Int) {
+        if (playerId == host.playerId) {
+            if (players.size < 1) {
+                GameManager.releaseGame(this)
+                isActive = false
+                players.clear()
+                return
+            }
+        }
         playersLock.write {
             players.removeIf { it.playerId == playerId }
         }
