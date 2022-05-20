@@ -14,7 +14,7 @@ object GameManager {
     fun createGame(host: PlayerSession): Game = gamesLock.write {
         removeInactive()
         val game = Game( gameId + 0x5DC695L, gameId + 0x1129DA20L, host)
-        Logger.info("Created new game (${game.id}, ${game.mid}) hosted by ${host.getPlayer().displayName}")
+        Logger.info("Created new game (${game.id}, ${game.mid}) hosted by ${host.player.displayName}")
         games[game.id] = game
         gameId++
         game

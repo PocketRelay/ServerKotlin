@@ -71,7 +71,7 @@ class Game(
 
     @Suppress("SpellCheckingInspection")
     private fun sendHostPlayerJoin(session: PlayerSession) {
-        val player = session.getPlayer()
+        val player = session.player
         val sessionDetails = session.createMMSessionDetails(this)
         host.channel.send(sessionDetails)
         host.channel.unique(Component.GAME_MANAGER, Command.JOIN_GAME_BY_GROUP) {
@@ -161,7 +161,7 @@ class Game(
             Component.GAME_MANAGER,
             Command.RETURN_DEDICATED_SERVER_TO_POOL
         ) {
-            val hostPlayer = host.getPlayer()
+            val hostPlayer = host.player
             +struct("GAME") {
                 // Game Admins
                 list("ADMN", listOf(hostPlayer.playerId))
@@ -224,7 +224,7 @@ class Game(
                     0 -> host
                     else -> if ((index - 1) < players.size) players[index - 1] else playerSession
                 }
-                val player = playerSession.getPlayer()
+                val player = playerSession.player
                 struct {
                     blob("BLOB")
                     number("EXID", 0x0)
