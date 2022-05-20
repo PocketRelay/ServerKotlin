@@ -4,6 +4,7 @@ import com.jacobtread.kme.Config
 import com.jacobtread.kme.blaze.Packet
 import com.jacobtread.kme.blaze.respond
 import com.jacobtread.kme.blaze.struct
+import com.jacobtread.kme.utils.logging.Logger
 import java.io.BufferedReader
 import java.io.IOException
 import java.time.Instant
@@ -247,7 +248,29 @@ object Data {
             "TEL_SERVER" to "159.153.235.32",
         )
     }
-    fun makeME3MSG(): Map<String, String> = mapOf("" to "")
+    fun makeME3MSG(): Map<String, String> = mapOf(
+        "MSG_1_endDate" to "10:03:2025",
+        "MSG_1_image" to "Promo_n7.dds",
+        "MSG_1_message" to "KME Server is working!!",
+        "MSG_1_message_de" to "KME Server is working!!",
+        "MSG_1_message_es" to "KME Server is working!!",
+        "MSG_1_message_fr" to "KME Server is working!!",
+        "MSG_1_message_it" to "KME Server is working!!",
+        "MSG_1_message_ja" to "KME Server is working!!",
+        "MSG_1_message_pl" to "KME Server is working!!",
+        "MSG_1_message_ru" to "KME Server is working!!",
+        "MSG_1_priority" to "201",
+        "MSG_1_title" to "KME Server",
+        "MSG_1_title_de" to "KME Server",
+        "MSG_1_title_es" to "KME Server",
+        "MSG_1_title_fr" to "KME Server",
+        "MSG_1_title_it" to "KME Server",
+        "MSG_1_title_ja" to "KME Server",
+        "MSG_1_title_pl" to "KME Server",
+        "MSG_1_title_ru" to "KME Server",
+        "MSG_1_trackingId" to "150",
+        "MSG_1_type" to "8",
+    )
     fun makeME3ENT(): Map<String, String> = mapOf(
         "CERBERUS_OFFER_ID" to "101",
         "ENT_100_entitlement" to "ME3_PRC_MP5",
@@ -619,7 +642,9 @@ object Data {
     }
 
     fun makeME3DIME(): Map<String, String> {
-        val dime = getResource("data/dime.xml").toString(Charsets.UTF_8);
+        val dime = getResource("data/dime.xml")
+            .toString(Charsets.UTF_8);
+        Logger.info("DIME CONFIG\n$dime")
         return mapOf("Config" to dime)
     }
 
