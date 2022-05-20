@@ -93,25 +93,8 @@ class Game(
                 number("UID", player.playerId)
             }
         }
-        host.channel.unique(Component.USER_SESSIONS, Command.START_SESSION) {
-            +struct("DATA") {
-                +session.createAddrUnion("ADDR")
-                text("BPS", "ea-sjc")
-                text("CTY", "")
-                varList("CVAR", listOf())
-                map("DMAP", mapOf(0x70001 to 0x2e))
-                number("HWFG", 0x0)
-                list("PSLM", listOf(0xfff0fff, 0xfff0fff, 0xfff0fff))
-                +struct("QDAT") {
-                    number("DBPS", 0x0)
-                    number("NATT", Data.NAT_TYPE)
-                    number("UBPS", 0x0)
-                }
-                number("UATT", 0x0)
-                list("ULST", listOf(VarTripple(0x4, 0x1, 0x5dc695)))
-            }
-            number("USID", player.playerId)
-        }
+
+        host.channel.send(session.createSetSession())
     }
 
     fun removePlayer(playerId: Int) {

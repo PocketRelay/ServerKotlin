@@ -8,7 +8,6 @@ import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.utils.VarTripple
 import com.jacobtread.kme.utils.unixTimeSeconds
 import io.netty.channel.Channel
-import org.jetbrains.exposed.sql.transactions.transaction
 
 class PlayerSession(
     val id: Int,
@@ -39,6 +38,26 @@ class PlayerSession(
     }
 
 
+    @Suppress("SpellCheckingInspection")
+    fun createSetSession(): Packet = unique(Component.USER_SESSIONS, Command.SET_SESSION) {
+        +struct("DATA") {
+            +createAddrUnion("ADDR")
+            text("BPS", "ea-sjc")
+            text("CTY", "")
+            varList("CVAR", emptyList())
+            map("DMAP", mapOf(0x70001 to 0x2e))
+            number("HWFG", 0x0)
+            list("PSLM", listOf(0xfff0fff, 0xfff0fff, 0xfff0fff))
+            +struct("QDAT") {
+                number("DBPS", 0x0)
+                number("NATT", Data.NAT_TYPE)
+                number("UBPS", 0x0)
+            }
+            number("UATT", 0x0)
+            list("ULST", listOf(VarTripple(0x4, 0x1, 0x5dc695)))
+        }
+        number("USID", if (_player != null) playerId else id)
+    }
 
     @Suppress("SpellCheckingInspection")
     fun createAddrUnion(label: String): UnionTdf =
@@ -54,15 +73,16 @@ class PlayerSession(
         })
 
     @Suppress("SpellCheckingInspection")
-    fun createPDTL(player: Player): StructTdf = struct("PDTL") {
-        val lastLoginTime = unixTimeSeconds()
-        text("DSNM", player.displayName)
-        number("LAST", lastLoginTime)
-        number("PID", player.id.value)
-        number("STAS", 0)
-        number("XREF", 0)
-        number("XTYP", 0)
-    }
+    fun createPersonaList(player: Player): StructTdf =
+        struct("PDTL" /* Persona Details? */) {
+            val lastLoginTime = unixTimeSeconds()
+            text("DSNM", player.displayName)
+            number("LAST", lastLoginTime)
+            number("PID", player.playerId) // Persona ID?
+            number("STAS", 0)
+            number("XREF", 0)
+            number("XTYP", 0)
+        }
 
     @Suppress("SpellCheckingInspection")
     fun createMMSessionDetails(game: Game): Packet = unique(
@@ -74,9 +94,7 @@ class PlayerSession(
             text("BPS", "rs-lhr")
             text("CTY", "")
             varList("CVAR", listOf())
-            map(
-                "DMAP", mapOf(0x70001 to 0x291,)
-            )
+            map("DMAP", mapOf(0x70001 to 0x291))
             number("HWFG", 0x1)
             list("PSLM", listOf(0xea, 0x9c, 0x5e))
             +struct("QDAT") {

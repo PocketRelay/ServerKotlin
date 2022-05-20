@@ -13,10 +13,16 @@ import com.jacobtread.kme.database.Players
 import com.jacobtread.kme.game.GameManager
 import com.jacobtread.kme.game.PlayerSession
 import com.jacobtread.kme.game.PlayerSession.NetData
-import com.jacobtread.kme.utils.*
+import com.jacobtread.kme.utils.IPAddress
+import com.jacobtread.kme.utils.comparePasswordHash
+import com.jacobtread.kme.utils.hashPassword
 import com.jacobtread.kme.utils.logging.Logger
+import com.jacobtread.kme.utils.unixTimeSeconds
 import io.netty.bootstrap.ServerBootstrap
-import io.netty.channel.*
+import io.netty.channel.Channel
+import io.netty.channel.ChannelHandlerContext
+import io.netty.channel.ChannelInitializer
+import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -125,30 +131,18 @@ private class MainClient(private val session: PlayerSession, private val config:
         }
     }
 
+    /**
+     * handleListUserEntitlements2
+     *
+     * @param packet
+     */
     private fun handleListUserEntitlements2(packet: Packet) {
         val etag = packet.text("ETAG")
         if (etag.isEmpty()) {
             channel.send(Data.makeUserEntitlements2(packet))
             if (!session.sendOffers) {
                 session.sendOffers = true
-                val sessPacket = unique(USER_SESSIONS, START_SESSION) {
-                    +struct("DATA") {
-                        +session.createAddrUnion("ADDR")
-                        text("BPS", "ea-sjc")
-                        text("CTY", "")
-                        varList("CVAR", emptyList())
-                        map("DMAP", mapOf(0x70001 to 0x2e))
-                        number("HWFG", 0x0)
-                        list("PSLM", listOf(0xfff0fff, 0xfff0fff, 0xfff0fff))
-                        +struct("QDAT") {
-                            number("DBPS", 0x0)
-                            number("NATT", Data.NAT_TYPE)
-                            number("UBPS", 0x0)
-                        }
-                        number("UATT", 0x0)
-                    }
-                    number("USID", session.id)
-                }
+                val sessPacket = session.createSetSession()
                 channel.send(sessPacket)
                 channel.send(sessPacket)
             }
@@ -157,6 +151,12 @@ private class MainClient(private val session: PlayerSession, private val config:
         }
     }
 
+    /**
+     * handleGetAuthToken Returns the auth token used when making the GAW
+     * authentication request. TODO: Replace this with a proper auth token
+     *
+     * @param packet The inbound packet that requested the auth token
+     */
     private fun handleGetAuthToken(packet: Packet) {
         channel.respond(packet) {
             text("AUTH", session.playerId.toString(16).uppercase())
@@ -200,7 +200,7 @@ private class MainClient(private val session: PlayerSession, private val config:
             text("LDHT", "")
             number("NTOS", 0)
             text("PCTK", sessionToken)
-            list("PLST", listOf(session.createPDTL(player)))
+            list("PLST", listOf(session.createPersonaList(player)))
             text("PRIV", "")
             text("SKEY", "11229301_9b171d92cc562b293e602ee8325612e7")
             number("SPAM", 0)
@@ -245,7 +245,7 @@ private class MainClient(private val session: PlayerSession, private val config:
                 text("KEY", "11229301_9b171d92cc562b293e602ee8325612e7")
                 number("LLOG", lastLoginTime)
                 text("MAIL", player.email)
-                +session.createPDTL(player)
+                +session.createPersonaList(player)
                 number("UID", player.id.value)
             }
             number("SPAM", 0)
@@ -349,7 +349,7 @@ private class MainClient(private val session: PlayerSession, private val config:
             text("LDHT", "")
             number("NTOS", 0)
             text("PCTK", sessionToken)
-            list("PLST", listOf(session.createPDTL(player)))
+            list("PLST", listOf(session.createPersonaList(player)))
             text("PRIV", "")
             text("SKEY", "11229301_9b171d92cc562b293e602ee8325612e7")
             number("SPAM", 0)
@@ -374,7 +374,7 @@ private class MainClient(private val session: PlayerSession, private val config:
             text("KEY", "11229301_9b171d92cc562b293e602ee8325612e7")
             number("LLOG", lastLoginTime)
             text("MAIL", "")
-            +session.createPDTL(player)
+            +session.createPersonaList(player)
             number("UID", player.id.value)
         }
         sessionDetailsPackets()
@@ -404,25 +404,7 @@ private class MainClient(private val session: PlayerSession, private val config:
         game.attributes.setBulk(attributes)
         channel.respond(packet) { number("GID", game.id) }
         channel.send(game.createPoolPacket(true))
-        channel.unique(USER_SESSIONS, START_SESSION) {
-            +struct("DATA") {
-                +session.createAddrUnion("ADDR")
-                text("BPS", "ea-sjc")
-                text("CTY", "")
-                varList("CVAR", emptyList())
-                map("DMAP", mapOf(0x70001 to 0x2e))
-                number("HWFG", 0x0)
-                list("PSLM", listOf(0xfff0fff, 0xfff0fff, 0xfff0fff))
-                +struct("QDAT") {
-                    number("DBPS", 0x0)
-                    number("NATT", Data.NAT_TYPE)
-                    number("UBPS", 0x0)
-                }
-                number("UATT", 0x0)
-                list("ULST", listOf(VarTripple(0x4, 0x1, 0x5dc695)))
-            }
-            number("USID", session.playerId)
-        }
+        channel.send(session.createSetSession())
     }
 
     private fun handleAdvanceGameState(packet: Packet) {
