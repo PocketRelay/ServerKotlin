@@ -3,9 +3,9 @@ package com.jacobtread.kme.blaze.tdf
 import com.jacobtread.kme.blaze.TdfContainer
 import io.netty.buffer.ByteBuf
 
-class StructTdf(label: String, val start2: Boolean, override val value: List<Tdf<*>>) : Tdf<List<Tdf<*>>>(label, STRUCT), TdfContainer {
+class GroupTdf(label: String, val start2: Boolean, override val value: List<Tdf<*>>) : Tdf<List<Tdf<*>>>(label, GROUP), TdfContainer {
     companion object {
-        fun read(label: String, input: ByteBuf): StructTdf {
+        fun read(label: String, input: ByteBuf): GroupTdf {
             val out = ArrayList<Tdf<*>>()
             var start2 = false
             var byte: Int
@@ -19,7 +19,7 @@ class StructTdf(label: String, val start2: Boolean, override val value: List<Tdf
                 }
                 out.add(read(input))
             }
-            return StructTdf(label, start2, out)
+            return GroupTdf(label, start2, out)
         }
     }
 

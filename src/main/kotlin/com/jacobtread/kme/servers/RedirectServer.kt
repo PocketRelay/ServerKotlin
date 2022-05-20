@@ -96,7 +96,7 @@ class RedirectHandler(target: ServerAddress, port: Int) : SimpleChannelInboundHa
     init {
         val packetContents = TdfBuilder()
         packetContents.apply {
-            union("ADDR", struct("VALU") {
+            optional("ADDR", group("VALU") {
                 text("HOST", target.host)
                 number("IP", target.address)
                 number("PORT", port)

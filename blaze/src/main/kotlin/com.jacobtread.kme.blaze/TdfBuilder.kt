@@ -170,7 +170,7 @@ class TdfBuilder {
      * @param label The label of the Tdf
      * @param value The list value
      */
-    fun varList(label: String, value: List<Long>) {
+    fun varList(label: String, value: List<Long> = emptyList()) {
         values.add(VarIntList(label, value))
     }
 
@@ -182,8 +182,8 @@ class TdfBuilder {
      * @param type The type of union
      * @param value The value of the union
      */
-    fun union(label: String, type: Int = 0x7F, value: Tdf<*>? = null) {
-        values.add(UnionTdf(label, type, value))
+    fun optional(label: String, type: Int = 0x7F, value: Tdf<*>? = null) {
+        values.add(OptionalTdf(label, type, value))
     }
 
     /**
@@ -194,8 +194,8 @@ class TdfBuilder {
      * @param value The value of the union
      * @param type The type of union
      */
-    fun union(label: String, value: Tdf<*>, type: Int = 0x0) {
-        values.add(UnionTdf(label, type, value))
+    fun optional(label: String, value: Tdf<*>, type: Int = 0x0) {
+        values.add(OptionalTdf(label, type, value))
     }
 
     /**
@@ -235,9 +235,9 @@ class TdfBuilder {
  * @receiver
  * @return The newly created struct
  */
-inline fun struct(label: String = "", start2: Boolean = false, init: TdfBuilder.() -> Unit): StructTdf {
+inline fun group(label: String = "", start2: Boolean = false, init: TdfBuilder.() -> Unit): GroupTdf {
     val context = TdfBuilder()
     context.init()
-    return StructTdf(label, start2, context.values)
+    return GroupTdf(label, start2, context.values)
 }
 

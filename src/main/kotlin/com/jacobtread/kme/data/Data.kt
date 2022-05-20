@@ -2,7 +2,7 @@ package com.jacobtread.kme.data
 
 import com.jacobtread.kme.Config
 import com.jacobtread.kme.blaze.lazyPacketBody
-import com.jacobtread.kme.blaze.struct
+import com.jacobtread.kme.blaze.group
 import java.io.BufferedReader
 import java.io.IOException
 import kotlin.random.Random
@@ -31,6 +31,7 @@ object Data {
         ),
         Charsets.UTF_8
     )
+    const val SKEY2 = "11229301_9b171d92cc562b293e602ee8325612e7"
     val CIDS = listOf(1, 25, 4, 28, 7, 9, 63490, 30720, 15, 30721, 30722, 30723, 30725, 30726, 2000)
 
     /**
@@ -42,7 +43,7 @@ object Data {
     @Suppress("SpellCheckingInspection")
     val USER_ENTITLEMENTS: ByteArray by lazyPacketBody {
         list("NLST", listOf(
-            struct {
+            group {
                 text("DEVI", "")
                 text("GDAY", "2013-03-04T22:16Z")
                 text("GNAM", "ME3PCOffers")
@@ -60,7 +61,7 @@ object Data {
                 number("UCNT", 0x0)
                 number("VER", 0x0)
             },
-            struct {
+            group {
                 text("DEVI", "")
                 text("GDAY", "2012-12-15T16:15Z")
                 text("GNAM", "ME3PCOffers")
@@ -78,7 +79,7 @@ object Data {
                 number("UCNT", 0x0)
                 number("VER", 0x0)
             },
-            struct {
+            group {
                 text("DEVI", "")
                 text("GDAY", "2012-12-14T13:32Z")
                 text("GNAM", "ME3GenOffers")
@@ -96,7 +97,7 @@ object Data {
                 number("UCNT", 0x0)
                 number("VER", 0x0)
             },
-            struct {
+            group {
                 text("DEVI", "")
                 text("GDAY", "2012-12-14T13:5Z")
                 text("GNAM", "ME3PCOffers")
@@ -114,7 +115,7 @@ object Data {
                 number("UCNT", 0x0)
                 number("VER", 0x0)
             },
-            struct {
+            group {
                 text("DEVI", "")
                 text("GDAY", "2012-12-14T13:5Z")
                 text("GNAM", "ME3PCOffers")
@@ -132,7 +133,7 @@ object Data {
                 number("UCNT", 0x0)
                 number("VER", 0x0)
             },
-            struct {
+            group {
                 text("DEVI", "")
                 text("GDAY", "2012-12-14T13:5Z")
                 text("GNAM", "ME3PCOffers")
@@ -150,7 +151,7 @@ object Data {
                 number("UCNT", 0x0)
                 number("VER", 0x0)
             },
-            struct {
+            group {
                 text("DEVI", "")
                 text("GDAY", "2012-12-14T13:5Z")
                 text("GNAM", "ME3PCOffers")
@@ -168,7 +169,7 @@ object Data {
                 number("UCNT", 0x0)
                 number("VER", 0x0)
             },
-            struct {
+            group {
                 text("DEVI", "")
                 text("GDAY", "2012-12-15T16:16Z")
                 text("GNAM", "ME3PCOffers")
@@ -186,7 +187,7 @@ object Data {
                 number("UCNT", 0x0)
                 number("VER", 0x0)
             },
-            struct {
+            group {
                 text("DEVI", "")
                 text("GDAY", "2012-12-15T16:16Z")
                 text("GNAM", "ME3PCOffers")
@@ -204,7 +205,7 @@ object Data {
                 number("UCNT", 0x0)
                 number("VER", 0x0)
             },
-            struct {
+            group {
                 text("DEVI", "")
                 text("GDAY", "2012-12-15T16:16Z")
                 text("GNAM", "ME3PCOffers")

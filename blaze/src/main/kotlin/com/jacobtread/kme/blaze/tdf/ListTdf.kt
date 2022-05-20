@@ -21,9 +21,9 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
                     repeat(count) { values.add(input.readString()) }
                     ListTdf(label, subType, values)
                 }
-                STRUCT -> {
-                    val values = ArrayList<StructTdf>(count)
-                    repeat(count) { values.add(StructTdf.read("", input)) }
+                GROUP -> {
+                    val values = ArrayList<GroupTdf>(count)
+                    repeat(count) { values.add(GroupTdf.read("", input)) }
                     ListTdf(label, subType, values)
                 }
                 TRIPPLE -> {
@@ -50,7 +50,7 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
         when (this.type) {
             VARINT -> value.forEach { out.writeVarInt(it) }
             STRING -> value.forEach { out.writeString(it as String) }
-            STRUCT -> value.forEach { (it as StructTdf).write(out) }
+            GROUP -> value.forEach { (it as GroupTdf).write(out) }
             TRIPPLE -> value.forEach {
                 val tripple = it as VarTripple
                 out.writeVarInt(tripple.a)

@@ -9,7 +9,7 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
         const val VARINT = 0x0
         const val STRING = 0x1
         const val BLOB = 0x02
-        const val STRUCT = 0x3
+        const val GROUP = 0x3
         const val LIST = 0x4
         const val MAP = 0x5
         const val UNION = 0x6
@@ -25,7 +25,7 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
                 Int::class.java, -> VARINT
                 String::class.java -> STRING
                 Float::class.java -> FLOAT
-                StructTdf::class.java -> STRUCT
+                GroupTdf::class.java -> GROUP
                 VarTripple::class.java -> TRIPPLE
                 else -> throw IllegalArgumentException("Don't know how to handle type \"${valueType.simpleName}\"")
             }
@@ -39,10 +39,10 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
                 VARINT -> VarIntTdf.read(label, input)
                 STRING -> StringTdf.read(label, input)
                 BLOB -> BlobTdf.read(label, input)
-                STRUCT -> StructTdf.read(label, input)
+                GROUP -> GroupTdf.read(label, input)
                 LIST -> ListTdf.read(label, input)
                 MAP -> MapTdf.read(label, input)
-                UNION -> UnionTdf.read(label, input)
+                UNION -> OptionalTdf.read(label, input)
                 INT_LIST -> VarIntList.read(label, input)
                 PAIR -> PairTdf.read(label, input)
                 TRIPPLE -> TrippleTdf.read(label, input)

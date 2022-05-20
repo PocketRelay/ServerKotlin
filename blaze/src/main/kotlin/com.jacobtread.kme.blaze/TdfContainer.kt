@@ -40,11 +40,11 @@ interface TdfContainer {
 
 // Tdf Struct-Like Helpers
 
-inline fun TdfContainer.struct(label: String): StructTdf = getTdf(StructTdf::class.java, label)
-inline fun TdfContainer.union(label: String): UnionTdf = getTdf(UnionTdf::class.java, label)
+inline fun TdfContainer.group(label: String): GroupTdf = getTdf(GroupTdf::class.java, label)
+inline fun TdfContainer.optional(label: String): OptionalTdf = getTdf(OptionalTdf::class.java, label)
 
-inline fun TdfContainer.structOrNull(label: String): StructTdf? = getTdfOrNull(StructTdf::class.java, label)
-inline fun TdfContainer.unionOrNull(label: String): UnionTdf? = getTdfOrNull(UnionTdf::class.java, label)
+inline fun TdfContainer.structOrNull(label: String): GroupTdf? = getTdfOrNull(GroupTdf::class.java, label)
+inline fun TdfContainer.unionOrNull(label: String): OptionalTdf? = getTdfOrNull(OptionalTdf::class.java, label)
 
 // Non-nullable Helpers
 
@@ -53,7 +53,7 @@ inline fun TdfContainer.number(label: String): Long = getTdf(VarIntTdf::class.ja
 inline fun TdfContainer.numberInt(label: String): Int = number(label).toInt()
 inline fun TdfContainer.float(label: String): Float =  getTdf(FloatTdf::class.java, label).value
 inline fun TdfContainer.blob(label: String): ByteArray = getTdf(BlobTdf::class.java, label).value
-inline fun TdfContainer.unionValue(label: String): Tdf<*>? = getTdf(UnionTdf::class.java, label).value
+inline fun TdfContainer.unionValue(label: String): Tdf<*>? = getTdf(OptionalTdf::class.java, label).value
 inline fun TdfContainer.tripple(label: String): VarTripple = getTdf(TrippleTdf::class.java, label).value
 inline fun TdfContainer.pair(label: String): VarPair = getTdf(PairTdf::class.java, label).value
 inline fun TdfContainer.varIntList(label: String): List<Long> = getTdf(VarIntList::class.java, label).value
@@ -67,7 +67,7 @@ inline fun TdfContainer.numberOrNull(label: String): Long? = getTdfOrNull(VarInt
 inline fun TdfContainer.numberIntOrNull(label: String): Int? = numberOrNull(label)?.toInt()
 inline fun TdfContainer.floatOrNull(label: String): Float? =  getTdfOrNull(FloatTdf::class.java, label)?.value
 inline fun TdfContainer.blobOrNull(label: String): ByteArray? = getTdfOrNull(BlobTdf::class.java, label)?.value
-inline fun TdfContainer.unionValueOrNull(label: String): Tdf<*>? = getTdfOrNull(UnionTdf::class.java, label)?.value
+inline fun TdfContainer.unionValueOrNull(label: String): Tdf<*>? = getTdfOrNull(OptionalTdf::class.java, label)?.value
 inline fun TdfContainer.trippleOrNull(label: String): VarTripple? = getTdfOrNull(TrippleTdf::class.java, label)?.value
 inline fun TdfContainer.pairOrNull(label: String): VarPair? = getTdfOrNull(PairTdf::class.java, label)?.value
 inline fun TdfContainer.varIntListOrNull(label: String): List<Long>? = getTdfOrNull(VarIntList::class.java, label)?.value

@@ -13,20 +13,21 @@ object GameManager {
 
     fun createGame(host: PlayerSession): Game = gamesLock.write {
         removeInactive()
-        val game = Game( gameId + 0x5DC695L, gameId + 0x1129DA20L, host)
+        val game = Game(gameId + Game.MIN_ID, gameId + Game.MIN_MID, host)
         Logger.info("Created new game (${game.id}, ${game.mid}) hosted by ${host.player.displayName}")
         games[game.id] = game
         gameId++
         game
     }
 
-    fun removeInactive() {
+    private fun removeInactive() {
         val removeKeys = ArrayList<Long>()
-        games.forEach {(key, game) ->
+        games.forEach { (key, game) ->
             if (game.isInActive()) removeKeys.add(key)
         }
         removeKeys.forEach { games.remove(it) }
     }
+
     fun getFreeGame(): Game? = gamesLock.read { games.values.find { it.isJoinable() } }
     fun getGameById(id: Long): Game? = gamesLock.read { games.values.find { it.id == id } }
     fun releaseGame(game: Game) = gamesLock.write {

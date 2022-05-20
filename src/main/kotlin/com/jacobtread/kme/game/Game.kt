@@ -3,7 +3,6 @@ package com.jacobtread.kme.game
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.tdf.MapTdf
 import com.jacobtread.kme.data.Data
-import com.jacobtread.kme.utils.VarTripple
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
@@ -15,7 +14,9 @@ class Game(
 ) {
 
     companion object {
-        private const val MAX_PLAYERS = 4
+        const val MAX_PLAYERS = 4
+        const val MIN_ID = 0x5DC695L
+        const val MIN_MID = 0x1129DA20L
     }
 
     class GameAttributes {
@@ -66,24 +67,25 @@ class Game(
 
     fun join(player: PlayerSession) = playersLock.write {
         players.add(player)
+        player.game = this
         sendHostPlayerJoin(player)
     }
 
     @Suppress("SpellCheckingInspection")
     private fun sendHostPlayerJoin(session: PlayerSession) {
         val player = session.player
-        val sessionDetails = session.createMMSessionDetails(this)
+        val sessionDetails = session.createSessionDetails()
         host.channel.send(sessionDetails)
         host.channel.unique(Component.GAME_MANAGER, Command.JOIN_GAME_BY_GROUP) {
             number("GID", id)
-            +struct("PDAT") {
+            +group("PDAT") {
                 blob("BLOB")
                 number("EXID", 0x0)
                 number("GID", id)
                 number("LOC", 0x64654445)
                 text("NAME", player.displayName)
                 number("PID", player.playerId)
-                +session.createAddrUnion("PNET")
+                +session.createAddrOptional("PNET")
                 number("SID", players.size)
                 number("SLOT", 0x0)
                 number("STAT", 0x2)
@@ -145,7 +147,7 @@ class Game(
             Command.RETURN_DEDICATED_SERVER_TO_POOL
         ) {
             val hostPlayer = host.player
-            +struct("GAME") {
+            +group("GAME") {
                 // Game Admins
                 list("ADMN", listOf(hostPlayer.playerId))
                 map("ATTR", attributes.getMap())
@@ -159,12 +161,12 @@ class Game(
                 text("GTYP", "")
                 // Host network information
                 list("HNET", listOf(
-                    struct(start2 = true) {
-                        +struct("EXIP") {
+                    group(start2 = true) {
+                        +group("EXIP") {
                             number("IP", host.exip.address)
                             number("PORT", host.exip.port)
                         }
-                        +struct("INIP") {
+                        +group("INIP") {
                             number("IP", host.inip.address)
                             number("PORT", host.inip.port)
                         }
@@ -173,7 +175,7 @@ class Game(
                 number("HSES", 0x112888c1)
                 number("IGNO", 0x0)
                 number("MCAP", 0x4)
-                +struct("NQOS") {
+                +group("NQOS") {
                     number("DBPS", if (init) 0x0 else 0x5b8d800)
                     number("NATT", Data.NAT_TYPE)
                     number("UBPS", if (init) 0x0 else 0x4016400)
@@ -182,7 +184,7 @@ class Game(
                 number("NTOP", 0x0)
                 text("PGID", "")
                 blob("PGSR")
-                +struct("PHST") {
+                +group("PHST") {
                     number("HPID", hostPlayer.playerId)
                     number("HSLT", 0x0)
                 }
@@ -191,7 +193,7 @@ class Game(
                 number("QCAP", 0x0)
                 number("SEED", 0x2cf2048f)
                 number("TCAP", 0x0)
-                +struct("THST") {
+                +group("THST") {
                     number("HPID", hostPlayer.playerId)
                     number("HSLT", 0x0)
                 }
@@ -208,14 +210,14 @@ class Game(
                     else -> if ((index - 1) < players.size) players[index - 1] else playerSession
                 }
                 val player = playerSession.player
-                struct {
+                group {
                     blob("BLOB")
                     number("EXID", 0x0)
                     number("GID", this@Game.id)
                     number("LOC", 0x64654445)
                     text("NAME", player.displayName)
                     number("PID", player.playerId)
-                    +host.createAddrUnion("PNET")
+                    +host.createAddrOptional("PNET")
                     number("SID", index)
                     number("SLOT", 0x0)
                     number("STAT", if (tmppl.playerId == player.playerId) 0x2 else 0x4)
@@ -228,11 +230,11 @@ class Game(
 
             list("PROS", pros)
             if (init) {
-                union("REAS", struct("VALU") {
+                optional("REAS", group("VALU") {
                     number("DCTX", 0x0)
                 })
             } else {
-                union("REAS", 0x3, struct("VALU") {
+                optional("REAS", 0x3, group("VALU") {
                     number("FIT", 0x53fc)
                     number("MAXF", 0x5460)
                     number("MSID", mid)

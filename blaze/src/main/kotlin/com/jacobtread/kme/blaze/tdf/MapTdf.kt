@@ -28,7 +28,7 @@ class MapTdf(
                 val value: Any = when (valueType) {
                     VARINT -> input.readVarInt()
                     STRING -> input.readString()
-                    STRUCT -> StructTdf.read("", input)
+                    GROUP -> GroupTdf.read("", input)
                     FLOAT -> input.readFloat()
                     else -> throw IllegalStateException("Unknown list subtype $keyType")
                 }
@@ -52,7 +52,7 @@ class MapTdf(
             when (valueType) {
                 VARINT -> out.writeVarInt(value as Any)
                 STRING -> out.writeString(value as String)
-                STRUCT -> (value as StructTdf).write(out)
+                GROUP -> (value as GroupTdf).write(out)
                 FLOAT -> out.writeFloat(value as Float)
             }
         }

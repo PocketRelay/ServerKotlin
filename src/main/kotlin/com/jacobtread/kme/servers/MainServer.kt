@@ -5,11 +5,11 @@ import com.jacobtread.kme.KME_VERSION
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.Command.*
 import com.jacobtread.kme.blaze.Component.*
-import com.jacobtread.kme.blaze.tdf.StructTdf
-import com.jacobtread.kme.blaze.tdf.UnionTdf
+import com.jacobtread.kme.blaze.tdf.GroupTdf
+import com.jacobtread.kme.blaze.tdf.OptionalTdf
 import com.jacobtread.kme.data.Data
+import com.jacobtread.kme.data.LoginError
 import com.jacobtread.kme.database.Player
-import com.jacobtread.kme.database.Players
 import com.jacobtread.kme.game.GameManager
 import com.jacobtread.kme.game.PlayerSession
 import com.jacobtread.kme.game.PlayerSession.NetData
@@ -28,12 +28,10 @@ import io.netty.channel.socket.nio.NioServerSocketChannel
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.IOException
 import java.net.SocketException
-import java.util.concurrent.atomic.AtomicInteger
 
 fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup, config: Config) {
     try {
         val port = config.ports.main
-        val clientId = AtomicInteger(0)
         ServerBootstrap()
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
@@ -41,7 +39,7 @@ fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
                 override fun initChannel(ch: Channel) {
                     val remoteAddress = ch.remoteAddress()
                     Logger.info("Main started new client session with $remoteAddress")
-                    val session = PlayerSession(clientId.getAndIncrement())
+                    val session = PlayerSession()
                     ch.pipeline()
                         // Add handler for decoding packet
                         .addLast(PacketDecoder())
@@ -161,7 +159,7 @@ private class MainClient(private val session: PlayerSession, private val config:
      * handleGetAuthToken Returns the auth token used when making the GAW
      * authentication request. TODO: Replace this with a proper auth token
      *
-     * @param packet The inbound packet that requested the auth token
+     * @param packet The packet requesting the auth token
      */
     private fun handleGetAuthToken(packet: Packet) {
         channel.respond(packet) {
@@ -169,46 +167,43 @@ private class MainClient(private val session: PlayerSession, private val config:
         }
     }
 
+    /**
+     * handleLogin Handles email + password authentication from the login prompt
+     * in the menu. Simple as that. NOTE: It would be possible to allow using a
+     * username instead of an email by simply removing the email validation
+     *
+     * @param packet The packet requesting login
+     */
     private fun handleLogin(packet: Packet) {
         val email: String = packet.text("MAIL")
         val password: String = packet.text("PASS")
-        if (email.isBlank() || password.isBlank()) {
-            loginErrorPacket(packet, LoginError.INVALID_INFORMATION)
-            return
+        if (email.isBlank() || password.isBlank()) { // If we are missing email or password
+            return channel.send(LoginError.INVALID_INFORMATION(packet))
         }
 
+        // Regex for matching emails
         val emailRegex = Regex("^[\\p{L}\\p{N}._%+-]+@[\\p{L}\\p{N}.\\-]+\\.\\p{L}{2,}$")
-        if (!email.matches(emailRegex)) {
-            loginErrorPacket(packet, LoginError.INVALID_EMAIL)
-            return
+        if (!email.matches(emailRegex)) { // If the email is not a valid email
+            return channel.send(LoginError.INVALID_EMAIL(packet))
         }
 
-        val player = transaction {
-            Player
-                .find { Players.email eq email }
-                .limit(1)
-                .firstOrNull()
+        // Retrieve the player with this email or send an email not found error
+        val player = Player.getByEmail(email) ?: return channel.send(LoginError.EMAIL_NOT_FOUND(packet))
+
+        // Compare the provided password with the hashed password of the player
+        if (!comparePasswordHash(password, player.password)) { // If it's not the same password
+            return channel.send(LoginError.WRONG_PASSWORD(packet))
         }
 
-        if (player == null) {
-            loginErrorPacket(packet, LoginError.EMAIL_NOT_FOUND)
-            return
-        }
-
-        if (!comparePasswordHash(password, player.password)) {
-            loginErrorPacket(packet, LoginError.WRONG_PASSWORD)
-            return
-        }
-
-        session.setAuthenticated(player)
-        val sessionToken = player.sessionToken
+        session.setAuthenticated(player) // Set the authenticated session
+        // Send the authenticated response with a persona list
         channel.respond(packet) {
             text("LDHT", "")
             number("NTOS", 0)
-            text("PCTK", sessionToken)
+            text("PCTK", player.sessionToken)
             list("PLST", listOf(session.createPersonaList(player)))
             text("PRIV", "")
-            text("SKEY", "11229301_9b171d92cc562b293e602ee8325612e7")
+            text("SKEY", Data.SKEY2)
             number("SPAM", 0)
             text("THST", "")
             text("TSUI", "")
@@ -217,98 +212,51 @@ private class MainClient(private val session: PlayerSession, private val config:
         }
     }
 
+    /**
+     * handleSilentLogin Handles behind the scene token logins this is what the client does when
+     * it attempts to reconnect with a previously used token or the token provided by the last auth.
+     *
+     * For accounts that don't exist the INVALID_ACCOUNT error is used to kick the stored
+     * credentials out of the session to give the user a change to log in to a new account
+     * (This is the best option I could come up with that stil included session token validation)
+     *
+     * @param packet The packet requesting silent login
+     */
     private fun handleSilentLogin(packet: Packet) {
         val pid: Long = packet.number("PID")
         val auth: String = packet.text("AUTH")
-        val player = transaction { Player.findById(pid.toInt()) }
-        if (player == null) {
-            loginErrorPacket(packet, LoginError.INVALID_ACCOUNT)
-            return
-        }
-
-        if (player.sessionToken == auth) {
-            session.setAuthenticated(player)
-            authResponsePacket(packet)
-            sessionDetailsPackets()
-        } else {
-            loginErrorPacket(packet, LoginError.INVALID_ACCOUNT)
-        }
-    }
-
-    private fun authResponsePacket(packet: Packet) {
-        val player = session.player
-        val sessionToken = player.sessionToken
-        val lastLoginTime = unixTimeSeconds()
+        // Find the player with a matching ID or send an INVALID_ACCOUNT error
+        val player = Player.getById(pid) ?: return channel.send(LoginError.INVALID_ACCOUNT(packet))
+        // If the session token's don't match send INVALID_ACCOUNT error
+        if (!player.isSessionToken(auth)) return channel.send(LoginError.INVALID_ACCOUNT(packet))
+        val sessionToken = player.sessionToken // Session token grabbed after auth as to not generate new one
+        session.setAuthenticated(player)
+        // We don't store last login time so this is just computed here
         channel.respond(packet) {
             number("AGUP", 0)
             text("LDHT", "")
             number("NTOS", 0)
             text("PCTK", sessionToken)
             text("PRIV", "")
-            +struct("SESS") {
-                number("BUID", player.id.value)
-                number("FRST", 0)
-                text("KEY", "11229301_9b171d92cc562b293e602ee8325612e7")
-                number("LLOG", lastLoginTime)
-                text("MAIL", player.email)
-                +session.createPersonaList(player)
-                number("UID", player.id.value)
-            }
+            +group("SESS") { session.appendSession(this) }
             number("SPAM", 0)
             text("THST", "")
             text("TSUI", "")
             text("TURI", "")
         }
-    }
-
-    private fun sessionDetailsPackets() {
-        val player = session.player
         channel.send(session.createSessionDetails())
-        channel.unique(
-            USER_SESSIONS,
-            UPDATE_EXTENDED_DATA_ATTRIBUTE
-        ) {
-            number("FLGS", 3)
-            number("ID", player.playerId)
-        }
-    }
-
-    @Suppress("unused")
-    private enum class LoginError(val value: Int) {
-        SERVER_UNAVAILABLE(0x0),
-        EMAIL_NOT_FOUND(0xB),
-        WRONG_PASSWORD(0x0C),
-        EMAIL_ALREADY_IN_USE(0x0F),
-        AGE_RESTRICTION(0x10),
-        INVALID_ACCOUNT(0x11),
-        BANNED_ACCOUNT(0x13),
-        INVALID_INFORMATION(0x15),
-        INVALID_EMAIL(0x16),
-        LEGAL_GUARDIAN_REQUIRED(0x2A),
-        CODE_REQUIRED(0x32),
-        KEY_CODE_ALREADY_IN_USE(0x33),
-        INVALID_CERBERUS_KEY(0x34),
-        SERVER_UNAVAILABLE_FINAL(0x4001),
-        FAILED_NO_LOGIN_ACTION(0x4004),
-        SERVER_UNAVAILABLE_NOTHING(0x4005),
-        CONNECTION_LOST(0x4007)
-    }
-
-    private fun loginErrorPacket(packet: Packet, reason: LoginError) {
-        channel.error(packet, reason.value) {
-            text("PNAM", "")
-            number("UID", 0)
-        }
+        channel.send(session.createIdentityUpdate())
     }
 
     private fun handleCreateAccount(packet: Packet) {
         val email: String = packet.text("MAIL")
         val password: String = packet.text("PASS")
-        // Check for existing emails
-        if (transaction { !Player.find { Players.email eq email }.limit(1).empty() }) {
-            loginErrorPacket(packet, LoginError.EMAIL_ALREADY_IN_USE)
+        if (Player.isEmailTaken(email)) { // Check if the email is already in use
+            channel.send(LoginError.EMAIL_ALREADY_IN_USE(packet)) // Send email in use error
+            return
         }
-        val hashedPassword = hashPassword(password)
+        val hashedPassword = hashPassword(password) // Hash the password
+        // Create the new player account
         val player = transaction {
             Player.new {
                 this.email = email
@@ -316,23 +264,14 @@ private class MainClient(private val session: PlayerSession, private val config:
                 this.password = hashedPassword
             }
         }
-        session.setAuthenticated(player)
-        authResponsePacket(packet)
+        session.setAuthenticated(player) // Link the player to this session
+        respondEmpty(packet)
     }
 
     private fun handleLoginPersona(packet: Packet) {
-        val player = session.player
-        val lastLoginTime = unixTimeSeconds()
-        channel.respond(packet) {
-            number("BUID", player.playerId)
-            number("FRST", 0)
-            text("KEY", "11229301_9b171d92cc562b293e602ee8325612e7")
-            number("LLOG", lastLoginTime)
-            text("MAIL", "")
-            +session.createPersonaList(player)
-            number("UID", player.playerId)
-        }
-        sessionDetailsPackets()
+        channel.respond(packet) { session.appendSession(this) }
+        channel.send(session.createSessionDetails())
+        channel.send(session.createIdentityUpdate())
     }
 
     //endregion
@@ -425,10 +364,10 @@ private class MainClient(private val session: PlayerSession, private val config:
             number("MSID", game.mid)
         }
 
-        val creator = game.host.createMMSessionDetails(game)
+        val creator = game.host.createSessionDetails()
         channel.send(creator)
         game.getActivePlayers().forEach {
-            val sessionDetails = it.createMMSessionDetails(game)
+            val sessionDetails = it.createSessionDetails()
             channel.send(sessionDetails)
         }
         channel.send(game.createPoolPacket(false))
@@ -539,13 +478,13 @@ private class MainClient(private val session: PlayerSession, private val config:
                 text("DESC", desc)
                 pair("ETYP", 0x7802, 0x1)
                 map("KSUM", mapOf(
-                    "accountcountry" to struct {
+                    "accountcountry" to group {
                         map("KSVL", ksvl)
                     }
                 ))
                 number("LBSZ", lbsz)
                 list("LIST", listOf(
-                    struct {
+                    group {
                         text("CATG", "MassEffectStats")
                         text("DFLT", "0")
                         number("DRVD", 0x0)
@@ -576,13 +515,13 @@ private class MainClient(private val session: PlayerSession, private val config:
                 val rating = player.getN7Rating().toString()
                 channel.respond(packet) {
                     list("LDLS", listOf(
-                        struct {
+                        group {
                             text("ENAM", player.displayName)
                             number("ENID", player.id.value)
                             number("RANK", 0x58c86)
                             text("RSTA", rating)
                             number("RWFG", 0x0)
-                            union("RWST")
+                            optional("RWST")
                             list("STAT", listOf(rating))
                             number("UATT", 0x0)
                         }
@@ -593,13 +532,13 @@ private class MainClient(private val session: PlayerSession, private val config:
                 val challengePoints = "0"
                 channel.respond(packet) {
                     list("LDLS", listOf(
-                        struct {
+                        group {
                             text("ENAM", player.displayName)
                             number("ENID", player.id.value)
                             number("RANK", 0x48f8c)
                             text("RSTA", challengePoints)
                             number("RWFG", 0x0)
-                            union("RWST")
+                            optional("RWST")
                             list("STAT", listOf(challengePoints))
                             number("UATT", 0x0)
                         }
@@ -622,7 +561,7 @@ private class MainClient(private val session: PlayerSession, private val config:
     private fun handleCenteredLeadboard(packet: Packet) {
         // TODO: Currenlty not implemented
         channel.respond(packet) {
-            list("LDLS", emptyList<StructTdf>())
+            list("LDLS", emptyList<GroupTdf>())
         }
     }
 
@@ -649,7 +588,7 @@ private class MainClient(private val session: PlayerSession, private val config:
                     number("FLAG", 0x01)
                     number("MGID", 0x01)
                     text("NAME", menuMessage)
-                    +struct("PYLD") {
+                    +group("PYLD") {
                         map("ATTR", mapOf("B0000" to "160"))
                         number("FLAG", 0x01)
                         number("STAT", 0x00)
@@ -676,11 +615,11 @@ private class MainClient(private val session: PlayerSession, private val config:
             GET_LISTS -> {
                 channel.respond(packet) {
                     list("LMAP", listOf(
-                        struct {
-                            +struct("INFO") {
+                        group {
+                            +group("INFO") {
                                 tripple("BOID", 0x19, 0x1, 0x28557f3)
                                 number("FLGS", 4)
-                                +struct("LID") {
+                                +group("LID") {
                                     text("LNM", "friendList")
                                     number("TYPE", 1)
                                 }
@@ -735,10 +674,10 @@ private class MainClient(private val session: PlayerSession, private val config:
             UPDATE_HARDWARE_FLAGS,
             UPDATE_NETWORK_INFO,
             -> {
-                val addr: UnionTdf? = packet.unionOrNull("ADDR")
+                val addr: OptionalTdf? = packet.unionOrNull("ADDR")
                 if (addr != null) {
-                    val value = addr.value as StructTdf
-                    val inip: StructTdf = value.struct("INIP")
+                    val value = addr.value as GroupTdf
+                    val inip: GroupTdf = value.group("INIP")
                     val port: Int = inip.numberInt("PORT")
                     val remoteAddress = channel.remoteAddress()
                     val addressEncoded = IPAddress.asLong(remoteAddress)
@@ -795,7 +734,7 @@ private class MainClient(private val session: PlayerSession, private val config:
     }
 
     private fun handlePing(packet: Packet) {
-        Logger.logIfDebug { "Received ping update from client: ${session.id}" }
+        Logger.logIfDebug { "Received ping update from client: ${session.sessionId}" }
         session.lastPingTime = System.currentTimeMillis()
         channel.respond(packet) {
             number("STIM", unixTimeSeconds())
@@ -808,7 +747,7 @@ private class MainClient(private val session: PlayerSession, private val config:
             number("ASRC", 303107)
             list("CIDS", Data.CIDS)
             text("CNGN", "")
-            +struct("CONF") {
+            +group("CONF") {
                 map(
                     "CONF", mapOf(
                         "pingPeriod" to "15s",
@@ -824,8 +763,8 @@ private class MainClient(private val session: PlayerSession, private val config:
             text("PLAT", "pc") // Platform
             text("PTAG", "")
             // The following addresses have all been redirected to localhost to be ignored
-            +struct("QOSS") {
-                +struct("BWPS") {
+            +group("QOSS") {
+                +group("BWPS") {
 
                     // was gossjcprod-qos01.ea.com
                     text("PSA", "127.0.0.1")
@@ -835,19 +774,19 @@ private class MainClient(private val session: PlayerSession, private val config:
 
                 number("LNP", 0xA)
                 map("LTPS", mapOf(
-                    "ea-sjc" to struct {
+                    "ea-sjc" to group {
                         // was gossjcprod-qos01.ea.com
                         text("PSA", "127.0.0.1")
                         number("PSP", 17502)
                         text("SNA", "prod-sjc")
                     },
-                    "rs-iad" to struct {
+                    "rs-iad" to group {
                         // was gosiadprod-qos01.ea.com
                         text("PSA", "127.0.0.1")
                         number("PSP", 17502)
                         text("SNA", "rs-prod-iad")
                     },
-                    "rs-lhr" to struct {
+                    "rs-lhr" to group {
                         // was gosgvaprod-qos01.ea.com
                         text("PSA", "127.0.0.1")
                         number("PSP", 17502)
@@ -863,7 +802,7 @@ private class MainClient(private val session: PlayerSession, private val config:
 
     private fun handlePostAuth(packet: Packet) {
         channel.respond(packet) {
-            +struct("PSS") {
+            +group("PSS") {
                 text("ADRS", "playersyncservice.ea.com")
                 blob("CSIG")
                 text("PJID", "303107")
@@ -875,7 +814,7 @@ private class MainClient(private val session: PlayerSession, private val config:
             //  telemetryAddress = "reports.tools.gos.ea.com:9988"
             //  tickerAddress = "waleu2.tools.gos.ea.com:8999"
 
-            +struct("TELE") {
+            +group("TELE") {
                 text("ADRS", config.address) // Server Address
                 number("ANON", 0)
                 text("DISA", Data.TELE_DISA)
@@ -890,15 +829,15 @@ private class MainClient(private val session: PlayerSession, private val config:
                 text("STIM", "")
             }
 
-            +struct("TICK") {
+            +group("TICK") {
                 text("ADRS", config.address)
                 number("port", config.ports.ticker)
                 text("SKEY", "823287263,10.23.15.2:8999,masseffect-3-pc,10,50,50,50,50,0,12")
             }
 
-            +struct("UROP") {
+            +group("UROP") {
                 number("TMOP", 0x1)
-                number("UID", session.id)
+                number("UID", session.sessionId)
             }
         }
     }

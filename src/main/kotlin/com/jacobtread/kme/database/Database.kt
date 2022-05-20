@@ -180,7 +180,33 @@ const val MIN_GAW_VALUE = 5000
  * @param id The unique identifier for this player
  */
 class Player(id: EntityID<Int>) : IntEntity(id) {
-    companion object : IntEntityClass<Player>(Players)
+    companion object : IntEntityClass<Player>(Players) {
+
+        /**
+         * isEmailTaken Queries the database checking that no players have
+         * the provided email as their email
+         *
+         * @param email The email to check for
+         * @return Whether the email is already in use or not
+         */
+        fun isEmailTaken(email: String): Boolean = transaction { !(find { Players.email eq email }.limit(1).empty()) }
+
+        /**
+         * getByEmail Queries the database for any players that have a
+         * matching email to the provided email and returns it or null
+         *
+         * @param email The email to search for
+         * @return The found user player null if none were found
+         */
+        fun getByEmail(email: String): Player? = transaction {
+            find { Players.email eq email }
+                .limit(1)
+                .firstOrNull()
+        }
+
+        fun getById(id: Long): Player? = transaction { findById(id.toInt()) }
+
+    }
 
     val playerId: Int get() = id.value
 
@@ -239,6 +265,7 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
             return sessionToken
         }
 
+    fun isSessionToken(token: String): Boolean = _sessionToken != null && token == _sessionToken
 
 
     /**

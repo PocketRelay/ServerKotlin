@@ -37,6 +37,12 @@ inline fun Channel.error(
     populate: TdfBuilder.() -> Unit = {},
 ) = send(createPacket(responding.rawComponent, responding.rawCommand, ERROR, responding.id, error, populate), flush)
 
+inline fun error(
+    responding: Packet,
+    error: Int,
+    populate: TdfBuilder.() -> Unit = {},
+) = createPacket(responding.rawComponent, responding.rawCommand, ERROR, responding.id, error, populate)
+
 inline fun respond(
     responding: Packet,
     error: Int = NO_ERROR,

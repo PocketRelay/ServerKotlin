@@ -77,7 +77,7 @@ private fun appendTdf(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Bo
             }
             out.append(')')
         }
-        is StructTdf -> {
+        is GroupTdf -> {
             out.append("  ".repeat(indent))
             if (!inline) out.append('+')
             out.append("struct")
@@ -152,7 +152,7 @@ private fun appendTdf(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Bo
                 else -> {
                     out.append('\n')
                     for (i in content.indices) {
-                        appendTdf(out, indent + 1, content[i] as StructTdf, true)
+                        appendTdf(out, indent + 1, content[i] as GroupTdf, true)
                         if (i != length - 1) {
                             out.append(',')
                         }
@@ -164,7 +164,7 @@ private fun appendTdf(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Bo
             }
 
         }
-        is UnionTdf -> {
+        is OptionalTdf -> {
             val content = value.value
             if (content != null) {
                 out.append("  ".repeat(indent))
@@ -211,7 +211,7 @@ private fun appendTdf(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Bo
                     is Long -> out.append("0x")
                         .append(va.toString(16))
                     is Float -> out.append(va.toString())
-                    is StructTdf -> appendTdf(out, indent + 1, va, true)
+                    is GroupTdf -> appendTdf(out, indent + 1, va, true)
                 }
                 out.append(",\n")
             }
