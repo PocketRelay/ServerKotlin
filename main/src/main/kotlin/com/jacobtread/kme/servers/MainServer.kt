@@ -915,9 +915,12 @@ private class MainClient(private val session: PlayerSession, private val config:
             text("PILD", "")
             text("PLAT", "pc") // Platform
             text("PTAG", "")
+            // The following addresses have all been redirected to localhost to be ignored
             +struct("QOSS") {
                 +struct("BWPS") {
-                    text("PSA", "gossjcprod-qos01.ea.com")
+
+                    // was gossjcprod-qos01.ea.com
+                    text("PSA", "127.0.0.1")
                     number("PSP", 17502)
                     text("SNA", "prod-sjc")
                 }
@@ -925,17 +928,20 @@ private class MainClient(private val session: PlayerSession, private val config:
                 number("LNP", 0xA)
                 map("LTPS", mapOf(
                     "ea-sjc" to struct {
-                        text("PSA", "gossjcprod-qos01.ea.com")
+                        // was gossjcprod-qos01.ea.com
+                        text("PSA", "127.0.0.1")
                         number("PSP", 17502)
                         text("SNA", "prod-sjc")
                     },
                     "rs-iad" to struct {
-                        text("PSA", "gosiadprod-qos01.ea.com")
+                        // was gosiadprod-qos01.ea.com
+                        text("PSA", "127.0.0.1")
                         number("PSP", 17502)
                         text("SNA", "rs-prod-iad")
                     },
                     "rs-lhr" to struct {
-                        text("PSA", "gosgvaprod-qos01.ea.com")
+                        // was gosgvaprod-qos01.ea.com
+                        text("PSA", "127.0.0.1")
                         number("PSP", 17502)
                         text("SNA", "rs-prod-lhr")
                     }

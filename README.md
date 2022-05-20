@@ -10,6 +10,11 @@ This server is quite far from completion but is steadily progressing.
 ### IT WORKS!!!
 You can actually play games on it. However there are some things outside of the games that don't work yet like the shop
 
+## Connection requirements
+In order to be able to connect to the server the following entry needs to be made in the client machine host file
+gosredirector.ea.com and this needs to point to the IP address of the host
+I plan on making a tool for doing this automatically
+
 ## Working so far
 - [x] Working Server & Client Connections
 - [x] Parsing and reading packets 
@@ -27,6 +32,6 @@ You can actually play games on it. However there are some things outside of the 
 - [x] Matchmaking 
   - NOTE: Doesn't actually take user preferences into account just joins first not full server
 
-# Planned
+## Planned
 - [ ] Leaderboard support
 - [ ] Web panel interface
