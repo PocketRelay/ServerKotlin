@@ -56,7 +56,7 @@ class PlayerSession {
     var netData = SHARED_NET_DATA
 
     // The authenticated player for this session null if the player isn't authenticated
-    private var _player: Player? = null
+    var _player: Player? = null
     val player: Player get() = _player ?: throw throw NotAuthenticatedException()
     val playerId: Int get() = player.playerId
 
@@ -112,6 +112,10 @@ class PlayerSession {
      * @param player The authenticated player
      */
     fun setAuthenticated(player: Player?) {
+        val existing = _player
+        if (player == null && existing != null) {
+            game?.removePlayer(this)
+        }
         this._player = player
     }
 

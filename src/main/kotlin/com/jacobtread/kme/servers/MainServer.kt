@@ -64,7 +64,7 @@ fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
 private class MainClient(private val session: PlayerSession, private val config: Config) : SimpleChannelInboundHandler<Packet>() {
 
     /**
-     * respondEmpty Used for sending a respond that has no content
+     * respondEmpty Used for sending a response that has no content
      *
      * @param packet The packet to respond to
      */
@@ -118,6 +118,12 @@ private class MainClient(private val session: PlayerSession, private val config:
 
     //region Authentication Component Region
 
+    /**
+     * handleAuthentication Handles the authentication component and passes
+     * the call onto the other functions that handle the commmands
+     *
+     * @param packet The packet with an authentication component
+     */
     private fun handleAuthentication(packet: Packet) {
         when (packet.command) {
             LIST_USER_ENTITLEMENTS_2 -> handleListUserEntitlements2(packet)
@@ -125,13 +131,36 @@ private class MainClient(private val session: PlayerSession, private val config:
             LOGIN -> handleLogin(packet)
             SILENT_LOGIN -> handleSilentLogin(packet)
             LOGIN_PERSONA -> handleLoginPersona(packet)
-            ORIGIN_LOGIN -> {
-                Logger.info("Recieved unsupported request for Origin Login")
-                respondEmpty(packet)
-            }
+            ORIGIN_LOGIN -> handleOriginLogin(packet)
             CREATE_ACCOUNT -> handleCreateAccount(packet)
+            LOGOUT -> handleLogout(packet)
             else -> respondEmpty(packet)
         }
+    }
+
+    /**
+     * handleOriginLogin This would be the functionality for logging in Via origin
+     * however this is currently not supported because I have no way of testing it,
+     * so it's just going to send an empty response
+     *
+     * @param packet The packet requesting the origin login
+     */
+    private fun handleOriginLogin(packet: Packet) {
+        Logger.info("Recieved unsupported request for Origin Login")
+        respondEmpty(packet)
+    }
+
+    /**
+     * handleLogout Handles logging out a player which clears the references
+     * to the player and removes them from any games they are in
+     *
+     * @param packet The packet requesting the logout
+     */
+    private fun handleLogout(packet: Packet) {
+        val player = session.player
+        Logger.info("Logged out player ${player.displayName}")
+        session.setAuthenticated(null)
+        respondEmpty(packet)
     }
 
     /**
@@ -253,6 +282,12 @@ private class MainClient(private val session: PlayerSession, private val config:
         channel.send(session.createIdentityUpdate())
     }
 
+    /**
+     * handleCreateAccount Handles the creation of accounts from the in game account greation tool
+     * most of the data provided is discarded only the email and password are used
+     *
+     * @param packet The packet requesting account creation
+     */
     private fun handleCreateAccount(packet: Packet) {
         val email: String = packet.text("MAIL")
         val password: String = packet.text("PASS")
@@ -273,6 +308,12 @@ private class MainClient(private val session: PlayerSession, private val config:
         respondEmpty(packet)
     }
 
+    /**
+     * handleLoginPersona Handles the logging in to a persona this ignores the persona name
+     * field and just sends the session details of the player
+     *
+     * @param packet The packet requesting persona login
+     */
     private fun handleLoginPersona(packet: Packet) {
         channel.respond(packet) { session.appendPlayerSession(this) }
         channel.send(session.createSessionDetails())
