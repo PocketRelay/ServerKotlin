@@ -59,13 +59,4 @@ class MapTdf(
     }
 
     override fun toString(): String = "Map($label: $value)"
-
-    fun asKeyValueMap(): Map<String, String> {
-        return try {
-            @Suppress("UNCHECKED_CAST")
-            this.value as Map<String, String>
-        } catch (e: ClassCastException) {
-            emptyMap()
-        }
-    }
 }
