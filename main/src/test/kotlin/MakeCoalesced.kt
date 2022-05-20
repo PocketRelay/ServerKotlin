@@ -6,8 +6,8 @@ import java.util.zip.Deflater
 import kotlin.io.path.*
 
 /**
- * main Small function for converting the ME3BINI into the compressed
- * and base64 version so it doesn't need to happen at runtime
+ * main function for converting the ME3BINI into the compressed
+ * and base64 version, so it doesn't need to happen at runtime
  *
  */
 fun main() {
