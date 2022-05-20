@@ -24,7 +24,7 @@ class PacketDecoder : ByteToMessageDecoder() {
 
                 if (input.readableBytes() >= contentLength) {
                     input.readBytes(packet.rawContent)
-                    if (Logger.isDebugEnabled) {
+                    if (Logger.isLogPackets) {
                         Logger.debug("RECIEVED PACKET =======\n" + packetToBuilder(packet) + "\n======================")
                     }
                     out.add(packet)

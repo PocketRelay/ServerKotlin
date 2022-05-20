@@ -22,6 +22,8 @@ object Logger {
         val level: Level = Level.INFO,
         @Comment("Enable to keep track of logs in the logs/ directory will archive old logs with gzip")
         val save: Boolean = true,
+        @Comment("Whether to log the contents of incoming and outgoing packets (For debugging)")
+        val packets: Boolean = false,
     )
 
     private const val COLOR_REST = "\u001B[0m"
@@ -35,6 +37,8 @@ object Logger {
     private val outputBuffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE)
     private var logLevel: Level = Level.INFO
     private var logToFile = true
+    var isLogPackets = false
+        private set
 
     /**
      * isDebugEnabled Checks whether the current
@@ -45,10 +49,10 @@ object Logger {
     val isDebugEnabled: Boolean get() = logLevel == Level.DEBUG
 
 
-
     fun init(config: Config) {
         logLevel = config.level
         logToFile = config.save
+        isLogPackets = config.packets
         if (logToFile) {
             try {
                 archiveOld()
