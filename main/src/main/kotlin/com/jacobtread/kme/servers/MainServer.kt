@@ -158,7 +158,6 @@ private class MainClient(private val session: PlayerSession, private val config:
                 channel.send(sessPacket)
                 channel.send(sessPacket)
             }
-
         } else {
             respondEmpty(packet)
         }

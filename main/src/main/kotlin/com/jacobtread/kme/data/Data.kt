@@ -8,6 +8,7 @@ import com.jacobtread.kme.utils.logging.Logger
 import java.io.BufferedReader
 import java.io.IOException
 import java.time.Instant
+import kotlin.random.Random
 
 /**
  * Data Pre constructed data and retrieval of data that's used throughout the app
@@ -268,7 +269,7 @@ object Data {
         "MSG_1_title_ja" to "KME Server",
         "MSG_1_title_pl" to "KME Server",
         "MSG_1_title_ru" to "KME Server",
-        "MSG_1_trackingId" to "150",
+        "MSG_1_trackingId" to Random.nextInt(0,15).toString(),
         "MSG_1_type" to "8",
     )
     fun makeME3ENT(): Map<String, String> = mapOf(
