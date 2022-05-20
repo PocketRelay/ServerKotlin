@@ -23,7 +23,6 @@ fun main() {
 
     startDatabase(config.database)
 
-    // Telemetry & Ticker servers just discard any contents they receive
     startHttpServer(bossGroup, workerGroup, config)
     startRedirector(bossGroup, workerGroup, config)
     startMainServer(bossGroup, workerGroup, config)
