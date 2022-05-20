@@ -1,8 +1,7 @@
 package com.jacobtread.kme.data
 
 import com.jacobtread.kme.Config
-import com.jacobtread.kme.blaze.Packet
-import com.jacobtread.kme.blaze.respond
+import com.jacobtread.kme.blaze.lazyPacketBody
 import com.jacobtread.kme.blaze.struct
 import java.io.BufferedReader
 import java.io.IOException
@@ -19,216 +18,217 @@ object Data {
     const val TELE_DISA =
         "AD,AF,AG,AI,AL,AM,AN,AO,AQ,AR,AS,AW,AX,AZ,BA,BB,BD,BF,BH,BI,BJ,BM,BN,BO,BR,BS,BT,BV,BW,BY,BZ,CC,CD,CF,CG,CI,CK,CL,CM,CN,CO,CR,CU,CV,CX,DJ,DM,DO,DZ,EC,EG,EH,ER,ET,FJ,FK,FM,FO,GA,GD,GE,GF,GG,GH,GI,GL,GM,GN,GP,GQ,GS,GT,GU,GW,GY,HM,HN,HT,ID,IL,IM,IN,IO,IQ,IR,IS,JE,JM,JO,KE,KG,KH,KI,KM,KN,KP,KR,KW,KY,KZ,LA,LB,LC,LI,LK,LR,LS,LY,MA,MC,MD,ME,MG,MH,ML,MM,MN,MO,MP,MQ,MR,MS,MU,MV,MW,MY,MZ,NA,NC,NE,NF,NG,NI,NP,NR,NU,OM,PA,PE,PF,PG,PH,PK,PM,PN,PS,PW,PY,QA,RE,RS,RW,SA,SB,SC,SD,SG,SH,SJ,SL,SM,SN,SO,SR,ST,SV,SY,SZ,TC,TD,TF,TG,TH,TJ,TK,TL,TM,TN,TO,TT,TV,TZ,UA,UG,UM,UY,UZ,VA,VC,VE,VG,VN,VU,WF,WS,YE,YT,ZM,ZW,ZZ"
     const val NAT_TYPE = 4
-    val SKEY = createSKey()
+    val SKEY = String(
+        byteArrayOf(
+            94, -118, -53, -35, -8, -20, -63, -107, -104, -103, -7, -108, -64, -83, -18,
+            -4, -50, -92, -121, -34, -118, -90, -50, -36, -80, -18, -24, -27, -77, -11,
+            -83, -102, -78, -27, -28, -79, -103, -122, -57, -114, -101, -80, -12, -64, -127,
+            -93, -89, -115, -100, -70, -62, -119, -45, -61, -84, -104, -106, -92, -32, -64,
+            -127, -125, -122, -116, -104, -80, -32, -52, -119, -109, -58, -52, -102, -28, -56,
+            -103, -29, -126, -18, -40, -105, -19, -62, -51, -101, -41, -52, -103, -77, -27,
+            -58, -47, -21, -78, -90, -117, -72, -29, -40, -60, -95, -125, -58, -116, -100,
+            -74, -16, -48, -63, -109, -121, -53, -78, -18, -120, -107, -46, -128, -128
+        ),
+        Charsets.UTF_8
+    )
     val CIDS = listOf(1, 25, 4, 28, 7, 9, 63490, 30720, 15, 30721, 30722, 30723, 30725, 30726, 2000)
 
-    private fun createSKey(): String {
-        return String(
-            byteArrayOf(
-                94, -118, -53, -35, -8, -20, -63, -107, -104, -103, -7, -108, -64, -83, -18,
-                -4, -50, -92, -121, -34, -118, -90, -50, -36, -80, -18, -24, -27, -77, -11,
-                -83, -102, -78, -27, -28, -79, -103, -122, -57, -114, -101, -80, -12, -64, -127,
-                -93, -89, -115, -100, -70, -62, -119, -45, -61, -84, -104, -106, -92, -32, -64,
-                -127, -125, -122, -116, -104, -80, -32, -52, -119, -109, -58, -52, -102, -28, -56,
-                -103, -29, -126, -18, -40, -105, -19, -62, -51, -101, -41, -52, -103, -77, -27,
-                -58, -47, -21, -78, -90, -117, -72, -29, -40, -60, -95, -125, -58, -116, -100,
-                -74, -16, -48, -63, -109, -121, -53, -78, -18, -120, -107, -46, -128, -128
-            ),
-            Charsets.UTF_8
-        )
+    /**
+     * USER_ENTITLEMENTS List of user entitlements this is the same for all players
+     * and gets requested multiple times so for performance sake this is created and
+     * converted to a byte array upon first access to prevent this large content
+     * from needing to be rebuilt over and over again every request
+     */
+    @Suppress("SpellCheckingInspection")
+    val USER_ENTITLEMENTS: ByteArray by lazyPacketBody {
+        list("NLST", listOf(
+            struct {
+                text("DEVI", "")
+                text("GDAY", "2013-03-04T22:16Z")
+                text("GNAM", "ME3PCOffers")
+                number("ID", 0xe962a115d7)
+                number("ISCO", 0x0)
+                number("PID", 0x0)
+                text("PJID", "300241")
+                number("PRCA", 0x2)
+                text("PRID", "OFB-MASS:59712")
+                number("STAT", 0x1)
+                number("STRC", 0x0)
+                text("TAG", "ME3_PRC_MP5")
+                text("TDAY", "")
+                number("TYPE", 0x5)
+                number("UCNT", 0x0)
+                number("VER", 0x0)
+            },
+            struct {
+                text("DEVI", "")
+                text("GDAY", "2012-12-15T16:15Z")
+                text("GNAM", "ME3PCOffers")
+                number("ID", 0xe91655d5d7)
+                number("ISCO", 0x0)
+                number("PID", 0x0)
+                text("PJID", "300241")
+                number("PRCA", 0x2)
+                text("PRID", "OFB-MASS:47872")
+                number("STAT", 0x1)
+                number("STRC", 0x0)
+                text("TAG", "ME3_PRC_RESURGENCE")
+                text("TDAY", "")
+                number("TYPE", 0x5)
+                number("UCNT", 0x0)
+                number("VER", 0x0)
+            },
+            struct {
+                text("DEVI", "")
+                text("GDAY", "2012-12-14T13:32Z")
+                text("GNAM", "ME3GenOffers")
+                number("ID", 0xe915dbc3d7)
+                number("ISCO", 0x0)
+                number("PID", 0x0)
+                text("PJID", "303107")
+                number("PRCA", 0x0)
+                text("PRID", "")
+                number("STAT", 0x1)
+                number("STRC", 0x0)
+                text("TAG", "ONLINE_ACCESS_GAW_PC")
+                text("TDAY", "")
+                number("TYPE", 0x1)
+                number("UCNT", 0x0)
+                number("VER", 0x0)
+            },
+            struct {
+                text("DEVI", "")
+                text("GDAY", "2012-12-14T13:5Z")
+                text("GNAM", "ME3PCOffers")
+                number("ID", 0xe915aaefd7)
+                number("ISCO", 0x0)
+                number("PID", 0x0)
+                text("PJID", "300241")
+                number("PRCA", 0x2)
+                text("PRID", "OFB-MASS:51074")
+                number("STAT", 0x1)
+                number("STRC", 0x0)
+                text("TAG", "ME3_PRC_EXTENDEDCUT")
+                text("TDAY", "")
+                number("TYPE", 0x5)
+                number("UCNT", 0x0)
+                number("VER", 0x0)
+            },
+            struct {
+                text("DEVI", "")
+                text("GDAY", "2012-12-14T13:5Z")
+                text("GNAM", "ME3PCOffers")
+                number("ID", 0xe915a7e297)
+                number("ISCO", 0x0)
+                number("PID", 0x0)
+                text("PJID", "308426")
+                number("PRCA", 0x2)
+                text("PRID", "OFB-EAST:56562")
+                number("STAT", 0x1)
+                number("STRC", 0x0)
+                text("TAG", "MET_BONUS_CONTENT")
+                text("TDAY", "")
+                number("TYPE", 0x5)
+                number("UCNT", 0x0)
+                number("VER", 0x0)
+            },
+            struct {
+                text("DEVI", "")
+                text("GDAY", "2012-12-14T13:5Z")
+                text("GNAM", "ME3PCOffers")
+                number("ID", 0xe915a1c817)
+                number("ISCO", 0x0)
+                number("PID", 0x0)
+                text("PJID", "303107")
+                number("PRCA", 0x2)
+                text("PRID", "DR:229644400")
+                number("STAT", 0x1)
+                number("STRC", 0x0)
+                text("TAG", "PROJECT10_CODE_CONSUMED")
+                text("TDAY", "")
+                number("TYPE", 0x1)
+                number("UCNT", 0x0)
+                number("VER", 0x0)
+            },
+            struct {
+                text("DEVI", "")
+                text("GDAY", "2012-12-14T13:5Z")
+                text("GNAM", "ME3PCOffers")
+                number("ID", 0xe9159ebad7)
+                number("ISCO", 0x0)
+                number("PID", 0x0)
+                text("PJID", "303107")
+                number("PRCA", 0x2)
+                text("PRID", "DR:229644400")
+                number("STAT", 0x1)
+                number("STRC", 0x0)
+                text("TAG", "ONLINE_ACCESS")
+                text("TDAY", "")
+                number("TYPE", 0x1)
+                number("UCNT", 0x0)
+                number("VER", 0x0)
+            },
+            struct {
+                text("DEVI", "")
+                text("GDAY", "2012-12-15T16:16Z")
+                text("GNAM", "ME3PCOffers")
+                number("ID", 0xe910353b57)
+                number("ISCO", 0x0)
+                number("PID", 0x0)
+                text("PJID", "300241")
+                number("PRCA", 0x2)
+                text("PRID", "OFB-MASS:49465")
+                number("STAT", 0x1)
+                number("STRC", 0x0)
+                text("TAG", "ME3_PRC_REBELLION")
+                text("TDAY", "")
+                number("TYPE", 0x5)
+                number("UCNT", 0x0)
+                number("VER", 0x0)
+            },
+            struct {
+                text("DEVI", "")
+                text("GDAY", "2012-12-15T16:16Z")
+                text("GNAM", "ME3PCOffers")
+                number("ID", 0xe90c3cff17)
+                number("ISCO", 0x0)
+                number("PID", 0x0)
+                text("PJID", "300241")
+                number("PRCA", 0x2)
+                text("PRID", "OFB-MASS:51073")
+                number("STAT", 0x1)
+                number("STRC", 0x0)
+                text("TAG", "ME3_PRC_EARTH")
+                text("TDAY", "")
+                number("TYPE", 0x5)
+                number("UCNT", 0x0)
+                number("VER", 0x0)
+            },
+            struct {
+                text("DEVI", "")
+                text("GDAY", "2012-12-15T16:16Z")
+                text("GNAM", "ME3PCOffers")
+                number("ID", 0xe90b85e417)
+                number("ISCO", 0x0)
+                number("PID", 0x0)
+                text("PJID", "300241")
+                number("PRCA", 0x2)
+                text("PRID", "OFB-MASS:52000")
+                number("STAT", 0x1)
+                number("STRC", 0x0)
+                text("TAG", "ME3_PRC_GOBIG")
+                text("TDAY", "")
+                number("TYPE", 0x5)
+                number("UCNT", 0x0)
+                number("VER", 0x0)
+            }
+        ))
     }
+
 
     //region ME3 Data
 
-    fun makeUserEntitlements2(packet: Packet): Packet {
-        @Suppress("SpellCheckingInspection")
-        return respond(packet) {
-            list("NLST", listOf(
-                struct {
-                    text("DEVI", "")
-                    text("GDAY", "2013-03-04T22:16Z")
-                    text("GNAM", "ME3PCOffers")
-                    number("ID", 0xe962a115d7)
-                    number("ISCO", 0x0)
-                    number("PID", 0x0)
-                    text("PJID", "300241")
-                    number("PRCA", 0x2)
-                    text("PRID", "OFB-MASS:59712")
-                    number("STAT", 0x1)
-                    number("STRC", 0x0)
-                    text("TAG", "ME3_PRC_MP5")
-                    text("TDAY", "")
-                    number("TYPE", 0x5)
-                    number("UCNT", 0x0)
-                    number("VER", 0x0)
-                },
-                struct {
-                    text("DEVI", "")
-                    text("GDAY", "2012-12-15T16:15Z")
-                    text("GNAM", "ME3PCOffers")
-                    number("ID", 0xe91655d5d7)
-                    number("ISCO", 0x0)
-                    number("PID", 0x0)
-                    text("PJID", "300241")
-                    number("PRCA", 0x2)
-                    text("PRID", "OFB-MASS:47872")
-                    number("STAT", 0x1)
-                    number("STRC", 0x0)
-                    text("TAG", "ME3_PRC_RESURGENCE")
-                    text("TDAY", "")
-                    number("TYPE", 0x5)
-                    number("UCNT", 0x0)
-                    number("VER", 0x0)
-                },
-                struct {
-                    text("DEVI", "")
-                    text("GDAY", "2012-12-14T13:32Z")
-                    text("GNAM", "ME3GenOffers")
-                    number("ID", 0xe915dbc3d7)
-                    number("ISCO", 0x0)
-                    number("PID", 0x0)
-                    text("PJID", "303107")
-                    number("PRCA", 0x0)
-                    text("PRID", "")
-                    number("STAT", 0x1)
-                    number("STRC", 0x0)
-                    text("TAG", "ONLINE_ACCESS_GAW_PC")
-                    text("TDAY", "")
-                    number("TYPE", 0x1)
-                    number("UCNT", 0x0)
-                    number("VER", 0x0)
-                },
-                struct {
-                    text("DEVI", "")
-                    text("GDAY", "2012-12-14T13:5Z")
-                    text("GNAM", "ME3PCOffers")
-                    number("ID", 0xe915aaefd7)
-                    number("ISCO", 0x0)
-                    number("PID", 0x0)
-                    text("PJID", "300241")
-                    number("PRCA", 0x2)
-                    text("PRID", "OFB-MASS:51074")
-                    number("STAT", 0x1)
-                    number("STRC", 0x0)
-                    text("TAG", "ME3_PRC_EXTENDEDCUT")
-                    text("TDAY", "")
-                    number("TYPE", 0x5)
-                    number("UCNT", 0x0)
-                    number("VER", 0x0)
-                },
-                struct {
-                    text("DEVI", "")
-                    text("GDAY", "2012-12-14T13:5Z")
-                    text("GNAM", "ME3PCOffers")
-                    number("ID", 0xe915a7e297)
-                    number("ISCO", 0x0)
-                    number("PID", 0x0)
-                    text("PJID", "308426")
-                    number("PRCA", 0x2)
-                    text("PRID", "OFB-EAST:56562")
-                    number("STAT", 0x1)
-                    number("STRC", 0x0)
-                    text("TAG", "MET_BONUS_CONTENT")
-                    text("TDAY", "")
-                    number("TYPE", 0x5)
-                    number("UCNT", 0x0)
-                    number("VER", 0x0)
-                },
-                struct {
-                    text("DEVI", "")
-                    text("GDAY", "2012-12-14T13:5Z")
-                    text("GNAM", "ME3PCOffers")
-                    number("ID", 0xe915a1c817)
-                    number("ISCO", 0x0)
-                    number("PID", 0x0)
-                    text("PJID", "303107")
-                    number("PRCA", 0x2)
-                    text("PRID", "DR:229644400")
-                    number("STAT", 0x1)
-                    number("STRC", 0x0)
-                    text("TAG", "PROJECT10_CODE_CONSUMED")
-                    text("TDAY", "")
-                    number("TYPE", 0x1)
-                    number("UCNT", 0x0)
-                    number("VER", 0x0)
-                },
-                struct {
-                    text("DEVI", "")
-                    text("GDAY", "2012-12-14T13:5Z")
-                    text("GNAM", "ME3PCOffers")
-                    number("ID", 0xe9159ebad7)
-                    number("ISCO", 0x0)
-                    number("PID", 0x0)
-                    text("PJID", "303107")
-                    number("PRCA", 0x2)
-                    text("PRID", "DR:229644400")
-                    number("STAT", 0x1)
-                    number("STRC", 0x0)
-                    text("TAG", "ONLINE_ACCESS")
-                    text("TDAY", "")
-                    number("TYPE", 0x1)
-                    number("UCNT", 0x0)
-                    number("VER", 0x0)
-                },
-                struct {
-                    text("DEVI", "")
-                    text("GDAY", "2012-12-15T16:16Z")
-                    text("GNAM", "ME3PCOffers")
-                    number("ID", 0xe910353b57)
-                    number("ISCO", 0x0)
-                    number("PID", 0x0)
-                    text("PJID", "300241")
-                    number("PRCA", 0x2)
-                    text("PRID", "OFB-MASS:49465")
-                    number("STAT", 0x1)
-                    number("STRC", 0x0)
-                    text("TAG", "ME3_PRC_REBELLION")
-                    text("TDAY", "")
-                    number("TYPE", 0x5)
-                    number("UCNT", 0x0)
-                    number("VER", 0x0)
-                },
-                struct {
-                    text("DEVI", "")
-                    text("GDAY", "2012-12-15T16:16Z")
-                    text("GNAM", "ME3PCOffers")
-                    number("ID", 0xe90c3cff17)
-                    number("ISCO", 0x0)
-                    number("PID", 0x0)
-                    text("PJID", "300241")
-                    number("PRCA", 0x2)
-                    text("PRID", "OFB-MASS:51073")
-                    number("STAT", 0x1)
-                    number("STRC", 0x0)
-                    text("TAG", "ME3_PRC_EARTH")
-                    text("TDAY", "")
-                    number("TYPE", 0x5)
-                    number("UCNT", 0x0)
-                    number("VER", 0x0)
-                },
-                struct {
-                    text("DEVI", "")
-                    text("GDAY", "2012-12-15T16:16Z")
-                    text("GNAM", "ME3PCOffers")
-                    number("ID", 0xe90b85e417)
-                    number("ISCO", 0x0)
-                    number("PID", 0x0)
-                    text("PJID", "300241")
-                    number("PRCA", 0x2)
-                    text("PRID", "OFB-MASS:52000")
-                    number("STAT", 0x1)
-                    number("STRC", 0x0)
-                    text("TAG", "ME3_PRC_GOBIG")
-                    text("TDAY", "")
-                    number("TYPE", 0x5)
-                    number("UCNT", 0x0)
-                    number("VER", 0x0)
-                }
-            ))
-        }
-    }
-
-    fun makeME3Data(config: Config): Map<String, String> {
+    fun createDataConfig(config: Config): Map<String, String> {
         val address = config.address
         val port = config.ports.http
         val host = if (port != 80) {
@@ -256,7 +256,7 @@ object Data {
         )
     }
 
-    fun makeME3MSG(): Map<String, String> = mapOf(
+    fun createServerMessage(): Map<String, String> = mapOf(
         "MSG_1_endDate" to "10:03:2025",
         "MSG_1_image" to "Promo_n7.dds",
         "MSG_1_message" to "KME Server is working!!",
@@ -280,7 +280,7 @@ object Data {
         "MSG_1_type" to "8",
     )
 
-    fun makeME3ENT(): Map<String, String> = mapOf(
+    fun createEntitlementMap(): Map<String, String> = linkedMapOf(
         "CERBERUS_OFFER_ID" to "101",
         "ENT_100_entitlement" to "ME3_PRC_MP5",
         "ENT_100_group" to "ME3PCContent",
@@ -650,16 +650,11 @@ object Data {
         return stream.bufferedReader()
     }
 
-    fun makeME3DIME(): Map<String, String> {
+    fun createDimeResponse(): Map<String, String> {
         val dime = getResource("data/dime.xml")
             .toString(Charsets.UTF_8);
         return mapOf("Config" to dime)
     }
-
-    fun makeBiniVersion(): Map<String, String> = mapOf(
-        "SECTION" to "BINI_PC_COMPRESSED",
-        "VERSION" to "40128"
-    )
 
     fun loadBiniCompressed(): Map<String, String> = loadChunkedFile("data/bini.bin.chunked")
 

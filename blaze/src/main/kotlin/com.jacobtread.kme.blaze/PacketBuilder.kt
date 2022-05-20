@@ -50,6 +50,15 @@ inline fun respond(
     populate
 )
 
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun respond(
+    responding: Packet,
+    content: ByteArray,
+    error: Int = NO_ERROR,
+) = Packet(responding.rawComponent, responding.rawCommand, error, RESPONSE, responding.id, content)
+
+
 inline fun Channel.unique(
     component: Component,
     command: Command,
@@ -97,4 +106,11 @@ inline fun createPacket(
     )
 }
 
+inline fun lazyPacketBody(crossinline populate: TdfBuilder.() -> Unit): Lazy<ByteArray> {
+    return lazy {
+        val builder = TdfBuilder()
+        builder.populate()
+        builder.createByteArray()
+    }
+}
 

@@ -26,7 +26,7 @@ class PlayerSession(
     val player: Player get() = _player ?: throw throw IllegalStateException("Tried to access player on session without logging in")
     val playerId: Int get() = player.playerId
 
-    var sendOffers = false
+    var sendSession = false
     var lastPingTime = -1L
     var exip = NetData.DEFAULT
     var inip = NetData.DEFAULT
@@ -58,6 +58,39 @@ class PlayerSession(
         }
         number("USID", if (_player != null) playerId else id)
     }
+
+    fun createSessionDetails(): Packet =
+        unique(
+            Component.USER_SESSIONS,
+            Command.SESSION_DETAILS,
+        ) {
+            +struct("DATA") {
+                union("ADDR")
+                text("BPS", "")
+                text("CTY", "")
+                varList("CVAR", emptyList())
+                map("DMAP", mapOf(0x70001 to 0x22))
+                number("HWFG", 0)
+
+                +struct("QDAT") {
+                    number("DBPS", 0)
+                    number("NATT", Data.NAT_TYPE)
+                    number("UBPS", 0)
+                }
+
+                number("UATT", 0)
+            }
+
+            +struct("USER") {
+                number("AID", player.playerId)
+                number("ALOC", 0x64654445)
+                blob("EXBB")
+                number("EXID", 0)
+                number("ID", player.playerId)
+                text("NAME", player.displayName)
+            }
+        }
+
 
     @Suppress("SpellCheckingInspection")
     fun createAddrUnion(label: String): UnionTdf =

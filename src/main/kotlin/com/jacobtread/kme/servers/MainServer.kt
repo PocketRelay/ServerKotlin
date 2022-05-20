@@ -132,22 +132,26 @@ private class MainClient(private val session: PlayerSession, private val config:
     }
 
     /**
-     * handleListUserEntitlements2
+     * handleListUserEntitlements2 Sends back the player a list of content,offers,etc.
+     * that the player has access too these values are currently static and stored in
+     * Data. Thi
      *
      * @param packet
      */
     private fun handleListUserEntitlements2(packet: Packet) {
         val etag = packet.text("ETAG")
         if (etag.isEmpty()) {
-            channel.send(Data.makeUserEntitlements2(packet))
-            if (!session.sendOffers) {
-                session.sendOffers = true
-                val sessPacket = session.createSetSession()
-                channel.send(sessPacket)
-                channel.send(sessPacket)
-            }
-        } else {
             respondEmpty(packet)
+            return
+        }
+
+        channel.respond(packet, Data.USER_ENTITLEMENTS)
+
+        // If the player hasn't yet recieved their session info send them it
+        if (!session.sendSession) {
+            session.sendSession = true
+            val sessPacket = session.createSetSession()
+            channel.send(sessPacket)
         }
     }
 
@@ -257,37 +261,7 @@ private class MainClient(private val session: PlayerSession, private val config:
 
     private fun sessionDetailsPackets() {
         val player = session.player
-        channel.unique(
-            USER_SESSIONS,
-            SESSION_DETAILS,
-        ) {
-            +struct("DATA") {
-                union("ADDR")
-                text("BPS", "")
-                text("CTY", "")
-                varList("CVAR", emptyList())
-                map("DMAP", mapOf(0x70001 to 0x22))
-                number("HWFG", 0)
-
-                +struct("QDAT") {
-                    number("DBPS", 0)
-                    number("NATT", Data.NAT_TYPE)
-                    number("UBPS", 0)
-                }
-
-                number("UATT", 0)
-            }
-
-            +struct("USER") {
-                number("AID", player.playerId)
-                number("ALOC", 0x64654445)
-                blob("EXBB")
-                number("EXID", 0)
-                number("ID", player.playerId)
-                text("NAME", player.displayName)
-            }
-        }
-
+        channel.send(session.createSessionDetails())
         channel.unique(
             USER_SESSIONS,
             UPDATE_EXTENDED_DATA_ATTRIBUTE
@@ -358,24 +332,24 @@ private class MainClient(private val session: PlayerSession, private val config:
             text("TURI", "")
             number("UID", player.id.value)
         }
-        sessionDetailsPackets()
     }
 
     private fun handleLoginPersona(packet: Packet) {
         val playerName: String = packet.text("PNAM")
         val player = session.player
         if (playerName != player.displayName) {
+            respondEmpty(packet)
             return
         }
         val lastLoginTime = unixTimeSeconds()
         channel.respond(packet) {
-            number("BUID", player.id.value)
+            number("BUID", player.playerId)
             number("FRST", 0)
             text("KEY", "11229301_9b171d92cc562b293e602ee8325612e7")
             number("LLOG", lastLoginTime)
             text("MAIL", "")
             +session.createPersonaList(player)
-            number("UID", player.id.value)
+            number("UID", player.playerId)
         }
         sessionDetailsPackets()
     }
@@ -816,25 +790,26 @@ private class MainClient(private val session: PlayerSession, private val config:
 
     private fun handleFetchClientConfig(packet: Packet) {
         val type = packet.text("CFID")
+        val conf: Map<String, String>
         if (type.startsWith("ME3_LIVE_TLK_PC_")) {
             val lang = type.substring(16)
-            val tlk = Data.loadTLK(lang)
-            channel.respond(packet) {
-                map("CONF", tlk)
-            }
+            conf = Data.loadTLK(lang)
         } else {
-            val conf: Map<String, String> = when (type) {
-                "ME3_DATA" -> Data.makeME3Data(config)
-                "ME3_MSG" -> Data.makeME3MSG()
-                "ME3_ENT" -> Data.makeME3ENT()
-                "ME3_DIME" -> Data.makeME3DIME()
-                "ME3_BINI_VERSION" -> Data.makeBiniVersion()
+            conf = when (type) {
+                "ME3_DATA" -> Data.createDataConfig(config)
+                "ME3_MSG" -> Data.createServerMessage()
+                "ME3_ENT" -> Data.createEntitlementMap()
+                "ME3_DIME" -> Data.createDimeResponse()
+                "ME3_BINI_VERSION" -> mapOf(
+                    "SECTION" to "BINI_PC_COMPRESSED",
+                    "VERSION" to "40128"
+                )
                 "ME3_BINI_PC_COMPRESSED" -> Data.loadBiniCompressed()
                 else -> emptyMap()
             }
-            channel.respond(packet) {
-                map("CONF", conf)
-            }
+        }
+        channel.respond(packet) {
+            map("CONF", conf)
         }
     }
 
