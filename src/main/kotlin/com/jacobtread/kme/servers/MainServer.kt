@@ -134,13 +134,13 @@ private class MainClient(private val session: PlayerSession, private val config:
     /**
      * handleListUserEntitlements2 Sends back the player a list of content,offers,etc.
      * that the player has access too these values are currently static and stored in
-     * Data. Thi
+     * Data.
      *
      * @param packet
      */
     private fun handleListUserEntitlements2(packet: Packet) {
         val etag = packet.text("ETAG")
-        if (etag.isEmpty()) {
+        if (etag.isNotEmpty()) {
             respondEmpty(packet)
             return
         }
@@ -317,30 +317,11 @@ private class MainClient(private val session: PlayerSession, private val config:
             }
         }
         session.setAuthenticated(player)
-        val sessionToken = player.sessionToken
-        channel.respond(packet) {
-            text("PNAM", player.displayName)
-            text("LDHT", "")
-            number("NTOS", 0)
-            text("PCTK", sessionToken)
-            list("PLST", listOf(session.createPersonaList(player)))
-            text("PRIV", "")
-            text("SKEY", "11229301_9b171d92cc562b293e602ee8325612e7")
-            number("SPAM", 0)
-            text("THST", "")
-            text("TSUI", "")
-            text("TURI", "")
-            number("UID", player.id.value)
-        }
+        authResponsePacket(packet)
     }
 
     private fun handleLoginPersona(packet: Packet) {
-        val playerName: String = packet.text("PNAM")
         val player = session.player
-        if (playerName != player.displayName) {
-            respondEmpty(packet)
-            return
-        }
         val lastLoginTime = unixTimeSeconds()
         channel.respond(packet) {
             number("BUID", player.playerId)
