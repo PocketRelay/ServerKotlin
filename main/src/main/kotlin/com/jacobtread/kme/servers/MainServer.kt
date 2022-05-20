@@ -872,7 +872,7 @@ private class MainClient(private val session: PlayerSession, private val config:
             }
         } else {
             val conf: Map<String, String> = when (type) {
-                "ME3_DATA" -> Data.makeME3Data()
+                "ME3_DATA" -> Data.makeME3Data(config)
                 "ME3_MSG" -> Data.makeME3MSG()
                 "ME3_ENT" -> Data.makeME3ENT()
                 "ME3_DIME" -> Data.makeME3DIME()

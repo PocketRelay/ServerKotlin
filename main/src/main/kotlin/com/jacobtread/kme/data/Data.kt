@@ -1,5 +1,6 @@
 package com.jacobtread.kme.data
 
+import com.jacobtread.kme.Config
 import com.jacobtread.kme.blaze.Packet
 import com.jacobtread.kme.blaze.respond
 import com.jacobtread.kme.blaze.struct
@@ -46,203 +47,206 @@ object Data {
                     text("DEVI", "")
                     text("GDAY", "2013-03-04T22:16Z")
                     text("GNAM", "ME3PCOffers")
-                    number("ID  ", 0xe962a115d7)
+                    number("ID", 0xe962a115d7)
                     number("ISCO", 0x0)
-                    number("PID ", 0x0)
+                    number("PID", 0x0)
                     text("PJID", "300241")
                     number("PRCA", 0x2)
                     text("PRID", "OFB-MASS:59712")
                     number("STAT", 0x1)
                     number("STRC", 0x0)
-                    text("TAG ", "ME3_PRC_MP5")
+                    text("TAG", "ME3_PRC_MP5")
                     text("TDAY", "")
                     number("TYPE", 0x5)
                     number("UCNT", 0x0)
-                    number("VER ", 0x0)
+                    number("VER", 0x0)
                 },
                 struct {
                     text("DEVI", "")
                     text("GDAY", "2012-12-15T16:15Z")
                     text("GNAM", "ME3PCOffers")
-                    number("ID  ", 0xe91655d5d7)
+                    number("ID", 0xe91655d5d7)
                     number("ISCO", 0x0)
-                    number("PID ", 0x0)
+                    number("PID", 0x0)
                     text("PJID", "300241")
                     number("PRCA", 0x2)
                     text("PRID", "OFB-MASS:47872")
                     number("STAT", 0x1)
                     number("STRC", 0x0)
-                    text("TAG ", "ME3_PRC_RESURGENCE")
+                    text("TAG", "ME3_PRC_RESURGENCE")
                     text("TDAY", "")
                     number("TYPE", 0x5)
                     number("UCNT", 0x0)
-                    number("VER ", 0x0)
+                    number("VER", 0x0)
                 },
                 struct {
                     text("DEVI", "")
                     text("GDAY", "2012-12-14T13:32Z")
                     text("GNAM", "ME3GenOffers")
-                    number("ID  ", 0xe915dbc3d7)
+                    number("ID", 0xe915dbc3d7)
                     number("ISCO", 0x0)
-                    number("PID ", 0x0)
+                    number("PID", 0x0)
                     text("PJID", "303107")
                     number("PRCA", 0x0)
                     text("PRID", "")
                     number("STAT", 0x1)
                     number("STRC", 0x0)
-                    text("TAG ", "ONLINE_ACCESS_GAW_PC")
+                    text("TAG", "ONLINE_ACCESS_GAW_PC")
                     text("TDAY", "")
                     number("TYPE", 0x1)
                     number("UCNT", 0x0)
-                    number("VER ", 0x0)
+                    number("VER", 0x0)
                 },
                 struct {
                     text("DEVI", "")
                     text("GDAY", "2012-12-14T13:5Z")
                     text("GNAM", "ME3PCOffers")
-                    number("ID  ", 0xe915aaefd7)
+                    number("ID", 0xe915aaefd7)
                     number("ISCO", 0x0)
-                    number("PID ", 0x0)
+                    number("PID", 0x0)
                     text("PJID", "300241")
                     number("PRCA", 0x2)
                     text("PRID", "OFB-MASS:51074")
                     number("STAT", 0x1)
                     number("STRC", 0x0)
-                    text("TAG ", "ME3_PRC_EXTENDEDCUT")
+                    text("TAG", "ME3_PRC_EXTENDEDCUT")
                     text("TDAY", "")
                     number("TYPE", 0x5)
                     number("UCNT", 0x0)
-                    number("VER ", 0x0)
+                    number("VER", 0x0)
                 },
                 struct {
                     text("DEVI", "")
                     text("GDAY", "2012-12-14T13:5Z")
                     text("GNAM", "ME3PCOffers")
-                    number("ID  ", 0xe915a7e297)
+                    number("ID", 0xe915a7e297)
                     number("ISCO", 0x0)
-                    number("PID ", 0x0)
+                    number("PID", 0x0)
                     text("PJID", "308426")
                     number("PRCA", 0x2)
                     text("PRID", "OFB-EAST:56562")
                     number("STAT", 0x1)
                     number("STRC", 0x0)
-                    text("TAG ", "MET_BONUS_CONTENT")
+                    text("TAG", "MET_BONUS_CONTENT")
                     text("TDAY", "")
                     number("TYPE", 0x5)
                     number("UCNT", 0x0)
-                    number("VER ", 0x0)
+                    number("VER", 0x0)
                 },
                 struct {
                     text("DEVI", "")
                     text("GDAY", "2012-12-14T13:5Z")
                     text("GNAM", "ME3PCOffers")
-                    number("ID  ", 0xe915a1c817)
+                    number("ID", 0xe915a1c817)
                     number("ISCO", 0x0)
-                    number("PID ", 0x0)
+                    number("PID", 0x0)
                     text("PJID", "303107")
                     number("PRCA", 0x2)
                     text("PRID", "DR:229644400")
                     number("STAT", 0x1)
                     number("STRC", 0x0)
-                    text("TAG ", "PROJECT10_CODE_CONSUMED")
+                    text("TAG", "PROJECT10_CODE_CONSUMED")
                     text("TDAY", "")
                     number("TYPE", 0x1)
                     number("UCNT", 0x0)
-                    number("VER ", 0x0)
+                    number("VER", 0x0)
                 },
                 struct {
                     text("DEVI", "")
                     text("GDAY", "2012-12-14T13:5Z")
                     text("GNAM", "ME3PCOffers")
-                    number("ID  ", 0xe9159ebad7)
+                    number("ID", 0xe9159ebad7)
                     number("ISCO", 0x0)
-                    number("PID ", 0x0)
+                    number("PID", 0x0)
                     text("PJID", "303107")
                     number("PRCA", 0x2)
                     text("PRID", "DR:229644400")
                     number("STAT", 0x1)
                     number("STRC", 0x0)
-                    text("TAG ", "ONLINE_ACCESS")
+                    text("TAG", "ONLINE_ACCESS")
                     text("TDAY", "")
                     number("TYPE", 0x1)
                     number("UCNT", 0x0)
-                    number("VER ", 0x0)
+                    number("VER", 0x0)
                 },
                 struct {
                     text("DEVI", "")
                     text("GDAY", "2012-12-15T16:16Z")
                     text("GNAM", "ME3PCOffers")
-                    number("ID  ", 0xe910353b57)
+                    number("ID", 0xe910353b57)
                     number("ISCO", 0x0)
-                    number("PID ", 0x0)
+                    number("PID", 0x0)
                     text("PJID", "300241")
                     number("PRCA", 0x2)
                     text("PRID", "OFB-MASS:49465")
                     number("STAT", 0x1)
                     number("STRC", 0x0)
-                    text("TAG ", "ME3_PRC_REBELLION")
+                    text("TAG", "ME3_PRC_REBELLION")
                     text("TDAY", "")
                     number("TYPE", 0x5)
                     number("UCNT", 0x0)
-                    number("VER ", 0x0)
+                    number("VER", 0x0)
                 },
                 struct {
                     text("DEVI", "")
                     text("GDAY", "2012-12-15T16:16Z")
                     text("GNAM", "ME3PCOffers")
-                    number("ID  ", 0xe90c3cff17)
+                    number("ID", 0xe90c3cff17)
                     number("ISCO", 0x0)
-                    number("PID ", 0x0)
+                    number("PID", 0x0)
                     text("PJID", "300241")
                     number("PRCA", 0x2)
                     text("PRID", "OFB-MASS:51073")
                     number("STAT", 0x1)
                     number("STRC", 0x0)
-                    text("TAG ", "ME3_PRC_EARTH")
+                    text("TAG", "ME3_PRC_EARTH")
                     text("TDAY", "")
                     number("TYPE", 0x5)
                     number("UCNT", 0x0)
-                    number("VER ", 0x0)
+                    number("VER", 0x0)
                 },
                 struct {
                     text("DEVI", "")
                     text("GDAY", "2012-12-15T16:16Z")
                     text("GNAM", "ME3PCOffers")
-                    number("ID  ", 0xe90b85e417)
+                    number("ID", 0xe90b85e417)
                     number("ISCO", 0x0)
-                    number("PID ", 0x0)
+                    number("PID", 0x0)
                     text("PJID", "300241")
                     number("PRCA", 0x2)
                     text("PRID", "OFB-MASS:52000")
                     number("STAT", 0x1)
                     number("STRC", 0x0)
-                    text("TAG ", "ME3_PRC_GOBIG")
+                    text("TAG", "ME3_PRC_GOBIG")
                     text("TDAY", "")
                     number("TYPE", 0x5)
                     number("UCNT", 0x0)
-                    number("VER ", 0x0)
+                    number("VER", 0x0)
                 }
             ))
         }
     }
-    fun makeME3Data(): Map<String, String> = mapOf(
-        "GAW_SERVER_BASE_URL" to "http://waleu2.tools.gos.ea.com/wal/masseffect-gaw-pc",
-        "IMG_MNGR_BASE_URL" to "http://me3.goscontent.ea.com/editorial/MassEffect/3/",
-        "IMG_MNGR_MAX_BYTES" to "1048576",
-        "IMG_MNGR_MAX_IMAGES" to "5",
-        "JOB_THROTTLE_0" to "0",
-        "JOB_THROTTLE_1" to "0",
-        "JOB_THROTTLE_2" to "0",
-        "MATCH_MAKING_RULES_VERSION" to "5",
-        "MULTIPLAYER_PROTOCOL_VERSION" to "3",
-        "TEL_DISABLE" to "AD,AF,AG,AI,AL,AM,AN,AO,AQ,AR,AS,AW,AX,AZ,BA,BB,BD,BF,BH,BI,BJ,BM,BN,BO,BR,BS,BT,BV,BW,BY,BZ,CC,CD,CF,CG,CI,CK,CL,CM,CN,CO,CR,CU,CV,CX,DJ,DM,DO,DZ,EC,EG,EH,ER,ET,FJ,FK,FM,FO,GA,GD,GE,GF,GG,GH,GI,GL,GM,GN,GP,GQ,GS,GT,GU,GW,GY,HM,HN,HT,ID,IL,IM,IN,IO,IQ,IR,IS,JE,JM,JO,KE,KG,KH,KI,KM,KN,KP,KR,KW,KY,KZ,LA,LB,LC,LI,LK,LR,LS,LY,MA,MC,MD,ME,MG,MH,ML,MM,MN,MO,MP,MQ,MR,MS,MU,MV,MW,MY,MZ,NA,NC,NE,NF,NG,NI,NP,NR,NU,OM,PA,PE,PF,PG,PH,PK,PM,PN,PS,PW,PY,QA,RE,RS,RW,SA,SB,SC,SD,SG,SH,SJ,SL,SM,SN,SO,SR,ST,SV,SY,SZ,TC,TD,TF,TG,TH,TJ,TK,TL,TM,TN,TO,TT,TV,TZ,UA,UG,UM,UY,UZ,VA,VC,VE,VG,VN,VU,WF,WS,YE,YT,ZM,ZW,ZZ",
-        "TEL_DOMAIN" to "pc/masseffect-3-pc-anon",
-        "TEL_FILTER" to "-UION/****",
-        "TEL_PORT" to "9988",
-        "TEL_SEND_DELAY" to "15000",
-        "TEL_SEND_PCT" to "75",
-        "TEL_SERVER" to "159.153.235.32",
-    )
+    fun makeME3Data(config: Config): Map<String, String> {
+        val host = config.address
+        return mapOf(
+            "GAW_SERVER_BASE_URL" to "http://$host/wal/masseffect-gaw-pc",
+            "IMG_MNGR_BASE_URL" to "http://$host/editorial/MassEffect/3/",
+            "IMG_MNGR_MAX_BYTES" to "1048576",
+            "IMG_MNGR_MAX_IMAGES" to "5",
+            "JOB_THROTTLE_0" to "0",
+            "JOB_THROTTLE_1" to "0",
+            "JOB_THROTTLE_2" to "0",
+            "MATCH_MAKING_RULES_VERSION" to "5",
+            "MULTIPLAYER_PROTOCOL_VERSION" to "3",
+            "TEL_DISABLE" to "AD,AF,AG,AI,AL,AM,AN,AO,AQ,AR,AS,AW,AX,AZ,BA,BB,BD,BF,BH,BI,BJ,BM,BN,BO,BR,BS,BT,BV,BW,BY,BZ,CC,CD,CF,CG,CI,CK,CL,CM,CN,CO,CR,CU,CV,CX,DJ,DM,DO,DZ,EC,EG,EH,ER,ET,FJ,FK,FM,FO,GA,GD,GE,GF,GG,GH,GI,GL,GM,GN,GP,GQ,GS,GT,GU,GW,GY,HM,HN,HT,ID,IL,IM,IN,IO,IQ,IR,IS,JE,JM,JO,KE,KG,KH,KI,KM,KN,KP,KR,KW,KY,KZ,LA,LB,LC,LI,LK,LR,LS,LY,MA,MC,MD,ME,MG,MH,ML,MM,MN,MO,MP,MQ,MR,MS,MU,MV,MW,MY,MZ,NA,NC,NE,NF,NG,NI,NP,NR,NU,OM,PA,PE,PF,PG,PH,PK,PM,PN,PS,PW,PY,QA,RE,RS,RW,SA,SB,SC,SD,SG,SH,SJ,SL,SM,SN,SO,SR,ST,SV,SY,SZ,TC,TD,TF,TG,TH,TJ,TK,TL,TM,TN,TO,TT,TV,TZ,UA,UG,UM,UY,UZ,VA,VC,VE,VG,VN,VU,WF,WS,YE,YT,ZM,ZW,ZZ",
+            "TEL_DOMAIN" to "pc/masseffect-3-pc-anon",
+            "TEL_FILTER" to "-UION/****",
+            "TEL_PORT" to "9988",
+            "TEL_SEND_DELAY" to "15000",
+            "TEL_SEND_PCT" to "75",
+            "TEL_SERVER" to "159.153.235.32",
+        )
+    }
     fun makeME3MSG(): Map<String, String> = mapOf("" to "")
     fun makeME3ENT(): Map<String, String> = mapOf(
         "CERBERUS_OFFER_ID" to "101",

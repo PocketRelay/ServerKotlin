@@ -54,6 +54,7 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
             return
         }
         val url = msg.uri()
+        Logger.debug("HTTP Request: $url")
         if (url.startsWith("/wal/masseffect-gaw-pc")) {
             gawResponse(ctx, url)
         } else {
@@ -63,6 +64,7 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
 
     fun fileSystemResponse(ctx: ChannelHandlerContext, url: String) {
         val fileName = url.substringAfterLast('/')
+        Logger.debug("HTTP Request for: $fileName")
         val pathName = "/public/$fileName"
         val inputStream = HTTPHandler::class.java.getResourceAsStream(pathName);
         if (inputStream == null) {
@@ -74,6 +76,7 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
             val headers = response.headers()
             headers.add("Accept-Ranges", "bytes")
             headers.add("ETag", "524416-1333666807000")
+            headers.add("Content-Length", content.readableBytes())
             ctx.writeAndFlush(response)
         }
     }
