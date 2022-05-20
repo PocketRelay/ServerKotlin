@@ -39,3 +39,7 @@ I plan on making a tool for doing this automatically
 ## Planned
 - [ ] Leaderboard support
 - [ ] Web panel interface
+
+## Credits
+[https://github.com/PrivateServerEmulator/ME3PSE](https://github.com/PrivateServerEmulator/ME3PSE)
+Sourced certificate and many game assets from this project
