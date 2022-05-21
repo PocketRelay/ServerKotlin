@@ -403,11 +403,11 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
                 "encoding" to "UTF-8"
             )
             "ratings" {
-                element("rating", rating.a.toString())
-                element("rating", rating.b.toString())
-                element("rating", rating.c.toString())
-                element("rating", rating.d.toString())
-                element("rating", rating.e.toString())
+                element("ratings", rating.a.toString())
+                element("ratings", rating.b.toString())
+                element("ratings", rating.c.toString())
+                element("ratings", rating.d.toString())
+                element("ratings", rating.e.toString())
             }
             element("level", level.toString())
             "assets" {
