@@ -1,6 +1,8 @@
 import com.jacobtread.kme.utils.BigEndian
+import io.netty.buffer.Unpooled
 import java.io.ByteArrayOutputStream
-import java.nio.file.Paths
+import java.io.OutputStream
+import java.nio.ByteBuffer
 import java.util.*
 import java.util.zip.Deflater
 import kotlin.io.path.*
@@ -25,26 +27,69 @@ fun main() {
         }
         outputStream.toByteArray()
     }
+    val underlying = ByteArray(16 + gc.size)
+    val buffer = Unpooled.wrappedBuffer(underlying)
+    buffer.writerIndex(0)
+    buffer.writeByte('N'.code)
+    buffer.writeByte('I'.code)
+    buffer.writeByte('B'.code)
+    buffer.writeByte('C'.code)
+    buffer.writeIntLE(1)
+    buffer.writeIntLE(gc.size)
+    buffer.writeIntLE(contents.size)
+    buffer.writeBytes(gc)
 
-    val final =
-        BigEndian.uint32ToBytes(1) +
-                BigEndian.uint32ToBytes(gc.size) +
-                BigEndian.uint32ToBytes(contents.size) +
-                gc
-
-    val base64 = Base64.getEncoder().encodeToString(final)
+    val base64 = Base64.getEncoder().encodeToString(underlying)
 
     val chunks = base64.chunked(255)
 
-    val outBuilder = StringBuilder()
+//    val outBuilder = StringBuilder()
+//    chunks.forEachIndexed { index, value ->
+//        outBuilder.append("CHUNK_")
+//            .append(index)
+//            .append(':')
+//            .append(value)
+//            .append('\n')
+//    }
+
+    val keys = ArrayList<String>(chunks.size)
+    val values = ArrayList<String>(chunks.size)
 
     chunks.forEachIndexed { index, value ->
-        outBuilder.append("CHUNK_")
-            .append(index)
+        keys.add("CHUNK_$index")
+        values.add(value)
+    }
+
+    var run = true
+    while (run) {
+        run = false
+        var tmp: String
+        for (i in 0 until keys.size - 1) {
+            if (keys[i].compareTo(keys[i + 1]) > 0) {
+                tmp = keys[i]
+                keys[i] = keys[i + 1]
+                keys[i + 1] = tmp
+                tmp = values[i]
+                values[i] = values[i + 1]
+                values[i + 1] = tmp
+                run = true
+            }
+        }
+    }
+
+
+    val outBuilder = StringBuilder()
+
+    for (i in 0 until keys.size) {
+        val key = keys[i]
+        val value = values[i]
+        outBuilder
+            .append(key)
             .append(":")
             .append(value)
             .append('\n')
     }
+
 
     outBuilder.append("CHUNK_SIZE:255\nDATA_SIZE:")
         .append(base64.length)

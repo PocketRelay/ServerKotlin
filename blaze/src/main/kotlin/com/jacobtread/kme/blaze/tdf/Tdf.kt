@@ -20,9 +20,11 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
 
         fun getTypeFromClass(valueType: Class<*>): Int {
             return when (valueType) {
+                java.lang.Long::class.java,
+                java.lang.Integer::class.java,
                 Long::class.java,
-                Integer::class.java,
-                Int::class.java, -> VARINT
+                Int::class.java,
+                -> VARINT
                 String::class.java -> STRING
                 Float::class.java -> FLOAT
                 GroupTdf::class.java -> GROUP
