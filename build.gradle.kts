@@ -24,7 +24,6 @@ allprojects {
     val nettyVersion: String by project
 
     dependencies {
-        implementation("net.mamoe.yamlkt:yamlkt:0.10.2")
         implementation("io.netty:netty-all:$nettyVersion")
     }
 }
@@ -34,6 +33,11 @@ val exposedVersion: String by project
 
 @Suppress("SpellCheckingInspection")
 dependencies {
+    // JSON Serialization for the web
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
+    // YAML Serialization for config files
+    implementation("net.mamoe.yamlkt:yamlkt:0.10.2")
+
     // JDBC Connectors
     implementation("mysql:mysql-connector-java:8.0.29")
     implementation("org.xerial:sqlite-jdbc:3.36.0.3")
