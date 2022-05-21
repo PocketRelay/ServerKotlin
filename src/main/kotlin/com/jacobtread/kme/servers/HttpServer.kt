@@ -1,6 +1,7 @@
 package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.Config
+import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.database.PlayerGalaxyAtWar
 import com.jacobtread.kme.utils.logging.Logger
@@ -21,6 +22,8 @@ import org.redundent.kotlin.xml.PrintOptions
 import org.redundent.kotlin.xml.xml
 import java.io.IOException
 import java.net.URLDecoder
+import java.nio.file.Files
+import java.nio.file.Paths
 import kotlin.math.min
 
 
@@ -94,20 +97,52 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
 
     override fun channelRead0(ctx: ChannelHandlerContext, msg: HttpRequest) {
         val method = msg.method()
-        if (method != HttpMethod.GET) {
-            ctx.respond(HttpResponseStatus.NOT_FOUND)
-            return
-        }
         val url = msg.uri()
         Logger.debug("HTTP Request: $url")
         if (url.startsWith("/wal/masseffect-gaw-pc")) {
-            gawResponse(ctx, url)
+            handleGAWResponse(ctx, url)
+        } else if (url.startsWith("/panel")) {
+            handlePanelResponse(ctx, url, method)
         } else {
-            fileSystemResponse(ctx, url)
+            handlePublicResponse(ctx, url)
         }
     }
 
-    fun fileSystemResponse(ctx: ChannelHandlerContext, url: String) {
+    fun handlePanelResponse(ctx: ChannelHandlerContext, url: String, method: HttpMethod) {
+        val path = url.substring(6)
+        if (path.isEmpty()) {
+            return handleFallbackPage(ctx)
+        }
+        if (path.startsWith("/assets/")) {
+            val assetName = path.substring(8)
+            val resource = Data.getResourceOrNull("panel/assets/$assetName") ?: return ctx.respond(HttpResponseStatus.NOT_FOUND)
+            val contentType = if (assetName.endsWith(".js")) {
+                "text/javascript"
+            } else if (assetName.endsWith(".css")) {
+                "text/css"
+            } else {
+                Files.probeContentType(Paths.get(assetName))
+            }
+            ctx.respond(resource, contentType = contentType)
+        } else if (path.startsWith("/api/")) {
+            handleApiRoutes(ctx, path.substring(5), method)
+        } else {
+            handleFallbackPage(ctx)
+        }
+    }
+
+    fun handleFallbackPage(ctx: ChannelHandlerContext) {
+        val page = Data.getResource("panel/index.html")
+        ctx.respond(page, contentType = "text/html;charset=UTF-8")
+    }
+
+
+    fun handleApiRoutes(ctx: ChannelHandlerContext, path: String, method: HttpMethod) {
+
+    }
+
+
+    fun handlePublicResponse(ctx: ChannelHandlerContext, url: String) {
         val fileName = url.substringAfterLast('/')
         Logger.debug("HTTP Request for: $fileName")
         val pathName = "/public/$fileName"
@@ -141,35 +176,33 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
 
     data class Request(val path: List<String>, val query: Map<String, String>)
 
-    fun gawResponse(ctx: ChannelHandlerContext, url: String) {
+    private fun handleGAWResponse(ctx: ChannelHandlerContext, url: String) {
         val rawPath = url.substring(23)
         if (rawPath.isEmpty()) {
             return ctx.respond(HttpResponseStatus.NOT_FOUND)
         }
         val urlParts = rawPath.split('?', limit = 2)
-
         val path = urlParts[0].split('/')
         val query = if (urlParts.size > 1) parseQuery(urlParts[1]) else emptyMap()
-
-
         if (path.isEmpty()) {
             return ctx.respond(HttpResponseStatus.NOT_FOUND)
         }
-
         val request = Request(path, query)
-
         when (path[0]) {
-            "authentication" -> handleGalaxyAtWarAuthentication(ctx, request)
-            "galaxyatwar" -> when (path[1]) {
-                "getRatings" -> handleGalaxyAtWarRatings(ctx, request)
-                "increaseRatings" -> handleGalaxyAtWarIncreaseRatings(ctx, request)
-                else -> ctx.respond(HttpResponseStatus.BAD_REQUEST)
+            "authentication" -> handleGAWAuthentication(ctx, request)
+            "galaxyatwar" -> {
+                if (request.path.size < 3) return ctx.respond(HttpResponseStatus.BAD_REQUEST)
+                when (path[1]) {
+                    "getRatings" -> handleGAWRatings(ctx, request)
+                    "increaseRatings" -> handleGAWIncreaseRatings(ctx, request)
+                    else -> ctx.respond(HttpResponseStatus.BAD_REQUEST)
+                }
             }
             else -> ctx.respond(HttpResponseStatus.BAD_REQUEST)
         }
     }
 
-    private fun handleGalaxyAtWarAuthentication(ctx: ChannelHandlerContext, request: Request) {
+    private fun handleGAWAuthentication(ctx: ChannelHandlerContext, request: Request) {
         if (request.path.size < 2 || !request.path[1].startsWith("sharedTokenLogin")) {
             return ctx.respond(HttpResponseStatus.BAD_REQUEST)
         }
@@ -215,13 +248,28 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
         })
     }
 
-    private fun handleGalaxyAtWarRatings(ctx: ChannelHandlerContext, request: Request) {
-        if (request.path.size < 3) {
-            return ctx.respond(HttpResponseStatus.BAD_REQUEST)
-        }
+    private fun handleGAWRatings(ctx: ChannelHandlerContext, request: Request) {
         val playerId = request.path[2].toIntOrNull() ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
         val player = transaction { Player.findById(playerId) } ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
         val rating = player.getOrCreateGAW(config.gaw)
+        respondGAWRating(ctx, player, rating)
+    }
+
+    private fun handleGAWIncreaseRatings(ctx: ChannelHandlerContext, request: Request) {
+        val playerId = request.path[2].toIntOrNull() ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
+        val player = transaction { Player.findById(playerId) } ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
+        val rating = player.getOrCreateGAW(config.gaw)
+        val maxValue = 10099
+        transaction {
+            rating.apply {
+                timestamp = unixTimeSeconds()
+                a = min(maxValue, a + (request.query["rinc|0"]?.toIntOrNull() ?: 0))
+                b = min(maxValue, b + (request.query["rinc|1"]?.toIntOrNull() ?: 0))
+                c = min(maxValue, c + (request.query["rinc|2"]?.toIntOrNull() ?: 0))
+                d = min(maxValue, d + (request.query["rinc|3"]?.toIntOrNull() ?: 0))
+                e = min(maxValue, e + (request.query["rinc|4"]?.toIntOrNull() ?: 0))
+            }
+        }
         respondGAWRating(ctx, player, rating)
     }
 
@@ -257,29 +305,5 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
                 element("assets", "0")
             }
         })
-    }
-
-    private fun handleGalaxyAtWarIncreaseRatings(ctx: ChannelHandlerContext, request: Request) {
-        if (request.path.size < 3) {
-            return ctx.respond(HttpResponseStatus.BAD_REQUEST)
-        }
-        val playerId = request.path[2].toIntOrNull() ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
-        val player = transaction { Player.findById(playerId) } ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
-        val rating = player.getOrCreateGAW(config.gaw)
-        val maxValue = 10099
-
-        transaction {
-            rating.apply {
-                timestamp = unixTimeSeconds()
-                a = min(maxValue, a + (request.query["rinc|0"]?.toIntOrNull() ?: 0))
-                b = min(maxValue, b + (request.query["rinc|1"]?.toIntOrNull() ?: 0))
-                c = min(maxValue, c + (request.query["rinc|2"]?.toIntOrNull() ?: 0))
-                d = min(maxValue, d + (request.query["rinc|3"]?.toIntOrNull() ?: 0))
-                e = min(maxValue, e + (request.query["rinc|4"]?.toIntOrNull() ?: 0))
-            }
-        }
-
-        respondGAWRating(ctx, player, rating)
-
     }
 }
