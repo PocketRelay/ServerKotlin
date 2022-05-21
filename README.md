@@ -5,10 +5,9 @@ Mass Effect 3 Server Emulator
 Written in Kotlin this aims to be a production capable version of the [https://github.com/PrivateServerEmulator/ME3PSE](https://github.com/PrivateServerEmulator/ME3PSE) server
 with the aim to improve it and take it to the level of a server that can be used to host public matches with a proper backend that stores account information in a database etc
 
-This server is quite far from completion but is steadily progressing. 
-
 ### IT WORKS!!!
-You can actually play games on it. However there are some things outside of the games that don't work yet like the shop
+You can actually play games on it and all required functions are working! However, it's not complete yet
+because I'd still like to improve it further
 
 ## Connection requirements
 In order to be able to connect to the server the following entry needs to be made in the client machine host file
@@ -32,13 +31,11 @@ I plan on making a tool for doing this automatically
 - [x] Matchmaking 
   - NOTE: Doesn't actually take user preferences into account just joins first not full server
 - [x] Playing games!
-
-## Whats not working
-- [ ] The store....
+- [x] In game store
 
 ## Planned
-- [ ] Leaderboard support
 - [ ] Web panel interface
+- [ ] Leaderboard support
 
 ## Credits
 [https://github.com/PrivateServerEmulator/ME3PSE](https://github.com/PrivateServerEmulator/ME3PSE)
