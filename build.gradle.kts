@@ -38,6 +38,9 @@ dependencies {
     // YAML Serialization for config files
     implementation("net.mamoe.yamlkt:yamlkt:0.10.2")
 
+    // XML Builder for GAW responses
+    implementation("org.redundent:kotlin-xml-builder:1.7.4")
+
     // JDBC Connectors
     implementation("mysql:mysql-connector-java:8.0.29")
     implementation("org.xerial:sqlite-jdbc:3.36.0.3")

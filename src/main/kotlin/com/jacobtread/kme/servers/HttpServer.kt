@@ -2,11 +2,14 @@ package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.Config
 import com.jacobtread.kme.database.Player
+import com.jacobtread.kme.database.PlayerGalaxyAtWar
+import com.jacobtread.kme.database.PlayerGalaxyAtWars
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.unixTimeSeconds
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.Unpooled
 import io.netty.channel.Channel
+import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInitializer
 import io.netty.channel.SimpleChannelInboundHandler
@@ -14,16 +17,19 @@ import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.codec.http.*
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.redundent.kotlin.xml.Node
+import org.redundent.kotlin.xml.PrintOptions
+import org.redundent.kotlin.xml.xml
 import java.io.IOException
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
-import kotlin.math.max
 import kotlin.math.min
 
 
 fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup, config: Config) {
     try {
         val port = config.ports.http
+        val handler = HTTPHandler(config)
         ServerBootstrap()
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
@@ -32,7 +38,7 @@ fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
                     ch.pipeline()
                         .addLast(HttpRequestDecoder())
                         .addLast(HttpResponseEncoder())
-                        .addLast(HTTPHandler(config))
+                        .addLast(handler)
                 }
             })
             .bind(port)
@@ -42,7 +48,12 @@ fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
     }
 }
 
+@Sharable
 private class HTTPHandler(private val config: Config) : SimpleChannelInboundHandler<HttpRequest>() {
+
+    companion object {
+        private val XML_PRINT_OPTIONS = PrintOptions(singleLineTextElements = true, pretty = false)
+    }
 
     override fun channelReadComplete(ctx: ChannelHandlerContext) {
         ctx.flush()
@@ -51,7 +62,7 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
     override fun channelRead0(ctx: ChannelHandlerContext, msg: HttpRequest) {
         val method = msg.method()
         if (method != HttpMethod.GET) {
-            ctx.notFound()
+            ctx.respond(HttpResponseStatus.NOT_FOUND)
             return
         }
         val url = msg.uri()
@@ -69,30 +80,54 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
         val pathName = "/public/$fileName"
         val inputStream = HTTPHandler::class.java.getResourceAsStream(pathName);
         if (inputStream == null) {
-            ctx.notFound()
+            ctx.respond(HttpResponseStatus.NOT_FOUND)
         } else {
             val contents = inputStream.readAllBytes()
-            val content = Unpooled.wrappedBuffer(contents)
-            val response = DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, content)
-            val headers = response.headers()
-            headers.add("Accept-Ranges", "bytes")
-            headers.add("ETag", "524416-1333666807000")
-            headers.add("Content-Length", content.readableBytes())
-            ctx.writeAndFlush(response)
+            ctx.respond(
+                contents,
+                headers = mapOf(
+                    "Accept-Ranges" to "bytes",
+                    "ETag" to "524416-1333666807000"
+                )
+            )
         }
     }
 
-    private fun ChannelHandlerContext.notFound() {
-        val response = DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND)
-        writeAndFlush(response)
-        Logger.debug("HTTP 404")
+    private fun ChannelHandlerContext.respond(
+        content: Any? = null,
+        status: HttpResponseStatus = HttpResponseStatus.OK,
+        contentType: String? = null,
+        headers: Map<String, String>? = null,
+    ) {
+        if (content != null) {
+            val type: String
+            val contentBuffer = when (content) {
+                is String -> {
+                    type = contentType ?: "text;charset=UTF-8"
+                    Unpooled.copiedBuffer(content, Charsets.UTF_8)
+                }
+                is ByteArray -> {
+                    type = contentType ?: ""
+                    Unpooled.wrappedBuffer(content)
+                }
+                is Node -> {
+                    type = contentType ?: "text/xml;charset=UTF-8"
+                    val encoded = content.toString(XML_PRINT_OPTIONS)
+                    Unpooled.copiedBuffer(encoded, Charsets.UTF_8)
+                }
+                else -> throw IllegalArgumentException("Dont know how to handle unknown content type: $content")
+            }
+            val response = DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, contentBuffer)
+            val headersOut = response.headers()
+            if (type.isNotEmpty()) headersOut.add("Content-Type", type)
+            headersOut.add("Content-Length", contentBuffer.readableBytes())
+            headers?.forEach { (key, value) -> headersOut.add(key, value) }
+            writeAndFlush(response)
+        } else {
+            writeAndFlush(DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status))
+        }
     }
 
-    private fun ChannelHandlerContext.badRequest() {
-        val response = DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
-        writeAndFlush(response)
-        Logger.debug("HTTP 400")
-    }
 
     private fun parseQuery(value: String): Map<String, String> {
         val out = HashMap<String, String>()
@@ -111,7 +146,9 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
 
     fun gawResponse(ctx: ChannelHandlerContext, url: String) {
         val rawPath = url.substring(23)
-        if (rawPath.isEmpty()) ctx.notFound()
+        if (rawPath.isEmpty()) {
+            return ctx.respond(HttpResponseStatus.NOT_FOUND)
+        }
         val urlParts = rawPath.split('?', limit = 2)
 
         val path = urlParts[0].split('/')
@@ -119,146 +156,118 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
 
 
         if (path.isEmpty()) {
-            ctx.notFound()
-            return
+            return ctx.respond(HttpResponseStatus.NOT_FOUND)
         }
 
         val request = Request(path, query)
 
         when (path[0]) {
             "authentication" -> handleGalaxyAtWarAuthentication(ctx, request)
-            "galaxyatwar" -> when(path[1]) {
+            "galaxyatwar" -> when (path[1]) {
                 "getRatings" -> handleGalaxyAtWarRatings(ctx, request)
                 "increaseRatings" -> handleGalaxyAtWarIncreaseRatings(ctx, request)
-                else -> ctx.badRequest()
+                else -> ctx.respond(HttpResponseStatus.BAD_REQUEST)
             }
-            else -> ctx.badRequest()
+            else -> ctx.respond(HttpResponseStatus.BAD_REQUEST)
         }
     }
 
     private fun handleGalaxyAtWarAuthentication(ctx: ChannelHandlerContext, request: Request) {
         if (request.path.size < 2 || !request.path[1].startsWith("sharedTokenLogin")) {
-            ctx.badRequest()
-            return
+            return ctx.respond(HttpResponseStatus.BAD_REQUEST)
         }
-        val playerId = request.query["auth"]?.toIntOrNull(16)
-        if (playerId == null) {
-            ctx.badRequest()
-            return
-        }
-        val player = transaction { Player.findById(playerId) }
-        if (player == null) {
-            ctx.badRequest()
-            return
-        }
+        val playerId = request.query["auth"]?.toIntOrNull(16) ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
+        val player = transaction { Player.findById(playerId) } ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
         Logger.debug("Authenticated GAW User ${player.displayName}")
+
+        val playerIdStr = playerId.toString()
+        val time = unixTimeSeconds().toString()
+
         @Suppress("SpellCheckingInspection")
-        val content = """
-            <?xml version="1.0" encoding="UTF-8"?>
-            <fulllogin>
-                <canageup>0</canageup>
-                <legaldochost/>
-                <needslegaldoc>0</needslegaldoc>
-                <pclogintoken>${player.sessionToken}</pclogintoken>
-                <privacypolicyuri/>
-                <sessioninfo>
-                    <blazeuserid>${player.id.value}</blazeuserid>
-                    <isfirstlogin>0</isfirstlogin>
-                    <sessionkey>${player.id.value}</sessionkey>
-                    <lastlogindatetime>1422639771</lastlogindatetime>
-                    <email>${player.email}</email>
-                    <personadetails>
-                        <displayname>${player.displayName}</displayname>
-                        <lastauthenticated>1422639540</lastauthenticated>
-                        <personaid>${player.id.value}</personaid>
-                        <status>UNKNOWN</status>
-                        <extid>0</extid>
-                        <exttype>BLAZE_EXTERNAL_REF_TYPE_UNKNOWN</exttype>
-                    </personadetails>
-                    <userid>${player.id.value}</userid>
-                </sessioninfo>
-                <isoflegalcontactage>0</isoflegalcontactage>
-                <toshost/>
-                <termsofserviceuri/>
-                <tosuri/>
-            </fulllogin>
-        """.trimIndent()
-        val contentBuffer = Unpooled.copiedBuffer(content, StandardCharsets.UTF_8)
-        val response = DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, contentBuffer)
-        val headers = response.headers()
-        headers.add("Content-Type", "text/xml;charset=UTF-8")
-        headers.add("Content-Length", contentBuffer.readableBytes())
-        ctx.writeAndFlush(response)
+        ctx.respond(xml("fulllogin") {
+            globalProcessingInstruction(
+                "xml",
+                "version" to "1.0",
+                "encoding" to "UTF-8"
+            )
+            element("canageup", "0")
+            element("legaldochost")
+            element("needslegaldoc", "0")
+            element("pclogintoken", player.sessionToken)
+            element("privacypolicyuri")
+            "sessioninfo" {
+                element("blazeuserid", playerIdStr)
+                element("isfirstlogin", "0")
+                element("sessionkey", playerIdStr)
+                element("lastlogindatetime", time)
+                element("email", player.email)
+                "personadetails" {
+                    element("displayname", player.displayName)
+                    element("lastauthenticated", time)
+                    element("personaid", playerIdStr)
+                    element("status", "UNKNOWN")
+                    element("extid", "0")
+                    element("exttype", "BLAZE_EXTERNAL_REF_TYPE_UNKNOWN")
+                }
+                element("userid", playerIdStr)
+            }
+            element("isoflegalcontactage", "0")
+            element("toshost")
+            element("termsofserviceuri")
+            element("tosuri")
+        })
     }
 
     private fun handleGalaxyAtWarRatings(ctx: ChannelHandlerContext, request: Request) {
         if (request.path.size < 3) {
-            ctx.badRequest()
-            return
+            return ctx.respond(HttpResponseStatus.BAD_REQUEST)
         }
-        val playerId = request.path[2].toIntOrNull()
-        if (playerId == null) {
-            ctx.badRequest()
-            return
-        }
-        val player = transaction { Player.findById(playerId) }
-        if (player == null) {
-            ctx.badRequest()
-            return
-        }
-        val promotions = if (config.gaw.enablePromotions) player.getTotalPromotions() else 0
+        val playerId = request.path[2].toIntOrNull() ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
+        val player = transaction { Player.findById(playerId) } ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
         val rating = player.getOrCreateGAW(config.gaw)
+        respondGAWRating(ctx, player, rating)
+    }
+
+    private fun respondGAWRating(ctx: ChannelHandlerContext, player: Player, rating: PlayerGalaxyAtWar) {
         val level = (rating.a + rating.b + rating.c + rating.d + rating.e) / 5
+        val promotions = if (config.gaw.enablePromotions) player.getTotalPromotions() else 0
+
         @Suppress("SpellCheckingInspection")
-        val content = """
-            <?xml version="1.0" encoding="UTF-8"?>
-            <galaxyatwargetratings>
-                <ratings>
-                    <rating>${rating.a}</rating>
-                    <rating>${rating.b}</rating>
-                    <rating>${rating.c}</rating>
-                    <rating>${rating.d}</rating>
-                    <rating>${rating.e}</rating>
-                </ratings>
-                <level>$level</level>
-                <assets>
-                    <assets>$promotions</assets>
-                    <assets>0</assets>
-                    <assets>0</assets>
-                    <assets>0</assets>
-                    <assets>0</assets>
-                    <assets>0</assets>
-                    <assets>0</assets>
-                    <assets>0</assets>
-                    <assets>0</assets>
-                    <assets>0</assets>
-                </assets>
-            </galaxyatwargetratings>
-        """.trimIndent()
-        val contentBuffer = Unpooled.copiedBuffer(content, StandardCharsets.UTF_8)
-        val response = DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, contentBuffer)
-        val headers = response.headers()
-        headers.add("Content-Type", "text/xml;charset=UTF-8")
-        headers.add("Content-Length", contentBuffer.readableBytes())
-        ctx.writeAndFlush(response)
+        ctx.respond(xml("galaxyatwargetratings") {
+            globalProcessingInstruction(
+                "xml",
+                "version" to "1.0",
+                "encoding" to "UTF-8"
+            )
+            "ratings" {
+                element("rating", rating.a.toString())
+                element("rating", rating.b.toString())
+                element("rating", rating.c.toString())
+                element("rating", rating.d.toString())
+                element("rating", rating.e.toString())
+            }
+            element("level", level.toString())
+            "assets" {
+                element("assets", promotions.toString())
+                element("assets", "0")
+                element("assets", "0")
+                element("assets", "0")
+                element("assets", "0")
+                element("assets", "0")
+                element("assets", "0")
+                element("assets", "0")
+                element("assets", "0")
+                element("assets", "0")
+            }
+        })
     }
 
     private fun handleGalaxyAtWarIncreaseRatings(ctx: ChannelHandlerContext, request: Request) {
         if (request.path.size < 3) {
-            ctx.badRequest()
-            return
+            return ctx.respond(HttpResponseStatus.BAD_REQUEST)
         }
-        val playerId = request.path[2].toIntOrNull()
-        if (playerId == null) {
-            ctx.badRequest()
-            return
-        }
-        val player = transaction { Player.findById(playerId) }
-        if (player == null) {
-            ctx.badRequest()
-            return
-        }
-        val promotions = if (config.gaw.enablePromotions) player.getTotalPromotions() else 0
+        val playerId = request.path[2].toIntOrNull() ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
+        val player = transaction { Player.findById(playerId) } ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
         val rating = player.getOrCreateGAW(config.gaw)
         val maxValue = 10099
 
@@ -273,38 +282,7 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
             }
         }
 
-        val level = (rating.a + rating.b + rating.c + rating.d + rating.e) / 5
-        @Suppress("SpellCheckingInspection")
-        val content = """
-            <?xml version="1.0" encoding="UTF-8"?>
-            <galaxyatwargetratings>
-                <ratings>
-                    <rating>${rating.a}</rating>
-                    <rating>${rating.b}</rating>
-                    <rating>${rating.c}</rating>
-                    <rating>${rating.d}</rating>
-                    <rating>${rating.e}</rating>
-                </ratings>
-                <level>$level</level>
-                <assets>
-                    <assets>$promotions</assets>
-                    <assets>0</assets>
-                    <assets>0</assets>
-                    <assets>0</assets>
-                    <assets>0</assets>
-                    <assets>0</assets>
-                    <assets>0</assets>
-                    <assets>0</assets>
-                    <assets>0</assets>
-                    <assets>0</assets>
-                </assets>
-            </galaxyatwargetratings>
-        """.trimIndent()
-        val contentBuffer = Unpooled.copiedBuffer(content, StandardCharsets.UTF_8)
-        val response = DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, contentBuffer)
-        val headers = response.headers()
-        headers.add("Content-Type", "text/xml;charset=UTF-8")
-        headers.add("Content-Length", contentBuffer.readableBytes())
-        ctx.writeAndFlush(response)
+        respondGAWRating(ctx, player, rating)
+
     }
 }
