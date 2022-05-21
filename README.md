@@ -35,6 +35,7 @@ I plan on making a tool for doing this automatically
 
 ## Planned
 - [ ] Web panel interface
+  - This has been started and is at [https://github.com/jacobtread/KME3Web](https://github.com/jacobtread/KME3Web) but will be included by default
 - [ ] Leaderboard support
 
 ## Credits
