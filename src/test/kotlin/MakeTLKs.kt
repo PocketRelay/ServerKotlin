@@ -20,14 +20,52 @@ fun main() {
             val contents = it.readBytes()
             val base64 = Base64.getEncoder().encodeToString(contents)
             val chunks = base64.chunked(255)
-            val outBuilder = StringBuilder()
+//            val outBuilder = StringBuilder()
+//            chunks.forEachIndexed { index, value ->
+//                outBuilder.append("CHUNK_")
+//                    .append(index)
+//                    .append(":")
+//                    .append(value)
+//                    .append('\n')
+//            }
+            val keys = ArrayList<String>(chunks.size)
+            val values = ArrayList<String>(chunks.size)
+
             chunks.forEachIndexed { index, value ->
-                outBuilder.append("CHUNK_")
-                    .append(index)
+                keys.add("CHUNK_$index")
+                values.add(value)
+            }
+
+            var run = true
+            while (run) {
+                run = false
+                var tmp: String
+                for (i in 0 until keys.size - 1) {
+                    if (keys[i].compareTo(keys[i + 1]) > 0) {
+                        tmp = keys[i]
+                        keys[i] = keys[i + 1]
+                        keys[i + 1] = tmp
+                        tmp = values[i]
+                        values[i] = values[i + 1]
+                        values[i + 1] = tmp
+                        run = true
+                    }
+                }
+            }
+
+
+            val outBuilder = StringBuilder()
+
+            for (i in 0 until keys.size) {
+                val key = keys[i]
+                val value = values[i]
+                outBuilder
+                    .append(key)
                     .append(":")
                     .append(value)
                     .append('\n')
             }
+
             outBuilder.append("CHUNK_SIZE:255\nDATA_SIZE:")
                 .append(base64.length)
                 .append('\n')
