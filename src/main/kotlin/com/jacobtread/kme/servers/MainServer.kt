@@ -6,7 +6,6 @@ import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.Command.*
 import com.jacobtread.kme.blaze.Component.*
 import com.jacobtread.kme.blaze.tdf.GroupTdf
-import com.jacobtread.kme.blaze.tdf.OptionalTdf
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.data.LoginError
 import com.jacobtread.kme.database.Player
@@ -757,38 +756,43 @@ private class MainClient(private val session: PlayerSession, private val config:
 
     //region Association Lists Component Region
 
+    /**
+     * handleAssociationLists Handles getting assocation lists in this case
+     * only the friends list will be returned
+     *
+     * @param packet The packet requesting ASSOCIATION_LISTS
+     */
     private fun handleAssociationLists(packet: Packet) {
         when (packet.command) {
-            GET_LISTS -> {
-                channel.respond(packet) {
-                    list("LMAP", listOf(
-                        group {
-                            +group("INFO") {
-                                tripple("BOID", 0x19, 0x1, 0x28557f3)
-                                number("FLGS", 4)
-                                +group("LID") {
-                                    text("LNM", "friendList")
-                                    number("TYPE", 1)
-                                }
-                                number("LMS", 0xC8)
-                                number("PRID", 0)
-                            }
-                            number("OFRC", 0)
-                            number("TOCT", 0)
+            GET_LISTS -> handleAssociationListGetLists(packet)
+            else -> respondEmpty(packet)
+        }
+    }
+
+    /**
+     * handleAssociationListGetLists Handles getting associated lists.
+     * functionality appears to be for friends lists?
+     *
+     * @param packet The packet requesting the list
+     */
+    private fun handleAssociationListGetLists(packet: Packet) {
+        channel.respond(packet) {
+            list("LMAP", listOf(
+                group {
+                    +group("INFO") {
+                        tripple("BOID", 0x19, 0x1, 0x28557f3)
+                        number("FLGS", 4)
+                        +group("LID") {
+                            text("LNM", "friendList")
+                            number("TYPE", 1)
                         }
-                    ))
+                        number("LMS", 0xC8)
+                        number("PRID", 0)
+                    }
+                    number("OFRC", 0)
+                    number("TOCT", 0)
                 }
-            }
-            ADD_USERS_TO_LIST,
-            REMOVE_USERS_FROM_LIST,
-            CLEAR_LISTS,
-            SET_USERS_TO_LIST,
-            GET_LIST_FOR_USER,
-            SUBSCRIBE_TO_LISTS,
-            UNSUBSCRIBE_FROM_LISTS,
-            GET_CONFIG_LISTS_INFO,
-            -> respondEmpty(packet)
-            else -> return
+            ))
         }
     }
 
@@ -796,19 +800,32 @@ private class MainClient(private val session: PlayerSession, private val config:
 
     //region Game Reporting Component Region
 
-    fun handleGameReporting(packet: Packet) {
+    /**
+     * handleGameReporting Handles logic for game reporting this appears to only
+     * handle the offline report submission
+     *
+     * @param packet The packet requesting the GAME_REPORTING
+     */
+    private fun handleGameReporting(packet: Packet) {
         when (packet.command) {
-            SUBMIT_OFFLINE_GAME_REPORT -> {
-                respondEmpty(packet)
-                channel.unique(GAME_REPORTING, GAME_REPORT_RESULT_72) {
-                    varList("DATA", emptyList())
-                    number("EROR", 0)
-                    number("FNL", 0)
-                    number("GHID", 0)
-                    number("GRID", 0)
-                }
-            }
-            else -> {}
+            SUBMIT_OFFLINE_GAME_REPORT -> handleOfflineGameReport(packet)
+            else -> respondEmpty(packet)
+        }
+    }
+
+    /**
+     * handleOfflineGameReport Handles offline report submission
+     *
+     * @param packet The packet requesting submission of offline game report
+     */
+    private fun handleOfflineGameReport(packet: Packet) {
+        respondEmpty(packet)
+        channel.unique(GAME_REPORTING, GAME_REPORT_RESULT_72) {
+            varList("DATA")
+            number("EROR", 0)
+            number("FNL", 0)
+            number("GHID", 0)
+            number("GRID", 0)
         }
     }
 
@@ -816,23 +833,35 @@ private class MainClient(private val session: PlayerSession, private val config:
 
     //region User Sessions Component Region
 
+    /**
+     * handleUserSessions Handles updating the session of the user in this
+     * case we only update the networking information from the client
+     *
+     * @param packet The packet requesting a session change
+     */
     private fun handleUserSessions(packet: Packet) {
         when (packet.command) {
             UPDATE_HARDWARE_FLAGS,
             UPDATE_NETWORK_INFO,
-            -> {
-                val addr: OptionalTdf? = packet.unionOrNull("ADDR")
-                if (addr != null) {
-                    val value = addr.value as GroupTdf
-                    val inip: GroupTdf = value.group("INIP")
-                    val port: Int = inip.numberInt("PORT")
-                    val remoteAddress = channel.remoteAddress()
-                    val addressEncoded = IPAddress.asLong(remoteAddress)
+            -> updateSessionNetworkInfo(packet)
+            else -> respondEmpty(packet)
+        }
+    }
 
-                    session.netData = NetData(addressEncoded, port)
-                }
-            }
-            else -> {}
+    /**
+     * updateSessionNetworkInfo Updates the session networking information
+     * provided from the client
+     *
+     * @param packet The packet requesting the updated networking info
+     */
+    private fun updateSessionNetworkInfo(packet: Packet) {
+        val addr: GroupTdf? = packet.unionValueOrNull("ADDR") as GroupTdf?
+        if (addr != null) {
+            val inip: GroupTdf = addr.group("INIP")
+            val port: Int = inip.numberInt("PORT")
+            val remoteAddress = channel.remoteAddress()
+            val addressEncoded = IPAddress.asLong(remoteAddress)
+            session.netData = NetData(addressEncoded, port)
         }
         respondEmpty(packet)
     }
