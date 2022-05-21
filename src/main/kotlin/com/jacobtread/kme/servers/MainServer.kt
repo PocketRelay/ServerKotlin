@@ -704,42 +704,54 @@ private class MainClient(private val session: PlayerSession, private val config:
 
     //region Messaging Component Region
 
+    /**
+     * handleMessaging Handles the ingame message retrieval in this case its
+     * only used for getting the message that's displayed on the main menu
+     *
+     * @param packet The packet with the MESSAGING component
+     */
     private fun handleMessaging(packet: Packet) {
         when (packet.command) {
-            FETCH_MESSAGES -> {
-                channel.write(respond(packet) {
-                    number("MCNT", 0x1)
-                })
-                val ip = channel.remoteAddress().toString()
-                val player = session.player
-                val menuMessage = config.menuMessage
-                    .replace("{v}", KME_VERSION)
-                    .replace("{n}", player.displayName)
-                    .replace("{ip}", ip) + 0xA.toChar()
-                channel.write(unique(
-                    MESSAGING,
-                    SEND_MESSAGE
-                ) {
-                    number("FLAG", 0x01)
-                    number("MGID", 0x01)
-                    text("NAME", menuMessage)
-                    +group("PYLD") {
-                        map("ATTR", mapOf("B0000" to "160"))
-                        number("FLAG", 0x01)
-                        number("STAT", 0x00)
-                        number("TAG", 0x00)
-                        tripple("TARG", 0x7802, 0x01, player.playerId.toLong())
-                        number("TYPE", 0x0)
-                    }
-                    tripple("SRCE", 0x7802, 0x01, player.playerId.toLong())
-                    number("TIME", unixTimeSeconds())
-                })
-
-                channel.flush()
-            }
-            else -> {}
+            FETCH_MESSAGES -> handleFetchMessages(packet)
+            else -> respondEmpty(packet)
         }
     }
+
+    /**
+     * handleFetchMessages Handles fetch messages requests from the client this
+     * will send a MESSAGING SEND_MESSAGE packet to the client containing the
+     * generated main menu message
+     *
+     * @param packet The packet requesting the messages
+     */
+    private fun handleFetchMessages(packet: Packet) {
+        channel.respond(packet, flush = false) { number("MCNT", 0x1) }
+        val ip = channel.remoteAddress().toString()
+        val player = session.player
+        val menuMessage = config.menuMessage
+            .replace("{v}", KME_VERSION)
+            .replace("{n}", player.displayName)
+            .replace("{ip}", ip) + 0xA.toChar()
+        channel.unique(
+            MESSAGING,
+            SEND_MESSAGE,
+        ) {
+            number("FLAG", 0x01)
+            number("MGID", 0x01)
+            text("NAME", menuMessage)
+            +group("PYLD") {
+                map("ATTR", mapOf("B0000" to "160"))
+                number("FLAG", 0x01)
+                number("STAT", 0x00)
+                number("TAG", 0x00)
+                tripple("TARG", 0x7802, 0x01, player.playerId.toLong())
+                number("TYPE", 0x0)
+            }
+            tripple("SRCE", 0x7802, 0x01, player.playerId.toLong())
+            number("TIME", unixTimeSeconds())
+        }
+    }
+
 
     //endregion
 
