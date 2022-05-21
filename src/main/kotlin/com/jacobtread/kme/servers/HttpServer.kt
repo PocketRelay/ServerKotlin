@@ -3,7 +3,6 @@ package com.jacobtread.kme.servers
 import com.jacobtread.kme.Config
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.database.PlayerGalaxyAtWar
-import com.jacobtread.kme.database.PlayerGalaxyAtWars
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.unixTimeSeconds
 import io.netty.bootstrap.ServerBootstrap
@@ -22,7 +21,6 @@ import org.redundent.kotlin.xml.PrintOptions
 import org.redundent.kotlin.xml.xml
 import java.io.IOException
 import java.net.URLDecoder
-import java.nio.charset.StandardCharsets
 import kotlin.math.min
 
 
@@ -53,10 +51,45 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
 
     companion object {
         private val XML_PRINT_OPTIONS = PrintOptions(singleLineTextElements = true, pretty = false)
-    }
 
-    override fun channelReadComplete(ctx: ChannelHandlerContext) {
-        ctx.flush()
+        private fun ChannelHandlerContext.respond(
+            content: Any? = null,
+            status: HttpResponseStatus = HttpResponseStatus.OK,
+            contentType: String? = null,
+            headers: Map<String, String>? = null,
+        ) {
+            if (content != null && content !is HttpResponseStatus) {
+                val type: String
+                val contentBuffer = when (content) {
+                    is String -> {
+                        type = contentType ?: "text;charset=UTF-8"
+                        Unpooled.copiedBuffer(content, Charsets.UTF_8)
+                    }
+                    is ByteArray -> {
+                        type = contentType ?: ""
+                        Unpooled.wrappedBuffer(content)
+                    }
+                    is Node -> {
+                        type = contentType ?: "text/xml;charset=UTF-8"
+                        val encoded = content.toString(XML_PRINT_OPTIONS)
+                        Unpooled.copiedBuffer(encoded, Charsets.UTF_8)
+                    }
+                    else -> throw IllegalArgumentException("Dont know how to handle unknown content type: $content")
+                }
+                val response = DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, contentBuffer)
+                val headersOut = response.headers()
+                if (type.isNotEmpty()) headersOut.add("Content-Type", type)
+                headersOut.add("Content-Length", contentBuffer.readableBytes())
+                headers?.forEach { (key, value) -> headersOut.add(key, value) }
+                writeAndFlush(response)
+            } else {
+                if (content is HttpResponseStatus) {
+                    writeAndFlush(DefaultFullHttpResponse(HttpVersion.HTTP_1_1, content))
+                } else {
+                    writeAndFlush(DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status))
+                }
+            }
+        }
     }
 
     override fun channelRead0(ctx: ChannelHandlerContext, msg: HttpRequest) {
@@ -92,42 +125,6 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
             )
         }
     }
-
-    private fun ChannelHandlerContext.respond(
-        content: Any? = null,
-        status: HttpResponseStatus = HttpResponseStatus.OK,
-        contentType: String? = null,
-        headers: Map<String, String>? = null,
-    ) {
-        if (content != null) {
-            val type: String
-            val contentBuffer = when (content) {
-                is String -> {
-                    type = contentType ?: "text;charset=UTF-8"
-                    Unpooled.copiedBuffer(content, Charsets.UTF_8)
-                }
-                is ByteArray -> {
-                    type = contentType ?: ""
-                    Unpooled.wrappedBuffer(content)
-                }
-                is Node -> {
-                    type = contentType ?: "text/xml;charset=UTF-8"
-                    val encoded = content.toString(XML_PRINT_OPTIONS)
-                    Unpooled.copiedBuffer(encoded, Charsets.UTF_8)
-                }
-                else -> throw IllegalArgumentException("Dont know how to handle unknown content type: $content")
-            }
-            val response = DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, contentBuffer)
-            val headersOut = response.headers()
-            if (type.isNotEmpty()) headersOut.add("Content-Type", type)
-            headersOut.add("Content-Length", contentBuffer.readableBytes())
-            headers?.forEach { (key, value) -> headersOut.add(key, value) }
-            writeAndFlush(response)
-        } else {
-            writeAndFlush(DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status))
-        }
-    }
-
 
     private fun parseQuery(value: String): Map<String, String> {
         val out = HashMap<String, String>()
