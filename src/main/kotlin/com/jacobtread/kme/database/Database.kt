@@ -363,7 +363,8 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
  * @property inventory Complex string of the player inventory contents (Not yet parsed)
  * @constructor Create empty PlayerSettingsBase
  */
-class PlayerSettingsBase(
+@Serializable
+data class PlayerSettingsBase(
     val credits: Int = 0,
     val c: Int = -1,
     val d: Int = 0,

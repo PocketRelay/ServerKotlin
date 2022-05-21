@@ -4,8 +4,10 @@ import com.jacobtread.kme.Config
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.database.PlayerGalaxyAtWar
+import com.jacobtread.kme.database.PlayerSettingsBase
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.unixTimeSeconds
+import com.mysql.cj.log.Log
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.Unpooled
 import io.netty.channel.Channel
@@ -16,6 +18,9 @@ import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.codec.http.*
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.redundent.kotlin.xml.Node
 import org.redundent.kotlin.xml.PrintOptions
@@ -24,6 +29,7 @@ import java.io.IOException
 import java.net.URLDecoder
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.util.*
 import kotlin.math.min
 
 
@@ -59,9 +65,9 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
             content: Any? = null,
             status: HttpResponseStatus = HttpResponseStatus.OK,
             contentType: String? = null,
-            headers: Map<String, String>? = null,
+            headers: HashMap<String, String> = HashMap(),
         ) {
-            if (content != null && content !is HttpResponseStatus) {
+            val response = if (content != null && content !is HttpResponseStatus) {
                 val type: String
                 val contentBuffer = when (content) {
                     is String -> {
@@ -79,36 +85,69 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
                     }
                     else -> throw IllegalArgumentException("Dont know how to handle unknown content type: $content")
                 }
-                val response = DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, contentBuffer)
-                val headersOut = response.headers()
-                if (type.isNotEmpty()) headersOut.add("Content-Type", type)
-                headersOut.add("Content-Length", contentBuffer.readableBytes())
-                headers?.forEach { (key, value) -> headersOut.add(key, value) }
-                writeAndFlush(response)
+                headers["Content-Length"] = contentBuffer.readableBytes().toString()
+                if (type.isNotEmpty()) headers["Content-Type"] = type
+
+                DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, contentBuffer)
             } else {
+                headers["Content-Length"] = "0"
                 if (content is HttpResponseStatus) {
-                    writeAndFlush(DefaultFullHttpResponse(HttpVersion.HTTP_1_1, content))
+                    DefaultFullHttpResponse(HttpVersion.HTTP_1_1, content)
                 } else {
-                    writeAndFlush(DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status))
+                    DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status)
                 }
             }
+            val headersOut = response.headers()
+            headers.forEach { (key, value) -> headersOut.add(key, value) }
+            write(response)
+            flush()
         }
     }
 
+    override fun channelReadComplete(ctx: ChannelHandlerContext) {
+        super.channelReadComplete(ctx)
+        ctx.flush()
+    }
+
+    private fun isAuthenticated(msg: HttpRequest): Boolean {
+        val headers = msg.headers()
+        val authorization = headers.get("Authorization")
+        if (authorization.isNullOrEmpty()) return false
+        val parts = authorization.split(' ', limit = 2)
+        if (parts.size < 2) return false
+        val decoded = Base64.getDecoder().decode(parts[1]).decodeToString()
+        val authParts = decoded.split(':', limit = 2)
+        if (authParts.size < 2) return false
+        val (username, password) = authParts
+        return username == config.webAuth.username && password == config.webAuth.password
+    }
+
+    private fun handleNotAuthenticated(ctx: ChannelHandlerContext) {
+        Logger.info("Unauthenticated panel access redirecting to access request")
+        ctx.respond(
+            status = HttpResponseStatus.UNAUTHORIZED,
+            headers = hashMapOf(
+                "WWW-Authenticate" to "Basic realm=\"User Visible Realm\", charset=\"UTF-8\""
+            )
+        )
+    }
+
     override fun channelRead0(ctx: ChannelHandlerContext, msg: HttpRequest) {
-        val method = msg.method()
         val url = msg.uri()
         Logger.debug("HTTP Request: $url")
         if (url.startsWith("/wal/masseffect-gaw-pc")) {
             handleGAWResponse(ctx, url)
         } else if (url.startsWith("/panel")) {
-            handlePanelResponse(ctx, url, method)
+            handlePanelResponse(ctx, url, msg)
         } else {
             handlePublicResponse(ctx, url)
         }
     }
 
-    fun handlePanelResponse(ctx: ChannelHandlerContext, url: String, method: HttpMethod) {
+    fun handlePanelResponse(ctx: ChannelHandlerContext, url: String, request: HttpRequest) {
+        if (!isAuthenticated(request)) {
+            return handleNotAuthenticated(ctx)
+        }
         val path = url.substring(6)
         if (path.isEmpty()) {
             return handleFallbackPage(ctx)
@@ -125,7 +164,7 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
             }
             ctx.respond(resource, contentType = contentType)
         } else if (path.startsWith("/api/")) {
-            handleApiRoutes(ctx, path.substring(5), method)
+            handleApiRoutes(ctx, path.substring(5), request)
         } else {
             handleFallbackPage(ctx)
         }
@@ -136,9 +175,58 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
         ctx.respond(page, contentType = "text/html;charset=UTF-8")
     }
 
+    @Serializable
+    data class PlayerSerial(
+        val id: Int,
+        val email: String,
+        val displayName: String,
+        val settings: PlayerSettingsBase,
+    )
 
-    fun handleApiRoutes(ctx: ChannelHandlerContext, path: String, method: HttpMethod) {
+    fun handlePlayersList(ctx: ChannelHandlerContext, query: Map<String, String>) {
+        val limit = query["limit"]?.toIntOrNull() ?: 10
+        val offset = query["offset"]?.toIntOrNull() ?: 0
+        val playerList = transaction {
+            val playerList = ArrayList<PlayerSerial>()
+            Player.all()
+                .limit(limit, offset.toLong())
+                .forEach {
+                    playerList.add(
+                        PlayerSerial(
+                            it.playerId,
+                            it.email,
+                            it.displayName,
+                            it.getSettingsBase()
+                        )
+                    )
+                }
+            playerList
+        }
+        val json = Json.encodeToString(playerList)
+        ctx.respond(json, contentType = "application/json")
+    }
 
+    fun handleApiRoutes(ctx: ChannelHandlerContext, path: String, request: HttpRequest) {
+        val urlParts = path.split('?', limit = 2)
+        val parts = urlParts[0].split('/')
+        if (parts.isEmpty()) return ctx.respond(HttpResponseStatus.NOT_FOUND)
+        val query = if (urlParts.size > 1) parseQuery(urlParts[1]) else emptyMap()
+        when (request.method()) {
+            HttpMethod.GET -> {
+                when (parts[0]) {
+                    "players" -> return handlePlayersList(ctx, query)
+                }
+            }
+            HttpMethod.POST -> {
+
+            }
+            HttpMethod.DELETE -> {
+
+            }
+            HttpMethod.PATCH -> {
+
+            }
+        }
     }
 
 
@@ -153,7 +241,7 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
             val contents = inputStream.readAllBytes()
             ctx.respond(
                 contents,
-                headers = mapOf(
+                headers = hashMapOf(
                     "Accept-Ranges" to "bytes",
                     "ETag" to "524416-1333666807000"
                 )

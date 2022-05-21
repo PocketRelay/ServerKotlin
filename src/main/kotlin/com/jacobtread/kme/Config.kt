@@ -37,6 +37,9 @@ data class Config(
     @Comment("Database connection info")
     val database: DatabaseConfig = DatabaseConfig(),
 
+    @Comment("Authentication for the web manager panel")
+    val webAuth: WebAuth = WebAuth(),
+
     @Comment("Galaxy At War config")
     val gaw: GalaxyAtWarConfig = GalaxyAtWarConfig(),
 ) {
@@ -70,6 +73,12 @@ data class Config(
         )
         val readinessDailyDecay: Float = 0f,
         val enablePromotions: Boolean = true,
+    )
+
+    @Serializable
+    data class WebAuth(
+        val username: String = "admin",
+        val password: String = "admin"
     )
 }
 

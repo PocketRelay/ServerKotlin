@@ -25,6 +25,8 @@ allprojects {
 
     dependencies {
         implementation("io.netty:netty-all:$nettyVersion")
+        // YAML Serialization for config files
+        implementation("net.mamoe.yamlkt:yamlkt:0.10.2")
     }
 }
 
@@ -35,8 +37,6 @@ val exposedVersion: String by project
 dependencies {
     // JSON Serialization for the web
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
-    // YAML Serialization for config files
-    implementation("net.mamoe.yamlkt:yamlkt:0.10.2")
 
     // XML Builder for GAW responses
     implementation("org.redundent:kotlin-xml-builder:1.7.4")
