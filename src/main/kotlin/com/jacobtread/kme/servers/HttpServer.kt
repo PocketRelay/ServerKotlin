@@ -30,6 +30,7 @@ import java.net.URLDecoder
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.math.min
 
 
@@ -98,6 +99,7 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
                 }
             }
             val headersOut = response.headers()
+            headersOut.add("Access-Control-Allow-Origin", "*")
             headers.forEach { (key, value) -> headersOut.add(key, value) }
             write(response)
             flush()
@@ -124,29 +126,6 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
         ctx.flush()
     }
 
-    private fun isAuthenticated(msg: HttpRequest): Boolean {
-        val headers = msg.headers()
-        val authorization = headers.get("Authorization")
-        if (authorization.isNullOrEmpty()) return false
-        val parts = authorization.split(' ', limit = 2)
-        if (parts.size < 2) return false
-        val decoded = Base64.getDecoder().decode(parts[1]).decodeToString()
-        val authParts = decoded.split(':', limit = 2)
-        if (authParts.size < 2) return false
-        val (username, password) = authParts
-        return username == config.webAuth.username && password == config.webAuth.password
-    }
-
-    private fun handleNotAuthenticated(ctx: ChannelHandlerContext) {
-        Logger.info("Unauthenticated panel access redirecting to access request")
-        ctx.respond(
-            status = HttpResponseStatus.UNAUTHORIZED,
-            headers = hashMapOf(
-                "WWW-Authenticate" to "Basic realm=\"User Visible Realm\", charset=\"UTF-8\""
-            )
-        )
-    }
-
     override fun channelRead0(ctx: ChannelHandlerContext, msg: HttpRequest) {
         val url = msg.uri()
         Logger.debug("HTTP Request: $url")
@@ -160,9 +139,6 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
     }
 
     fun handlePanelResponse(ctx: ChannelHandlerContext, url: String, request: HttpRequest) {
-        if (!isAuthenticated(request)) {
-            return handleNotAuthenticated(ctx)
-        }
         val path = url.substring(6)
         if (path.isEmpty()) {
             return handleFallbackPage(ctx)
@@ -221,6 +197,31 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
         ctx.respond(json, contentType = "application/json")
     }
 
+    fun handleGetPlayerSettings(ctx: ChannelHandlerContext, query: Map<String, String>) {
+        val playerId = query["id"]?.toIntOrNull() ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
+        val player = transaction { Player.getById(playerId.toLong()) } ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
+        val json = Json.encodeToString(SettingsSerializable(player.createSettingsMap()))
+        ctx.respond(json, contentType = "application/json")
+    }
+
+    @Serializable
+    data class SettingsSerializable(
+        val settings: Map<String, String>,
+    )
+
+    fun handleSetPlayerSettings(ctx: ChannelHandlerContext, query: Map<String, String>, request: HttpRequest) {
+        val playerId = query["id"]?.toIntOrNull() ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
+        val player = transaction { Player.getById(playerId.toLong()) } ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
+        if (request !is FullHttpRequest) return ctx.respond(HttpResponseStatus.BAD_REQUEST)
+        val contentBuffer = request.content()
+        val bytes = ByteArray(contentBuffer.readableBytes())
+        contentBuffer.readBytes(bytes)
+        val settings: SettingsSerializable = Json.decodeFromString(SettingsSerializable.serializer(), bytes.decodeToString())
+        settings.settings.forEach { (key, value) ->
+            player.setSetting(key, value)
+        }
+    }
+
     fun handleUpdatePlayer(ctx: ChannelHandlerContext, request: HttpRequest) {
         if (request !is FullHttpRequest) return ctx.respond(HttpResponseStatus.BAD_REQUEST)
         val contentBuffer = request.content()
@@ -232,7 +233,21 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
             transaction {
                 existing.displayName = player.displayName
                 existing.email = player.email
-                existing.settingsBase = player.settings.mapValue()
+                if (existing.settingsBase != null) {
+                    val existingBase = existing.getSettingsBase()
+                    val clone = PlayerSettingsBase(
+                        player.settings.credits,
+                        existingBase.c,
+                        existingBase.d,
+                        player.settings.creditsSpent,
+                        existingBase.e,
+                        player.settings.gamesPlayed,
+                        player.settings.secondsPlayed,
+                        existingBase.f,
+                        player.settings.inventory
+                    )
+                    existing.settingsBase = clone.mapValue()
+                }
             }
             ctx.respond(HttpResponseStatus.OK)
         } catch (e: SerializationException) {
@@ -249,11 +264,13 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
             HttpMethod.GET -> {
                 when (parts[0]) {
                     "players" -> return handlePlayersList(ctx, query)
+                    "playerSettings" -> return handleGetPlayerSettings(ctx, query)
                 }
             }
             HttpMethod.POST -> {
-                when(parts[0]) {
+                when (parts[0]) {
                     "updatePlayer" -> return handleUpdatePlayer(ctx, request)
+                    "setPlayerSettings" -> return handleSetPlayerSettings(ctx, query, request)
                 }
             }
             HttpMethod.DELETE -> {
