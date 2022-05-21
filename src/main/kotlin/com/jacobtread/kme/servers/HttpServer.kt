@@ -7,7 +7,6 @@ import com.jacobtread.kme.database.PlayerGalaxyAtWar
 import com.jacobtread.kme.database.PlayerSettingsBase
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.unixTimeSeconds
-import com.mysql.cj.log.Log
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.Unpooled
 import io.netty.channel.Channel
@@ -19,6 +18,7 @@ import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.codec.http.*
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -221,6 +221,25 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
         ctx.respond(json, contentType = "application/json")
     }
 
+    fun handleUpdatePlayer(ctx: ChannelHandlerContext, request: HttpRequest) {
+        if (request !is FullHttpRequest) return ctx.respond(HttpResponseStatus.BAD_REQUEST)
+        val contentBuffer = request.content()
+        val bytes = ByteArray(contentBuffer.readableBytes())
+        contentBuffer.readBytes(bytes)
+        try {
+            val player = Json.decodeFromString(PlayerSerial.serializer(), bytes.decodeToString())
+            val existing = transaction { Player.findById(player.id) } ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
+            transaction {
+                existing.displayName = player.displayName
+                existing.email = player.email
+                existing.settingsBase = player.settings.mapValue()
+            }
+            ctx.respond(HttpResponseStatus.OK)
+        } catch (e: SerializationException) {
+            return ctx.respond(HttpResponseStatus.BAD_REQUEST)
+        }
+    }
+
     fun handleApiRoutes(ctx: ChannelHandlerContext, path: String, request: HttpRequest) {
         val urlParts = path.split('?', limit = 2)
         val parts = urlParts[0].split('/')
@@ -233,7 +252,9 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
                 }
             }
             HttpMethod.POST -> {
-
+                when(parts[0]) {
+                    "updatePlayer" -> return handleUpdatePlayer(ctx, request)
+                }
             }
             HttpMethod.DELETE -> {
 
@@ -243,7 +264,6 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
             }
         }
     }
-
 
     fun handlePublicResponse(ctx: ChannelHandlerContext, url: String) {
         val fileName = url.substringAfterLast('/')
@@ -281,7 +301,7 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
         when (path[0] + ":" + path[1]) {
             "authentication:sharedTokenLogin" -> handleGAWAuthentication(ctx, request)
             "galaxyatwar:getRatings" -> handleGAWRatings(ctx, request)
-            "galaxyatwar:increaseRatings"  -> handleGAWIncreaseRatings(ctx, request)
+            "galaxyatwar:increaseRatings" -> handleGAWIncreaseRatings(ctx, request)
             else -> ctx.respond(HttpResponseStatus.BAD_REQUEST)
         }
     }

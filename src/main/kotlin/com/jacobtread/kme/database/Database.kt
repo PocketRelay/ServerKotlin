@@ -215,7 +215,7 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
     var password by Players.password
 
     private var _sessionToken by Players.sessionToken
-    private var settingsBase by Players.settingsBase
+    var settingsBase by Players.settingsBase
 
     private val classes by PlayerClass referrersOn PlayerClasses.player
     private val characters by PlayerCharacter referrersOn PlayerCharacters.player
