@@ -17,6 +17,7 @@ import com.jacobtread.kme.utils.IPAddress
 import com.jacobtread.kme.utils.comparePasswordHash
 import com.jacobtread.kme.utils.hashPassword
 import com.jacobtread.kme.utils.logging.Logger
+import com.jacobtread.kme.utils.logging.Logger.info
 import com.jacobtread.kme.utils.unixTimeSeconds
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
@@ -29,38 +30,63 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.IOException
 import java.net.SocketException
 
+/**
+ * startMainServer Starts the main server
+ *
+ * @param bossGroup The boss event loop group to use
+ * @param workerGroup The worker event loop group to use
+ * @param config The server configuration
+ */
 fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup, config: Config) {
     try {
         val port = config.ports.main
         ServerBootstrap()
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
-            .childHandler(object : ChannelInitializer<Channel>() {
-                override fun initChannel(ch: Channel) {
-                    val remoteAddress = ch.remoteAddress()
-                    Logger.info("Main started new client session with $remoteAddress")
-                    val session = PlayerSession()
-                    ch.pipeline()
-                        // Add handler for decoding packet
-                        .addLast(PacketDecoder())
-                        // Add handler for processing packets
-                        .addLast(MainClient(session, config))
-                        .addLast(PacketEncoder())
-                }
-            })
+            .childHandler(MainInitializer(config))
             // Bind the server to the host and port
             .bind(port)
             // Wait for the channel to bind
-            .addListener {
-                Logger.info("Started Main Server on port $port")
-            }
+            .addListener { info("Started Main Server on port $port") }
     } catch (e: IOException) {
         Logger.error("Exception in redirector server", e)
     }
 }
 
+/**
+ * MainInitializer Channel Initializer for main server clients.
+ * Creates sessions for the user as well as adding packet handlers
+ * and the MainClient handler
+ *
+ * @property config
+ * @constructor Create empty MainClientInitializer
+ */
+class MainInitializer(private val config: Config) : ChannelInitializer<Channel>() {
+    override fun initChannel(ch: Channel) {
+        val remoteAddress = ch.remoteAddress() // The remote address of the user
+        val session = PlayerSession()
+        info("Main started new client session with $remoteAddress given id ${session.sessionId}")
+        ch.pipeline()
+            // Add handler for decoding packet
+            .addLast(PacketDecoder())
+            // Add handler for processing packets
+            .addLast(MainHandler(session, config))
+            .addLast(PacketEncoder())
+    }
+}
+
+/**
+ * MainHandler A handler for clients connected to the main server
+ *
+ * @property session The session data for this user
+ * @property config The server configuration
+ * @constructor Create empty MainClient
+ */
 @Suppress("SpellCheckingInspection")
-private class MainClient(private val session: PlayerSession, private val config: Config) : SimpleChannelInboundHandler<Packet>() {
+private class MainHandler(
+    private val session: PlayerSession,
+    private val config: Config,
+) : SimpleChannelInboundHandler<Packet>() {
 
     /**
      * respondEmpty Used for sending a response that has no content
@@ -71,12 +97,25 @@ private class MainClient(private val session: PlayerSession, private val config:
 
     lateinit var channel: Channel
 
+    /**
+     * channelActive Handles when the channel becomes active. Sets
+     * the local channel and sets it on the player session aswell
+     *
+     * @param ctx The channel context
+     */
     override fun channelActive(ctx: ChannelHandlerContext) {
         super.channelActive(ctx)
         this.channel = ctx.channel()
         session.setChannel(channel)
     }
 
+    /**
+     * exceptionCaught Exception handling for unhandled exceptions in the
+     * channel pipline. Messages that aren't connection resets are logged
+     *
+     * @param ctx The channel context
+     * @param cause The exception cause
+     */
     @Deprecated("Deprecated in Java")
     override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
         if (cause is SocketException) {
@@ -84,14 +123,28 @@ private class MainClient(private val session: PlayerSession, private val config:
                 return
             }
         }
-        cause.printStackTrace()
+        Logger.warn("Exception in MainServer", cause)
     }
 
+    /**
+     * channelInactive Handles when the channel becomes inactive. Used
+     * to release and cleanup the session so that it can be released
+     * by the garbage collector
+     *
+     * @param ctx The channel context
+     */
     override fun channelInactive(ctx: ChannelHandlerContext) {
         session.release()
         super.channelInactive(ctx)
     }
 
+    /**
+     * channelRead0 Handles routing recieved packets to their desired
+     * handler functions
+     *
+     * @param ctx The channel context
+     * @param msg The reieved packet
+     */
     override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
         try {
             when (msg.component) {
@@ -105,7 +158,7 @@ private class MainClient(private val session: PlayerSession, private val config:
                 UTIL -> handleUtil(msg)
                 else -> respondEmpty(msg)
             }
-        } catch (e: NotAuthenticatedException) {
+        } catch (e: NotAuthenticatedException) { // Handle player access with no player
             val address = channel.remoteAddress()
             channel.send(LoginError.INVALID_ACCOUNT(msg))
             Logger.warn("Client at $address tried to access a authenticated route without authenticating")
@@ -145,7 +198,7 @@ private class MainClient(private val session: PlayerSession, private val config:
      * @param packet The packet requesting the origin login
      */
     private fun handleOriginLogin(packet: Packet) {
-        Logger.info("Recieved unsupported request for Origin Login")
+        info("Recieved unsupported request for Origin Login")
         respondEmpty(packet)
     }
 
@@ -157,7 +210,7 @@ private class MainClient(private val session: PlayerSession, private val config:
      */
     private fun handleLogout(packet: Packet) {
         val player = session.player
-        Logger.info("Logged out player ${player.displayName}")
+        info("Logged out player ${player.displayName}")
         session.setAuthenticated(null)
         respondEmpty(packet)
     }
@@ -884,31 +937,42 @@ private class MainClient(private val session: PlayerSession, private val config:
         }
     }
 
+    /**
+     * handleFetchClientConfig Retrieves configurations for the client from the
+     * server most of this data is pre chunked or generated data
+     *
+     * @param packet The packet requesting a client config
+     */
     private fun handleFetchClientConfig(packet: Packet) {
         val type = packet.text("CFID")
         val conf: Map<String, String>
-        if (type.startsWith("ME3_LIVE_TLK_PC_")) {
+        if (type.startsWith("ME3_LIVE_TLK_PC_")) { // Filter TLK files
             val lang = type.substring(16)
-            conf = Data.loadTLK(lang)
+            conf = Data.loadTLK(lang) // Load the tlk file
         } else {
+            // Matching different configs
             conf = when (type) {
-                "ME3_DATA" -> Data.createDataConfig(config)
-                "ME3_MSG" -> Data.createServerMessage()
-                "ME3_ENT" -> Data.createEntitlementMap()
-                "ME3_DIME" -> Data.createDimeResponse()
+                "ME3_DATA" -> Data.createDataConfig(config) // Configurations for GAW, images and others
+                "ME3_MSG" -> Data.createServerMessage() // Custom multiplayer messages
+                "ME3_ENT" -> Data.createEntitlementMap() // Entitlements
+                "ME3_DIME" -> Data.createDimeResponse() // Shop contents?
                 "ME3_BINI_VERSION" -> mapOf(
                     "SECTION" to "BINI_PC_COMPRESSED",
                     "VERSION" to "40128"
                 )
-                "ME3_BINI_PC_COMPRESSED" -> Data.loadBiniCompressed()
+                "ME3_BINI_PC_COMPRESSED" -> Data.loadBiniCompressed() // Loads the chunked + compressed bini
                 else -> emptyMap()
             }
         }
-        channel.respond(packet) {
-            map("CONF", conf)
-        }
+        channel.respond(packet) { map("CONF", conf) } // Respond with the config
     }
 
+    /**
+     * handlePing Handles user ping updates. stores the current time in
+     * the session. Then responds with a ping response containing the time
+     *
+     * @param packet The packet requesting a ping update
+     */
     private fun handlePing(packet: Packet) {
         Logger.logIfDebug { "Received ping update from client: ${session.sessionId}" }
         session.lastPingTime = System.currentTimeMillis()
@@ -917,6 +981,12 @@ private class MainClient(private val session: PlayerSession, private val config:
         }
     }
 
+    /**
+     * handlePreAuth Handles pre authentication sends the user
+     * configurations for the other servers
+     *
+     * @param packet The packet requesting pre-auth information
+     */
     private fun handlePreAuth(packet: Packet) {
         channel.respond(packet) {
             number("ANON", 0x0)
@@ -976,6 +1046,12 @@ private class MainClient(private val session: PlayerSession, private val config:
         }
     }
 
+    /**
+     * handlePostAuth Handles post authentication sends the configuration
+     * for the telemetry, player sync and ticker server informaiton
+     *
+     * @param packet The packet requesting post-auth information
+     */
     private fun handlePostAuth(packet: Packet) {
         channel.respond(packet) {
             +group("PSS") {
@@ -1018,6 +1094,12 @@ private class MainClient(private val session: PlayerSession, private val config:
         }
     }
 
+    /**
+     * handleUserSettingsSave Handles updating user settings from the client
+     * the settings are parsed then stored in the database
+     *
+     * @param packet The packet requesting a setting update
+     */
     private fun handleUserSettingsSave(packet: Packet) {
         val value = packet.textOrNull("DATA")
         val key = packet.textOrNull("KEY")
@@ -1027,12 +1109,23 @@ private class MainClient(private val session: PlayerSession, private val config:
         respondEmpty(packet)
     }
 
+    /**
+     * handleUserSettingsLoadAll Handles setting all the user settings to
+     * the client. Makes a database request and returns it as a map
+     *
+     * @param packet The packet requesting the user settings
+     */
     private fun handleUserSettingsLoadAll(packet: Packet) {
         channel.respond(packet) {
             map("SMAP", session.player.createSettingsMap())
         }
     }
 
+    /**
+     * handleSuspendUserPing Functionality unknown
+     *
+     * @param packet The packet requesting suspend user ping
+     */
     private fun handleSuspendUserPing(packet: Packet) {
         when (packet.numberOrNull("TVAL")) {
             0x1312D00L -> channel.error(packet, 0x12D)
@@ -1042,5 +1135,4 @@ private class MainClient(private val session: PlayerSession, private val config:
     }
 
     //endregion
-
 }
