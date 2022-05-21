@@ -104,6 +104,21 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
         }
     }
 
+    private fun parseQuery(value: String): Map<String, String> {
+        val out = HashMap<String, String>()
+        value.split('&').forEach { keyValue ->
+            val parts = keyValue.split('=', limit = 2)
+            if (parts.size > 1) {
+                out[URLDecoder.decode(parts[0], Charsets.UTF_8)] = URLDecoder.decode(parts[1], Charsets.UTF_8)
+            } else {
+                out[URLDecoder.decode(parts[0], Charsets.UTF_8)] = ""
+            }
+        }
+        return out
+    }
+
+    data class Request(val pathFull: String, val path: List<String>, val query: Map<String, String>)
+
     override fun channelReadComplete(ctx: ChannelHandlerContext) {
         super.channelReadComplete(ctx)
         ctx.flush()
@@ -249,20 +264,7 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
         }
     }
 
-    private fun parseQuery(value: String): Map<String, String> {
-        val out = HashMap<String, String>()
-        value.split('&').forEach { keyValue ->
-            val parts = keyValue.split('=', limit = 2)
-            if (parts.size > 1) {
-                out[URLDecoder.decode(parts[0], Charsets.UTF_8)] = URLDecoder.decode(parts[1], Charsets.UTF_8)
-            } else {
-                out[URLDecoder.decode(parts[0], Charsets.UTF_8)] = ""
-            }
-        }
-        return out
-    }
-
-    data class Request(val path: List<String>, val query: Map<String, String>)
+    //region GAW Handlers
 
     private fun handleGAWResponse(ctx: ChannelHandlerContext, url: String) {
         val rawPath = url.substring(23)
@@ -272,28 +274,19 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
         val urlParts = rawPath.split('?', limit = 2)
         val path = urlParts[0].split('/')
         val query = if (urlParts.size > 1) parseQuery(urlParts[1]) else emptyMap()
-        if (path.isEmpty()) {
+        if (path.size < 2) {
             return ctx.respond(HttpResponseStatus.NOT_FOUND)
         }
-        val request = Request(path, query)
-        when (path[0]) {
-            "authentication" -> handleGAWAuthentication(ctx, request)
-            "galaxyatwar" -> {
-                if (request.path.size < 3) return ctx.respond(HttpResponseStatus.BAD_REQUEST)
-                when (path[1]) {
-                    "getRatings" -> handleGAWRatings(ctx, request)
-                    "increaseRatings" -> handleGAWIncreaseRatings(ctx, request)
-                    else -> ctx.respond(HttpResponseStatus.BAD_REQUEST)
-                }
-            }
+        val request = Request(urlParts[0], path, query)
+        when (path[0] + ":" + path[1]) {
+            "authentication:sharedTokenLogin" -> handleGAWAuthentication(ctx, request)
+            "galaxyatwar:getRatings" -> handleGAWRatings(ctx, request)
+            "galaxyatwar:increaseRatings"  -> handleGAWIncreaseRatings(ctx, request)
             else -> ctx.respond(HttpResponseStatus.BAD_REQUEST)
         }
     }
 
     private fun handleGAWAuthentication(ctx: ChannelHandlerContext, request: Request) {
-        if (request.path.size < 2 || !request.path[1].startsWith("sharedTokenLogin")) {
-            return ctx.respond(HttpResponseStatus.BAD_REQUEST)
-        }
         val playerId = request.query["auth"]?.toIntOrNull(16) ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
         val player = transaction { Player.findById(playerId) } ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
         Logger.debug("Authenticated GAW User ${player.displayName}")
@@ -394,4 +387,6 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
             }
         })
     }
+
+    //endregion
 }
