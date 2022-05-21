@@ -107,7 +107,7 @@ private class MainClient(private val session: PlayerSession, private val config:
                 else -> respondEmpty(msg)
             }
         } catch (e: NotAuthenticatedException) {
-            val address= channel.remoteAddress()
+            val address = channel.remoteAddress()
             channel.send(LoginError.INVALID_ACCOUNT(msg))
             Logger.warn("Client at $address tried to access a authenticated route without authenticating")
         } catch (e: Exception) {
@@ -518,39 +518,54 @@ private class MainClient(private val session: PlayerSession, private val config:
 
     //region Stats Component Region
 
-
+    /**
+     * handleStats Handles commands under the STATS component handles
+     * functionality for the leaderboard logic
+     *
+     * @param packet The packet with the STATS component
+     */
     private fun handleStats(packet: Packet) {
         when (packet.command) {
             GET_LEADERBOARD_GROUP -> handleLeaderboardGroup(packet)
             GET_FILTERED_LEADERBOARD -> handleFilteredLeaderboard(packet)
             GET_LEADERBOARD_ENTITY_COUNT -> handleLeaderboardEntityCount(packet)
             GET_CENTERED_LEADERBOARD -> handleCenteredLeadboard(packet)
-            else -> {}
+            else -> respondEmpty(packet)
         }
     }
 
-    private fun getLocalName(code: String): String {
-        return when (code.lowercase()) {
-            "global" -> "Global"
-            "de" -> "Germany"
-            "en" -> "English"
-            "es" -> "Spain"
-            "fr" -> "France"
-            "it" -> "Italy"
-            "ja" -> "Japan"
-            "pl" -> "Poland"
-            "ru" -> "Russia"
-            else -> code
-        }
+    /**
+     * getLocaleName Translates the provided locale name
+     * to the user readable name
+     *
+     * @param code The shorthand code for the locale name
+     * @return The human readable locale name
+     */
+    private fun getLocaleName(code: String): String = when (code.lowercase()) {
+        "global" -> "Global"
+        "de" -> "Germany"
+        "en" -> "English"
+        "es" -> "Spain"
+        "fr" -> "France"
+        "it" -> "Italy"
+        "ja" -> "Japan"
+        "pl" -> "Poland"
+        "ru" -> "Russia"
+        else -> code
     }
 
+    /**
+     * handleLeaderboardGroup TODO: NOT IMPLEMENTED PROPERLY
+     *
+     * @param packet Packet requesting a leaderboard group
+     */
     private fun handleLeaderboardGroup(packet: Packet) {
         val name: String = packet.text("NAME")
         val isN7 = name.startsWith("N7Rating")
         if (isN7 || name.startsWith("ChallengePoints")) {
             val locale: String = name.substring(if (isN7) 8 else 15)
             val isGlobal = locale == "Global"
-            val localeName = getLocalName(locale)
+            val localeName = getLocaleName(locale)
             val ksvl: Map<Int, Int>
             val lbsz: Int
             if (isGlobal) {
@@ -610,6 +625,11 @@ private class MainClient(private val session: PlayerSession, private val config:
 
     }
 
+    /**
+     * handleFilteredLeaderboard TODO: NOT IMPLEMENTED PROPERLY
+     *
+     * @param packet The packet requesting a filtered leaderboard
+     */
     private fun handleFilteredLeaderboard(packet: Packet) {
         val name: String = packet.text("NAME")
         val player = session.player
@@ -652,6 +672,13 @@ private class MainClient(private val session: PlayerSession, private val config:
         }
     }
 
+    /**
+     * handleLeaderboardEntityCount Handles telling the client how many
+     * "entites" (players) are on the leaderboard in this case it's just
+     * the total number of players
+     *
+     * @param packet The packet requesting the leadboard entity count
+     */
     private fun handleLeaderboardEntityCount(packet: Packet) {
         transaction {
             val playerCount = Player.count()
@@ -661,6 +688,11 @@ private class MainClient(private val session: PlayerSession, private val config:
         }
     }
 
+    /**
+     * handleCenteredLeadboard Returns a centered leaderboard TODO: NOT IMPLEMENTED
+     *
+     * @param packet The packet requesting a centered leaderboard
+     */
     private fun handleCenteredLeadboard(packet: Packet) {
         // TODO: Currenlty not implemented
         channel.respond(packet) {
@@ -696,10 +728,10 @@ private class MainClient(private val session: PlayerSession, private val config:
                         number("FLAG", 0x01)
                         number("STAT", 0x00)
                         number("TAG", 0x00)
-                        tripple("TARG", 0x7802, 0x01, player.id.value.toLong())
+                        tripple("TARG", 0x7802, 0x01, player.playerId.toLong())
                         number("TYPE", 0x0)
                     }
-                    tripple("SRCE", 0x7802, 0x01, player.id.value.toLong())
+                    tripple("SRCE", 0x7802, 0x01, player.playerId.toLong())
                     number("TIME", unixTimeSeconds())
                 })
 
