@@ -324,6 +324,12 @@ private class MainClient(private val session: PlayerSession, private val config:
 
     //region Game Manager Component Region
 
+    /**
+     * handleGameManager Handles commands under the GAME_MANAGER component this handles
+     * things such as game creation, managements, and matchmaking
+     *
+     * @param packet The packet with a GAME_MANAGER component
+     */
     private fun handleGameManager(packet: Packet) {
         when (packet.command) {
             CREATE_GAME -> handleCreateGame(packet)
@@ -338,15 +344,28 @@ private class MainClient(private val session: PlayerSession, private val config:
         }
     }
 
+    /**
+     * handleCreateGame Handles creating a game based on the provided attributes
+     * and then tells the client the details of the created game
+     *
+     * @param packet The packet requesting creation of a game
+     */
     private fun handleCreateGame(packet: Packet) {
-        val attributes = packet.mapKVOrNull("ATTR") ?: return
-        val game = GameManager.createGame(session)
-        game.attributes.setValues(attributes)
-        channel.respond(packet) { number("GID", game.id) }
-        channel.send(game.createPoolPacket(true))
-        channel.send(session.createSetSession())
+        val attributes = packet.mapKVOrNull("ATTR") // Get the provided users attributes
+        val game = GameManager.createGame(session) // Create a new game
+        game.attributes.setValues(attributes ?: emptyMap()) // If the attributes are missing use empty
+        channel.respond(packet) { number("GID", game.id) } // Respond with the game ID
+        channel.send(game.createPoolPacket(true)) // Send the game pool details
+        channel.send(session.createSetSession()) // Send the user session
     }
 
+    /**
+     * handleAdvanceGameState Handles updating the state of a game from the host
+     * TODO: Validate that this packet is actually coming from the host?
+     * Updates the game state of a the game with the id matching GID to the GSTA value
+     *
+     * @param packet The packet requesting game state change
+     */
     private fun handleAdvanceGameState(packet: Packet) {
         val gameId = packet.number("GID")
         val gameState = packet.number("GSTA").toInt()
@@ -357,6 +376,12 @@ private class MainClient(private val session: PlayerSession, private val config:
         respondEmpty(packet)
     }
 
+    /**
+     * handleSetGameSettings Handles updating the game setting... from the packet command
+     * used it appears that this could be having a different functionality?
+     *
+     * @param packet The packet requesting set game settings
+     */
     private fun handleSetGameSettings(packet: Packet) {
         val gameId = packet.number("GID")
         val setting = packet.number("GSET").toInt()
@@ -374,6 +399,13 @@ private class MainClient(private val session: PlayerSession, private val config:
         }
     }
 
+    /**
+     * handleSetGameAttributes Handles changing the attributes of the provided
+     * game that matches GID the newly changed attributes are then broadcasted
+     * to all the game players.
+     *
+     * @param packet The packet requesting attribute changes
+     */
     private fun handleSetGameAttributes(packet: Packet) {
         val gameId = packet.number("GID")
         val attributes = packet.mapKVOrNull("ATTR")
@@ -389,6 +421,12 @@ private class MainClient(private val session: PlayerSession, private val config:
         respondEmpty(packet)
     }
 
+    /**
+     * handleRemovePlayer Handles removing the player with the
+     * provided PID from the game
+     *
+     * @param packet The packet requesting the player removal
+     */
     private fun handleRemovePlayer(packet: Packet) {
         val playerId = packet.number("PID").toInt()
         val gameId = packet.number("GID")
@@ -397,6 +435,13 @@ private class MainClient(private val session: PlayerSession, private val config:
         respondEmpty(packet)
     }
 
+    /**
+     * handleStartMatchmaking Handles finding a match for the current player session
+     * this doesn't search based on the provided attributes isntead just finding the
+     * first game with an open slot and connecting to that
+     *
+     * @param packet The packet requesting to start matchmaking
+     */
     private fun handleStartMatchmaking(packet: Packet) {
         session.waitingForJoin = true
         // TODO: Implement Proper Searching
@@ -419,11 +464,24 @@ private class MainClient(private val session: PlayerSession, private val config:
         channel.send(game.createPoolPacket(false))
     }
 
+    /**
+     * handleCancelMatchmaking Handles canceling matchmaking this just removes
+     * the player from any existing games and sets waiting for join to false
+     *
+     * @param packet The packet requesting to cancel matchmaking
+     */
     private fun handleCancelMatchmaking(packet: Packet) {
         session.waitingForJoin = false
+        session.leaveGame()
         respondEmpty(packet)
     }
 
+    /**
+     * handleUpdateMeshConnection Functionality unknown but appears to tell
+     * the host and players about games and player linking?
+     *
+     * @param packet The packet requesting the update mesh connection
+     */
     private fun handleUpdateMeshConnection(packet: Packet) {
         val gameId = packet.number("GID")
         val game = GameManager.getGameById(gameId)
@@ -459,6 +517,7 @@ private class MainClient(private val session: PlayerSession, private val config:
     //endregion
 
     //region Stats Component Region
+
 
     private fun handleStats(packet: Packet) {
         when (packet.command) {

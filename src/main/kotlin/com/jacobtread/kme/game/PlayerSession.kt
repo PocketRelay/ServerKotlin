@@ -84,6 +84,14 @@ class PlayerSession {
     }
 
     /**
+     * leaveGame Leaves the current game if we are in one
+     */
+    fun leaveGame() {
+        game?.removePlayer(this)
+        game = null
+    }
+
+    /**
      * send Sends multiple packets to the channel for this session. Will
      * write all the packets before flushing the channel
      *
