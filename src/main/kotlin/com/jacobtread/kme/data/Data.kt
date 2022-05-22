@@ -238,8 +238,8 @@ object Data {
             address
         }
         return mapOf(
-            "GAW_SERVER_BASE_URL" to "http://$host/wal/masseffect-gaw-pc",
-            "IMG_MNGR_BASE_URL" to "http://$host/editorial/MassEffect/3/",
+            "GAW_SERVER_BASE_URL" to "http://$host/gaw",
+            "IMG_MNGR_BASE_URL" to "http://$host/content/",
             "IMG_MNGR_MAX_BYTES" to "1048576",
             "IMG_MNGR_MAX_IMAGES" to "5",
             "JOB_THROTTLE_0" to "0",

@@ -184,6 +184,7 @@ class WrappedRequest(private val http: HttpRequest) {
         val resource = Data.getResourceOrNull("$path/$fileName")
         if (resource == null) {
             responseStatus = HttpResponseStatus.NOT_FOUND
+            if (fileName != "404.html") static("404.html", "public")
         } else {
             responseStatus = HttpResponseStatus.OK
             contentType = if (fileName.endsWith(".js")) {

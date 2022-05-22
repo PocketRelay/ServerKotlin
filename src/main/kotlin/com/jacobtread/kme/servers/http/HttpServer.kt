@@ -19,10 +19,26 @@ fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
     try {
         val port = config.ports.http
         val router = router(config) {
-            group("wal/masseffect-gaw-pc") {
+            group("gaw") {
                 get("authentication/sharedTokenLogin", GAWController.Authentication)
                 get("galaxyatwar/getRatings/:id", GAWController.Ratings)
                 get("galaxyatwar/increaseRatings/:id", GAWController.IncreaseRatings)
+            }
+            group("panel") {
+                group("api") {
+
+                }
+                get("*") { _, request ->
+                    val path = request.param("*")
+                    request.static(path, "public")
+                }
+            }
+            get("content/:*") { _, request ->
+                val path = request.param("*")
+                val fileName = path.substringAfterLast('/')
+                request.setHeader("Accept-Ranges", "bytes")
+                request.setHeader("ETag", "524416-1333666807000")
+                request.static(fileName, "public")
             }
         }
         val initializer = HttpInitializer(router)
