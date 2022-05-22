@@ -38,8 +38,9 @@ dependencies {
     // JSON Serialization for the web
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
 
-    // XML Builder for GAW responses
-    implementation("org.redundent:kotlin-xml-builder:1.7.4")
+    // Local disk dependencies
+    implementation(fileTree("libs") { include("*.jar") })
+
 
     // JDBC Connectors
     implementation("mysql:mysql-connector-java:8.0.29")

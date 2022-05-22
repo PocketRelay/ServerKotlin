@@ -7,6 +7,8 @@ import com.jacobtread.kme.database.PlayerGalaxyAtWar
 import com.jacobtread.kme.database.PlayerSettingsBase
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.unixTimeSeconds
+import com.jacobtread.xml.Node
+import com.jacobtread.xml.xml
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.Unpooled
 import io.netty.channel.Channel
@@ -22,9 +24,6 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.redundent.kotlin.xml.Node
-import org.redundent.kotlin.xml.PrintOptions
-import org.redundent.kotlin.xml.xml
 import java.io.IOException
 import java.net.URLDecoder
 import java.nio.file.Files
@@ -80,8 +79,9 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
                     }
                     is Node -> {
                         type = contentType ?: "text/xml;charset=UTF-8"
-                        val encoded = content.toString(XML_PRINT_OPTIONS)
-                        Unpooled.copiedBuffer(encoded, Charsets.UTF_8)
+
+                        val value = content.toString(false)
+                        Unpooled.copiedBuffer(value, Charsets.UTF_8)
                     }
                     else -> throw IllegalArgumentException("Dont know how to handle unknown content type: $content")
                 }

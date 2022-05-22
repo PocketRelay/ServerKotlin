@@ -1,5 +1,6 @@
 import com.jacobtread.kme.utils.unixTimeSeconds
 import org.redundent.kotlin.xml.PrintOptions
+import org.redundent.kotlin.xml.XmlVersion
 import org.redundent.kotlin.xml.xml
 
 fun main() {
@@ -10,12 +11,7 @@ fun main() {
     val playerEmail = "test@test.com"
 
     @Suppress("SpellCheckingInspection")
-    val value = xml("fulllogin") {
-        globalProcessingInstruction(
-            "xml",
-            "version" to "1.0",
-            "encoding" to "UTF-8"
-        )
+    val value = xml("fulllogin", "UTF-8", XmlVersion.V10) {
         element("canageup", "0")
         element("legaldochost")
         element("needslegaldoc", "0")
@@ -28,7 +24,7 @@ fun main() {
             element("lastlogindatetime", time)
             element("email", playerEmail)
         }
-   }
+    }
     val printOptions = PrintOptions(
         singleLineTextElements = true
     )

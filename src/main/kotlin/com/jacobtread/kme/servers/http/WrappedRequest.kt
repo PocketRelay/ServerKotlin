@@ -1,6 +1,10 @@
 package com.jacobtread.kme.servers.http
 
 import com.jacobtread.kme.data.Data
+import com.jacobtread.kme.servers.http.exceptions.InvalidParamException
+import com.jacobtread.kme.servers.http.exceptions.InvalidQueryException
+import com.jacobtread.xml.Node
+import com.jacobtread.xml.XmlVersion
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import io.netty.handler.codec.http.*
@@ -9,17 +13,11 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.redundent.kotlin.xml.Node
-import org.redundent.kotlin.xml.PrintOptions
 import java.net.URLDecoder
 import java.nio.file.Files
 import java.nio.file.Paths
 
 class WrappedRequest(private val http: HttpRequest) {
-
-    companion object {
-        private val XML_PRINT_OPTIONS = PrintOptions(singleLineTextElements = true, pretty = false)
-    }
 
     val method: HttpMethod get() = http.method()
 
@@ -31,7 +29,7 @@ class WrappedRequest(private val http: HttpRequest) {
     private var _params: MutableMap<String, String>? = null
     private var _query: MutableMap<String, String>? = null
 
-    private var responseCode: HttpResponseStatus = HttpResponseStatus.NOT_FOUND
+    private var responseStatus: HttpResponseStatus = HttpResponseStatus.NOT_FOUND
     private var responseBuffer: ByteBuf? = null
     private var responseHeaders: MutableMap<String, String>? = null
     private var contentType: String = "text;charset=UTF-8"
@@ -51,14 +49,14 @@ class WrappedRequest(private val http: HttpRequest) {
         if (contentBuffer != null) {
             response = DefaultFullHttpResponse(
                 HttpVersion.HTTP_1_1,
-                responseCode,
+                responseStatus,
                 contentBuffer
             )
             contentLength = contentBuffer.readableBytes()
         } else {
             response = DefaultFullHttpResponse(
                 HttpVersion.HTTP_1_1,
-                responseCode
+                responseStatus
             )
             contentLength = 0
         }
@@ -91,15 +89,15 @@ class WrappedRequest(private val http: HttpRequest) {
         _params!![key] = value
     }
 
-    fun param(key: String): String? = _params?.get(key)
-    fun paramInt(key: String): Int? = param(key)?.toIntOrNull()
+    fun param(key: String): String = _params?.get(key) ?: throw InvalidParamException(key)
+    fun paramInt(key: String): Int = param(key).toIntOrNull() ?: throw InvalidParamException(key)
 
-    fun query(key: String): String? {
+    fun query(key: String): String {
         if (_query == null) _query = parseQuery()
-        return _query!![key]
+        return _query!![key] ?: throw InvalidQueryException(key)
     }
 
-    fun queryInt(key: String): Int? = query(key)?.toIntOrNull()
+    fun queryInt(key: String, radix: Int = 10): Int = query(key).toIntOrNull(radix) ?: throw InvalidQueryException(key)
 
     fun setHeader(key: String, value: String) {
         var headers = this.responseHeaders
@@ -109,9 +107,17 @@ class WrappedRequest(private val http: HttpRequest) {
     }
 
     fun xml(content: Node) {
-        responseCode = HttpResponseStatus.OK
+        responseStatus = HttpResponseStatus.OK
         contentType = "text/xml;charset=UTF-8"
-        responseBuffer = Unpooled.copiedBuffer(content.toString(XML_PRINT_OPTIONS), Charsets.UTF_8)
+        responseBuffer = Unpooled.copiedBuffer(content.toString(false), Charsets.UTF_8)
+    }
+
+    inline fun xml(root: String, init: Node.() -> Unit) {
+        val rootNode = Node(root)
+        rootNode.encoding = "UTF-8"
+        rootNode.version = XmlVersion.V10
+        rootNode.init()
+        xml(rootNode)
     }
 
     fun <V> contentJson(serializer: DeserializationStrategy<V>): V? {
@@ -129,16 +135,16 @@ class WrappedRequest(private val http: HttpRequest) {
 
     fun <V> json(serializer: SerializationStrategy<V>, value: V) {
         try {
-            responseCode = HttpResponseStatus.OK
+            responseStatus = HttpResponseStatus.OK
             responseBuffer = Unpooled.copiedBuffer(Json.encodeToString(serializer, value), Charsets.UTF_8)
         } catch (e: SerializationException) {
-            responseCode = HttpResponseStatus.INTERNAL_SERVER_ERROR
+            responseStatus = HttpResponseStatus.INTERNAL_SERVER_ERROR
             responseBuffer = null
         }
     }
 
-    fun response(code: HttpResponseStatus, content: ByteBuf?) {
-        responseCode = code
+    fun response(status: HttpResponseStatus, content: ByteBuf? = null) {
+        responseStatus = status
         responseBuffer = content
     }
 
@@ -151,19 +157,19 @@ class WrappedRequest(private val http: HttpRequest) {
     }
 
     fun bytes(content: ByteArray, contentType: String) {
-        responseCode = HttpResponseStatus.OK
+        responseStatus = HttpResponseStatus.OK
         this.contentType = contentType
         responseBuffer = Unpooled.wrappedBuffer(content)
     }
 
     fun text(content: String, contentType: String = this.contentType) {
-        responseCode = HttpResponseStatus.OK
+        responseStatus = HttpResponseStatus.OK
         this.contentType = contentType
         responseBuffer = Unpooled.copiedBuffer(content, Charsets.UTF_8)
     }
 
     fun html(content: String) {
-        responseCode = HttpResponseStatus.OK
+        responseStatus = HttpResponseStatus.OK
         this.contentType = "text/html;charset=UTF-8"
         responseBuffer = Unpooled.copiedBuffer(content, Charsets.UTF_8)
     }
@@ -171,9 +177,9 @@ class WrappedRequest(private val http: HttpRequest) {
     fun static(fileName: String, path: String) {
         val resource = Data.getResourceOrNull("$path/$fileName")
         if (resource == null) {
-            responseCode = HttpResponseStatus.NOT_FOUND
+            responseStatus = HttpResponseStatus.NOT_FOUND
         } else {
-            responseCode = HttpResponseStatus.OK
+            responseStatus = HttpResponseStatus.OK
             contentType = if (fileName.endsWith(".js")) {
                 "text/javascript"
             } else if (fileName.endsWith(".css")) {
