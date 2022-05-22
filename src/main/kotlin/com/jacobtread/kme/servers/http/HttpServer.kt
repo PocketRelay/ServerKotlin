@@ -19,7 +19,7 @@ fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
     try {
         val port = config.ports.http
         val router = router(config) {
-            group("/wal/masseffect-gaw-pc/") {
+            group("wal/masseffect-gaw-pc") {
                 get("authentication/sharedTokenLogin", GAWController.Authentication)
                 get("galaxyatwar/getRatings/:id", GAWController.Ratings)
                 get("galaxyatwar/increaseRatings/:id", GAWController.IncreaseRatings)

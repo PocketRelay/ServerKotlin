@@ -5,6 +5,7 @@ import com.jacobtread.kme.servers.http.WrappedRequest
 import com.jacobtread.kme.servers.http.exceptions.InvalidParamException
 import com.jacobtread.kme.servers.http.exceptions.InvalidQueryException
 import com.jacobtread.kme.utils.logging.Logger
+import com.mysql.cj.log.Log
 import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.SimpleChannelInboundHandler
@@ -27,16 +28,21 @@ class Router(val config: Config) : SimpleChannelInboundHandler<HttpRequest>(), R
     override fun channelRead0(ctx: ChannelHandlerContext, msg: HttpRequest) {
         val request = WrappedRequest(msg)
         try {
+            Logger.info("Received request ${request.url}")
             for (route in routes) {
                 if (!route.matches(config, 0, request)) continue
-                if (route.handle(config, request)) break
+                if (route.handle(config, request)) {
+                    Logger.info("Request handled by $route")
+                    break
+                }
             }
         } catch (e: Exception) {
             if (e !is InvalidParamException && e !is InvalidQueryException) {
-                Logger.info("Exception occurred when handling http request", e)
-                request.response(HttpResponseStatus.BAD_REQUEST)
-            } else {
                 request.response(HttpResponseStatus.INTERNAL_SERVER_ERROR)
+                Logger.info("Exception occurred when handling http request", e)
+            } else {
+                request.response(HttpResponseStatus.BAD_REQUEST)
+                Logger.info("Exception occurred when handling http request", e)
             }
         }
         val response = request.createResponse()

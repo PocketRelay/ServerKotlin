@@ -15,7 +15,7 @@ import kotlin.math.min
 object GAWController : GroupRoute("/wal/masseffect-gaw-pc/") {
 
     val Authentication = RouteFunction { _, request ->
-        val playerId = request.queryInt("id", 16)
+        val playerId = request.queryInt("auth", 16)
         val player = transaction {
             Player.findById(playerId)
         } ?: return@RouteFunction request.response(HttpResponseStatus.BAD_REQUEST)

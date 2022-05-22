@@ -35,7 +35,7 @@ class WrappedRequest(private val http: HttpRequest) {
     private var contentType: String = "text;charset=UTF-8"
 
     init {
-        val parts = http.uri().split('?', limit = 1)
+        val parts = http.uri().split('?', limit = 2)
         val url = parts[0].removePrefix("/").removeSuffix("/")
         this.url = url
         this.tokens = url.split('/')
