@@ -4,7 +4,6 @@ import com.jacobtread.kme.Config
 import com.jacobtread.kme.servers.http.controllers.GAWController
 import com.jacobtread.kme.servers.http.router.Router
 import com.jacobtread.kme.servers.http.router.router
-import com.jacobtread.kme.servers.http.router.routerGroup
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
@@ -20,7 +19,11 @@ fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
     try {
         val port = config.ports.http
         val router = router(config) {
-            group(GAWController)
+            group("/wal/masseffect-gaw-pc/") {
+                get("authentication/sharedTokenLogin", GAWController.Authentication)
+                get("galaxyatwar/getRatings/:id", GAWController.Ratings)
+                get("galaxyatwar/increaseRatings/:id", GAWController.IncreaseRatings)
+            }
         }
         val initializer = HttpInitializer(router)
         ServerBootstrap()

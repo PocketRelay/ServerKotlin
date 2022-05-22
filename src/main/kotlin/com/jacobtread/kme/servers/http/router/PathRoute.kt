@@ -8,19 +8,22 @@ open class PathRoute(
     private val method: Router.HttpMethod,
     private val handler: RouteFunction,
 ) : TokenMatcher() {
-
-    override val tokens = pattern
+    private val pattern = pattern
         .removePrefix("/")
         .removeSuffix("/")
+
+    override val tokens = this.pattern
         .split('/')
 
-    override fun matches(config: Config, request: WrappedRequest): Boolean {
+    override fun matches(config: Config, start: Int, request: WrappedRequest): Boolean {
         if (method != Router.HttpMethod.ANY && method.value != request.method) return false
-        return super.matches(config, request)
+        return super.matches(config, start, request)
     }
 
     override fun handle(config: Config, request: WrappedRequest): Boolean {
         handler.handle(config, request)
         return true
     }
+
+    override fun toString(): String = "Path($pattern)"
 }

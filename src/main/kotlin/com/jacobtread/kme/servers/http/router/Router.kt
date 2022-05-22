@@ -5,12 +5,14 @@ import com.jacobtread.kme.servers.http.WrappedRequest
 import com.jacobtread.kme.servers.http.exceptions.InvalidParamException
 import com.jacobtread.kme.servers.http.exceptions.InvalidQueryException
 import com.jacobtread.kme.utils.logging.Logger
+import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.handler.codec.http.HttpRequest
 import io.netty.handler.codec.http.HttpResponseStatus
 import io.netty.handler.codec.http.HttpMethod as NettyHttpMethod
 
+@Sharable
 class Router(val config: Config) : SimpleChannelInboundHandler<HttpRequest>(), RoutingGroup {
     enum class HttpMethod(val value: NettyHttpMethod?) {
         ANY(null),
@@ -26,7 +28,7 @@ class Router(val config: Config) : SimpleChannelInboundHandler<HttpRequest>(), R
         val request = WrappedRequest(msg)
         try {
             for (route in routes) {
-                if (!route.matches(config, request)) continue
+                if (!route.matches(config, 0, request)) continue
                 if (route.handle(config, request)) break
             }
         } catch (e: Exception) {
@@ -39,6 +41,12 @@ class Router(val config: Config) : SimpleChannelInboundHandler<HttpRequest>(), R
         }
         val response = request.createResponse()
         ctx.writeAndFlush(response)
+    }
+
+    inline fun group(pattern: String, init: GroupRoute.() -> Unit) {
+        val group = GroupRoute(pattern)
+        group.init()
+        routes.add(group)
     }
 }
 

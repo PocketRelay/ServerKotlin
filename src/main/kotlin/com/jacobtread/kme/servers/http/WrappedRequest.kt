@@ -90,14 +90,20 @@ class WrappedRequest(private val http: HttpRequest) {
     }
 
     fun param(key: String): String = _params?.get(key) ?: throw InvalidParamException(key)
-    fun paramInt(key: String): Int = param(key).toIntOrNull() ?: throw InvalidParamException(key)
+    fun paramInt(key: String, radix: Int): Int = param(key).toIntOrNull(radix) ?: throw InvalidParamException(key)
 
     fun query(key: String): String {
         if (_query == null) _query = parseQuery()
-        return _query!![key] ?: throw InvalidQueryException(key)
+        return _query?.get(key) ?: throw InvalidQueryException(key)
+    }
+
+    fun queryOrNull(key: String): String? {
+        if (_query == null) _query = parseQuery()
+        return _query?.get(key)
     }
 
     fun queryInt(key: String, radix: Int = 10): Int = query(key).toIntOrNull(radix) ?: throw InvalidQueryException(key)
+    fun queryInt(key: String, default: Int, radix: Int = 10): Int = queryOrNull(key)?.toIntOrNull(radix) ?: default
 
     fun setHeader(key: String, value: String) {
         var headers = this.responseHeaders

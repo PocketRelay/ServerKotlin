@@ -628,6 +628,8 @@ class PlayerGalaxyAtWar(id: EntityID<Int>) : IntEntity(id) {
     var c by PlayerGalaxyAtWars.c
     var d by PlayerGalaxyAtWars.d
     var e by PlayerGalaxyAtWars.e
+
+    fun average(): Int = (a + b + c + d + e) / 5
 }
 
 /**

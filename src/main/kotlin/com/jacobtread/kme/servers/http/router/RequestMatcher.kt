@@ -10,10 +10,11 @@ interface RequestMatcher {
      * and should be passed onto handle
      *
      * @param config The config for the server
+     * @param start The portion index to start at
      * @param request The request to match
      * @return Whether to should be handled by this matcher
      */
-    fun matches(config: Config, request: WrappedRequest): Boolean
+    fun matches(config: Config, start: Int, request: WrappedRequest): Boolean
 
     /**
      * handle Handles the logic of this request matcher

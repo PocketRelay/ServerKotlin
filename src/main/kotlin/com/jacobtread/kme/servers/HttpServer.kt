@@ -129,7 +129,6 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
         val url = msg.uri()
         Logger.debug("HTTP Request: $url")
         if (url.startsWith("/wal/masseffect-gaw-pc")) {
-            handleGAWResponse(ctx, url)
         } else if (url.startsWith("/panel")) {
             handlePanelResponse(ctx, url, msg)
         } else {
@@ -302,128 +301,6 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
     }
 
     //region GAW Handlers
-
-    private fun handleGAWResponse(ctx: ChannelHandlerContext, url: String) {
-        val rawPath = url.substring(23)
-        if (rawPath.isEmpty()) {
-            return ctx.respond(HttpResponseStatus.NOT_FOUND)
-        }
-        val urlParts = rawPath.split('?', limit = 2)
-        val path = urlParts[0].split('/')
-        val query = if (urlParts.size > 1) parseQuery(urlParts[1]) else emptyMap()
-        if (path.size < 2) {
-            return ctx.respond(HttpResponseStatus.NOT_FOUND)
-        }
-        val request = Request(urlParts[0], path, query)
-        when (path[0] + ":" + path[1]) {
-            "authentication:sharedTokenLogin" -> handleGAWAuthentication(ctx, request)
-            "galaxyatwar:getRatings" -> handleGAWRatings(ctx, request)
-            "galaxyatwar:increaseRatings" -> handleGAWIncreaseRatings(ctx, request)
-            else -> ctx.respond(HttpResponseStatus.BAD_REQUEST)
-        }
-    }
-
-    private fun handleGAWAuthentication(ctx: ChannelHandlerContext, request: Request) {
-        val playerId = request.query["auth"]?.toIntOrNull(16) ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
-        val player = transaction { Player.findById(playerId) } ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
-        Logger.debug("Authenticated GAW User ${player.displayName}")
-
-        val playerIdStr = playerId.toString()
-        val time = unixTimeSeconds().toString()
-
-        @Suppress("SpellCheckingInspection")
-        ctx.respond(xml("fulllogin") {
-            globalProcessingInstruction(
-                "xml",
-                "version" to "1.0",
-                "encoding" to "UTF-8"
-            )
-            element("canageup", "0")
-            element("legaldochost")
-            element("needslegaldoc", "0")
-            element("pclogintoken", player.sessionToken)
-            element("privacypolicyuri")
-            "sessioninfo" {
-                element("blazeuserid", playerIdStr)
-                element("isfirstlogin", "0")
-                element("sessionkey", playerIdStr)
-                element("lastlogindatetime", time)
-                element("email", player.email)
-                "personadetails" {
-                    element("displayname", player.displayName)
-                    element("lastauthenticated", time)
-                    element("personaid", playerIdStr)
-                    element("status", "UNKNOWN")
-                    element("extid", "0")
-                    element("exttype", "BLAZE_EXTERNAL_REF_TYPE_UNKNOWN")
-                }
-                element("userid", playerIdStr)
-            }
-            element("isoflegalcontactage", "0")
-            element("toshost")
-            element("termsofserviceuri")
-            element("tosuri")
-        })
-    }
-
-    private fun handleGAWRatings(ctx: ChannelHandlerContext, request: Request) {
-        val playerId = request.path[2].toIntOrNull() ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
-        val player = transaction { Player.findById(playerId) } ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
-        val rating = player.getOrCreateGAW(config.gaw)
-        respondGAWRating(ctx, player, rating)
-    }
-
-    private fun handleGAWIncreaseRatings(ctx: ChannelHandlerContext, request: Request) {
-        val playerId = request.path[2].toIntOrNull() ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
-        val player = transaction { Player.findById(playerId) } ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
-        val rating = player.getOrCreateGAW(config.gaw)
-        val maxValue = 10099
-        transaction {
-            rating.apply {
-                timestamp = unixTimeSeconds()
-                a = min(maxValue, a + (request.query["rinc|0"]?.toIntOrNull() ?: 0))
-                b = min(maxValue, b + (request.query["rinc|1"]?.toIntOrNull() ?: 0))
-                c = min(maxValue, c + (request.query["rinc|2"]?.toIntOrNull() ?: 0))
-                d = min(maxValue, d + (request.query["rinc|3"]?.toIntOrNull() ?: 0))
-                e = min(maxValue, e + (request.query["rinc|4"]?.toIntOrNull() ?: 0))
-            }
-        }
-        respondGAWRating(ctx, player, rating)
-    }
-
-    private fun respondGAWRating(ctx: ChannelHandlerContext, player: Player, rating: PlayerGalaxyAtWar) {
-        val level = (rating.a + rating.b + rating.c + rating.d + rating.e) / 5
-        val promotions = if (config.gaw.enablePromotions) player.getTotalPromotions() else 0
-
-        @Suppress("SpellCheckingInspection")
-        ctx.respond(xml("galaxyatwargetratings") {
-            globalProcessingInstruction(
-                "xml",
-                "version" to "1.0",
-                "encoding" to "UTF-8"
-            )
-            "ratings" {
-                element("ratings", rating.a.toString())
-                element("ratings", rating.b.toString())
-                element("ratings", rating.c.toString())
-                element("ratings", rating.d.toString())
-                element("ratings", rating.e.toString())
-            }
-            element("level", level.toString())
-            "assets" {
-                element("assets", promotions.toString())
-                element("assets", "0")
-                element("assets", "0")
-                element("assets", "0")
-                element("assets", "0")
-                element("assets", "0")
-                element("assets", "0")
-                element("assets", "0")
-                element("assets", "0")
-                element("assets", "0")
-            }
-        })
-    }
 
     //endregion
 }

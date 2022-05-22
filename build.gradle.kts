@@ -41,7 +41,6 @@ dependencies {
     // Local disk dependencies
     implementation(fileTree("libs") { include("*.jar") })
 
-
     // JDBC Connectors
     implementation("mysql:mysql-connector-java:8.0.29")
     implementation("org.xerial:sqlite-jdbc:3.36.0.3")
