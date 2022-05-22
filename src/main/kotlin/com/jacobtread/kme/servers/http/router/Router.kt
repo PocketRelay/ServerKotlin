@@ -51,12 +51,6 @@ class Router(val config: Config) : SimpleChannelInboundHandler<HttpRequest>(), R
         val response = request.createResponse()
         ctx.writeAndFlush(response)
     }
-
-    inline fun group(pattern: String, init: GroupRoute.() -> Unit) {
-        val group = GroupRoute(pattern)
-        group.init()
-        routes.add(group)
-    }
 }
 
 inline fun router(config: Config, init: Router.() -> Unit): Router {

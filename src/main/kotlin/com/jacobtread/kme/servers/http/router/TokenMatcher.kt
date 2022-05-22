@@ -23,10 +23,7 @@ abstract class TokenMatcher : RequestMatcher {
     override fun matches(config: Config, start: Int, request: WrappedRequest): Boolean {
         val requestTokens = request.tokens
         val tokenCount = tokens.size
-        if ((requestTokens.size - start) == tokenCount && (tokenCount > 1 || tokens[0] != "*")) {
-            return matchInternal(request, start, tokenCount)
-        }
-        if (tokenCount > 0 && tokens.last() == "*") {
+        if (tokenCount > 0 && tokens.last() == ":*") {
             if (!matchInternal(request, start, tokenCount - 1)) return false
             val index = start + tokenCount - 1
             val builder = StringBuilder()
@@ -38,6 +35,9 @@ abstract class TokenMatcher : RequestMatcher {
             }
             request.setParam("*", builder.toString())
             return true
+        }
+        if ((requestTokens.size - start) == tokenCount) {
+            return matchInternal(request, start, tokenCount)
         }
         return false
     }

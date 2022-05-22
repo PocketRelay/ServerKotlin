@@ -8,10 +8,7 @@ import com.jacobtread.xml.XmlVersion
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import io.netty.handler.codec.http.*
-import kotlinx.serialization.DeserializationStrategy
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.SerializationStrategy
-import kotlinx.serialization.encodeToString
+import kotlinx.serialization.*
 import kotlinx.serialization.json.Json
 import java.net.URLDecoder
 import java.nio.file.Files
@@ -127,13 +124,28 @@ class WrappedRequest(private val http: HttpRequest) {
     }
 
     fun <V> contentJson(serializer: DeserializationStrategy<V>): V? {
+        val contents = contentsToBytes() ?: return null
+        return try {
+            Json.decodeFromString(serializer, contents.decodeToString())
+        } catch (e: SerializationException) {
+            null
+        }
+    }
+
+    fun contentsToBytes(): ByteArray? {
         if (http !is FullHttpRequest) return null
         val contentBuffer = http.content()
         val bytes = ByteArray(contentBuffer.readableBytes())
         contentBuffer.readBytes(bytes)
         contentBuffer.release()
+        return bytes
+    }
+
+
+    inline fun <reified V> contentJson(): V? {
+        val contents = contentsToBytes() ?: return null
         return try {
-            Json.decodeFromString(serializer, bytes.decodeToString())
+            Json.decodeFromString<V>(contents.decodeToString())
         } catch (e: SerializationException) {
             null
         }

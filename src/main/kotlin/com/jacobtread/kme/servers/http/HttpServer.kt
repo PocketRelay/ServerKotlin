@@ -1,8 +1,10 @@
 package com.jacobtread.kme.servers.http
 
 import com.jacobtread.kme.Config
+import com.jacobtread.kme.servers.http.controllers.APIController
 import com.jacobtread.kme.servers.http.controllers.GAWController
 import com.jacobtread.kme.servers.http.router.Router
+import com.jacobtread.kme.servers.http.router.groupedRoute
 import com.jacobtread.kme.servers.http.router.router
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.bootstrap.ServerBootstrap
@@ -19,18 +21,11 @@ fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
     try {
         val port = config.ports.http
         val router = router(config) {
-            group("gaw") {
-                get("authentication/sharedTokenLogin", GAWController.Authentication)
-                get("galaxyatwar/getRatings/:id", GAWController.Ratings)
-                get("galaxyatwar/increaseRatings/:id", GAWController.IncreaseRatings)
-            }
-            group("panel") {
-                group("api") {
-
-                }
-                get("*") { _, request ->
+            +GAWController
+            +groupedRoute("panel") {
+                +APIController
+                get(":*") { _, request ->
                     val path = request.param("*")
-                    println("Panel static matched $path")
                     request.static(path, "panel", "index.html", "panel")
                 }
             }

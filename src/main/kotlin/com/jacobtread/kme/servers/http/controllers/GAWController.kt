@@ -6,19 +6,20 @@ import com.jacobtread.kme.database.PlayerGalaxyAtWar
 import com.jacobtread.kme.servers.http.WrappedRequest
 import com.jacobtread.kme.servers.http.router.GroupRoute
 import com.jacobtread.kme.servers.http.router.RouteFunction
+import com.jacobtread.kme.servers.http.router.RoutingGroup
+import com.jacobtread.kme.servers.http.router.groupedRoute
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.unixTimeSeconds
 import io.netty.handler.codec.http.HttpResponseStatus
 import org.jetbrains.exposed.sql.transactions.transaction
 import kotlin.math.min
 
-object GAWController : GroupRoute("/wal/masseffect-gaw-pc/") {
+object GAWController : GroupRoute("gaw"){
 
-    val Authentication = RouteFunction { _, request ->
+    private val Authentication = RouteFunction { _, request ->
         val playerId = request.queryInt("auth", 16)
-        val player = transaction {
-            Player.findById(playerId)
-        } ?: return@RouteFunction request.response(HttpResponseStatus.BAD_REQUEST)
+        val player = Player.getById(playerId)
+            ?: return@RouteFunction request.response(HttpResponseStatus.BAD_REQUEST)
         Logger.debug("Authenticated GAW User ${player.displayName}")
         val time = unixTimeSeconds()
         @Suppress("SpellCheckingInspection")
@@ -51,20 +52,18 @@ object GAWController : GroupRoute("/wal/masseffect-gaw-pc/") {
         }
     }
 
-    val Ratings = RouteFunction { config, request ->
+    private val Ratings = RouteFunction { config, request ->
         val playerId = request.paramInt("id", 16)
-        val player = transaction {
-            Player.findById(playerId)
-        } ?: return@RouteFunction request.response(HttpResponseStatus.BAD_REQUEST)
+        val player = Player.getById(playerId)
+            ?: return@RouteFunction request.response(HttpResponseStatus.BAD_REQUEST)
         val rating = player.getOrCreateGAW(config.gaw)
         respondRatings(config, request, player, rating)
     }
 
-    val IncreaseRatings = RouteFunction { config, request ->
+    private val IncreaseRatings = RouteFunction { config, request ->
         val playerId = request.paramInt("id", 16)
-        val player = transaction {
-            Player.findById(playerId)
-        } ?: return@RouteFunction request.response(HttpResponseStatus.BAD_REQUEST)
+        val player = Player.getById(playerId)
+            ?: return@RouteFunction request.response(HttpResponseStatus.BAD_REQUEST)
         val rating = player.getOrCreateGAW(config.gaw)
         val maxValue = 10099
         transaction {
@@ -78,6 +77,12 @@ object GAWController : GroupRoute("/wal/masseffect-gaw-pc/") {
             }
         }
         respondRatings(config, request, player, rating)
+    }
+
+    init {
+        get("authentication/sharedTokenLogin", Authentication)
+        get("galaxyatwar/getRatings/:id", Ratings)
+        get("galaxyatwar/increaseRatings/:id", IncreaseRatings)
     }
 
     private fun respondRatings(

@@ -13,6 +13,9 @@ open class GroupRoute(
     override val routes = ArrayList<RequestMatcher>()
 
     override fun matches(config: Config, start: Int, request: WrappedRequest): Boolean {
+        if (start >= request.tokens.size) {
+            return false
+        }
         return matchInternal(request, start, tokens.size)
     }
 
@@ -31,3 +34,8 @@ open class GroupRoute(
 }
 
 
+inline fun groupedRoute(pattern: String, init: GroupRoute.() -> Unit): GroupRoute {
+    val group = GroupRoute(pattern)
+    group.init()
+    return group
+}

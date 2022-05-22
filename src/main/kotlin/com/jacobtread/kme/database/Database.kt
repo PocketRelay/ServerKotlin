@@ -205,6 +205,7 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
         }
 
         fun getById(id: Long): Player? = transaction { findById(id.toInt()) }
+        fun getById(id: Int): Player? = transaction { findById(id) }
 
     }
 
