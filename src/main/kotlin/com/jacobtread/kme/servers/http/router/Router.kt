@@ -32,7 +32,7 @@ class Router(val config: Config) : SimpleChannelInboundHandler<HttpRequest>(), R
             var handled = false
             for (route in routes) {
                 if (!route.matches(config, 0, request)) continue
-                if (route.handle(config, request)) {
+                if (route.handle(config, 0, request)) {
                     handled = true
                     break
                 }

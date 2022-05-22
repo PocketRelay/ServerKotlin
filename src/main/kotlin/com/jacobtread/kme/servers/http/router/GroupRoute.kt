@@ -16,11 +16,11 @@ open class GroupRoute(
         return matchInternal(request, start, tokens.size)
     }
 
-    override fun handle(config: Config, request: WrappedRequest): Boolean {
-        val startIndex = tokens.size
+    override fun handle(config: Config, start: Int, request: WrappedRequest): Boolean {
+        val startIndex = start + tokens.size
         for (route in routes) {
             if (!route.matches(config, startIndex, request)) continue
-            if (route.handle(config, request)) {
+            if (route.handle(config, startIndex, request)) {
                 return true
             }
         }

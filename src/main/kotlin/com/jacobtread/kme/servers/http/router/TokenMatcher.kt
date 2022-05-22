@@ -22,22 +22,21 @@ abstract class TokenMatcher : RequestMatcher {
 
     override fun matches(config: Config, start: Int, request: WrappedRequest): Boolean {
         val requestTokens = request.tokens
-        if (requestTokens.size - start == tokens.size) {
-            return matchInternal(request, start, tokens.size)
+        val tokenCount = tokens.size
+        if ((requestTokens.size - start) == tokenCount && (tokenCount > 1 || tokens[0] != "*")) {
+            return matchInternal(request, start, tokenCount)
         }
-        if (tokens.isNotEmpty() && tokens.last() == "*") {
-            if (!matchInternal(request, start, tokens.size - 1)) return false
-            val index = start + tokens.lastIndex
-            if (index < requestTokens.size) {
-                val builder = StringBuilder()
-                for (i in index until requestTokens.size) {
+        if (tokenCount > 0 && tokens.last() == "*") {
+            if (!matchInternal(request, start, tokenCount - 1)) return false
+            val index = start + tokenCount - 1
+            val builder = StringBuilder()
+            for (i in index until requestTokens.size) {
+                builder.append(requestTokens[i])
+                if (i < requestTokens.size - 1) {
                     builder.append('/')
-                        .append(requestTokens[i])
                 }
-                request.setParam("*", builder.toString())
-            } else {
-                request.setParam("*", "")
             }
+            request.setParam("*", builder.toString())
             return true
         }
         return false

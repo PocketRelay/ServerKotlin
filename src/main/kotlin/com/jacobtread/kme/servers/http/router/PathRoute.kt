@@ -20,7 +20,7 @@ open class PathRoute(
         return super.matches(config, start, request)
     }
 
-    override fun handle(config: Config, request: WrappedRequest): Boolean {
+    override fun handle(config: Config, start: Int, request: WrappedRequest): Boolean {
         handler.handle(config, request)
         return true
     }

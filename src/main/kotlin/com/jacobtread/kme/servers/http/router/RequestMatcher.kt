@@ -20,10 +20,11 @@ interface RequestMatcher {
      * handle Handles the logic of this request matcher
      *
      * @param config The config for the server
+     * @param start The portion index to start at
      * @param request The request to handle
      * @return Whether this matcher consumed the value if this returns
      * true then no further matchers will be processed
      */
-    fun handle(config: Config, request: WrappedRequest): Boolean
+    fun handle(config: Config, start: Int, request: WrappedRequest): Boolean
 
 }

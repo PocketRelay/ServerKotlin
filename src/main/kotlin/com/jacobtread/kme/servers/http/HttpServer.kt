@@ -30,6 +30,7 @@ fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
                 }
                 get("*") { _, request ->
                     val path = request.param("*")
+                    println("Panel static matched $path")
                     request.static(path, "panel", "index.html", "panel")
                 }
             }
