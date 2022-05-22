@@ -46,7 +46,6 @@ class Router(val config: Config) : SimpleChannelInboundHandler<HttpRequest>(), R
                 Logger.info("Exception occurred when handling http request", e)
             } else {
                 request.response(HttpResponseStatus.BAD_REQUEST)
-                Logger.info("Exception occurred when handling http request", e)
             }
         }
         val response = request.createResponse()
