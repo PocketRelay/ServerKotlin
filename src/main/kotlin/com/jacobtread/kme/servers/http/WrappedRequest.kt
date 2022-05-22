@@ -180,23 +180,32 @@ class WrappedRequest(private val http: HttpRequest) {
         responseBuffer = Unpooled.copiedBuffer(content, Charsets.UTF_8)
     }
 
-    fun static(fileName: String, path: String) {
-        val resource = Data.getResourceOrNull("$path/$fileName")
-        if (resource == null) {
-            responseStatus = HttpResponseStatus.NOT_FOUND
-            if (fileName != "404.html") static("404.html", "public")
+    fun static(
+        fileName: String,
+        path: String,
+        fallback: String = "404.html",
+        fallbackPath: String = "public",
+    ) {
+        if (fileName.isEmpty()) {
+            return static(fallback, fallbackPath)
         } else {
-            responseStatus = HttpResponseStatus.OK
-            contentType = if (fileName.endsWith(".js")) {
-                "text/javascript"
-            } else if (fileName.endsWith(".css")) {
-                "text/css"
-            } else if (fileName.endsWith(".html")) {
-                "text/html"
+            val resource = Data.getResourceOrNull("$path/$fileName")
+            if (resource == null) {
+                responseStatus = HttpResponseStatus.NOT_FOUND
+                if (fileName != fallback) static(fallback, fallbackPath)
             } else {
-                Files.probeContentType(Paths.get(fileName))
+                responseStatus = HttpResponseStatus.OK
+                contentType = if (fileName.endsWith(".js")) {
+                    "text/javascript"
+                } else if (fileName.endsWith(".css")) {
+                    "text/css"
+                } else if (fileName.endsWith(".html")) {
+                    "text/html"
+                } else {
+                    Files.probeContentType(Paths.get(fileName))
+                }
+                responseBuffer = Unpooled.wrappedBuffer(resource)
             }
-            responseBuffer = Unpooled.wrappedBuffer(resource)
         }
     }
 }

@@ -128,11 +128,8 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
     override fun channelRead0(ctx: ChannelHandlerContext, msg: HttpRequest) {
         val url = msg.uri()
         Logger.debug("HTTP Request: $url")
-        if (url.startsWith("/wal/masseffect-gaw-pc")) {
-        } else if (url.startsWith("/panel")) {
+       if (url.startsWith("/panel")) {
             handlePanelResponse(ctx, url, msg)
-        } else {
-            handlePublicResponse(ctx, url)
         }
     }
 

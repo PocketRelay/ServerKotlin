@@ -27,12 +27,17 @@ abstract class TokenMatcher : RequestMatcher {
         }
         if (tokens.isNotEmpty() && tokens.last() == "*") {
             if (!matchInternal(request, start, tokens.size - 1)) return false
-            val builder = StringBuilder(requestTokens[start + tokens.lastIndex])
-            for (i in tokens.size until requestTokens.size) {
-                builder.append('/')
-                    .append(requestTokens[start + i])
+            val index = start + tokens.lastIndex
+            if (index < requestTokens.size) {
+                val builder = StringBuilder()
+                for (i in index until requestTokens.size) {
+                    builder.append('/')
+                        .append(requestTokens[i])
+                }
+                request.setParam("*", builder.toString())
+            } else {
+                request.setParam("*", "")
             }
-            request.setParam("*", builder.toString())
             return true
         }
         return false
