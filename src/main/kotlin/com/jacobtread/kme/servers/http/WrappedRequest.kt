@@ -24,12 +24,12 @@ class WrappedRequest(private val http: HttpRequest) {
     val method: HttpMethod get() = http.method()
 
     val tokens: List<String>
-    val params = HashMap<String, String>()
 
     val url: String
     private val queryString: String?
 
-    private var _query: Map<String, String>? = null
+    private var _params: MutableMap<String, String>? = null
+    private var _query: MutableMap<String, String>? = null
 
     private var responseCode: HttpResponseStatus = HttpResponseStatus.NOT_FOUND
     private var responseBuffer: ByteBuf? = null
@@ -72,8 +72,8 @@ class WrappedRequest(private val http: HttpRequest) {
         return response
     }
 
-    private fun parseQuery(): Map<String, String> {
-        if (queryString == null) return emptyMap()
+    private fun parseQuery(): HashMap<String, String>? {
+        if (queryString == null) return null
         val out = HashMap<String, String>()
         queryString.split('&').forEach { keyValue ->
             val parts = keyValue.split('=', limit = 2)
@@ -86,10 +86,20 @@ class WrappedRequest(private val http: HttpRequest) {
         return out
     }
 
+    fun setParam(key: String, value: String) {
+        if (_params == null) _params = HashMap()
+        _params!![key] = value
+    }
+
+    fun param(key: String): String? = _params?.get(key)
+    fun paramInt(key: String): Int? = param(key)?.toIntOrNull()
+
     fun query(key: String): String? {
         if (_query == null) _query = parseQuery()
         return _query!![key]
     }
+
+    fun queryInt(key: String): Int? = query(key)?.toIntOrNull()
 
     fun setHeader(key: String, value: String) {
         var headers = this.responseHeaders

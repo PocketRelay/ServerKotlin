@@ -13,7 +13,7 @@ object GAWController : GroupRoute("/wal/masseffect-gaw-pc/") {
     }
 
     private fun handleAuthentication(config: Config, request: WrappedRequest) {
-
+        val playerId
     }
 
     private fun handleRatings(config: Config, request: WrappedRequest) {
