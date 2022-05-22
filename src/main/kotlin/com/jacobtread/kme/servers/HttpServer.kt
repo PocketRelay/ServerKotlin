@@ -60,7 +60,6 @@ fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
 private class HTTPHandler(private val config: Config) : SimpleChannelInboundHandler<HttpRequest>() {
 
     companion object {
-        private val XML_PRINT_OPTIONS = PrintOptions(singleLineTextElements = true, pretty = false)
 
         private fun ChannelHandlerContext.respond(
             content: Any? = null,
@@ -201,6 +200,7 @@ private class HTTPHandler(private val config: Config) : SimpleChannelInboundHand
         val playerId = query["id"]?.toIntOrNull() ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
         val player = transaction { Player.getById(playerId.toLong()) } ?: return ctx.respond(HttpResponseStatus.BAD_REQUEST)
         val json = Json.encodeToString(SettingsSerializable(player.createSettingsMap()))
+
         ctx.respond(json, contentType = "application/json")
     }
 
