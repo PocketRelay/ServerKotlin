@@ -29,12 +29,16 @@ class Router(val config: Config) : SimpleChannelInboundHandler<HttpRequest>(), R
         val request = WrappedRequest(msg)
         try {
             Logger.info("Received request ${request.url}")
+            var handled = false
             for (route in routes) {
                 if (!route.matches(config, 0, request)) continue
                 if (route.handle(config, request)) {
-                    Logger.info("Request handled by $route")
+                    handled = true
                     break
                 }
+            }
+            if (!handled) {
+                request.static("404.html", "public")
             }
         } catch (e: Exception) {
             if (e !is InvalidParamException && e !is InvalidQueryException) {

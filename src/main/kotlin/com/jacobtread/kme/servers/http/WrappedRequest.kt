@@ -190,6 +190,8 @@ class WrappedRequest(private val http: HttpRequest) {
                 "text/javascript"
             } else if (fileName.endsWith(".css")) {
                 "text/css"
+            } else if (fileName.endsWith(".html")) {
+                "text/html"
             } else {
                 Files.probeContentType(Paths.get(fileName))
             }
