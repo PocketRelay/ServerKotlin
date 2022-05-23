@@ -143,7 +143,7 @@ class PlayerSession {
      * @return A USER_SESSIONS SET_SESSION packet
      */
     @Suppress("SpellCheckingInspection")
-    fun createSetSession(): Packet = unique(Component.USER_SESSIONS, Command.SET_SESSION) {
+    fun createSetSession(): Packet = unique(Components.USER_SESSIONS, Commands.SET_SESSION) {
         +createSessionDataGroup(0x2e, listOf(0xfff0fff, 0xfff0fff, 0xfff0fff))
         number("USID", if (_player != null) playerId else sessionId)
     }
@@ -157,8 +157,8 @@ class PlayerSession {
     @Suppress("SpellCheckingInspection")
     fun createIdentityUpdate(): Packet =
         unique(
-            Component.USER_SESSIONS,
-            Command.UPDATE_EXTENDED_DATA_ATTRIBUTE
+            Components.USER_SESSIONS,
+            Commands.UPDATE_EXTENDED_DATA_ATTRIBUTE
         ) {
             number("FLGS", PLAYER_ID_FLAG)
             number("ID", playerId)
@@ -208,8 +208,8 @@ class PlayerSession {
         val player = player
         val game = game
         return unique(
-            Component.USER_SESSIONS,
-            Command.SESSION_DETAILS,
+            Components.USER_SESSIONS,
+            Commands.SESSION_DETAILS,
         ) {
             // Session Data
             if (game != null) {

@@ -3,6 +3,7 @@ package com.jacobtread.kme.data
 import com.jacobtread.kme.Config
 import com.jacobtread.kme.blaze.lazyPacketBody
 import com.jacobtread.kme.blaze.group
+import io.netty.buffer.ByteBuf
 import java.io.BufferedReader
 import java.io.IOException
 import kotlin.random.Random
@@ -41,7 +42,7 @@ object Data {
      * from needing to be rebuilt over and over again every request
      */
     @Suppress("SpellCheckingInspection")
-    val USER_ENTITLEMENTS: ByteArray by lazyPacketBody {
+    val USER_ENTITLEMENTS: ByteBuf by lazyPacketBody {
         list("NLST", listOf(
             group {
                 text("DEVI", "")

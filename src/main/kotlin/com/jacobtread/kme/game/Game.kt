@@ -68,7 +68,7 @@ class Game(
         val sessionDetails = session.createSessionDetails()
         host.send(
             sessionDetails,
-            unique(Component.GAME_MANAGER, Command.JOIN_GAME_BY_GROUP) {
+            unique(Components.GAME_MANAGER, Commands.JOIN_GAME_BY_GROUP) {
                 number("GID", id)
                 +group("PDAT") {
                     blob("BLOB")
@@ -117,9 +117,9 @@ class Game(
         }
 
         playersLock.read {
-            val hostPacket = unique(Component.USER_SESSIONS, Command.FETCH_EXTENDED_DATA) { number("BUID", host.playerId) }
+            val hostPacket = unique(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", host.playerId) }
             players.forEach {
-                val userPacket = unique(Component.USER_SESSIONS, Command.FETCH_EXTENDED_DATA) { number("BUID", it.playerId) }
+                val userPacket = unique(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", it.playerId) }
                 it.send(hostPacket)
                 host.send(userPacket)
             }
@@ -136,8 +136,8 @@ class Game(
     @Suppress("SpellCheckingInspection")
     fun createNotifyPacket(): Packet =
         unique(
-            Component.GAME_MANAGER,
-            Command.NOTIFY_GAME_UPDATED
+            Components.GAME_MANAGER,
+            Commands.NOTIFY_GAME_UPDATED
         ) {
             map("ATTR", attributes.getMap())
             number("GID", id)
@@ -146,8 +146,8 @@ class Game(
     @Suppress("SpellCheckingInspection")
     fun createPoolPacket(init: Boolean): Packet =
         unique(
-            Component.GAME_MANAGER,
-            Command.RETURN_DEDICATED_SERVER_TO_POOL
+            Components.GAME_MANAGER,
+            Commands.RETURN_DEDICATED_SERVER_TO_POOL
         ) {
             val hostPlayer = host.player
             +group("GAME") {

@@ -3,6 +3,7 @@ package com.jacobtread.kme.blaze
 import com.jacobtread.kme.blaze.tdf.*
 import com.jacobtread.kme.utils.VarPair
 import com.jacobtread.kme.utils.VarTripple
+import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 
 /**
@@ -210,19 +211,25 @@ class TdfBuilder {
     }
 
     /**
-     * createByteArray Converts all the contents of this builder
-     * into a byte array by first writing them all to a buffer
+     * createBuffer Writes the contents of this builder
+     * to a ByteBuf and returns the created buffer
      *
      * @return The ByteArray of contents
      */
-    fun createByteArray(): ByteArray {
+    fun createBuffer(): ByteBuf {
         val buffer = Unpooled.buffer()
         values.forEach { it.writeFully(buffer) }
-        val length = buffer.readableBytes()
-        val content = ByteArray(length)
-        buffer.readBytes(content)
-        buffer.release()
-        return content
+        return buffer
+    }
+
+    /**
+     * writeToBuffer Writes the contents of this
+     * builder to the provided buffer
+     *
+     * @param buf The buffer to write to
+     */
+    fun writeToBuffer(buf: ByteBuf) {
+        values.forEach { it.writeFully(buf) }
     }
 }
 

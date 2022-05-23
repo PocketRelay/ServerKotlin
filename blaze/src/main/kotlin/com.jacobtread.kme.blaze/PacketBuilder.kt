@@ -1,5 +1,7 @@
 package com.jacobtread.kme.blaze
 
+import io.netty.buffer.ByteBuf
+import io.netty.buffer.Unpooled
 import io.netty.channel.Channel
 
 const val INCOMING = 0x0000 // This packet is coming from the client
@@ -20,36 +22,36 @@ inline fun Channel.respond(
     error: Int = NO_ERROR,
     flush: Boolean = true,
     populate: TdfBuilder.() -> Unit = {},
-) = send(createPacket(responding.rawComponent, responding.rawCommand, RESPONSE, responding.id, error, populate), flush)
+) = send(createPacket(responding.component, responding.command, RESPONSE, responding.id, error, populate), flush)
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Channel.respond(
     responding: Packet,
-    content: ByteArray,
+    content: ByteBuf,
     flush: Boolean = true,
     error: Int = NO_ERROR,
-) = send(Packet(responding.rawComponent, responding.rawCommand, error, RESPONSE, responding.id, content), flush)
+) = send(Packet(responding.component, responding.command, error, RESPONSE, responding.id, content), flush)
 
 inline fun Channel.error(
     responding: Packet,
     error: Int,
     flush: Boolean = true,
     populate: TdfBuilder.() -> Unit = {},
-) = send(createPacket(responding.rawComponent, responding.rawCommand, ERROR, responding.id, error, populate), flush)
+) = send(createPacket(responding.component, responding.command, ERROR, responding.id, error, populate), flush)
 
 inline fun error(
     responding: Packet,
     error: Int,
     populate: TdfBuilder.() -> Unit = {},
-) = createPacket(responding.rawComponent, responding.rawCommand, ERROR, responding.id, error, populate)
+) = createPacket(responding.component, responding.command, ERROR, responding.id, error, populate)
 
 inline fun respond(
     responding: Packet,
     error: Int = NO_ERROR,
     populate: TdfBuilder.() -> Unit = {},
 ): Packet = createPacket(
-    responding.rawComponent,
-    responding.rawCommand,
+    responding.component,
+    responding.command,
     RESPONSE,
     responding.id,
     error,
@@ -60,27 +62,27 @@ inline fun respond(
 @Suppress("NOTHING_TO_INLINE")
 inline fun respond(
     responding: Packet,
-    content: ByteArray,
+    content: ByteBuf,
     error: Int = NO_ERROR,
-) = Packet(responding.rawComponent, responding.rawCommand, error, RESPONSE, responding.id, content)
+) = Packet(responding.component, responding.command, error, RESPONSE, responding.id, content)
 
 
 inline fun Channel.unique(
-    component: Component,
-    command: Command,
+    component: Int,
+    command: Int,
     id: Int = 0x0,
     error: Int = NO_ERROR,
     flush: Boolean = true,
     populate: TdfBuilder.() -> Unit = {},
-) = send(createPacket(component.id, command.value, UNIQUE, id, error, populate), flush)
+) = send(createPacket(component, command, UNIQUE, id, error, populate), flush)
 
 inline fun unique(
-    component: Component,
-    command: Command,
+    component: Int,
+    command: Int,
     id: Int = 0x0,
     error: Int = NO_ERROR,
     populate: TdfBuilder.() -> Unit = {},
-): Packet = createPacket(component.id, command.value, UNIQUE, id, error, populate)
+): Packet = createPacket(component, command, UNIQUE, id, error, populate)
 
 inline fun Channel.packet(
     component: Int,
@@ -108,15 +110,15 @@ inline fun createPacket(
         error,
         qtype,
         id,
-        contentBuilder.createByteArray()
+        contentBuilder.createBuffer()
     )
 }
 
-inline fun lazyPacketBody(crossinline populate: TdfBuilder.() -> Unit): Lazy<ByteArray> {
+inline fun lazyPacketBody(crossinline populate: TdfBuilder.() -> Unit): Lazy<ByteBuf> {
     return lazy {
         val builder = TdfBuilder()
         builder.populate()
-        builder.createByteArray()
+        Unpooled.unreleasableBuffer(builder.createBuffer())
     }
 }
 

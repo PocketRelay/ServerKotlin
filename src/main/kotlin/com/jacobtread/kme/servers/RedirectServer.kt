@@ -10,6 +10,8 @@ import com.jacobtread.kme.utils.logging.Logger.error
 import com.jacobtread.kme.utils.logging.Logger.info
 import com.jacobtread.kme.utils.lookupServerAddress
 import io.netty.bootstrap.ServerBootstrap
+import io.netty.buffer.ByteBuf
+import io.netty.buffer.Unpooled
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.ChannelHandlerContext
@@ -91,7 +93,7 @@ fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
 @Sharable
 class RedirectHandler(target: ServerAddress, port: Int) : SimpleChannelInboundHandler<Packet>() {
 
-    private val packetBody: ByteArray
+    private val packetBody: ByteBuf
 
     init {
         val packetContents = TdfBuilder()
@@ -104,12 +106,12 @@ class RedirectHandler(target: ServerAddress, port: Int) : SimpleChannelInboundHa
             number("SECU", 0x0)
             number("XDNS", 0x0)
         }
-        packetBody = packetContents.createByteArray()
+        packetBody = Unpooled.unreleasableBuffer(packetContents.createBuffer())
     }
 
     override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
-        if (msg.component == Component.REDIRECTOR
-            && msg.command == Command.GET_SERVER_INSTANCE
+        if (msg.component == Components.REDIRECTOR
+            && msg.command == Commands.GET_SERVER_INSTANCE
         ) {
             val channel = ctx.channel()
             val remoteAddress = channel.remoteAddress()

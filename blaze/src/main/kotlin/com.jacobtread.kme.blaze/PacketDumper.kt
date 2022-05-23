@@ -6,19 +6,19 @@ import com.jacobtread.kme.utils.VarTripple
 
 fun packetToBuilder(rawPacket: Packet): String {
     val out = StringBuilder("packet(")
-    if (rawPacket.command == Command.UNKNOWN
-        || rawPacket.component == Component.UNKNOWN
+    if (!Components.hasName(rawPacket.component)
+        || !(Commands.hasName(rawPacket.component, rawPacket.command))
     ) {
         out.append("0x")
-            .append(rawPacket.rawComponent.toString(16))
+            .append(rawPacket.component.toString(16))
             .append(", 0x")
-            .append(rawPacket.rawCommand.toString(16))
+            .append(rawPacket.command.toString(16))
     } else {
         out
-            .append("Component.")
-            .append(rawPacket.component)
-            .append(", Command.")
-            .append(rawPacket.command)
+            .append("Components.")
+            .append(Components.getName(rawPacket.component))
+            .append(", Commands.")
+            .append(Commands.getName(rawPacket.component, rawPacket.command))
     }
     out.append(", 0x")
         .append(rawPacket.qtype.toString(16))
