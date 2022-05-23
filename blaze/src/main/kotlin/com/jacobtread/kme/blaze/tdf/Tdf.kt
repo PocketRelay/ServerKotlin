@@ -36,7 +36,7 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
         fun read(input: ByteBuf): Tdf<*> {
             val head = input.readUnsignedInt()
             val tag = (head and 0xFFFFFF00)
-            val label = Labels.fromTag(tag).trimEnd()
+            val label = Labels.fromTag(tag)
             return when (val type = (head and 0xFF).toInt()) {
                 VARINT -> VarIntTdf.read(label, input)
                 STRING -> StringTdf.read(label, input)

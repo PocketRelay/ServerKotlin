@@ -13,4 +13,6 @@ fun main(args: Array<String>) {
         }
     }
     println(v)
+    println(' '.code)
+    println(0x20)
 }
