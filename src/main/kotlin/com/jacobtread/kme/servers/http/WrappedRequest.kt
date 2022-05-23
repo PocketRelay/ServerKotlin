@@ -63,6 +63,8 @@ class WrappedRequest(private val http: HttpRequest) {
         headers.add(HttpHeaderNames.CONTENT_LENGTH, contentLength)
         // CORS so that requests can be accessed in the browser
         headers.add(HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+        headers.add(HttpHeaderNames.ACCESS_CONTROL_ALLOW_HEADERS, "*")
+        headers.add(HttpHeaderNames.ACCESS_CONTROL_ALLOW_METHODS, "*")
         responseHeaders?.forEach { headers.add(it.key, it.value) }
         return response
     }
@@ -137,7 +139,6 @@ class WrappedRequest(private val http: HttpRequest) {
         val contentBuffer = http.content()
         val bytes = ByteArray(contentBuffer.readableBytes())
         contentBuffer.readBytes(bytes)
-        contentBuffer.release()
         return bytes
     }
 
@@ -214,7 +215,7 @@ class WrappedRequest(private val http: HttpRequest) {
                 } else if (fileName.endsWith(".html")) {
                     "text/html"
                 } else {
-                    Files.probeContentType(Paths.get(fileName))
+                    "text"
                 }
                 responseBuffer = Unpooled.wrappedBuffer(resource)
             }

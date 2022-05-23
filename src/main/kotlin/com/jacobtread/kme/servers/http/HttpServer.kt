@@ -13,6 +13,7 @@ import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.ChannelInitializer
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
+import io.netty.handler.codec.http.HttpObjectAggregator
 import io.netty.handler.codec.http.HttpRequestDecoder
 import io.netty.handler.codec.http.HttpResponseEncoder
 import java.io.IOException
@@ -55,6 +56,7 @@ class HttpInitializer(private val router: Router) : ChannelInitializer<Channel>(
         ch.pipeline()
             .addLast(HttpRequestDecoder())
             .addLast(HttpResponseEncoder())
+            .addLast(HttpObjectAggregator(1024 * 8))
             .addLast(router)
     }
 }
