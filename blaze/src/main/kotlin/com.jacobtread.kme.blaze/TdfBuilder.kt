@@ -206,7 +206,8 @@ class TdfBuilder {
      * +struct("LABEL") {}
      * ```
      */
-    operator fun Tdf<*>.unaryPlus() {
+    @Suppress("NOTHING_TO_INLINE")
+    inline operator fun Tdf<*>.unaryPlus() {
         values.add(this)
     }
 

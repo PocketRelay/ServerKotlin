@@ -43,7 +43,7 @@ inline fun error(
     responding: Packet,
     error: Int,
     populate: TdfBuilder.() -> Unit = {},
-) = createPacket(responding.component, responding.command, ERROR, responding.id, error, populate)
+): Packet = createPacket(responding.component, responding.command, ERROR, responding.id, error, populate)
 
 inline fun respond(
     responding: Packet,
@@ -64,7 +64,7 @@ inline fun respond(
     responding: Packet,
     content: ByteBuf,
     error: Int = NO_ERROR,
-) = Packet(responding.component, responding.command, error, RESPONSE, responding.id, content)
+): Packet = Packet(responding.component, responding.command, error, RESPONSE, responding.id, content)
 
 
 inline fun Channel.unique(
