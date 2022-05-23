@@ -28,7 +28,6 @@ class Router(val config: Config) : SimpleChannelInboundHandler<HttpRequest>(), R
     override fun channelRead0(ctx: ChannelHandlerContext, msg: HttpRequest) {
         val request = WrappedRequest(msg)
         try {
-            Logger.info("Received request ${request.url}")
             var handled = false
             for (route in routes) {
                 if (!route.matches(config, 0, request)) continue

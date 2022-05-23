@@ -69,11 +69,11 @@ object GAWController : GroupRoute("gaw"){
         transaction {
             rating.apply {
                 timestamp = unixTimeSeconds()
-                a = min(maxValue, a + request.queryInt("rinc|0", 0))
-                b = min(maxValue, b + request.queryInt("rinc|1", 0))
-                c = min(maxValue, c + request.queryInt("rinc|2", 0))
-                d = min(maxValue, d + request.queryInt("rinc|3", 0))
-                e = min(maxValue, e + request.queryInt("rinc|4", 0))
+                a = min(maxValue, a + request.queryInt("rinc|0", default=0))
+                b = min(maxValue, b + request.queryInt("rinc|1", default=0))
+                c = min(maxValue, c + request.queryInt("rinc|2", default=0))
+                d = min(maxValue, d + request.queryInt("rinc|3", default=0))
+                e = min(maxValue, e + request.queryInt("rinc|4", default=0))
             }
         }
         respondRatings(config, request, player, rating)

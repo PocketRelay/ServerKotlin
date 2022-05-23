@@ -1,4 +1,4 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     val kotlinVersion = "1.6.21"
@@ -60,5 +60,11 @@ tasks.withType(Jar::class.java) {
     archiveFileName.set("server.jar")
     manifest {
         attributes["Main-Class"] = "com.jacobtread.kme.App"
+    }
+}
+
+tasks.withType(KotlinCompile::class.java) {
+    kotlinOptions {
+        jvmTarget = "17"
     }
 }
