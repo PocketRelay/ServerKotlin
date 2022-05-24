@@ -21,7 +21,7 @@ fun packetToBuilder(rawPacket: Packet): String {
             .append(Commands.getName(rawPacket.component, rawPacket.command))
     }
     out.append(", 0x")
-        .append(rawPacket.qtype.toString(16))
+        .append(rawPacket.type.toString(16))
         .append(", 0x")
         .append(rawPacket.id.toString(16))
 

@@ -17,7 +17,7 @@ class PacketEncoder : MessageToByteEncoder<Packet>() {
         out.writeShort(msg.component)
         out.writeShort(msg.command)
         out.writeShort(msg.error)
-        out.writeByte(msg.qtype shr 8)
+        out.writeByte(msg.type shr 8)
         out.writeByte(if (length > 0xFFFF) 0x10 else 0x00)
         out.writeShort(msg.id)
         if (length > 0xFFFF) {
