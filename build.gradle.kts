@@ -1,3 +1,4 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -58,6 +59,10 @@ dependencies {
     implementation("org.slf4j:slf4j-nop:1.7.36")
     implementation(project(":blaze"))
     implementation(project(":utils"))
+}
+
+tasks.withType(ShadowJar::class.java) {
+    minimize()
 }
 
 tasks.withType(Jar::class.java) {

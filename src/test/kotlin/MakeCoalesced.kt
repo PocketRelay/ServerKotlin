@@ -1,8 +1,5 @@
-import com.jacobtread.kme.utils.BigEndian
 import io.netty.buffer.Unpooled
 import java.io.ByteArrayOutputStream
-import java.io.OutputStream
-import java.nio.ByteBuffer
 import java.util.*
 import java.util.zip.Deflater
 import kotlin.io.path.*
