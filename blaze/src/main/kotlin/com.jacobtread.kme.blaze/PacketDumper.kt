@@ -80,7 +80,7 @@ private fun appendTdf(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Bo
         is GroupTdf -> {
             out.append("  ".repeat(indent))
             if (!inline) out.append('+')
-            out.append("struct")
+            out.append("group")
             if (value.label.isNotEmpty()) {
                 out.append("(\"")
                     .append(value.label)
@@ -168,7 +168,7 @@ private fun appendTdf(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Bo
             val content = value.value
             if (content != null) {
                 out.append("  ".repeat(indent))
-                    .append("union(\"")
+                    .append("optional(\"")
                     .append(value.label)
                     .append("\",\n")
                     .append("  ".repeat(indent))

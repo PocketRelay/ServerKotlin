@@ -1,10 +1,14 @@
 package com.jacobtread.kme.blaze
 
-import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import kotlin.io.path.*
 
-fun main(args: Array<String>) {
+/**
+ * main Simple program takes all the content from the replays' directory
+ * (Packet logs etc.) and reads all the packet and places the decoded
+ * variants into the decoded directory
+ */
+fun main() {
     val dir = Path("data/replay")
     val decodedDir = dir / "decoded"
 
@@ -18,7 +22,16 @@ fun main(args: Array<String>) {
             val buffer = Unpooled.wrappedBuffer(contents)
             while (buffer.readableBytes() > 0) {
                 try {
-                    val packet = readComplete(buffer)
+                    val length = buffer.readUnsignedShort();
+                    val component = buffer.readUnsignedShort()
+                    val command = buffer.readUnsignedShort()
+                    val error = buffer.readUnsignedShort()
+                    val qtype = buffer.readUnsignedShort()
+                    val id = buffer.readUnsignedShort()
+                    val extLength = if ((qtype and 0x10) != 0) buffer.readUnsignedShort() else 0
+                    val contentLength = length + (extLength shl 16)
+                    val content = buffer.readBytes(contentLength)
+                    val packet = Packet(component, command, error, qtype, id, content)
                     outBuilder.append(packetToBuilder(packet))
                     outBuilder.append('\n')
                 } catch (e: Throwable) {
@@ -29,17 +42,4 @@ fun main(args: Array<String>) {
             outFile.writeText(outBuilder.toString())
         }
     }
-}
-
-fun readComplete(input: ByteBuf): Packet {
-    val length = input.readUnsignedShort();
-    val component = input.readUnsignedShort()
-    val command = input.readUnsignedShort()
-    val error = input.readUnsignedShort()
-    val qtype = input.readUnsignedShort()
-    val id = input.readUnsignedShort()
-    val extLength = if ((qtype and 0x10) != 0) input.readUnsignedShort() else 0
-    val contentLength = length + (extLength shl 16)
-    val content = input.readBytes(contentLength)
-    return Packet(component, command, error, qtype, id, content)
 }

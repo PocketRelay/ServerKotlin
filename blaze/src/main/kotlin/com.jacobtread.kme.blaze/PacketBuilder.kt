@@ -52,7 +52,6 @@ inline fun respond(
     populate
 )
 
-
 inline fun respond(
     responding: Packet,
     content: ByteBuf,
