@@ -59,7 +59,8 @@ inline fun TdfContainer.tripple(label: String): VarTripple = getTdf(TrippleTdf::
 inline fun TdfContainer.pair(label: String): VarPair = getTdf(PairTdf::class.java, label).value
 inline fun TdfContainer.varIntList(label: String): List<Long> = getTdf(VarIntList::class.java, label).value
 inline fun TdfContainer.list(label: String): List<Any> = getTdf(ListTdf::class.java, label).value
-inline fun TdfContainer.map(label: String): Map<*, *> = getTdf(MapTdf::class.java, label).value
+@Suppress("UNCHECKED_CAST")
+inline fun <K: Any, V: Any> TdfContainer.map(label: String): Map<K, V> = getTdf(MapTdf::class.java, label).value as Map<K, V>
 
 // Nullable Helpers
 
