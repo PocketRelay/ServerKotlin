@@ -24,7 +24,11 @@ allprojects {
     val nettyVersion: String by project
 
     dependencies {
-        implementation("io.netty:netty-all:$nettyVersion")
+        implementation("io.netty:netty-handler:$nettyVersion")
+        implementation("io.netty:netty-buffer:$nettyVersion")
+        implementation("io.netty:netty-codec:$nettyVersion")
+        implementation("io.netty:netty-codec-http:$nettyVersion")
+
         // YAML Serialization for config files
         implementation("net.mamoe.yamlkt:yamlkt:0.10.2")
     }
