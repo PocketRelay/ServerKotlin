@@ -40,15 +40,6 @@ fun main() {
 
     val chunks = base64.chunked(255)
 
-//    val outBuilder = StringBuilder()
-//    chunks.forEachIndexed { index, value ->
-//        outBuilder.append("CHUNK_")
-//            .append(index)
-//            .append(':')
-//            .append(value)
-//            .append('\n')
-//    }
-
     val keys = ArrayList<String>(chunks.size)
     val values = ArrayList<String>(chunks.size)
 
@@ -62,7 +53,7 @@ fun main() {
         run = false
         var tmp: String
         for (i in 0 until keys.size - 1) {
-            if (keys[i].compareTo(keys[i + 1]) > 0) {
+            if (keys[i] > keys[i + 1]) {
                 tmp = keys[i]
                 keys[i] = keys[i + 1]
                 keys[i + 1] = tmp
