@@ -448,7 +448,7 @@ private class MainHandler(
      * @param packet The packet requesting creation of a game
      */
     private fun handleCreateGame(packet: Packet) {
-        val attributes = packet.mapKVOrNull("ATTR") // Get the provided users attributes
+        val attributes = packet.mapOrNull<String, String>("ATTR") // Get the provided users attributes
         val game = GameManager.createGame(session) // Create a new game
         game.attributes.setValues(attributes ?: emptyMap()) // If the attributes are missing use empty
         channel.respond(packet) { number("GID", game.id) } // Respond with the game ID
@@ -505,7 +505,7 @@ private class MainHandler(
      */
     private fun handleSetGameAttributes(packet: Packet) {
         val gameId = packet.number("GID")
-        val attributes = packet.mapKVOrNull("ATTR")
+        val attributes = packet.mapOrNull<String, String>("ATTR")
         if (attributes == null) {
             respondEmpty(packet)
             return

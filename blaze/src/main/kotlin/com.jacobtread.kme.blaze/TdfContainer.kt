@@ -1,4 +1,5 @@
 @file:Suppress("NOTHING_TO_INLINE")
+
 package com.jacobtread.kme.blaze
 
 import com.jacobtread.kme.blaze.tdf.*
@@ -51,7 +52,7 @@ inline fun TdfContainer.unionOrNull(label: String): OptionalTdf? = getTdfOrNull(
 inline fun TdfContainer.text(label: String): String = getTdf(StringTdf::class.java, label).value
 inline fun TdfContainer.number(label: String): Long = getTdf(VarIntTdf::class.java, label).value
 inline fun TdfContainer.numberInt(label: String): Int = number(label).toInt()
-inline fun TdfContainer.float(label: String): Float =  getTdf(FloatTdf::class.java, label).value
+inline fun TdfContainer.float(label: String): Float = getTdf(FloatTdf::class.java, label).value
 inline fun TdfContainer.blob(label: String): ByteArray = getTdf(BlobTdf::class.java, label).value
 inline fun TdfContainer.unionValue(label: String): Tdf<*>? = getTdf(OptionalTdf::class.java, label).value
 inline fun TdfContainer.tripple(label: String): VarTripple = getTdf(TrippleTdf::class.java, label).value
@@ -65,15 +66,14 @@ inline fun TdfContainer.map(label: String): Map<*, *> = getTdf(MapTdf::class.jav
 inline fun TdfContainer.textOrNull(label: String): String? = getTdfOrNull(StringTdf::class.java, label)?.value
 inline fun TdfContainer.numberOrNull(label: String): Long? = getTdfOrNull(VarIntTdf::class.java, label)?.value
 inline fun TdfContainer.numberIntOrNull(label: String): Int? = numberOrNull(label)?.toInt()
-inline fun TdfContainer.floatOrNull(label: String): Float? =  getTdfOrNull(FloatTdf::class.java, label)?.value
+inline fun TdfContainer.floatOrNull(label: String): Float? = getTdfOrNull(FloatTdf::class.java, label)?.value
 inline fun TdfContainer.blobOrNull(label: String): ByteArray? = getTdfOrNull(BlobTdf::class.java, label)?.value
 inline fun TdfContainer.unionValueOrNull(label: String): Tdf<*>? = getTdfOrNull(OptionalTdf::class.java, label)?.value
 inline fun TdfContainer.trippleOrNull(label: String): VarTripple? = getTdfOrNull(TrippleTdf::class.java, label)?.value
 inline fun TdfContainer.pairOrNull(label: String): VarPair? = getTdfOrNull(PairTdf::class.java, label)?.value
 inline fun TdfContainer.varIntListOrNull(label: String): List<Long>? = getTdfOrNull(VarIntList::class.java, label)?.value
 inline fun TdfContainer.listOrNull(label: String): List<Any>? = getTdfOrNull(ListTdf::class.java, label)?.value
-inline fun TdfContainer.mapOrNull(label: String): Map<*, *>? = getTdfOrNull(MapTdf::class.java, label)?.value
-@Suppress("UNCHECKED_CAST")
-inline fun TdfContainer.mapKVOrNull(label: String): Map<String, String>? = mapOrNull(label) as Map<String, String>?
 
+@Suppress("UNCHECKED_CAST")
+inline fun <K : Any, V : Any> TdfContainer.mapOrNull(label: String): Map<K, V>? = getTdfOrNull(MapTdf::class.java, label)?.value as Map<K, V>?
 //endregion
