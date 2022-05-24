@@ -14,7 +14,10 @@ object IPAddress {
     fun asLong(address: SocketAddress): Long {
         val bytes = convertToBytes(address)
         bytes.reverse()
-        return BigEndian.bytesToUInt32(bytes)
+        return (bytes[0].toLong() shl 24)
+            .or(bytes[1].toLong() shl 16)
+            .or(bytes[2].toLong() shl 8)
+            .or(bytes[3].toLong())
     }
 
     fun asLong(value: String): Long {
@@ -27,8 +30,12 @@ object IPAddress {
     }
 
     fun fromLong(value: Long): InetAddress {
-        val bytes = BigEndian.uint32ToBytes(value)
-        bytes.reverse()
+        val bytes = byteArrayOf(
+            value.toByte(),
+            (value shr 8).toByte(),
+            (value shr 16).toByte(),
+            (value shr 24).toByte(),
+        )
         return InetAddress.getByAddress(bytes)
     }
 }
