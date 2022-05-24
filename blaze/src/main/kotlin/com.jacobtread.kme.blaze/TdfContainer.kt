@@ -6,23 +6,69 @@ import com.jacobtread.kme.blaze.tdf.*
 import com.jacobtread.kme.utils.VarPair
 import com.jacobtread.kme.utils.VarTripple
 
+/**
+ * TdfContainer Structure representing a collection of TDFs that can be queried for
+ * different value types. This has lots of inline helper shortcut functions for easily
+ * finding different data types
+ *
+ * @constructor Create empty TdfContainer
+ */
 interface TdfContainer {
 
+    /**
+     * getTdfByLabel This is the only function the underlying implementations
+     * need to implement this allows searching for TDFs by a provided label
+     *
+     * @param label The label to search for
+     * @return The found TDF or null
+     */
     fun getTdfByLabel(label: String): Tdf<*>?
 
+    /**
+     * getTdf Retrieves a TDF with the matching type and label
+     *
+     * @param C The tdf generic type
+     * @param type The class of the type of the TDF
+     * @param label The label of the tdf to search for
+     * @throws MissingTdfException Thrown when there was no TDFs with the provided label
+     * @throws InvalidTdfException Thrown when the TDF was not of the provided type
+     * @return The TDF that was found
+     */
+    @Throws(MissingTdfException::class, InvalidTdfException::class)
     fun <C : Tdf<*>> getTdf(type: Class<C>, label: String): C {
         val value = getTdfByLabel(label) ?: throw MissingTdfException(label)
         if (!value.javaClass.isAssignableFrom(type)) throw InvalidTdfException(label, type, value.javaClass)
         return type.cast(value)
     }
 
+    /**
+     * getTdfOrNull Retrieves a TDF with the matching type and label
+     * or null if either there was none with the matching label or the
+     * type of the TDF doesn't assign from C
+     *
+     * @param C The tdf generic type
+     * @param type The class of the type of the TDF
+     * @param label The label of the tdf to search for
+     * @return The TDF that was found or null if it was missing or invalid
+     */
     fun <C : Tdf<*>> getTdfOrNull(type: Class<C>, label: String): C? {
         val value = getTdfByLabel(label)
         if (value == null || !value.javaClass.isAssignableFrom(type)) return null
         return type.cast(value)
     }
 
-    @Throws(InvalidTdfException::class)
+    /**
+     * getValue Retrieves the value of a TDF with the matching type and label
+     *
+     * @param T The data type that the TDF value will be
+     * @param C The TDF generic type
+     * @param type The class of the type of the TDF
+     * @param label The label to search for
+     * @throws MissingTdfException Thrown when there was no TDFs with the provided label
+     * @throws InvalidTdfException Thrown when the TDF was not of the provided type
+     * @return The value of the TDF that was found
+     */
+    @Throws(MissingTdfException::class, InvalidTdfException::class)
     fun <T, C : Tdf<T>> getValue(type: Class<C>, label: String): T {
         val value = getTdfByLabel(label) ?: throw MissingTdfException(label)
         if (!value.javaClass.isAssignableFrom(type)) throw InvalidTdfException(label, type, value.javaClass)
@@ -30,6 +76,16 @@ interface TdfContainer {
 
     }
 
+    /**
+     * getValueOrNull Retrieves the value of a TDF with the matching type and label or
+     * null if there are no TDFs with that label or if the type is not assignable
+     *
+     * @param T The data type that the TDF value will be
+     * @param C The TDF generic type
+     * @param type The class of the type of the TDF
+     * @param label The label to search for
+     * @return
+     */
     fun <T, C : Tdf<T>> getValueOrNull(type: Class<C>, label: String): T? {
         val value = getTdfByLabel(label)
         if (value == null || !value.javaClass.isAssignableFrom(type)) return null
@@ -44,8 +100,8 @@ interface TdfContainer {
 inline fun TdfContainer.group(label: String): GroupTdf = getTdf(GroupTdf::class.java, label)
 inline fun TdfContainer.optional(label: String): OptionalTdf = getTdf(OptionalTdf::class.java, label)
 
-inline fun TdfContainer.structOrNull(label: String): GroupTdf? = getTdfOrNull(GroupTdf::class.java, label)
-inline fun TdfContainer.unionOrNull(label: String): OptionalTdf? = getTdfOrNull(OptionalTdf::class.java, label)
+inline fun TdfContainer.groupOrNull(label: String): GroupTdf? = getTdfOrNull(GroupTdf::class.java, label)
+inline fun TdfContainer.optionalOrNull(label: String): OptionalTdf? = getTdfOrNull(OptionalTdf::class.java, label)
 
 // Non-nullable Helpers
 

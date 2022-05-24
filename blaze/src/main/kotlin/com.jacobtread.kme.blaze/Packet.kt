@@ -11,6 +11,7 @@ open class Packet(
     val id: Int,
     val contentBuffer: ByteBuf,
 ) : TdfContainer {
+
     val content: List<Tdf<*>> by lazy {
         val values = ArrayList<Tdf<*>>()
         try {
