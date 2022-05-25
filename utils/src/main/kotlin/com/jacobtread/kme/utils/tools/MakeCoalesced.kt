@@ -1,7 +1,5 @@
 import com.jacobtread.kme.utils.tools.ResourceProcessing
 import kotlin.io.path.Path
-import kotlin.io.path.createFile
-import kotlin.io.path.exists
 
 /**
  * main function for converting the ME3BINI into the compressed

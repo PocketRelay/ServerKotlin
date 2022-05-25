@@ -11,6 +11,20 @@ import kotlin.io.path.exists
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
 
+/**
+ * Config the configuration for this application
+ *
+ * @property address The address that clients will use to connect to this server. This address should point to
+ * the machine that this server is hosted on and must be accessible to the clients. If you aren't using a custom
+ * domain then the default domain should be added to the system hosts file
+ * @property ports The different ports that all the different servers should use
+ * @property logging The configuration for the logger
+ * @property menuMessage The message that should be displayed on the main menu
+ * @property database The database configuration
+ * @property webAuth The configuration for the web panel authentication
+ * @property gaw The Galaxy At War configuration
+ * @constructor Create empty Config
+ */
 @Serializable
 data class Config(
     @Comment(
@@ -43,6 +57,16 @@ data class Config(
     @Comment("Galaxy At War config")
     val gaw: GalaxyAtWarConfig = GalaxyAtWarConfig(),
 ) {
+    /**
+     * Ports Configuration for the different ports that the servers will use
+     *
+     * @property redirector The port for the redirector server
+     * @property main The port for the main server
+     * @property ticker The port for the ticker server
+     * @property telemetry The port telemetry server
+     * @property http The port for the http server
+     * @constructor Create empty Ports
+     */
     @Serializable
     data class Ports(
         @Comment(
@@ -63,6 +87,15 @@ data class Config(
         val http: Int = 80,
     )
 
+
+    /**
+     * GalaxyAtWarConfig The configuration of the Galaxy at War
+     *
+     * @property readinessDailyDecay The amount of readiness level to decay each day from last update 0.5 = -1%
+     * Set this value defaults to 0 for no decay
+     * @property enablePromotions Whether to include promotions in the galaxy at war level
+     * @constructor Create empty GalaxyAtWarConfig
+     */
     @Serializable
     data class GalaxyAtWarConfig(
         @Comment(
@@ -78,7 +111,7 @@ data class Config(
     @Serializable
     data class WebAuth(
         val username: String = "admin",
-        val password: String = "admin"
+        val password: String = "admin",
     )
 }
 

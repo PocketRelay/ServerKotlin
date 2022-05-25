@@ -56,7 +56,7 @@ class PlayerSession {
     var netData = SHARED_NET_DATA
 
     // The authenticated player for this session null if the player isn't authenticated
-    var _player: Player? = null
+    private var _player: Player? = null
     val player: Player get() = _player ?: throw throw NotAuthenticatedException()
     val playerId: Int get() = player.playerId
 
