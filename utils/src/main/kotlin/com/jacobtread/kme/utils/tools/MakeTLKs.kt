@@ -23,52 +23,7 @@ fun main() {
                 }
             }
             val outFile = outDir / newName
-            val contents = it.readBytes()
-            val base64 = Base64.getEncoder().encodeToString(contents)
-            val chunks = base64.chunked(255)
-            val keys = ArrayList<String>(chunks.size)
-            val values = ArrayList<String>(chunks.size)
-
-            chunks.forEachIndexed { index, value ->
-                keys.add("CHUNK_$index")
-                values.add(value)
-            }
-
-            var run = true
-            while (run) {
-                run = false
-                var tmp: String
-                for (i in 0 until keys.size - 1) {
-                    if (keys[i] > keys[i + 1]) {
-                        tmp = keys[i]
-                        keys[i] = keys[i + 1]
-                        keys[i + 1] = tmp
-                        tmp = values[i]
-                        values[i] = values[i + 1]
-                        values[i + 1] = tmp
-                        run = true
-                    }
-                }
-            }
-
-
-            val outBuilder = StringBuilder()
-
-            for (i in 0 until keys.size) {
-                val key = keys[i]
-                val value = values[i]
-                outBuilder
-                    .append(key)
-                    .append(":")
-                    .append(value)
-                    .append('\n')
-            }
-
-            outBuilder.append("CHUNK_SIZE:255\nDATA_SIZE:")
-                .append(base64.length)
-                .append('\n')
-            if (!outFile.exists()) outFile.createFile()
-            outFile.writeText(outBuilder.toString().dropLast(1))
+            ResourceProcessing.processTlkBytes(it.readBytes())
         }
     }
 }
