@@ -18,6 +18,13 @@ import io.netty.handler.codec.http.HttpRequestDecoder
 import io.netty.handler.codec.http.HttpResponseEncoder
 import java.io.IOException
 
+/**
+ * startHttpServer Starts the HTTP server
+ *
+ * @param bossGroup The boss event loop group to use
+ * @param workerGroup The worker event loop group to use
+ * @param config The server configuration
+ */
 fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup, config: Config) {
     try {
         val port = config.ports.http
@@ -32,6 +39,7 @@ fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
                     }
                 }
             }
+            // Contents catchall for the assets ME3 fetches
             get("content/:*") { _, request ->
                 val path = request.param("*")
                 val fileName = path.substringAfterLast('/')
@@ -52,6 +60,13 @@ fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
     }
 }
 
+/**
+ * HttpInitializer Initializes the channel to accept http adds the decoder
+ * and encoder and aggregator and the router to the channel
+ *
+ * @property router
+ * @constructor Create empty HttpInitializer
+ */
 @Sharable
 class HttpInitializer(private val router: Router) : ChannelInitializer<Channel>() {
     override fun initChannel(ch: Channel) {

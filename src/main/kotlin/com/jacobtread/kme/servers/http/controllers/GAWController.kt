@@ -14,8 +14,19 @@ import io.netty.handler.codec.http.HttpResponseStatus
 import org.jetbrains.exposed.sql.transactions.transaction
 import kotlin.math.min
 
+/**
+ * GAWController Controller for handling Galaxy At War http
+ * functionality.
+ *
+ * @constructor Create empty GAWController
+ */
 object GAWController : GroupRoute("gaw"){
 
+    /**
+     * Authentication The route which handles Galaxy at War authentication
+     * this authentication isn't implemented properly. This should be using
+     * a session token, but currently it just accepts the userID
+     */
     private val Authentication = RouteFunction { _, request ->
         val playerId = request.queryInt("auth", 16)
         val player = Player.getById(playerId)
@@ -52,6 +63,10 @@ object GAWController : GroupRoute("gaw"){
         }
     }
 
+    /**
+     * Ratings The route which handles Galaxy at war ratings for the players
+     * with the provided player ID
+     */
     private val Ratings = RouteFunction { config, request ->
         val playerId = request.paramInt("id", 16)
         val player = Player.getById(playerId)
@@ -60,6 +75,10 @@ object GAWController : GroupRoute("gaw"){
         respondRatings(config, request, player, rating)
     }
 
+    /**
+     * IncreaseRatings The route which handles Galaxy at War ratings increasing
+     * this is done by ME3
+     */
     private val IncreaseRatings = RouteFunction { config, request ->
         val playerId = request.paramInt("id", 16)
         val player = Player.getById(playerId)
@@ -79,12 +98,24 @@ object GAWController : GroupRoute("gaw"){
         respondRatings(config, request, player, rating)
     }
 
+    /**
+     * Adds the routes for this route group
+     */
     init {
         get("authentication/sharedTokenLogin", Authentication)
         get("galaxyatwar/getRatings/:id", Ratings)
         get("galaxyatwar/increaseRatings/:id", IncreaseRatings)
     }
 
+    /**
+     * respondRatings Responds to the provided request with the galaxy at war
+     * ratings for the provided player
+     *
+     * @param config The server configuration
+     * @param request The request to respond to
+     * @param player The player to use the data from
+     * @param rating The player galaxy at war rating data
+     */
     private fun respondRatings(
         config: Config,
         request: WrappedRequest,
