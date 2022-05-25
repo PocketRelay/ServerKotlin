@@ -21,7 +21,7 @@ import kotlin.io.path.writeText
  * @property logging The configuration for the logger
  * @property menuMessage The message that should be displayed on the main menu
  * @property database The database configuration
- * @property webAuth The configuration for the web panel authentication
+ * @property panel The configuration for the web panel authentication
  * @property gaw The Galaxy At War configuration
  * @constructor Create empty Config
  */
@@ -52,7 +52,7 @@ data class Config(
     val database: DatabaseConfig = DatabaseConfig(),
 
     @Comment("Authentication for the web manager panel")
-    val webAuth: WebAuth = WebAuth(),
+    val panel: PanelConfig = PanelConfig(),
 
     @Comment("Galaxy At War config")
     val gaw: GalaxyAtWarConfig = GalaxyAtWarConfig(),
@@ -108,8 +108,17 @@ data class Config(
         val enablePromotions: Boolean = true,
     )
 
+    /**
+     * PanelConfig The configuration for the web panel
+     *
+     * @property enabled Whether the panel is enabled or not
+     * @property username The panel username
+     * @property password The panel password
+     * @constructor Create empty PanelConfig
+     */
     @Serializable
-    data class WebAuth(
+    data class PanelConfig(
+        val enabled: Boolean = true,
         val username: String = "admin",
         val password: String = "admin",
     )

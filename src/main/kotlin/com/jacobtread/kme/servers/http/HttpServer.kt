@@ -23,11 +23,13 @@ fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
         val port = config.ports.http
         val router = router(config) {
             +GAWController
-            +groupedRoute("panel") {
-                +APIController
-                get(":*") { _, request ->
-                    val path = request.param("*")
-                    request.static(path, "panel", "index.html", "panel")
+            if (config.panel.enabled) {
+                +groupedRoute("panel") {
+                    +APIController
+                    get(":*") { _, request ->
+                        val path = request.param("*")
+                        request.static(path, "panel", "index.html", "panel")
+                    }
                 }
             }
             get("content/:*") { _, request ->
