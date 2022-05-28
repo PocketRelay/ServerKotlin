@@ -61,10 +61,6 @@ dependencies {
     implementation(project(":utils"))
 }
 
-tasks.withType(ShadowJar::class.java) {
-    minimize()
-}
-
 tasks.withType(Jar::class.java) {
     archiveFileName.set("server.jar")
     manifest {

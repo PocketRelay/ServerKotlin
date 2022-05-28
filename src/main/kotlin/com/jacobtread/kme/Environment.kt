@@ -32,7 +32,7 @@ object Environment {
     // Panel configuration
     private const val PANEL_ENABLED = "KME_PANEL_ENABLED"
     private const val PANEL_USERNAME = "KME_PANEL_USERNAME"
-    private const val PANEL_PASSWORD = "KME_PANEL_USERNAME"
+    private const val PANEL_PASSWORD = "KME_PANEL_PASSWORD"
 
     // Database typ
     private const val DATABASE_TYPE = "KME_DATABASE_TYPE"
