@@ -105,8 +105,8 @@ class RedirectHandler(private val target: ServerAddress, val port: Int) : Simple
                     number("IP", target.address)
                     number("PORT", port)
                 })
-                number("SECU", 0x0)
-                number("XDNS", 0x0)
+                bool("SECU", false)
+                bool("XDNS", false)
             }
             info("Sent redirection to client at $remoteAddress. Closing Connection.")
             channel.close()

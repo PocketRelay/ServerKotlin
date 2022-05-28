@@ -57,6 +57,17 @@ class TdfBuilder {
     }
 
     /**
+     * bool Adds a numerical representation of the boolean value (0x0 or 0x1) as
+     * a var int
+     *
+     * @param label The label of the Tdf
+     * @param value The boolean value of the Tdf true = 0x1 false = 0x0
+     */
+    fun bool(label: String, value: Boolean) {
+        values.add(VarIntTdf(label, if (value) 0x1 else 0x0))
+    }
+
+    /**
      * blob Adds a new blob value to the builder.
      * This becomes a BlobTdf when created
      *
