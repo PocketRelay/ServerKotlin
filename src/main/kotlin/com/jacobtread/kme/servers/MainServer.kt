@@ -402,7 +402,19 @@ private class MainHandler(
             }
         }
         session.setAuthenticated(player) // Link the player to this session
-        respondEmpty(packet)
+        channel.respond(packet) {
+            text("LDHT", "")
+            number("NTOS", 0)
+            text("PCTK", player.sessionToken)
+            list("PLST", listOf(session.createPersonaList()))
+            text("PRIV", "")
+            text("SKEY", Data.SKEY2)
+            number("SPAM", 0)
+            text("THST", "")
+            text("TSUI", "")
+            text("TURI", "")
+            number("UID", player.id.value)
+        }
     }
 
     /**

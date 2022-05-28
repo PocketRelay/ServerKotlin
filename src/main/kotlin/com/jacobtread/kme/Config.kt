@@ -33,6 +33,7 @@ data class Config(
         This should be the same address that the client's put into their setup.
     """
     )
+    @SerialName("external_address")
     val externalAddress: String = "383933-gosprapp396.ea.com",
 
     @Comment("The ports for each sub server")
