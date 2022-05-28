@@ -1,5 +1,3 @@
-@file:JvmName("RedirectServer")
-
 package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.Config
@@ -25,7 +23,6 @@ import java.net.UnknownHostException
 import java.security.KeyStore
 import java.security.Security
 import javax.net.ssl.KeyManagerFactory
-
 
 fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup, config: Config) {
     try {
