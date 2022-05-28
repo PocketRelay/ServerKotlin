@@ -91,23 +91,7 @@ fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
  * @constructor Create empty RedirectHandler
  */
 @Sharable
-class RedirectHandler(target: ServerAddress, port: Int) : SimpleChannelInboundHandler<Packet>() {
-
-    private val packetBody: ByteBuf
-
-    init {
-        val packetContents = TdfBuilder()
-        packetContents.apply {
-            optional("ADDR", group("VALU") {
-                text("HOST", target.host)
-                number("IP", target.address)
-                number("PORT", port)
-            })
-            number("SECU", 0x0)
-            number("XDNS", 0x0)
-        }
-        packetBody = Unpooled.unreleasableBuffer(packetContents.createBuffer())
-    }
+class RedirectHandler(val target: ServerAddress, val port: Int) : SimpleChannelInboundHandler<Packet>() {
 
     override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
         if (msg.component == Components.REDIRECTOR
@@ -115,7 +99,15 @@ class RedirectHandler(target: ServerAddress, port: Int) : SimpleChannelInboundHa
         ) {
             val channel = ctx.channel()
             val remoteAddress = channel.remoteAddress()
-            channel.respond(msg, packetBody)
+            channel.respond(msg) {
+                optional("ADDR", group("VALU") {
+                    text("HOST", target.host)
+                    number("IP", target.address)
+                    number("PORT", port)
+                })
+                number("SECU", 0x0)
+                number("XDNS", 0x0)
+            }
             info("Sent redirection to client at $remoteAddress. Closing Connection.")
             channel.close()
         }

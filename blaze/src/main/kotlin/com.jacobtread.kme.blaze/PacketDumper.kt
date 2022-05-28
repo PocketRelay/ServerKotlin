@@ -31,10 +31,17 @@ fun packetToBuilder(rawPacket: Packet): String {
     }
 
     out.append(") {\n")
+    val contentBuffer = rawPacket.contentBuffer
+
+    contentBuffer.retain()
+    contentBuffer.markReaderIndex()
+
     rawPacket.content.forEach {
         appendTdf(out, 1, it, false)
         out.append('\n')
     }
+
+    contentBuffer.resetReaderIndex()
     out.append("}")
     return out.toString()
 }
