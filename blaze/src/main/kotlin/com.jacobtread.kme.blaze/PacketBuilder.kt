@@ -2,115 +2,123 @@
 
 package com.jacobtread.kme.blaze
 
-
-import io.netty.buffer.ByteBuf
+import com.jacobtread.kme.blaze.Packet.Companion.ERROR_TYPE
+import com.jacobtread.kme.blaze.Packet.Companion.NO_ERROR
+import com.jacobtread.kme.blaze.Packet.Companion.RESPONSE_TYPE
+import com.jacobtread.kme.blaze.Packet.Companion.UNIQUE_TYPE
 import io.netty.buffer.Unpooled
-import io.netty.channel.Channel
 
-inline fun Channel.send(packet: Packet, flush: Boolean = true) {
-    write(packet)
-    if (flush) flush()
-}
+/**
+ * Alias for a function that initializes the contents of a TdfBuilder
+ * @see TdfBuilder
+ */
+typealias ContentInitializer = TdfBuilder.() -> Unit
 
-inline fun Channel.respond(
-    responding: Packet,
-    error: Int = Packet.NO_ERROR,
-    flush: Boolean = true,
-    populate: TdfBuilder.() -> Unit = {},
-) = send(createPacket(responding.component, responding.command, Packet.RESPONSE_TYPE, responding.id, error, populate), flush)
+/**
+ * respond Creates a packet responding to the packet that this was called on.
+ * The packet will be of the RESPONSE type and will have its contents initialized
+ * within the provided function. INLINED
+ *
+ * @param init The initializer for the content of this packet
+ * @return The created packet
+ */
+inline fun Packet.respond(init: ContentInitializer): Packet = initializePacket(component, command, NO_ERROR, RESPONSE_TYPE, id, init)
 
-inline fun Channel.respond(
-    responding: Packet,
-    content: ByteBuf,
-    flush: Boolean = true,
-    error: Int = Packet.NO_ERROR,
-) = send(Packet(responding.component, responding.command, error, Packet.RESPONSE_TYPE, responding.id, content), flush)
+/**
+ * respond Creates a packet responding to the packet that this was called on.
+ * The packet will be of the RESPONSE type this packet will have empty content
+ *
+ * @return The created packet
+ */
+inline fun Packet.respond(): Packet = initializeEmptyPacket(component, command, NO_ERROR, RESPONSE_TYPE, id)
 
-inline fun Channel.error(
-    responding: Packet,
+/**
+ * unique Creates a packet that is not responding to any other packets
+ * using the provided command and component, initializes the contents
+ * using the provided content initializer
+ *
+ * @param component The component of the packet
+ * @param command The command of the packet
+ * @param init The content initializer
+ * @return The created packet
+ */
+fun unique(
+    component: Int,
+    command: Int,
+    init: ContentInitializer,
+): Packet = initializePacket(component, command, NO_ERROR, UNIQUE_TYPE, 0x0, init)
+
+/**
+ * unique Creates a packet that is not responding to any other packets
+ * using the provided command and component
+ *
+ * @param component The component of the packet
+ * @param command The command of the packet
+ * @return The created packet
+ */
+fun unique(component: Int, command: Int): Packet = initializeEmptyPacket(component, command, NO_ERROR, UNIQUE_TYPE, 0x0)
+
+
+/**
+ * error Creates a packet responding to the packet that this was called on. This packet
+ * contains an error as well. The packet will be of the ERROR type and will have its
+ * contents initialized within the provided function. INLINED
+ *
+ * @param init The initializer for the content of this packet
+ * @return The created packet
+ */
+inline fun Packet.error(error: Int, init: ContentInitializer): Packet = initializePacket(component, command, error, ERROR_TYPE, id, init)
+
+/**
+ * error Creates a packet responding to the packet that this was called on. This packet
+ * contains an error as well. The packet will be of the ERROR type and will have no content
+ *
+ * @return The created packet
+ */
+inline fun Packet.error(error: Int): Packet = initializeEmptyPacket(component, command, error, ERROR_TYPE, id)
+
+
+/**
+ * initializePacket Initializes the contents of and then creates a new packet
+ * with the provided packet details. Creates the packet contents with the init
+ * function that was provided.
+ *
+ * @param component The packet component
+ * @param command The packet command
+ * @param error The packet error
+ * @param type The packet type
+ * @param id The packet id
+ * @param init The content initializer
+ * @return The created packet
+ */
+inline fun initializePacket(
+    component: Int,
+    command: Int,
     error: Int,
-    flush: Boolean = true,
-    populate: TdfBuilder.() -> Unit = {},
-) = send(createPacket(responding.component, responding.command, Packet.ERROR_TYPE, responding.id, error, populate), flush)
-
-inline fun error(
-    responding: Packet,
-    error: Int,
-    populate: TdfBuilder.() -> Unit = {},
-): Packet = createPacket(responding.component, responding.command, Packet.ERROR_TYPE, responding.id, error, populate)
-
-inline fun respond(
-    responding: Packet,
-    error: Int = Packet.NO_ERROR,
-    populate: TdfBuilder.() -> Unit = {},
-): Packet = createPacket(
-    responding.component,
-    responding.command,
-    Packet.RESPONSE_TYPE,
-    responding.id,
-    error,
-    populate
-)
-
-inline fun respond(
-    responding: Packet,
-    content: ByteBuf,
-    error: Int = Packet.NO_ERROR,
-): Packet = Packet(responding.component, responding.command, error, Packet.ERROR_TYPE, responding.id, content)
-
-
-inline fun Channel.unique(
-    component: Int,
-    command: Int,
-    id: Int = 0x0,
-    error: Int = Packet.NO_ERROR,
-    flush: Boolean = true,
-    populate: TdfBuilder.() -> Unit = {},
-) = send(createPacket(component, command, Packet.UNIQUE_TYPE, id, error, populate), flush)
-
-inline fun unique(
-    component: Int,
-    command: Int,
-    id: Int = 0x0,
-    error: Int = Packet.NO_ERROR,
-    populate: TdfBuilder.() -> Unit = {},
-): Packet = createPacket(component, command, Packet.UNIQUE_TYPE, id, error, populate)
-
-inline fun Channel.packet(
-    component: Int,
-    command: Int,
-    qtype: Int,
-    id: Int = 0x0,
-    error: Int = Packet.NO_ERROR,
-    flush: Boolean = true,
-    populate: TdfBuilder.() -> Unit = {},
-) = send(createPacket(component, command, qtype, id, error, populate), flush)
-
-inline fun createPacket(
-    component: Int,
-    command: Int,
-    qtype: Int,
-    id: Int = 0x0,
-    error: Int = Packet.NO_ERROR,
-    populate: TdfBuilder.() -> Unit = {},
+    type: Int,
+    id: Int,
+    init: ContentInitializer,
 ): Packet {
-    val contentBuilder = TdfBuilder()
-    contentBuilder.populate()
-    return Packet(
-        component,
-        command,
-        error,
-        qtype,
-        id,
-        contentBuilder.createBuffer()
-    )
+    val builder = TdfBuilder()
+    builder.init()
+    return Packet(component, command, error, type, id, builder.createBuffer())
 }
 
-inline fun lazyPacketBody(crossinline populate: TdfBuilder.() -> Unit): Lazy<ByteBuf> {
-    return lazy {
-        val builder = TdfBuilder()
-        builder.populate()
-        Unpooled.unreleasableBuffer(builder.createBuffer())
-    }
-}
-
+/**
+ * initializeEmptyPacket Creates a packet with the provided details
+ * but with empty contents.
+ *
+ * @param component The packet component
+ * @param command The packet command
+ * @param error The packet error
+ * @param type The packet type
+ * @param id The packet id
+ * @return
+ */
+inline fun initializeEmptyPacket(
+    component: Int,
+    command: Int,
+    error: Int,
+    type: Int,
+    id: Int,
+): Packet = Packet(component, command, error, type, id, Unpooled.EMPTY_BUFFER)

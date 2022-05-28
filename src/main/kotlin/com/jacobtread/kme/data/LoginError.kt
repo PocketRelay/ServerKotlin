@@ -31,7 +31,7 @@ enum class LoginError(val value: Int) {
     CONNECTION_LOST(0x4007);
 
     operator fun invoke(packet: Packet): Packet =
-        error(packet, value) {
+        packet.error(value) {
             text("PNAM", "")
             number("UID", 0)
         }

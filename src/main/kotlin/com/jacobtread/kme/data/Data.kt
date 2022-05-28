@@ -1,9 +1,8 @@
 package com.jacobtread.kme.data
 
 import com.jacobtread.kme.Config
-import com.jacobtread.kme.blaze.lazyPacketBody
+import com.jacobtread.kme.blaze.TdfBuilder
 import com.jacobtread.kme.blaze.group
-import io.netty.buffer.ByteBuf
 import java.io.BufferedReader
 import java.io.IOException
 import kotlin.random.Random
@@ -35,15 +34,14 @@ object Data {
     const val SKEY2 = "11229301_9b171d92cc562b293e602ee8325612e7"
     val CIDS = listOf(1, 25, 4, 28, 7, 9, 63490, 30720, 15, 30721, 30722, 30723, 30725, 30726, 2000)
 
+
+    //region ME3 Data
     /**
-     * USER_ENTITLEMENTS List of user entitlements this is the same for all players
-     * and gets requested multiple times so for performance sake this is created and
-     * converted to a byte array upon first access to prevent this large content
-     * from needing to be rebuilt over and over again every request
+     * createUserEntitlements Creates a List of user entitlements
+     * this is the same for all players
      */
-    @Suppress("SpellCheckingInspection")
-    val USER_ENTITLEMENTS: ByteBuf by lazyPacketBody {
-        list("NLST", listOf(
+    fun createUserEntitlements(builder: TdfBuilder) {
+        builder.list("NLST", listOf(
             group {
                 text("DEVI", "")
                 text("GDAY", "2013-03-04T22:16Z")
@@ -226,9 +224,6 @@ object Data {
             }
         ))
     }
-
-
-    //region ME3 Data
 
     fun createDataConfig(config: Config): Map<String, String> {
         val address = config.externalAddress

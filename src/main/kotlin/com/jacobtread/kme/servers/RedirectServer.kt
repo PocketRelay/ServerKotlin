@@ -124,7 +124,7 @@ class RedirectorHandler(private val config: Config) : ChannelInitializer<Channel
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
         if (msg !is Packet) return
         val channel = ctx.channel()
-        channel.respond(msg) {
+        val packet = msg.respond {
             if (msg.component == Components.REDIRECTOR && msg.command == Commands.GET_SERVER_INSTANCE) {
                 optional("ADDR", group("VALU") {
                     if (targetAddress.isHostname) {
@@ -139,6 +139,7 @@ class RedirectorHandler(private val config: Config) : ChannelInitializer<Channel
                 info("Sent redirection to client at $remoteAddress. Closing Connection.")
             }
         }
+        channel.writeAndFlush(packet)
         channel.close()
     }
 }

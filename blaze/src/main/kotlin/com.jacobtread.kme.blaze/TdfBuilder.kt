@@ -262,7 +262,7 @@ class TdfBuilder {
  * @receiver
  * @return The newly created struct
  */
-inline fun group(label: String = "", start2: Boolean = false, init: TdfBuilder.() -> Unit): GroupTdf {
+inline fun group(label: String = "", start2: Boolean = false, init: ContentInitializer): GroupTdf {
     val context = TdfBuilder()
     context.init()
     return GroupTdf(label, start2, context.values)

@@ -24,3 +24,4 @@ fun main() {
     startHttpServer(bossGroup, workerGroup, config)
     startDiscardServer(bossGroup, workerGroup, intArrayOf(config.ports.telemetry, config.ports.ticker))
 }
+
