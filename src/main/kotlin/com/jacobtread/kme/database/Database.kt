@@ -289,12 +289,15 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
     val sessionToken: String
         get() {
             var sessionToken = _sessionToken
-            if (sessionToken == null) {
-                sessionToken = createSessionToken()
-                transaction { _sessionToken = sessionToken }
-            }
+            if (sessionToken == null) sessionToken = createNewSessionToken()
             return sessionToken
         }
+
+    fun createNewSessionToken(): String {
+        val sessionToken = createSessionToken()
+        transaction { _sessionToken = sessionToken }
+        return sessionToken
+    }
 
     /**
      * isSessionToken Checks if the provided token is the
