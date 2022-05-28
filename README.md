@@ -7,13 +7,10 @@ with the aim to improve it and take it to the level of a server that can be used
 
 ## Setup
 
-### Environment Variables
-KME3 can be configured using environment variables. You can view a list of them at [Environment Variables](docs/ENV.md)
+**Client Setup** You can find the setup guide for connecting to KME servers [Here](docs/SETUP_CLIENT.md)
 
-### IT WORKS!!!
+**Hosting Setup**: You can find the setup guide for running your own KME servers [Here](docs/SETUP_HOSTER.md)
 
-You can actually play games on it and all required functions are working! However, it's not complete yet
-because I'd still like to improve it further
 
 ## Connection requirements
 
@@ -49,5 +46,5 @@ I plan on making a tool for doing this automatically
 
 ## Credits
 
-[https://github.com/PrivateServerEmulator/ME3PSE](https://github.com/PrivateServerEmulator/ME3PSE)
-Sourced certificate and many game assets from this project
+1. [https://github.com/PrivateServerEmulator/ME3PSE](https://github.com/PrivateServerEmulator/ME3PSE) Sourced certificate and many game assets from this project 
+2. [https://github.com/Erik-JS/masseffect-binkw32](https://github.com/Erik-JS/masseffect-binkw32) Game patcher
