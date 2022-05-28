@@ -91,7 +91,7 @@ fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
  * @constructor Create empty RedirectHandler
  */
 @Sharable
-class RedirectHandler(val target: ServerAddress, val port: Int) : SimpleChannelInboundHandler<Packet>() {
+class RedirectHandler(private val target: ServerAddress, val port: Int) : SimpleChannelInboundHandler<Packet>() {
 
     override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
         if (msg.component == Components.REDIRECTOR
