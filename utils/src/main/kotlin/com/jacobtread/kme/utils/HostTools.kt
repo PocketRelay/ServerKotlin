@@ -6,15 +6,15 @@ private val IPV4_REGEX = Regex("^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)(\\.(?!\$)|\$
 
 fun lookupServerAddress(value: String): ServerAddress {
     if (value.matches(IPV4_REGEX)) {
-        return ServerAddress(value, value)
+        return ServerAddress(value, value, false)
     } else {
-        if (value == "localhost") return ServerAddress("127.0.0.1", value)
+        if (value == "localhost") return ServerAddress("127.0.0.1", value, true)
         val address = InetAddress.getByName(value)
         val ip = address.hostAddress
-        return ServerAddress(ip, value)
+        return ServerAddress(ip, value, true)
     }
 }
 
-data class ServerAddress(val ip: String, val host: String) {
+data class ServerAddress(val ip: String, val host: String, val isHostname: Boolean) {
     val address = IPAddress.asLong(ip)
 }

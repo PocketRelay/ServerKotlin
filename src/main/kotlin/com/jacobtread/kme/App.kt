@@ -22,9 +22,8 @@ fun main() {
     Logger.info("Starting ME3 Server")
 
     startDatabase(config.database)
-
-    startHttpServer(bossGroup, workerGroup, config)
     startRedirector(bossGroup, workerGroup, config)
     startMainServer(bossGroup, workerGroup, config)
+    startHttpServer(bossGroup, workerGroup, config)
     startDiscardServer(bossGroup, workerGroup, intArrayOf(config.ports.telemetry, config.ports.ticker))
 }
