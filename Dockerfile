@@ -21,16 +21,7 @@ WORKDIR /home/gradle/src
 RUN gradle shadowJar --no-daemon
 
 # Run step uses OpenJDK 17 alpine
-FROM openjdk:17-alpine AS run
-
-# Create an app directory
-RUN mkdir "/app"
-
-# Set the working directory
-WORKDIR /app
-
-# Copy the compiled JAR from the build step
-COPY --from=build /home/gradle/src/build/libs/server.jar server.jar
+FROM openjdk:17-alpine
 
 # Use environment variable based config only shouldn't
 # be changed unless you want an on disk config aswell
@@ -83,9 +74,17 @@ EXPOSE ${KME_TICKER_PORT}
 EXPOSE ${KME_TELEMETRY_PORT}
 EXPOSE ${KME_HTTP_PORT}
 
+# Create an app directory
+RUN mkdir "/app"
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the compiled JAR from the build step
+COPY --from=build /home/gradle/src/build/libs/server.jar server.jar
 
 VOLUME ["/run"]
 WORKDIR /run
 
 # Provide the entry point for starting the JAR
-ENTRYPOINT ["java", "-jar", "../server.jar"]
+ENTRYPOINT ["java", "-jar", "/app/server.jar"]
