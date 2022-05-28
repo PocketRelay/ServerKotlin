@@ -16,6 +16,10 @@ import com.jacobtread.kme.utils.logging.Logger
  */
 object Environment {
 
+    // The version of KME
+    const val KME_VERSION = "1.0.0"
+
+
     // Disabled config creation and only uses environment variables
     private const val ENV_CONFIG = "KME_ENVIRONMENT_CONFIG"
 

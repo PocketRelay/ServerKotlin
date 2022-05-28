@@ -1,7 +1,7 @@
 package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.Config
-import com.jacobtread.kme.KME_VERSION
+import com.jacobtread.kme.Environment
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.Commands.ADVANCE_GAME_STATE
 import com.jacobtread.kme.blaze.Commands.CANCEL_MATCHMAKING
@@ -838,7 +838,7 @@ private class MainHandler(
         val ip = channel.remoteAddress().toString()
         val player = session.player
         val menuMessage = config.menuMessage
-            .replace("{v}", KME_VERSION)
+            .replace("{v}", Environment.KME_VERSION)
             .replace("{n}", player.displayName)
             .replace("{ip}", ip) + 0xA.toChar()
         channel.unique(

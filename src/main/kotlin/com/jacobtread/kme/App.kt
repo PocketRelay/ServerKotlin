@@ -10,9 +10,6 @@ import com.jacobtread.kme.servers.startRedirector
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.channel.nio.NioEventLoopGroup
 
-// The version of KME
-const val KME_VERSION = "1.0.0"
-
 fun main() {
     val bossGroup = NioEventLoopGroup()
     val workerGroup = NioEventLoopGroup()
