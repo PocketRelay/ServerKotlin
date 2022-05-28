@@ -21,8 +21,6 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
             return when (valueType) {
                 java.lang.Long::class.java,
                 java.lang.Integer::class.java,
-                Long::class.java,
-                Int::class.java,
                 -> VARINT
                 String::class.java -> STRING
                 Float::class.java -> FLOAT

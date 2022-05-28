@@ -67,6 +67,7 @@ class TdfBuilder {
         values.add(VarIntTdf(label, if (value) 0x1 else 0x0))
     }
 
+
     /**
      * blob Adds a new blob value to the builder.
      * This becomes a BlobTdf when created
@@ -90,6 +91,7 @@ class TdfBuilder {
     fun tripple(label: String, a: Long, b: Long, c: Long) {
         values.add(TrippleTdf(label, VarTripple(a, b, c)))
     }
+
 
     /**
      * tripple Adds a new tripple value to the builder.
@@ -125,6 +127,7 @@ class TdfBuilder {
         values.add(PairTdf(label, value))
     }
 
+
     /**
      * float Adds a new float value to the builder.
      * This becomes a FloatTdf when created
@@ -144,7 +147,10 @@ class TdfBuilder {
      * @param value The list value
      */
     inline fun <reified A : Any> list(label: String, value: List<A>) {
-        val type = Tdf.getTypeFromClass(A::class.java)
+        list(label, Tdf.getTypeFromClass(A::class.java), value)
+    }
+
+    fun list(label: String, type: Int, value: List<Any>) {
         values.add(ListTdf(label, type, value))
     }
 
@@ -160,6 +166,7 @@ class TdfBuilder {
         this.values.add(ListTdf(label, type, values.toList()))
     }
 
+
     /**
      * map Adds a new map value to the builder.
      * This becomes a MapTdf when created
@@ -168,12 +175,13 @@ class TdfBuilder {
      * @param value The map value
      */
     inline fun <reified A : Any, reified B : Any> map(label: String, value: Map<A, B>) {
+        map(label, Tdf.getTypeFromClass(A::class.java), Tdf.getTypeFromClass(B::class.java), value)
+    }
 
-        val keyType = Tdf.getTypeFromClass(A::class.java)
-        val valueType = Tdf.getTypeFromClass(B::class.java)
-
+    fun map(label: String, keyType: Int, valueType: Int, value: Map<*, *>) {
         values.add(MapTdf(label, keyType, valueType, value))
     }
+
 
     /**
      * varList Adds a new var int list value to the builder.
