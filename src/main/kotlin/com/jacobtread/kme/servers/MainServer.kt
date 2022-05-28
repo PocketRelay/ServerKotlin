@@ -1112,7 +1112,7 @@ private class MainHandler(
             //  tickerAddress = "waleu2.tools.gos.ea.com:8999"
 
             +group("TELE") {
-                text("ADRS", config.address) // Server Address
+                text("ADRS", config.externalAddress) // Server Address
                 number("ANON", 0)
                 text("DISA", Data.TELE_DISA)
                 text("FILT", "-UION/****") // Telemetry filter?
@@ -1127,7 +1127,7 @@ private class MainHandler(
             }
 
             +group("TICK") {
-                text("ADRS", config.address)
+                text("ADRS", config.externalAddress)
                 number("port", config.ports.ticker)
                 text("SKEY", "823287263,10.23.15.2:8999,masseffect-3-pc,10,50,50,50,50,0,12")
             }

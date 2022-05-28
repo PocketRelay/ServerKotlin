@@ -14,7 +14,7 @@ import kotlin.io.path.writeText
 /**
  * Config the configuration for this application
  *
- * @property address The address that clients will use to connect to this server. This address should point to
+ * @property externalAddress The address that clients will use to connect to this server. This address should point to
  * the machine that this server is hosted on and must be accessible to the clients. If you aren't using a custom
  * domain then the default domain should be added to the system hosts file
  * @property ports The different ports that all the different servers should use
@@ -33,7 +33,7 @@ data class Config(
         This should be the same address that the client's put into their setup.
     """
     )
-    val address: String = "383933-gosprapp396.ea.com",
+    val externalAddress: String = "383933-gosprapp396.ea.com",
 
     @Comment("The ports for each sub server")
     val ports: Ports = Ports(),

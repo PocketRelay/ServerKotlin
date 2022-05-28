@@ -38,6 +38,16 @@ enum class DatabaseType {
 
     @SerialName("sqlite")
     SQLITE;
+
+    companion object {
+        fun fromName(name: String): DatabaseType {
+            return when (name.lowercase()) {
+                "sqlite" -> SQLITE
+                "mysql" -> MYSQL
+                else -> SQLITE
+            }
+        }
+    }
 }
 
 /**
@@ -50,11 +60,11 @@ enum class DatabaseType {
  */
 @Serializable
 data class DatabaseConfig(
-    @Comment("The type of database to use MySQL or SQLite")
+    @Comment("The type of database to use mysql or sqlite")
     val type: DatabaseType = DatabaseType.SQLITE,
-    @Comment("Settings for connecting to MySQL database")
+    @Comment("Settings for connecting to a MySQL database")
     val mysql: MySQLConfig = MySQLConfig(),
-    @Comment("Settings used for connecting to SQLite database")
+    @Comment("Settings used for connecting to an SQLite database")
     val sqlite: SQLiteConfig = SQLiteConfig(),
 )
 
@@ -71,7 +81,7 @@ data class DatabaseConfig(
 @Serializable
 data class MySQLConfig(
     val host: String = "127.0.0.1",
-    val port: String = "3306",
+    val port: Int = 3306,
     val user: String = "root",
     val password: String = "password",
     val database: String = "kme",
@@ -222,6 +232,15 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
     private val characters by PlayerCharacter referrersOn PlayerCharacters.player
     private val settings by PlayerSetting referrersOn PlayerSettings.player
 
+    /**
+     * getOrCreateGAW Gets the players' galaxy at war contents
+     * or creates a new one if the player doesn't have a galaxy
+     * at war if the player already has one it will apply the
+     * readiness daily decay rate
+     *
+     * @param config The config for getting the decay rate
+     * @return The galaxy at war values for this player
+     */
     fun getOrCreateGAW(config: Config.GalaxyAtWarConfig): PlayerGalaxyAtWar {
         val existing = PlayerGalaxyAtWar.findOne { (PlayerGalaxyAtWars.player eq this@Player.id) }
         if (existing != null) {
@@ -249,6 +268,13 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
         }
     }
 
+
+    /**
+     * createSessionToken Creates a randomly generated session token
+     * with the length of 128 chars
+     *
+     * @return The created random session token
+     */
     private fun createSessionToken(): String {
         val chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPSQRSTUVWXYZ0123456789-"
         val output = StringBuilder()
@@ -256,6 +282,10 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
         return output.toString()
     }
 
+    /**
+     * sessionToken Retrieves the current session token or creates a
+     * new session token if there is not already one
+     */
     val sessionToken: String
         get() {
             var sessionToken = _sessionToken
@@ -266,8 +296,14 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
             return sessionToken
         }
 
+    /**
+     * isSessionToken Checks if the provided token is the
+     * players' session token
+     *
+     * @param token The token to check
+     * @return Whether the tokens match
+     */
     fun isSessionToken(token: String): Boolean = _sessionToken != null && token == _sessionToken
-
 
     /**
      * setSetting Updates a user setting. Settings that are parsed such

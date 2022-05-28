@@ -49,7 +49,7 @@ fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
     try {
         val targetPort = config.ports.main
         val listenPort = config.ports.redirector
-        val address = lookupServerAddress(config.address)
+        val address = lookupServerAddress(config.externalAddress)
         val handler = RedirectHandler(address, targetPort)
         ServerBootstrap()
             .group(bossGroup, workerGroup)
@@ -76,7 +76,7 @@ fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
                 info("Port: $targetPort")
             }
     } catch (e: UnknownHostException) {
-        Logger.fatal("Unable to lookup server address \"${config.address}\"", e)
+        Logger.fatal("Unable to lookup server address \"${config.externalAddress}\"", e)
     } catch (e: IOException) {
         error("Exception in redirector server", e)
     }

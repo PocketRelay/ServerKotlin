@@ -231,7 +231,7 @@ object Data {
     //region ME3 Data
 
     fun createDataConfig(config: Config): Map<String, String> {
-        val address = config.address
+        val address = config.externalAddress
         val port = config.ports.http
         val host = if (port != 80) {
             "$address:$port"

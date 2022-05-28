@@ -3,8 +3,8 @@
 package com.jacobtread.kme
 
 import com.jacobtread.kme.database.startDatabase
-import com.jacobtread.kme.servers.startDiscardServer
 import com.jacobtread.kme.servers.http.startHttpServer
+import com.jacobtread.kme.servers.startDiscardServer
 import com.jacobtread.kme.servers.startMainServer
 import com.jacobtread.kme.servers.startRedirector
 import com.jacobtread.kme.utils.logging.Logger
@@ -17,7 +17,7 @@ fun main() {
     val bossGroup = NioEventLoopGroup()
     val workerGroup = NioEventLoopGroup()
 
-    val config = loadConfigFile()
+    val config = Environment.createConfig()
     Logger.init(config.logging)
     Logger.info("Starting ME3 Server")
 
