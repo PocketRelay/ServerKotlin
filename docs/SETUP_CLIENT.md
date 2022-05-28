@@ -2,7 +2,8 @@
 
 [Back](../README.md)
 
-This document contains the instructions for connecting to a KME3 server
+This document contains the instructions for connecting to a KME3 server. This process is a bit tedious at the moment,
+but I plan on making a tool that does the patching and hosts file redirect automatically to make this a bit easier
 
 ### 1. Getting Server Address
 You need to obtain the IP address of the server you are trying to connect to this
