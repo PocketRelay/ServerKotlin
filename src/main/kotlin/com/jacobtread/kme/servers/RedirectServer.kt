@@ -10,6 +10,8 @@ import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.ChannelHandlerContext
+import io.netty.channel.ChannelInboundHandler
+import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.channel.ChannelInitializer
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
@@ -53,9 +55,54 @@ fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
 @Sharable
 class RedirectorHandler(private val config: Config) : ChannelInitializer<Channel>(), FutureListener<Void> {
 
+    /**
+     * PacketProcessor Processes any packets sent to the redirect server
+     * only properly responds to REDIRECTOR / GET_SERVER_INSTANCE packets
+     * all other packets get empty responses
+     *
+     * @constructor Create empty PacketProcessor
+     */
+    @Sharable
+    inner class PacketProcessor : ChannelInboundHandlerAdapter() {
+        /**
+         * channelRead Handles interacting with the result of a read if the
+         * read value is a packet then it is handled and if it's a GET_SERVER_INSTANCE
+         * REDIRECTOR packet it is responded to with the redirect details
+         *
+         * @param ctx The channel context
+         * @param msg The message that was read
+         */
+        override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
+            if (msg !is Packet) {
+                ctx.fireChannelRead(msg)
+                return
+            }
+            val channel = ctx.channel()
+            val packet = msg.respond {
+                if (msg.component == Components.REDIRECTOR && msg.command == Commands.GET_SERVER_INSTANCE) {
+                    optional("ADDR", group("VALU") {
+                        if (targetAddress.isHostname) {
+                            text("HOST", targetAddress.host)
+                        }
+                        number("IP", targetAddress.address)
+                        number("PORT", targetPort)
+                    })
+                    bool("SECU", false)
+                    bool("XDNS", false)
+                    val remoteAddress = channel.remoteAddress()
+                    info("Sent redirection to client at $remoteAddress. Closing Connection.")
+                }
+            }
+            channel.writeAndFlush(packet)
+            channel.close()
+        }
+    }
+
     private val targetAddress = lookupServerAddress(config.externalAddress)
     private val targetPort = config.ports.main
     private val context = createSslContext()
+    private val processor = PacketProcessor()
+
 
     /**
      * initChannel Handles channel initialization this adds the
@@ -69,6 +116,7 @@ class RedirectorHandler(private val config: Config) : ChannelInitializer<Channel
             .addLast(context.newHandler(ch.alloc()))
             // Add handler for decoding packets
             .addLast(PacketDecoder())
+            .addLast(processor)
             // Add handler for encoding packets
             .addLast(PacketEncoder())
     }
@@ -111,35 +159,5 @@ class RedirectorHandler(private val config: Config) : ChannelInitializer<Channel
         info("Host: ${targetAddress.host}")
         info("IP: ${targetAddress.ip}")
         info("Port: $targetPort")
-    }
-
-    /**
-     * channelRead Handles interacting with the result of a read if the
-     * read value is a packet then it is handled and if it's a GET_SERVER_INSTANCE
-     * REDIRECTOR packet it is responded to with the redirect details
-     *
-     * @param ctx The channel context
-     * @param msg The message that was read
-     */
-    override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-        if (msg !is Packet) return
-        val channel = ctx.channel()
-        val packet = msg.respond {
-            if (msg.component == Components.REDIRECTOR && msg.command == Commands.GET_SERVER_INSTANCE) {
-                optional("ADDR", group("VALU") {
-                    if (targetAddress.isHostname) {
-                        text("HOST", targetAddress.host)
-                    }
-                    number("IP", targetAddress.address)
-                    number("PORT", targetPort)
-                })
-                bool("SECU", false)
-                bool("XDNS", false)
-                val remoteAddress = channel.remoteAddress()
-                info("Sent redirection to client at $remoteAddress. Closing Connection.")
-            }
-        }
-        channel.writeAndFlush(packet)
-        channel.close()
     }
 }

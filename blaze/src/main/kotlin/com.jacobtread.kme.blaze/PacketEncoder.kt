@@ -26,5 +26,6 @@ class PacketEncoder : MessageToByteEncoder<Packet>() {
         }
         out.writeBytes(content)
         content.release()
+        ctx.flush()
     }
 }
