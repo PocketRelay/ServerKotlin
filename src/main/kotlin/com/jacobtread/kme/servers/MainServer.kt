@@ -64,6 +64,7 @@ import com.jacobtread.kme.utils.IPAddress
 import com.jacobtread.kme.utils.comparePasswordHash
 import com.jacobtread.kme.utils.hashPassword
 import com.jacobtread.kme.utils.logging.Logger
+import com.jacobtread.kme.utils.logging.Logger.debug
 import com.jacobtread.kme.utils.logging.Logger.info
 import com.jacobtread.kme.utils.unixTimeSeconds
 import io.netty.bootstrap.ServerBootstrap
@@ -552,11 +553,17 @@ private class MainHandler(
      */
     private fun handleStartMatchmaking(packet: Packet) {
         session.matchmaking = true
+        val player = session.player
+        info("Player ${player.displayName} started match making")
 
         val ruleSet = Matchmaking.RuleSet.extract(packet)
         val game = Matchmaking.getMatchOrQueue(session, ruleSet) ?: return +packet.respond()
+        info("Found matching game for player ${player.displayName}")
         game.join(session)
-        +packet.respond { number("MSID", game.mid) }
+        +packet.respond {
+            number("MSID", game.mid)
+            number("GID", game.id)
+        }
         +game.host.createSessionDetails()
         game.getActivePlayers().forEach {
             val sessionDetails = it.createSessionDetails()
