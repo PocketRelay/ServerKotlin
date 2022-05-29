@@ -42,7 +42,7 @@ inline fun Packet.respond(): Packet = initializeEmptyPacket(component, command, 
  * @param init The content initializer
  * @return The created packet
  */
-fun unique(
+inline fun unique(
     component: Int,
     command: Int,
     init: ContentInitializer,
@@ -56,7 +56,7 @@ fun unique(
  * @param command The command of the packet
  * @return The created packet
  */
-fun unique(component: Int, command: Int): Packet = initializeEmptyPacket(component, command, NO_ERROR, UNIQUE_TYPE, 0x0)
+inline fun unique(component: Int, command: Int): Packet = initializeEmptyPacket(component, command, NO_ERROR, UNIQUE_TYPE, 0x0)
 
 
 /**

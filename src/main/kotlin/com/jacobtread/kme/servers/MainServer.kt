@@ -823,7 +823,7 @@ private class MainHandler(
      * @param packet The packet requesting the messages
      */
     private fun handleFetchMessages(packet: Packet) {
-        +packet.respond { number("MCNT", 0x1) }
+        +packet.respond { number("MCNT", 0x1) } // Number of messages
         val ip = channel.remoteAddress().toString()
         val player = session.player
         val menuMessage = config.menuMessage

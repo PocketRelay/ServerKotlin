@@ -253,6 +253,8 @@ object Data {
         )
     }
 
+
+
     fun createServerMessage(): Map<String, String> = mapOf(
         "MSG_1_endDate" to "10:03:2025",
         "MSG_1_image" to "Promo_n7.dds",
@@ -264,7 +266,7 @@ object Data {
         "MSG_1_message_ja" to "KME Server is working!!",
         "MSG_1_message_pl" to "KME Server is working!!",
         "MSG_1_message_ru" to "KME Server is working!!",
-        "MSG_1_priority" to "201",
+        "MSG_1_priority" to "1",
         "MSG_1_title" to "KME Server",
         "MSG_1_title_de" to "KME Server",
         "MSG_1_title_es" to "KME Server",
@@ -273,8 +275,8 @@ object Data {
         "MSG_1_title_ja" to "KME Server",
         "MSG_1_title_pl" to "KME Server",
         "MSG_1_title_ru" to "KME Server",
-        "MSG_1_trackingId" to Random.nextInt(0, 15).toString(),
-        "MSG_1_type" to "8",
+        "MSG_1_trackingId" to "2010",
+        "MSG_1_type" to "10",
     )
 
     fun createEntitlementMap(): Map<String, String> = linkedMapOf(

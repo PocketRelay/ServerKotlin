@@ -190,6 +190,13 @@ the server will respond with:
   ))
 ```
 
+| Msg Type   | What                                        |
+|------------|---------------------------------------------|
+| 0          | Main menu tab across from galaxy at war     |
+| 1, 4, 5, 6 | Main menu messages bottom scrolling message |
+| 8          | Shopping / Promotional messages?            |
+
+
 Then client then requests entitlement using the same packet but with the `CFID` set
 to `ME3_ENT`
 
