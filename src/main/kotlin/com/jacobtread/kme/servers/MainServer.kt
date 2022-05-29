@@ -53,6 +53,7 @@ import com.jacobtread.kme.blaze.Components.UTIL
 import com.jacobtread.kme.blaze.tdf.GroupTdf
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.data.LoginError
+import com.jacobtread.kme.database.Message
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.exceptions.NotAuthenticatedException
 import com.jacobtread.kme.game.GameManager
@@ -74,6 +75,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.IOException
 import java.net.SocketException
+import java.time.LocalDate
 
 /**
  * startMainServer Starts the main server
@@ -996,7 +998,7 @@ private class MainHandler(
             // Matching different configs
             conf = when (type) {
                 "ME3_DATA" -> Data.createDataConfig(config) // Configurations for GAW, images and others
-                "ME3_MSG" -> Data.createServerMessage() // Custom multiplayer messages
+                "ME3_MSG" -> getServerMessages() // Custom multiplayer messages
                 "ME3_ENT" -> Data.createEntitlementMap() // Entitlements
                 "ME3_DIME" -> Data.createDimeResponse() // Shop contents?
                 "ME3_BINI_VERSION" -> mapOf(
@@ -1008,6 +1010,31 @@ private class MainHandler(
             }
         }
         +packet.respond { map("CONF", conf) }
+    }
+
+    private fun getServerMessages(): LinkedHashMap<String, String> {
+        return transaction {
+            val out = LinkedHashMap<String, String>()
+            val messages = Message.all()
+            val locales = arrayOf("de", "es", "fr", "it", "ja", "pl", "ru")
+            messages.forEachIndexed { i, message ->
+                val index = i + 1
+                out["MSG_${index}_endDate"] = Message.DATE_FORMAT.format(LocalDate.ofEpochDay(message.endDate))
+                out["MSG_${index}_image"] = message.image
+                out["MSG_${index}_message"] = message.message
+                locales.forEach { locale ->
+                    out["MSG_${index}_message_$locale"] = message.message
+                }
+                out["MSG_${index}_priority"] = message.priority.toString()
+                out["MSG_${index}_title"] = message.title
+                locales.forEach { locale ->
+                    out["MSG_${index}_title_$locale"] = message.title
+                }
+                out["MSG_${index}_trackingId"] = message.id.value.toString()
+                out["MSG_${index}_type"] = message.type.toString()
+            }
+            out
+        }
     }
 
     /**

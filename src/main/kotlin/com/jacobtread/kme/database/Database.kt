@@ -18,6 +18,14 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.nio.file.Paths
+import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.Month
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.util.Date
 import kotlin.io.path.absolute
 import kotlin.io.path.createDirectories
 import kotlin.io.path.notExists
@@ -130,7 +138,8 @@ fun startDatabase(config: DatabaseConfig) {
             PlayerClasses,
             PlayerCharacters,
             PlayerSettings,
-            PlayerGalaxyAtWars
+            PlayerGalaxyAtWars,
+            Messages
         )
     }
 }
@@ -709,5 +718,55 @@ class PlayerSetting(id: EntityID<Int>) : IntEntity(id) {
     var key by PlayerSettings.key
     var value by PlayerSettings.value
 }
+
+object Messages : IntIdTable("messages") {
+
+    // The different message types
+    const val MENU_TABBED_TYPE: Byte = 0
+    const val MENU_SCROLLING_TYPE: Byte = 1
+    const val MULTIPLAYER_PROMOTION: Byte = 8
+
+    val endDate = long("end_date")
+    val image = varchar("image", 120)
+    val message = text("message")
+    val title = varchar("title", 255)
+    val priority = short("priority")
+    val type = byte("type")
+}
+
+class Message(id: EntityID<Int>) : IntEntity(id) {
+    companion object : IntEntityClass<Message>(Messages) {
+        val DATE_FORMAT = DateTimeFormatter.ofPattern("MM:dd:yyyy")
+
+        fun create(
+            title: String,
+            message: String,
+            image: String = "Promo_n7.dds",
+            priority: Short = 0,
+            type: Byte = Messages.MENU_SCROLLING_TYPE,
+            endDate: LocalDate = LocalDate.now().plusDays(15)
+        ) {
+            val timestamp = endDate.toEpochDay()
+            transaction {
+                Message.new {
+                    this.endDate = timestamp
+                    this.image =image
+                    this.title = title
+                    this.message = message
+                    this.priority = priority
+                    this.type = type
+                }
+            }
+        }
+    }
+
+    var endDate by Messages.endDate
+    var image by Messages.image
+    var message by Messages.message
+    var title by Messages.title
+    var priority by Messages.priority
+    var type by Messages.type
+}
+
 
 //endregion
