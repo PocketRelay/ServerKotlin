@@ -1114,7 +1114,7 @@ private class MainHandler(
                 text("FILT", "-UION/****") // Telemetry filter?
                 number("LOC", 1701725253)
                 text("NOOK", "US,CA,MX")
-                number("PORT", config.ports.telemetry)
+                number("PORT", config.ports.discard)
                 number("SDLY", 15000)
                 text("SESS", "JMhnT9dXSED")
                 text("SKEY", Data.SKEY)
@@ -1124,7 +1124,7 @@ private class MainHandler(
 
             +group("TICK") {
                 text("ADRS", config.externalAddress)
-                number("port", config.ports.ticker)
+                number("port", config.ports.discard)
                 text("SKEY", "823287263,10.23.15.2:8999,masseffect-3-pc,10,50,50,50,50,0,12")
             }
 

@@ -61,10 +61,13 @@ data class Config(
     /**
      * Ports Configuration for the different ports that the servers will use
      *
+     * NOTE: Telemetry and ticker servers have been merged into one single
+     * discard server because they are unused. Original ports were
+     * ticker = 8999, telemetry = 9988
+     *
      * @property redirector The port for the redirector server
      * @property main The port for the main server
-     * @property ticker The port for the ticker server
-     * @property telemetry The port telemetry server
+     * @property discard The port for the ticker & telemetry server
      * @property http The port for the http server
      * @constructor Create empty Ports
      */
@@ -80,10 +83,8 @@ data class Config(
         val redirector: Int = 42127,
         @Comment("Port for the main server")
         val main: Int = 14219,
-        @Comment("Port for the ticker server")
-        val ticker: Int = 8999,
-        @Comment("Port for the telemetry server")
-        val telemetry: Int = 9988,
+        @Comment("Port for the ticker & telemetry discard server")
+        val discard: Int = 9988,
         @Comment("Port for the http server")
         val http: Int = 80,
     )

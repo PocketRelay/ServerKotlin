@@ -29,8 +29,7 @@ object Environment {
     // Server ports
     private const val REDIRECTOR_PORT = "KME_REDIRECTOR_PORT"
     private const val MAIN_PORT = "KME_MAIN_PORT"
-    private const val TICKER_PORT = "KME_TICKER_PORT"
-    private const val TELEMETRY_PORT = "KME_TELEMETRY_PORT"
+    private const val DISCARD_PORT = "KME_DISCARD_PORT"
     private const val HTTP_PORT = "KME_HTTP_PORT"
 
     // Panel configuration
@@ -154,8 +153,7 @@ object Environment {
         return Config.Ports(
             redirector = env.int(REDIRECTOR_PORT, portsConfig.redirector),
             main = env.int(MAIN_PORT, portsConfig.main),
-            ticker = env.int(TICKER_PORT, portsConfig.ticker),
-            telemetry = env.int(TELEMETRY_PORT, portsConfig.telemetry),
+            discard = env.int(DISCARD_PORT, portsConfig.discard),
             http = env.int(HTTP_PORT, portsConfig.http),
         )
     }

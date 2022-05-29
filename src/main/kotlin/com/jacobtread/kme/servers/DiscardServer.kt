@@ -1,5 +1,6 @@
 package com.jacobtread.kme.servers
 
+import com.jacobtread.kme.Config
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.ByteBuf
@@ -15,9 +16,10 @@ import java.io.IOException
  * startDiscardServer Simple discard server. Reads all the input bytes
  * and throws away the contents
  */
-fun startDiscardServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup, ports: IntArray) {
+fun startDiscardServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup, config: Config) {
     try {
-        val bootstrap = ServerBootstrap()
+        val port = config.ports.discard
+        ServerBootstrap()
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
             .childHandler(object : ChannelInitializer<Channel>() {
@@ -40,9 +42,11 @@ fun startDiscardServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGr
                         })
                 }
             })
+            .bind(port)
+            .addListener {
+                Logger.info("Started discard server on port $port")
+            }
 
-        ports.forEach { port -> bootstrap.bind(port).sync() }
-        Logger.info("Bound discard server to ports ${ports.contentToString()}")
     } catch (e: IOException) {
         Logger.error("Exception in discard server", e)
     }
