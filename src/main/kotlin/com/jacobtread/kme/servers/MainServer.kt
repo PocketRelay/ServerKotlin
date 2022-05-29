@@ -466,10 +466,11 @@ private class MainHandler(
     private fun handleCreateGame(packet: Packet) {
         val attributes = packet.mapOrNull<String, String>("ATTR") // Get the provided users attributes
         val game = GameManager.createGame(session) // Create a new game
-        game.attributes.setValues(attributes ?: emptyMap()) // If the attributes are missing use empty
+        game.setAttributes(attributes ?: emptyMap()) // If the attributes are missing use empty
         +packet.respond { number("GID", game.id) }
         +game.createPoolPacket(true) // Send the game pool details
         +session.createSetSession() // Send the user session
+        Matchmaking.onNewGameCreated(game)
     }
 
     /**
@@ -522,7 +523,7 @@ private class MainHandler(
         val attributes = packet.mapOrNull<String, String>("ATTR") ?: return +packet.respond()
         val game = GameManager.getGameById(gameId)
         if (game != null) {
-            game.attributes.setValues(attributes)
+            game.setAttributes(attributes)
             game.broadcastAttributeUpdate()
         }
         +packet.respond()
@@ -550,19 +551,13 @@ private class MainHandler(
      * @param packet The packet requesting to start matchmaking
      */
     private fun handleStartMatchmaking(packet: Packet) {
-        session.waitingForJoin = true
+        session.matchmaking = true
 
-        Matchmaking.extractRuleSet(packet)
-
-        // TODO: Implement Proper Searching
-        val game = GameManager.getFreeGame()
-        if (game == null) {
-            return +packet.respond()
-        }
+        val ruleSet = Matchmaking.RuleSet.extract(packet)
+        val game = Matchmaking.getMatchOrQueue(session, ruleSet) ?: return +packet.respond()
         game.join(session)
         +packet.respond { number("MSID", game.mid) }
-        val creator = game.host.createSessionDetails()
-        +creator
+        +game.host.createSessionDetails()
         game.getActivePlayers().forEach {
             val sessionDetails = it.createSessionDetails()
             +sessionDetails
@@ -577,7 +572,7 @@ private class MainHandler(
      * @param packet The packet requesting to cancel matchmaking
      */
     private fun handleCancelMatchmaking(packet: Packet) {
-        session.waitingForJoin = false
+        Matchmaking.removeFromQueue(session)
         session.leaveGame()
         +packet.respond()
     }
@@ -591,12 +586,12 @@ private class MainHandler(
     private fun handleUpdateMeshConnection(packet: Packet) {
         val gameId = packet.number("GID")
         val game = GameManager.getGameById(gameId)
-        if (game == null || !session.waitingForJoin) {
+        if (game == null || !session.matchmaking) {
             return +packet.respond()
         }
         val player = session.player
         val host = game.host
-        session.waitingForJoin = false
+        session.matchmaking = false
         val a = unique(GAME_MANAGER, GAME_MANAGER_74) {
             number("GID", gameId)
             number("PID", player.playerId)

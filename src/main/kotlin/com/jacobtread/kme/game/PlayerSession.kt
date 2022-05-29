@@ -67,8 +67,10 @@ class PlayerSession {
     // Whether the session is still active or needs to be discarded
     var isActive = true
 
-    var waitingForJoin = false
     var game: Game? = null
+
+    // Whether the player is waiting in a matchmaking queue
+    var matchmaking = false
 
     /**
      * release Handles cleaning up of this session after the session is
@@ -81,6 +83,7 @@ class PlayerSession {
         channel = null
         game?.removePlayer(this)
         game = null
+        if (matchmaking) Matchmaking.removeFromQueue(this)
     }
 
     /**

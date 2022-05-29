@@ -2,6 +2,8 @@ package com.jacobtread.kme.game
 
 import com.jacobtread.kme.utils.logging.Logger
 import java.util.concurrent.locks.ReentrantReadWriteLock
+import java.util.function.BiPredicate
+import java.util.function.Predicate
 import kotlin.concurrent.read
 import kotlin.concurrent.write
 
@@ -21,7 +23,7 @@ object GameManager {
     }
 
 
-    fun getNameByRules() {}
+    fun tryFindGame(test: (Game) -> Boolean): Game? = gamesLock.read { games.values.firstOrNull(test) }
 
     private fun removeInactive() {
         val removeKeys = ArrayList<Long>()
@@ -31,7 +33,6 @@ object GameManager {
         removeKeys.forEach { games.remove(it) }
     }
 
-    fun getFreeGame(): Game? = gamesLock.read { games.values.find { it.isJoinable() } }
     fun getGameById(id: Long): Game? = gamesLock.read { games.values.find { it.id == id } }
     fun releaseGame(game: Game) = gamesLock.write {
         Logger.info("Releasing game back to pool (${game.id}, ${game.mid})")

@@ -18,23 +18,11 @@ class Game(
         const val MIN_MID = 0x1129DA20L
     }
 
-    class GameAttributes {
-        private val values = HashMap<String, String>()
-        private val lock = ReentrantReadWriteLock()
-
-        fun setValues(values: Map<String, String>) {
-            lock.write { this.values.putAll(values) }
-        }
-
-        fun getMap(): HashMap<String, String> {
-            return lock.read { values }
-        }
-    }
-
     var gameState: Int = 0x1
     var gameSetting: Int = 0x11f
+
     private val attributesLock = ReentrantReadWriteLock()
-    val attributes = HashMap<String, String>()
+    private val attributes = HashMap<String, String>()
 
     private var isActive = true
 
@@ -107,7 +95,7 @@ class Game(
             if (index != -1) {
                 val player: PlayerSession = players[index]
                 player.game = null
-                player.waitingForJoin = false
+                player.matchmaking = false
                 playersLock.write {
                     players.removeAt(index)
                 }
@@ -137,7 +125,7 @@ class Game(
             Components.GAME_MANAGER,
             Commands.NOTIFY_GAME_UPDATED
         ) {
-            map("ATTR", attributes.getMap())
+            map("ATTR", getAttributes())
             number("GID", id)
         }
 
@@ -151,7 +139,7 @@ class Game(
             +group("GAME") {
                 // Game Admins
                 list("ADMN", listOf(hostPlayer.playerId))
-                map("ATTR", attributes.getMap())
+                map("ATTR", getAttributes())
                 list("CAP", listOf(0x4, 0x0))
                 number("GID", id)
                 text("GNAM", hostPlayer.displayName)
@@ -244,5 +232,11 @@ class Game(
                 })
             }
         }
+
+    fun getAttributes(): Map<String, String> = attributesLock.read { attributes }
+
+    fun setAttributes(map: Map<String, String>) {
+        attributesLock.write { attributes.putAll(map) }
+    }
 
 }
