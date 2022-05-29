@@ -10,7 +10,6 @@ import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.ChannelHandlerContext
-import io.netty.channel.ChannelInboundHandler
 import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.channel.ChannelInitializer
 import io.netty.channel.nio.NioEventLoopGroup
@@ -29,13 +28,13 @@ import javax.net.ssl.KeyManagerFactory
 fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup, config: Config) {
     try {
         val listenPort = config.ports.redirector
-        val initializer = RedirectorHandler(config)
+        val handler = RedirectorHandler(config)
         ServerBootstrap()
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
-            .childHandler(initializer)
+            .childHandler(handler)
             .bind(listenPort)
-            .addListener(initializer)
+            .addListener(handler)
     } catch (e: UnknownHostException) {
         Logger.fatal("Unable to lookup server address \"${config.externalAddress}\"", e)
     } catch (e: IOException) {

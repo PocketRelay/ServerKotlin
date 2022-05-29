@@ -28,13 +28,13 @@ import java.io.IOException
  */
 fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup, config: Config) {
     try {
-        val initializer = HttpInitializer(config)
+        val handler = HttpHandler(config)
         ServerBootstrap()
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
-            .childHandler(initializer)
+            .childHandler(handler)
             .bind(config.ports.http)
-            .addListener(initializer)
+            .addListener(handler)
     } catch (e: IOException) {
         Logger.error("Exception in HTTP server", e)
     }
@@ -48,7 +48,7 @@ fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
  * @constructor Create empty HttpInitializer
  */
 @Sharable
-class HttpInitializer(private val config: Config) : ChannelInitializer<Channel>(), FutureListener<Void> {
+class HttpHandler(private val config: Config) : ChannelInitializer<Channel>(), FutureListener<Void> {
 
     /**
      * router Initializing the router paths
