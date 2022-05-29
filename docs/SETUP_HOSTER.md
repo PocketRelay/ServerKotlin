@@ -41,3 +41,8 @@ If you are looking for information on how to connect to the server now you can t
 
 ### Environment Variables
 KME3 can be configured using environment variables. You can view a list of them at [Environment Variables](docs/ENV.md)
+
+### Port Forwarding
+If you haven't already make sure that you are forwarding the 4 ports you have inside your config
+by default these ports are 42127, 14219, 9988, and 80 however you can change all of these except 
+redirector port. Search online for guides on port forwarding for your specific router 
