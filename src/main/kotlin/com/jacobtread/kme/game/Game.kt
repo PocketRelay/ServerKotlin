@@ -20,14 +20,10 @@ class Game(
 
     class GameAttributes {
         private val values = HashMap<String, String>()
-        private var isDirty = false
         private val lock = ReentrantReadWriteLock()
 
         fun setValues(values: Map<String, String>) {
-            lock.write {
-                isDirty = true
-                this.values.putAll(values)
-            }
+            lock.write { this.values.putAll(values) }
         }
 
         fun getMap(): HashMap<String, String> {
@@ -37,7 +33,9 @@ class Game(
 
     var gameState: Int = 0x1
     var gameSetting: Int = 0x11f
-    val attributes = GameAttributes()
+    private val attributesLock = ReentrantReadWriteLock()
+    val attributes = HashMap<String, String>()
+
     private var isActive = true
 
     private val players = ArrayList<PlayerSession>(MAX_PLAYERS)

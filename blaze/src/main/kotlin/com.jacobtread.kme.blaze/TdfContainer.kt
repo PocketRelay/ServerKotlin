@@ -114,10 +114,12 @@ inline fun TdfContainer.unionValue(label: String): Tdf<*>? = getTdf(OptionalTdf:
 inline fun TdfContainer.tripple(label: String): VarTripple = getTdf(TrippleTdf::class.java, label).value
 inline fun TdfContainer.pair(label: String): VarPair = getTdf(PairTdf::class.java, label).value
 inline fun TdfContainer.varIntList(label: String): List<Long> = getTdf(VarIntList::class.java, label).value
-inline fun TdfContainer.list(label: String): List<Any> = getTdf(ListTdf::class.java, label).value
 
 @Suppress("UNCHECKED_CAST")
-inline fun <K : Any, V : Any> TdfContainer.map(label: String): Map<K, V> = getTdf(MapTdf::class.java, label).value as Map<K, V>
+inline fun <V : Any> TdfContainer.list(label: String): List<V> = getValue(ListTdf::class.java, label) as List<V>
+
+@Suppress("UNCHECKED_CAST")
+inline fun <K : Any, V : Any> TdfContainer.map(label: String): Map<K, V> = getValue(MapTdf::class.java, label) as Map<K, V>
 
 // Nullable Helpers
 
@@ -130,8 +132,11 @@ inline fun TdfContainer.unionValueOrNull(label: String): Tdf<*>? = getValueOrNul
 inline fun TdfContainer.trippleOrNull(label: String): VarTripple? = getValueOrNull(TrippleTdf::class.java, label)
 inline fun TdfContainer.pairOrNull(label: String): VarPair? = getValueOrNull(PairTdf::class.java, label)
 inline fun TdfContainer.varIntListOrNull(label: String): List<Long>? = getValueOrNull(VarIntList::class.java, label)
-inline fun TdfContainer.listOrNull(label: String): List<Any>? = getValueOrNull(ListTdf::class.java, label)
+
 
 @Suppress("UNCHECKED_CAST")
-inline fun <K : Any, V : Any> TdfContainer.mapOrNull(label: String): Map<K, V>? = getTdfOrNull(MapTdf::class.java, label)?.value as Map<K, V>?
+inline fun <V : Any> TdfContainer.listOrNull(label: String): List<V>? = getValueOrNull(ListTdf::class.java, label) as List<V>?
+
+@Suppress("UNCHECKED_CAST")
+inline fun <K : Any, V : Any> TdfContainer.mapOrNull(label: String): Map<K, V>? = getValueOrNull(MapTdf::class.java, label) as Map<K, V>?
 //endregion

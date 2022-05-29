@@ -57,6 +57,7 @@ import com.jacobtread.kme.database.Message
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.exceptions.NotAuthenticatedException
 import com.jacobtread.kme.game.GameManager
+import com.jacobtread.kme.game.Matchmaking
 import com.jacobtread.kme.game.PlayerSession
 import com.jacobtread.kme.game.PlayerSession.NetData
 import com.jacobtread.kme.utils.IPAddress
@@ -550,6 +551,9 @@ private class MainHandler(
      */
     private fun handleStartMatchmaking(packet: Packet) {
         session.waitingForJoin = true
+
+        Matchmaking.extractRuleSet(packet)
+
         // TODO: Implement Proper Searching
         val game = GameManager.getFreeGame()
         if (game == null) {

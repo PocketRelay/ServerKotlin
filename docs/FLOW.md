@@ -196,6 +196,7 @@ the server will respond with:
 | 1, 4, 5, 6 | Main menu messages bottom scrolling message |
 | 8          | Shopping / Promotional messages?            |
 
+> It appears that this isn't always correct?
 
 Then client then requests entitlement using the same packet but with the `CFID` set
 to `ME3_ENT`

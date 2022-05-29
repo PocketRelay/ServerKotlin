@@ -20,6 +20,9 @@ object GameManager {
         game
     }
 
+
+    fun getNameByRules() {}
+
     private fun removeInactive() {
         val removeKeys = ArrayList<Long>()
         games.forEach { (key, game) ->
