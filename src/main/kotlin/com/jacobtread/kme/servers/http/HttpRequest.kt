@@ -122,10 +122,59 @@ class HttpRequest(private val http: NettyHttpRequest) {
      */
     fun paramInt(key: String, radix: Int = 10): Int = param(key).toIntOrNull(radix) ?: throw BadRequestException()
 
+    /**
+     * query Retrieves the query value with the provided key.
+     * Will throw a BadRequestException if the query key was
+     * not provided
+     *
+     * @throws BadRequestException Thrown if the query key was not provided
+     * @param key The key to search for
+     * @return The value of the key
+     */
     fun query(key: String): String = query[key] ?: throw BadRequestException()
+
+    /**
+     * queryOrNull Retrieves the query value of the provided key.
+     * Returning null if the key was not found
+     *
+     * @param key The key to search for
+     * @return The value of the key or null if it was not provided
+     */
     fun queryOrNull(key: String): String? = query[key]
+
+    /**
+     * hasQuery Returns whether the request has
+     * the provided query key
+     *
+     * @param key The key to search for
+     * @return Whether the key exists or not
+     */
     fun hasQuery(key: String): Boolean = query.containsKey(key)
+
+    /**
+     * queryInt Retrieves the query value of the provided key as
+     * an integer. Will throw BadRequestException if the key was
+     * not provided or the provided value was not an integer
+     *
+     * @param key The key to search for
+     * @param radix The radix to parse the integer using
+     * @throws BadRequestException Thrown if the query key was not provided
+     * or if the value was not an integer
+     * @return The integer query value
+     */
     fun queryInt(key: String, radix: Int = 10): Int = query[key]?.toIntOrNull(radix) ?: throw BadRequestException()
+
+    /**
+     * queryInt Retrieves the query value of the provided key as
+     * an integer. Will return the provided default value if the
+     * key wasn't provided or wasn't an integer
+     *
+     * @param key The key to search for
+     * @param default The default value to use if the value was missing or
+     * couldn't be parsed
+     * @param radix The radix to parse the integer using
+     * @return THe integer query value or the default value
+     */
     fun queryInt(key: String, default: Int, radix: Int = 10): Int = query[key]?.toIntOrNull(radix) ?: default
 
     /**
@@ -167,5 +216,4 @@ class HttpRequest(private val http: NettyHttpRequest) {
     } catch (e: SerializationException) {
         throw BadRequestException()
     }
-
 }
