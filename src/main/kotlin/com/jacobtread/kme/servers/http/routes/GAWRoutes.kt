@@ -3,13 +3,10 @@ package com.jacobtread.kme.servers.http.routes
 import com.jacobtread.kme.GlobalConfig
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.database.PlayerGalaxyAtWar
-import com.jacobtread.kme.servers.http.WrappedRequest
-import com.jacobtread.kme.servers.http.router.RouteFunction
-import com.jacobtread.kme.servers.http.router.RoutingGroup
-import com.jacobtread.kme.servers.http.router.group
+import com.jacobtread.kme.servers.http.router.*
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.unixTimeSeconds
-import io.netty.handler.codec.http.HttpResponseStatus
+import io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import org.jetbrains.exposed.sql.transactions.transaction
 import kotlin.math.min
 
@@ -27,14 +24,13 @@ fun RoutingGroup.routeGroupGAW() {
  * a session token, but currently it just accepts the userID
  */
 private fun RoutingGroup.routeAuthentication() {
-    get("authentication/sharedTokenLogin") { request ->
-        val playerId = request.queryInt("auth", 16)
-        val player = Player.getById(playerId)
-            ?: return@get request.response(HttpResponseStatus.BAD_REQUEST)
+    get("authentication/sharedTokenLogin") {
+        val playerId = queryInt("auth", 16)
+        val player = Player.getById(playerId) ?: return@get response(BAD_REQUEST)
         Logger.debug("Authenticated GAW User ${player.displayName}")
         val time = unixTimeSeconds()
         @Suppress("SpellCheckingInspection")
-        request.xml("fulllogin") {
+        responseXml("fulllogin") {
             element("canageup", 0)
             element("legaldochost")
             element("needslegaldoc", 0)
@@ -70,12 +66,12 @@ private fun RoutingGroup.routeAuthentication() {
  * for the players with the provided player ID
  */
 private fun RoutingGroup.routeRatings() {
-    get("galaxyatwar/getRatings/:id") { request ->
-        val playerId = request.paramInt("id", 16)
+    get("galaxyatwar/getRatings/:id") {
+        val playerId = paramInt("id", 16)
         val player = Player.getById(playerId)
-            ?: return@get request.response(HttpResponseStatus.BAD_REQUEST)
+            ?: return@get response(BAD_REQUEST)
         val rating = player.getOrCreateGAW(GlobalConfig.gaw)
-        request.respondRatings(player, rating)
+        respondRatings(player, rating)
     }
 }
 
@@ -84,23 +80,22 @@ private fun RoutingGroup.routeRatings() {
  * ratings increasing this is call by the ME3 client
  */
 private fun RoutingGroup.routeIncreaseRatings() {
-    get("galaxyatwar/increaseRatings/:id") { request ->
-        val playerId = request.paramInt("id", 16)
-        val player = Player.getById(playerId)
-            ?: return@get request.response(HttpResponseStatus.BAD_REQUEST)
-        val rating = player.getOrCreateGAW(GlobalConfig.gaw)
-        val maxValue = 10099
+    get("galaxyatwar/increaseRatings/:id") {
         transaction {
+            val playerId = paramInt("id", 16)
+            val player = Player.getById(playerId) ?: return@transaction response(BAD_REQUEST)
+            val rating = player.getOrCreateGAW(GlobalConfig.gaw)
+            val maxValue = 10099
             rating.apply {
                 timestamp = unixTimeSeconds()
-                a = min(maxValue, a + request.queryInt("rinc|0", default = 0))
-                b = min(maxValue, b + request.queryInt("rinc|1", default = 0))
-                c = min(maxValue, c + request.queryInt("rinc|2", default = 0))
-                d = min(maxValue, d + request.queryInt("rinc|3", default = 0))
-                e = min(maxValue, e + request.queryInt("rinc|4", default = 0))
+                a = min(maxValue, a + queryInt("rinc|0", default = 0))
+                b = min(maxValue, b + queryInt("rinc|1", default = 0))
+                c = min(maxValue, c + queryInt("rinc|2", default = 0))
+                d = min(maxValue, d + queryInt("rinc|3", default = 0))
+                e = min(maxValue, e + queryInt("rinc|4", default = 0))
             }
+            respondRatings(player, rating)
         }
-        request.respondRatings(player, rating)
     }
 }
 
@@ -108,16 +103,15 @@ private fun RoutingGroup.routeIncreaseRatings() {
  * respondRatings Responds to the provided request with the galaxy at war
  * ratings for the provided player
  *
- * @param config The server configuration
- * @param request The request to respond to
  * @param player The player to use the data from
  * @param rating The player galaxy at war rating data
+ * @return The created ratings response
  */
-private fun WrappedRequest.respondRatings(player: Player, rating: PlayerGalaxyAtWar) {
+private fun respondRatings(player: Player, rating: PlayerGalaxyAtWar): RequestResponse {
     val level = rating.average()
     val promotions = if (GlobalConfig.gaw.enablePromotions) player.getTotalPromotions() else 0
     @Suppress("SpellCheckingInspection")
-    xml("galaxyatwargetratings") {
+    return responseXml("galaxyatwargetratings") {
         element("ratings") {
             element("ratings", rating.a)
             element("ratings", rating.b)

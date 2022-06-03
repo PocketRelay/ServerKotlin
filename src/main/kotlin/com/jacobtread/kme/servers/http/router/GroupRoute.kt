@@ -18,15 +18,14 @@ open class GroupRoute(
         return matchInternal(request, start, tokens.size)
     }
 
-    override fun handle(start: Int, request: WrappedRequest): Boolean {
+    override fun handle(start: Int, request: WrappedRequest): RequestResponse? {
         val startIndex = start + tokens.size
         for (route in routes) {
             if (!route.matches(startIndex, request)) continue
-            if (route.handle(startIndex, request)) {
-                return true
-            }
+            val response = route.handle(startIndex, request)
+            if (response != null) return response
         }
-        return false
+        return null
     }
 
     override fun toString(): String = "Group($pattern)"

@@ -1,7 +1,7 @@
 package com.jacobtread.kme.servers.http
 
 import com.jacobtread.kme.GlobalConfig
-import com.jacobtread.kme.servers.http.router.router
+import com.jacobtread.kme.servers.http.router.createRouter
 import com.jacobtread.kme.servers.http.routes.*
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.bootstrap.ServerBootstrap
@@ -51,7 +51,7 @@ class HttpHandler : ChannelInitializer<Channel>(), FutureListener<Void> {
     /**
      * router Initializing the router paths
      */
-    val router = router() {
+    val router = createRouter {
         routeGroupGAW() // Galaxy at war routing group
         if (GlobalConfig.panel.enabled) { // If the panel is enabled
             routeGroupPanel() // Panel routing group

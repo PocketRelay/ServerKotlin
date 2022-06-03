@@ -2,12 +2,11 @@ package com.jacobtread.kme.servers.http.routes
 
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.database.PlayerSettingsBase
-import com.jacobtread.kme.servers.http.router.RoutingGroup
-import com.jacobtread.kme.servers.http.router.group
-import io.netty.handler.codec.http.HttpResponseStatus
+import com.jacobtread.kme.servers.http.router.*
+import io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
+import io.netty.handler.codec.http.HttpResponseStatus.OK
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.transactions.transaction
-
 
 fun RoutingGroup.routeGroupApi() {
     group("api") {
@@ -26,9 +25,9 @@ data class PlayerSerial(
 )
 
 private fun RoutingGroup.routePlayersList() {
-    get("players") { request ->
-        val limit = request.queryInt("limit", default = 10)
-        val offset = request.queryInt("offset", default = 0)
+    get("players") {
+        val limit = queryInt("limit", default = 10)
+        val offset = queryInt("offset", default = 0)
         val playersList = transaction {
             Player.all()
                 .limit(limit, (offset * limit).toLong())
@@ -41,33 +40,29 @@ private fun RoutingGroup.routePlayersList() {
                     )
                 }
         }
-        request.json(playersList)
+        responseJson(playersList)
     }
 }
 
 private fun RoutingGroup.routePlayerSettings() {
-    get("playerSettings") { request ->
-        val playerId = request.queryInt("id")
-        val player = Player.getById(playerId)
-            ?: return@get request.response(HttpResponseStatus.BAD_REQUEST)
-        request.json(player.createSettingsMap())
+    get("playerSettings") {
+        val playerId = queryInt("id")
+        val player = Player.getById(playerId) ?: return@get response(BAD_REQUEST)
+        responseJson(player.createSettingsMap())
     }
-
-    post("setPlayerSettings") { request ->
-        val playerId = request.queryInt("id")
-        val player = Player.getById(playerId)
-            ?: return@post request.response(HttpResponseStatus.BAD_REQUEST)
-        val settings = request.contentJson<Map<String, String>>()
+    post("setPlayerSettings") {
+        val playerId = queryInt("id")
+        val player = Player.getById(playerId) ?: return@post response(BAD_REQUEST)
+        val settings = contentJson<Map<String, String>>()
         settings?.forEach { player.setSetting(it.key, it.value) }
+        response(OK)
     }
 }
 
 private fun RoutingGroup.routeUpdatePlayer() {
-    post("updatePlayer") { request ->
-        val player = request.contentJson<PlayerSerial>()
-            ?: return@post request.response(HttpResponseStatus.BAD_REQUEST)
-        val existing = Player.getById(player.id)
-            ?: return@post request.response(HttpResponseStatus.BAD_REQUEST)
+    post("updatePlayer") {
+        val player = contentJson<PlayerSerial>() ?: return@post response(BAD_REQUEST)
+        val existing = Player.getById(player.id) ?: return@post response(BAD_REQUEST)
         transaction {
             existing.displayName = player.displayName
             existing.email = player.email
@@ -87,6 +82,6 @@ private fun RoutingGroup.routeUpdatePlayer() {
                 existing.settingsBase = clone.mapValue()
             }
         }
-        request.response(HttpResponseStatus.OK)
+        response(OK)
     }
 }

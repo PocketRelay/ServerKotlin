@@ -1,6 +1,7 @@
 package com.jacobtread.kme.blaze.utils
 
 import io.netty.buffer.ByteBuf
+import io.netty.buffer.Unpooled
 
 fun ByteBuf.writeVarInt(value: Any) {
     when (value) {
@@ -70,3 +71,7 @@ fun ByteBuf.writeString(value: String) {
     writeVarInt(bytes.size)
     writeBytes(bytes)
 }
+
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun String.copiedBuffer(): ByteBuf = Unpooled.copiedBuffer(this, Charsets.UTF_8)

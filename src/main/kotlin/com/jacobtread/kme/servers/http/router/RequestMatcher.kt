@@ -24,6 +24,6 @@ interface RequestMatcher {
      * @return Whether this matcher consumed the value if this returns
      * true then no further matchers will be processed
      */
-    fun handle(start: Int, request: WrappedRequest): Boolean
+    fun handle(start: Int, request: WrappedRequest): RequestResponse?
 
 }
