@@ -1,10 +1,8 @@
 package com.jacobtread.kme.servers.http
 
 import com.jacobtread.kme.Config
-import com.jacobtread.kme.servers.http.controllers.APIController
-import com.jacobtread.kme.servers.http.controllers.GAWController
-import com.jacobtread.kme.servers.http.router.groupedRoute
 import com.jacobtread.kme.servers.http.router.router
+import com.jacobtread.kme.servers.http.routes.*
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
@@ -54,24 +52,11 @@ class HttpHandler(private val config: Config) : ChannelInitializer<Channel>(), F
      * router Initializing the router paths
      */
     val router = router(config) {
-        +GAWController // Galaxy at war routing group
+        routeGroupGAW() // Galaxy at war routing group
         if (config.panel.enabled) { // If the panel is enabled
-            +groupedRoute("panel") { // Panel routing group
-                +APIController // API routing group
-                get(":*") { _, request -> // Catchall for static assets falling back on index.html
-                    val path = request.param("*")
-                    request.static(path, "panel", "index.html", "panel")
-                }
-            }
+            routeGroupPanel() // Panel routing group
         }
-        // Contents catchall for the assets ME3 fetches
-        get("content/:*") { _, request ->
-            val path = request.param("*")
-            val fileName = path.substringAfterLast('/')
-            request.setHeader("Accept-Ranges", "bytes")
-            request.setHeader("ETag", "524416-1333666807000")
-            request.static(fileName, "public")
-        }
+        routeContents() // Contents routing
     }
 
     /**

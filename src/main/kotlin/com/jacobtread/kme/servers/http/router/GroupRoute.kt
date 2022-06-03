@@ -34,8 +34,3 @@ open class GroupRoute(
 }
 
 
-inline fun groupedRoute(pattern: String, init: GroupRoute.() -> Unit): GroupRoute {
-    val group = GroupRoute(pattern)
-    group.init()
-    return group
-}

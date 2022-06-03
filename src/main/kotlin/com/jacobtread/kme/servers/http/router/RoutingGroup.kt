@@ -31,3 +31,9 @@ interface RoutingGroup {
         routes.add(this)
     }
 }
+
+inline fun RoutingGroup.group(pattern: String, init: GroupRoute.() -> Unit) {
+    val group = GroupRoute(pattern)
+    group.init()
+    routes.add(group)
+}
