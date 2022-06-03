@@ -13,7 +13,7 @@ import com.jacobtread.kme.servers.http.HttpRequest
  * you can provide parameters for matching a route using : then the name of the parameter
  * (e.g /:path) they can be accessed on the request object using the param functions in the case of
  * /:path it can be accessed using param("path") you can catch any number of remaining tokens using
- * the catch-all parameter which is :*
+ * the catch-all parameter which is :* this can be accessed as a parameter using param("*")
  * Note: The catch-all parameter can only be used as the last parameter attempting to use
  * it anywhere else will result in it simply only matching one token
  */
@@ -29,6 +29,9 @@ abstract class Route(pattern: String) : RouteHandler {
         .removePrefix("/")
         .split('/')
 
+    /**
+     * tokenCount Returns the number of tokens this pattern contains
+     */
     val tokenCount: Int get() = patternTokens.size
 
     /**
@@ -43,10 +46,8 @@ abstract class Route(pattern: String) : RouteHandler {
      */
     fun matchRange(request: HttpRequest, startIndex: Int, count: Int): Boolean {
         val requestTokens = request.tokens
-
         // If we don't have enough tokens
         if ((requestTokens.size - startIndex) < count) return false
-
         for (i in 0 until count) {
             val token = patternTokens[i]
             val value = requestTokens[startIndex + i]
@@ -73,15 +74,19 @@ abstract class Route(pattern: String) : RouteHandler {
         val requestTokens = request.tokens
         val tokenCount = patternTokens.size
         if (tokenCount > 0 && patternTokens.last() == ":*") {
+            // Check that everything until the catch-all is matching
             if (!matchRange(request, start, tokenCount - 1)) return false
-            val index = start + tokenCount - 1
+            // The index from where to start the capture
+            val catchIndex = start + tokenCount - 1
             val builder = StringBuilder()
-            for (i in index until requestTokens.size) {
+            // Append all the tokens after the catch index
+            for (i in catchIndex until requestTokens.size) {
                 builder.append(requestTokens[i])
                 if (i < requestTokens.size - 1) {
                     builder.append('/')
                 }
             }
+            // Set the catch-all parameter
             request.setParam("*", builder.toString())
             return true
         } else {

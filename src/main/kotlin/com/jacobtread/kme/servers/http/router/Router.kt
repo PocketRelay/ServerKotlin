@@ -11,7 +11,6 @@ import io.netty.handler.codec.http.HttpRequest as NettyHttpRequest
 
 @Sharable
 class Router : SimpleChannelInboundHandler<NettyHttpRequest>(), RoutingGroup {
-
     override val routes = ArrayList<RouteHandler>()
 
     override fun channelRead0(ctx: ChannelHandlerContext, msg: NettyHttpRequest) {

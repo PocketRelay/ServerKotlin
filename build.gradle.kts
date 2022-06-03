@@ -71,5 +71,6 @@ tasks.withType(Jar::class.java) {
 tasks.withType(KotlinCompile::class.java) {
     kotlinOptions {
         jvmTarget = "17"
+        freeCompilerArgs = freeCompilerArgs + "-Xjvm-default=all"
     }
 }

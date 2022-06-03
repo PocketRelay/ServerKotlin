@@ -10,13 +10,7 @@ class PathRoute(
 ) : Route(pattern) {
     override fun handle(start: Int, request: HttpRequest): RequestResponse? {
         if (method != null && method != request.method) return null
-        return if (matchCatchall(start, request)
-            || matchRange(request, start, tokenCount)
-        ) {
-            request.handler()
-        } else {
-            null
-        }
-
+        if (!matchCatchall(start, request) && !matchRange(request, start, tokenCount)) return null
+        return request.handler()
     }
 }

@@ -1,7 +1,6 @@
 package com.jacobtread.kme.servers.http.routes
 
 import com.jacobtread.kme.servers.http.router.RoutingGroup
-import com.jacobtread.kme.servers.http.router.everything
 import com.jacobtread.kme.servers.http.router.group
 import com.jacobtread.kme.servers.http.router.responseStatic
 
