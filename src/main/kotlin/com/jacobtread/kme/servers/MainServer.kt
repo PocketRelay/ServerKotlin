@@ -998,7 +998,7 @@ private class MainHandler(
         } else {
             // Matching different configs
             conf = when (type) {
-                "ME3_DATA" -> Data.createDataConfig(GlobalConfig) // Configurations for GAW, images and others
+                "ME3_DATA" -> Data.createDataConfig() // Configurations for GAW, images and others
                 "ME3_MSG" -> getServerMessages() // Custom multiplayer messages
                 "ME3_ENT" -> Data.createEntitlementMap() // Entitlements
                 "ME3_DIME" -> Data.createDimeResponse() // Shop contents?

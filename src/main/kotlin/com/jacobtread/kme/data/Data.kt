@@ -1,6 +1,7 @@
 package com.jacobtread.kme.data
 
 import com.jacobtread.kme.Config
+import com.jacobtread.kme.GlobalConfig
 import com.jacobtread.kme.blaze.TdfBuilder
 import com.jacobtread.kme.blaze.group
 import java.io.BufferedReader
@@ -225,9 +226,9 @@ object Data {
         ))
     }
 
-    fun createDataConfig(config: Config): Map<String, String> {
-        val address = config.externalAddress
-        val port = config.ports.http
+    fun createDataConfig(): Map<String, String> {
+        val address = GlobalConfig.externalAddress
+        val port = GlobalConfig.ports.http
         val host = if (port != 80) {
             "$address:$port"
         } else {
