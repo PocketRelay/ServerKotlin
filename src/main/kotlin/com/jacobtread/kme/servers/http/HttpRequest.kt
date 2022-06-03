@@ -9,37 +9,66 @@ import kotlinx.serialization.json.Json
 import java.net.URLDecoder
 import io.netty.handler.codec.http.HttpRequest as NettyHttpRequest
 
+/**
+ * HttpRequest A wrapper around the netty HttpRequest implementation
+ * which contains the url tokens as well as a parsed query and
+ * functions for accessing the request body
+ *
+ * @property http The netty http request
+ * @constructor Create empty HttpRequest and parses the tokens and query string
+ */
 class HttpRequest(private val http: NettyHttpRequest) {
 
-    private var _params: HashMap<String, String>? = null
-    private val params: HashMap<String, String>
-        get() {
-            if (_params == null) _params = HashMap()
-            return _params!!
-        }
+    /**
+     * params Underlying params map stores the parameters that were
+     * parsed when the url for the request was matched. This will be
+     * null if there were no parameters matched on this route
+     */
+    private var params: HashMap<String, String>? = null
 
-
+    /**
+     * method Wrapper field for accessing the method of the underlying
+     * http request. Used by the Path Route to match the request method
+     */
     val method: HttpMethod get() = http.method()
 
+    /**
+     * tokens The tokens aka all the values between each slash in the
+     * url excluding those after the query question mark
+     */
     val tokens: List<String>
-    val url: String
+
+    /**
+     * query A map of the query parameters for this request
+     */
     private val query: Map<String, String>
 
     init {
-        val parts = http.uri().split('?', limit = 2)
-        val url = parts[0].removePrefix("/").removeSuffix("/")
-        this.url = url
+        // Split the url into the path and query
+        val parts = http
+            .uri()
+            .split('?', limit = 2)
+        // Removing leading and trailing slashes for parsing
+        val url = parts[0]
+            .removePrefix("/")
+            .removeSuffix("/")
         this.tokens = url.split('/')
-        query = if (parts.size < 2) {
-            emptyMap()
-        } else {
-            createQueryMap(parts[1])
-        }
+        query = createQueryMap(parts.getOrNull(1))
     }
 
-
-    private fun createQueryMap(queryString: String): Map<String, String> {
-        if (queryString.isEmpty()) return emptyMap()
+    /**
+     * createQueryMap Parses the provided query string splitting the values
+     * into pairs and storing them in a HashMap as key values. If the provided
+     * query string is empty or null an empty map is returned instead
+     *
+     * Note: Query parameters without values are just given a blank string
+     * as their value so that it can still be checked for using hasQuery
+     *
+     * @param queryString The url query string or null if there is none
+     * @return The map of key values
+     */
+    private fun createQueryMap(queryString: String?): Map<String, String> {
+        if (queryString.isNullOrEmpty()) return emptyMap()
         val query = HashMap<String, String>()
         queryString.split('&').forEach { keyValue ->
             val parts = keyValue.split('=', limit = 2)
@@ -53,15 +82,59 @@ class HttpRequest(private val http: NettyHttpRequest) {
         return query
     }
 
-    fun setParam(key: String, value: String) {
-        params[key] = value
+    /**
+     * setParam Sets a parameter on the request. This will initialize
+     * the underlying parameters map if it hasn't already been initialized
+     * this should only be used by the route matcher when matching the route
+     *
+     * @param key The key of the parameter
+     * @param value The value of the parameter
+     */
+    internal fun setParam(key: String, value: String) {
+        if (params == null) params = HashMap()
+        params!![key] = value
     }
 
-    fun param(key: String): String = params[key] ?: throw BadRequestException()
-    fun paramInt(key: String, radix: Int): Int = param(key).toIntOrNull(radix) ?: throw BadRequestException()
+    /**
+     * param Retrieves a route matched parameter will throw an illegal state exception
+     * if the parameter was not defined on the route or if no parameters were defined
+     * at all
+     *
+     * @throws IllegalStateException If the provided key was not a parameter of the request
+     * @param key The key of the parameter to retrieve
+     * @return The value of the parameter
+     */
+    fun param(key: String): String {
+        val param = params?.get(key)
+        check(param != null) { "Request handler attempted to use param $key when it was not defined in the route" }
+        return param
+    }
+
+    /**
+     * paramInt Retrieves the route parameter and parses it as an integer will
+     * throw bad request exception if the parameter was not an integer
+     *
+     * @param key The key of the route parameter
+     * @param radix The radix to parse the integer using
+     * @throws BadRequestException If the client provided a non integer value for the parameter
+     * @throws IllegalStateException If the provided key was not a parameter of the request
+     * @return The parsed parameter
+     */
+    fun paramInt(key: String, radix: Int = 10): Int = param(key).toIntOrNull(radix) ?: throw BadRequestException()
+
+    fun query(key: String): String = query[key] ?: throw BadRequestException()
+    fun queryOrNull(key: String): String? = query[key]
+    fun hasQuery(key: String): Boolean = query.containsKey(key)
     fun queryInt(key: String, radix: Int = 10): Int = query[key]?.toIntOrNull(radix) ?: throw BadRequestException()
     fun queryInt(key: String, default: Int, radix: Int = 10): Int = query[key]?.toIntOrNull(radix) ?: default
 
+    /**
+     * contentBytes Reads the body of the request as a ByteArray
+     * and returns the result
+     *
+     * @throws BadRequestException Thrown if the request doesn't have a body
+     * @return The contents as a byte array
+     */
     fun contentBytes(): ByteArray {
         if (http !is FullHttpRequest) throw BadRequestException()
         val contentBuffer = http.content()
@@ -70,8 +143,25 @@ class HttpRequest(private val http: NettyHttpRequest) {
         return bytes
     }
 
+    /**
+     * contentString Reads the body of the request as a ByteArray
+     * and decodes it as a UTF-8 string and returns it
+     *
+     * @throws BadRequestException Thrown if the request doesn't have a body
+     * @return The contents as a UTF-8 String
+     */
     fun contentString(): String = contentBytes().decodeToString()
 
+    /**
+     * contentJson Reads the contents of the body as a string
+     * then parses them as a JSON using the deserialized from
+     * the provided type V
+     *
+     * @param V The type of object to deserialize (reified so type can be accessed)
+     * @throws BadRequestException Thrown if the request doesn't have a body or if
+     * it couldn't be deserialized using the objects deserialized
+     * @return The deserialized object
+     */
     inline fun <reified V> contentJson(): V = try {
         Json.decodeFromString(contentString())
     } catch (e: SerializationException) {
