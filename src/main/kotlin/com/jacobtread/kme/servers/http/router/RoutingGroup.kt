@@ -31,6 +31,10 @@ fun RoutingGroup.delete(pattern: String, handler: RequestHandler) {
     routes.add(PathRoute(pattern, HttpMethod.DELETE, handler))
 }
 
+fun RoutingGroup.everything(handler: RequestHandler) {
+    routes.add(PathRoute(":*", null, handler))
+}
+
 inline fun RoutingGroup.group(pattern: String, init: GroupRoute.() -> Unit) {
     val group = GroupRoute(pattern)
     group.init()

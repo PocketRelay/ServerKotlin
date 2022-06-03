@@ -1,7 +1,7 @@
 package com.jacobtread.kme.servers.http.routes
 
 import com.jacobtread.kme.servers.http.router.RoutingGroup
-import com.jacobtread.kme.servers.http.router.get
+import com.jacobtread.kme.servers.http.router.everything
 import com.jacobtread.kme.servers.http.router.group
 import com.jacobtread.kme.servers.http.router.responseStatic
 
@@ -23,7 +23,7 @@ fun RoutingGroup.routeGroupPanel() {
  * the index.html file if the requested file doesn't exist
  */
 private fun RoutingGroup.routePanelFallback() {
-    get(":*") {// Catchall for static assets falling back on index.html
+    everything {// Catchall for static assets falling back on index.html
         val path = param("*")
         responseStatic(path, "panel", "index.html", "panel")
     }

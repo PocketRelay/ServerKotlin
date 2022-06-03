@@ -8,23 +8,15 @@ class PathRoute(
     private val method: HttpMethod?,
     private val handler: RequestHandler,
 ) : Route(pattern) {
-
     override fun handle(start: Int, request: HttpRequest): RequestResponse? {
         if (method != null && method != request.method) return null
-        if (!matches(start, request)) return null
-        return request.handler()
-    }
-
-    override fun toString(): String {
-        val builder = StringBuilder("Path(pattern=\"")
-            .append(pattern)
-            .append("\"")
-        if (method != null) {
-            builder.append(", ")
-            builder.append(method.name())
+        return if (matchCatchall(start, request)
+            || matchRange(request, start, tokenCount)
+        ) {
+            request.handler()
+        } else {
+            null
         }
-        return builder
-            .append(')')
-            .toString()
+
     }
 }

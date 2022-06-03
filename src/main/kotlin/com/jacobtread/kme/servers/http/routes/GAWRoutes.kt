@@ -10,6 +10,10 @@ import io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import org.jetbrains.exposed.sql.transactions.transaction
 import kotlin.math.min
 
+/**
+ * routeGroupGAW Adds routing for the galaxy at war
+ * api endpoints group (/gaw)
+ */
 fun RoutingGroup.routeGroupGAW() {
     group("gaw") {
         routeAuthentication()
