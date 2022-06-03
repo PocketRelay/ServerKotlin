@@ -1,6 +1,7 @@
 package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.Config
+import com.jacobtread.kme.GlobalConfig
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.logging.Logger.error
@@ -25,10 +26,10 @@ import java.security.KeyStore
 import java.security.Security
 import javax.net.ssl.KeyManagerFactory
 
-fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup, config: Config) {
+fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
     try {
-        val listenPort = config.ports.redirector
-        val handler = RedirectorHandler(config)
+        val listenPort = GlobalConfig.ports.redirector
+        val handler = RedirectorHandler()
         ServerBootstrap()
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
@@ -36,7 +37,7 @@ fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
             .bind(listenPort)
             .addListener(handler)
     } catch (e: UnknownHostException) {
-        Logger.fatal("Unable to lookup server address \"${config.externalAddress}\"", e)
+        Logger.fatal("Unable to lookup server address \"${GlobalConfig.externalAddress}\"", e)
     } catch (e: IOException) {
         error("Exception in redirector server", e)
     }
@@ -52,7 +53,7 @@ fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
  * @param config The server configuration
  */
 @Sharable
-class RedirectorHandler(private val config: Config) : ChannelInitializer<Channel>(), FutureListener<Void> {
+class RedirectorHandler() : ChannelInitializer<Channel>(), FutureListener<Void> {
 
     /**
      * PacketProcessor Processes any packets sent to the redirect server
@@ -97,8 +98,8 @@ class RedirectorHandler(private val config: Config) : ChannelInitializer<Channel
         }
     }
 
-    private val targetAddress = lookupServerAddress(config.externalAddress)
-    private val targetPort = config.ports.main
+    private val targetAddress = lookupServerAddress(GlobalConfig.externalAddress)
+    private val targetPort = GlobalConfig.ports.main
     private val context = createSslContext()
     private val processor = PacketProcessor()
 
@@ -153,7 +154,7 @@ class RedirectorHandler(private val config: Config) : ChannelInitializer<Channel
      * @param future Ignored
      */
     override fun operationComplete(future: Future<Void>) {
-        val listenPort = config.ports.redirector
+        val listenPort = GlobalConfig.ports.redirector
         info("Started Redirector on port $listenPort redirecting to:")
         info("Host: ${targetAddress.host}")
         info("IP: ${targetAddress.ip}")

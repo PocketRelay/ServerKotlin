@@ -1,6 +1,7 @@
 package com.jacobtread.kme.database
 
 import com.jacobtread.kme.Config
+import com.jacobtread.kme.GlobalConfig
 import com.jacobtread.kme.utils.MEStringParser
 import com.jacobtread.kme.utils.unixTimeSeconds
 import kotlinx.serialization.SerialName
@@ -18,14 +19,8 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.nio.file.Paths
-import java.text.SimpleDateFormat
-import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.Month
-import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
-import java.util.Date
 import kotlin.io.path.absolute
 import kotlin.io.path.createDirectories
 import kotlin.io.path.notExists
@@ -114,7 +109,8 @@ data class SQLiteConfig(
  *
  * @param config The database configuration
  */
-fun startDatabase(config: DatabaseConfig) {
+fun startDatabase() {
+    val config = GlobalConfig.database
     when (config.type) {
         DatabaseType.MYSQL -> {
             val mysql = config.mysql

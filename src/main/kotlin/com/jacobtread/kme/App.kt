@@ -14,14 +14,13 @@ fun main() {
     val bossGroup = NioEventLoopGroup()
     val workerGroup = NioEventLoopGroup()
 
-    val config = Environment.createConfig()
-    Logger.init(config.logging)
+    Logger.init(GlobalConfig.logging)
     Logger.info("Starting ME3 Server")
 
-    startDatabase(config.database)
-    startRedirector(bossGroup, workerGroup, config)
-    startMainServer(bossGroup, workerGroup, config)
-    startHttpServer(bossGroup, workerGroup, config)
-    startDiscardServer(bossGroup, workerGroup, config)
+    startDatabase()
+    startRedirector(bossGroup, workerGroup)
+    startMainServer(bossGroup, workerGroup)
+    startHttpServer(bossGroup, workerGroup)
+    startDiscardServer(bossGroup, workerGroup)
 }
 

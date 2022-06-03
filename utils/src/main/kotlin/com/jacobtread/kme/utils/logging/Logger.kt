@@ -48,7 +48,6 @@ object Logger {
      */
     val isDebugEnabled: Boolean get() = logLevel == Level.DEBUG
 
-
     fun init(config: Config) {
         logLevel = config.level
         logToFile = config.save

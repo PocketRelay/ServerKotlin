@@ -1,6 +1,6 @@
 package com.jacobtread.kme.servers.http
 
-import com.jacobtread.kme.Config
+import com.jacobtread.kme.GlobalConfig
 import com.jacobtread.kme.servers.http.router.router
 import com.jacobtread.kme.servers.http.routes.*
 import com.jacobtread.kme.utils.logging.Logger
@@ -24,14 +24,14 @@ import java.io.IOException
  * @param workerGroup The worker event loop group to use
  * @param config The server configuration
  */
-fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup, config: Config) {
+fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
     try {
-        val handler = HttpHandler(config)
+        val handler = HttpHandler()
         ServerBootstrap()
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
             .childHandler(handler)
-            .bind(config.ports.http)
+            .bind(GlobalConfig.ports.http)
             .addListener(handler)
     } catch (e: IOException) {
         Logger.error("Exception in HTTP server", e)
@@ -46,14 +46,14 @@ fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
  * @constructor Create empty HttpInitializer
  */
 @Sharable
-class HttpHandler(private val config: Config) : ChannelInitializer<Channel>(), FutureListener<Void> {
+class HttpHandler : ChannelInitializer<Channel>(), FutureListener<Void> {
 
     /**
      * router Initializing the router paths
      */
-    val router = router(config) {
+    val router = router() {
         routeGroupGAW() // Galaxy at war routing group
-        if (config.panel.enabled) { // If the panel is enabled
+        if (GlobalConfig.panel.enabled) { // If the panel is enabled
             routeGroupPanel() // Panel routing group
         }
         routeContents() // Contents routing
@@ -80,6 +80,6 @@ class HttpHandler(private val config: Config) : ChannelInitializer<Channel>(), F
      * @param future Ignored
      */
     override fun operationComplete(future: Future<Void>) {
-        Logger.info("Started HTTP Server on port ${config.ports.http}")
+        Logger.info("Started HTTP Server on port ${GlobalConfig.ports.http}")
     }
 }

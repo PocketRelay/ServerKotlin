@@ -14,7 +14,7 @@ import io.netty.handler.codec.http.HttpResponseStatus
 import io.netty.handler.codec.http.HttpMethod as NettyHttpMethod
 
 @Sharable
-class Router(val config: Config) : SimpleChannelInboundHandler<HttpRequest>(), RoutingGroup {
+class Router : SimpleChannelInboundHandler<HttpRequest>(), RoutingGroup {
     enum class HttpMethod(val value: NettyHttpMethod?) {
         ANY(null),
         GET(NettyHttpMethod.GET),
@@ -31,8 +31,8 @@ class Router(val config: Config) : SimpleChannelInboundHandler<HttpRequest>(), R
         try {
             var handled = false
             for (route in routes) {
-                if (!route.matches(config, 0, request)) continue
-                if (route.handle(config, 0, request)) {
+                if (!route.matches( 0, request)) continue
+                if (route.handle(0, request)) {
                     handled = true
                     break
                 }
@@ -53,8 +53,8 @@ class Router(val config: Config) : SimpleChannelInboundHandler<HttpRequest>(), R
     }
 }
 
-inline fun router(config: Config, init: Router.() -> Unit): Router {
-    val router = Router(config)
+inline fun router(init: Router.() -> Unit): Router {
+    val router = Router()
     router.init()
     return router
 }

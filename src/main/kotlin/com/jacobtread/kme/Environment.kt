@@ -7,6 +7,8 @@ import com.jacobtread.kme.database.SQLiteConfig
 import com.jacobtread.kme.utils.logging.Level
 import com.jacobtread.kme.utils.logging.Logger
 
+val GlobalConfig = Environment.createConfig()
+
 /**
  * Environment This object stores the names of different system
  * environment variables that can control the server as well as

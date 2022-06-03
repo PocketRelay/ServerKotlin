@@ -1,7 +1,7 @@
 package com.jacobtread.kme.servers
 
-import com.jacobtread.kme.Config
 import com.jacobtread.kme.Environment
+import com.jacobtread.kme.GlobalConfig
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.Commands.ADVANCE_GAME_STATE
 import com.jacobtread.kme.blaze.Commands.CANCEL_MATCHMAKING
@@ -64,7 +64,6 @@ import com.jacobtread.kme.utils.IPAddress
 import com.jacobtread.kme.utils.comparePasswordHash
 import com.jacobtread.kme.utils.hashPassword
 import com.jacobtread.kme.utils.logging.Logger
-import com.jacobtread.kme.utils.logging.Logger.debug
 import com.jacobtread.kme.utils.logging.Logger.info
 import com.jacobtread.kme.utils.unixTimeSeconds
 import io.netty.bootstrap.ServerBootstrap
@@ -84,15 +83,14 @@ import java.time.LocalDate
  *
  * @param bossGroup The boss event loop group to use
  * @param workerGroup The worker event loop group to use
- * @param config The server configuration
  */
-fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup, config: Config) {
+fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
     try {
-        val port = config.ports.main
+        val port = GlobalConfig.ports.main
         ServerBootstrap()
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
-            .childHandler(MainInitializer(config))
+            .childHandler(MainInitializer())
             // Bind the server to the host and port
             .bind(port)
             // Wait for the channel to bind
@@ -107,10 +105,9 @@ fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
  * Creates sessions for the user as well as adding packet handlers
  * and the MainClient handler
  *
- * @property config
  * @constructor Create empty MainClientInitializer
  */
-class MainInitializer(private val config: Config) : ChannelInitializer<Channel>() {
+class MainInitializer : ChannelInitializer<Channel>() {
     override fun initChannel(ch: Channel) {
         val remoteAddress = ch.remoteAddress() // The remote address of the user
         val session = PlayerSession()
@@ -119,7 +116,7 @@ class MainInitializer(private val config: Config) : ChannelInitializer<Channel>(
             // Add handler for decoding packet
             .addLast(PacketDecoder())
             // Add handler for processing packets
-            .addLast(MainHandler(session, config))
+            .addLast(MainHandler(session))
             .addLast(PacketEncoder())
     }
 }
@@ -128,13 +125,11 @@ class MainInitializer(private val config: Config) : ChannelInitializer<Channel>(
  * MainHandler A handler for clients connected to the main server
  *
  * @property session The session data for this user
- * @property config The server configuration
  * @constructor Create empty MainClient
  */
 @Suppress("SpellCheckingInspection")
 private class MainHandler(
     private val session: PlayerSession,
-    private val config: Config,
 ) : SimpleChannelInboundHandler<Packet>() {
 
     @Suppress("NOTHING_TO_INLINE")
@@ -834,7 +829,7 @@ private class MainHandler(
         +packet.respond { number("MCNT", 0x1) } // Number of messages
         val ip = channel.remoteAddress().toString()
         val player = session.player
-        val menuMessage = config.menuMessage
+        val menuMessage = GlobalConfig.menuMessage
             .replace("{v}", Environment.KME_VERSION)
             .replace("{n}", player.displayName)
             .replace("{ip}", ip) + 0xA.toChar()
@@ -1003,7 +998,7 @@ private class MainHandler(
         } else {
             // Matching different configs
             conf = when (type) {
-                "ME3_DATA" -> Data.createDataConfig(config) // Configurations for GAW, images and others
+                "ME3_DATA" -> Data.createDataConfig(GlobalConfig) // Configurations for GAW, images and others
                 "ME3_MSG" -> getServerMessages() // Custom multiplayer messages
                 "ME3_ENT" -> Data.createEntitlementMap() // Entitlements
                 "ME3_DIME" -> Data.createDimeResponse() // Shop contents?
@@ -1140,14 +1135,17 @@ private class MainHandler(
             //  telemetryAddress = "reports.tools.gos.ea.com:9988"
             //  tickerAddress = "waleu2.tools.gos.ea.com:8999"
 
+            val address = GlobalConfig.externalAddress
+            val port = GlobalConfig.ports.discard
+
             +group("TELE") {
-                text("ADRS", config.externalAddress) // Server Address
+                text("ADRS", address) // Server Address
                 number("ANON", 0)
                 text("DISA", Data.TELE_DISA)
                 text("FILT", "-UION/****") // Telemetry filter?
                 number("LOC", 1701725253)
                 text("NOOK", "US,CA,MX")
-                number("PORT", config.ports.discard)
+                number("PORT", port)
                 number("SDLY", 15000)
                 text("SESS", "JMhnT9dXSED")
                 text("SKEY", Data.SKEY)
@@ -1156,8 +1154,8 @@ private class MainHandler(
             }
 
             +group("TICK") {
-                text("ADRS", config.externalAddress)
-                number("port", config.ports.discard)
+                text("ADRS", address)
+                number("port", port)
                 text("SKEY", "823287263,10.23.15.2:8999,masseffect-3-pc,10,50,50,50,50,0,12")
             }
 

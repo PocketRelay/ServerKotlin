@@ -1,6 +1,5 @@
 package com.jacobtread.kme.servers.http.router
 
-import com.jacobtread.kme.Config
 import com.jacobtread.kme.servers.http.WrappedRequest
 
 abstract class TokenMatcher : RequestMatcher {
@@ -20,7 +19,7 @@ abstract class TokenMatcher : RequestMatcher {
         return true
     }
 
-    override fun matches(config: Config, start: Int, request: WrappedRequest): Boolean {
+    override fun matches(start: Int, request: WrappedRequest): Boolean {
         val requestTokens = request.tokens
         val tokenCount = tokens.size
         if (tokenCount > 0 && tokens.last() == ":*") {

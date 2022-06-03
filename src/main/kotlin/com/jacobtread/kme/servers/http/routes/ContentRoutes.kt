@@ -7,7 +7,7 @@ import com.jacobtread.kme.servers.http.router.RoutingGroup
  * this is used for sending images for the shop and related
  */
 fun RoutingGroup.routeContents() {
-    get("content/:*") { _, request ->
+    get("content/:*") { request ->
         val path = request.param("*")
         val fileName = path.substringAfterLast('/')
         request.setHeader("Accept-Ranges", "bytes")

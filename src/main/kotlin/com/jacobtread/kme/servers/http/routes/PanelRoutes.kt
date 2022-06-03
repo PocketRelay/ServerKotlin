@@ -21,7 +21,7 @@ fun RoutingGroup.routeGroupPanel() {
  * the index.html file if the requested file doesn't exist
  */
 private fun RoutingGroup.routePanelFallback() {
-    get(":*") { _, request -> // Catchall for static assets falling back on index.html
+    get(":*") { request -> // Catchall for static assets falling back on index.html
         val path = request.param("*")
         request.static(path, "panel", "index.html", "panel")
     }

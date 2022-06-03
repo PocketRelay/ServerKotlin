@@ -26,7 +26,7 @@ data class PlayerSerial(
 )
 
 private fun RoutingGroup.routePlayersList() {
-    get("players") { _, request ->
+    get("players") { request ->
         val limit = request.queryInt("limit", default = 10)
         val offset = request.queryInt("offset", default = 0)
         val playersList = transaction {
@@ -46,14 +46,14 @@ private fun RoutingGroup.routePlayersList() {
 }
 
 private fun RoutingGroup.routePlayerSettings() {
-    get("playerSettings") { _, request ->
+    get("playerSettings") { request ->
         val playerId = request.queryInt("id")
         val player = Player.getById(playerId)
             ?: return@get request.response(HttpResponseStatus.BAD_REQUEST)
         request.json(player.createSettingsMap())
     }
 
-    post("setPlayerSettings") { _, request ->
+    post("setPlayerSettings") { request ->
         val playerId = request.queryInt("id")
         val player = Player.getById(playerId)
             ?: return@post request.response(HttpResponseStatus.BAD_REQUEST)
@@ -63,7 +63,7 @@ private fun RoutingGroup.routePlayerSettings() {
 }
 
 private fun RoutingGroup.routeUpdatePlayer() {
-    post("updatePlayer") { _, request ->
+    post("updatePlayer") { request ->
         val player = request.contentJson<PlayerSerial>()
             ?: return@post request.response(HttpResponseStatus.BAD_REQUEST)
         val existing = Player.getById(player.id)

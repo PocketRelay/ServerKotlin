@@ -1,10 +1,9 @@
 package com.jacobtread.kme.servers.http.routes
 
-import com.jacobtread.kme.Config
+import com.jacobtread.kme.GlobalConfig
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.database.PlayerGalaxyAtWar
 import com.jacobtread.kme.servers.http.WrappedRequest
-import com.jacobtread.kme.servers.http.router.GroupRoute
 import com.jacobtread.kme.servers.http.router.RouteFunction
 import com.jacobtread.kme.servers.http.router.RoutingGroup
 import com.jacobtread.kme.servers.http.router.group
@@ -28,7 +27,7 @@ fun RoutingGroup.routeGroupGAW() {
  * a session token, but currently it just accepts the userID
  */
 private fun RoutingGroup.routeAuthentication() {
-    get("authentication/sharedTokenLogin") { _, request ->
+    get("authentication/sharedTokenLogin") { request ->
         val playerId = request.queryInt("auth", 16)
         val player = Player.getById(playerId)
             ?: return@get request.response(HttpResponseStatus.BAD_REQUEST)
@@ -71,12 +70,12 @@ private fun RoutingGroup.routeAuthentication() {
  * for the players with the provided player ID
  */
 private fun RoutingGroup.routeRatings() {
-    get("galaxyatwar/getRatings/:id") { config, request ->
+    get("galaxyatwar/getRatings/:id") { request ->
         val playerId = request.paramInt("id", 16)
         val player = Player.getById(playerId)
             ?: return@get request.response(HttpResponseStatus.BAD_REQUEST)
-        val rating = player.getOrCreateGAW(config.gaw)
-        respondRatings(config, request, player, rating)
+        val rating = player.getOrCreateGAW(GlobalConfig.gaw)
+        request.respondRatings(player, rating)
     }
 }
 
@@ -85,23 +84,23 @@ private fun RoutingGroup.routeRatings() {
  * ratings increasing this is call by the ME3 client
  */
 private fun RoutingGroup.routeIncreaseRatings() {
-    get("galaxyatwar/increaseRatings/:id") { config, request ->
+    get("galaxyatwar/increaseRatings/:id") { request ->
         val playerId = request.paramInt("id", 16)
         val player = Player.getById(playerId)
             ?: return@get request.response(HttpResponseStatus.BAD_REQUEST)
-        val rating = player.getOrCreateGAW(config.gaw)
+        val rating = player.getOrCreateGAW(GlobalConfig.gaw)
         val maxValue = 10099
         transaction {
             rating.apply {
                 timestamp = unixTimeSeconds()
-                a = min(maxValue, a + request.queryInt("rinc|0", default=0))
-                b = min(maxValue, b + request.queryInt("rinc|1", default=0))
-                c = min(maxValue, c + request.queryInt("rinc|2", default=0))
-                d = min(maxValue, d + request.queryInt("rinc|3", default=0))
-                e = min(maxValue, e + request.queryInt("rinc|4", default=0))
+                a = min(maxValue, a + request.queryInt("rinc|0", default = 0))
+                b = min(maxValue, b + request.queryInt("rinc|1", default = 0))
+                c = min(maxValue, c + request.queryInt("rinc|2", default = 0))
+                d = min(maxValue, d + request.queryInt("rinc|3", default = 0))
+                e = min(maxValue, e + request.queryInt("rinc|4", default = 0))
             }
         }
-        respondRatings(config, request, player, rating)
+        request.respondRatings(player, rating)
     }
 }
 
@@ -114,16 +113,11 @@ private fun RoutingGroup.routeIncreaseRatings() {
  * @param player The player to use the data from
  * @param rating The player galaxy at war rating data
  */
-private fun respondRatings(
-    config: Config,
-    request: WrappedRequest,
-    player: Player,
-    rating: PlayerGalaxyAtWar,
-) {
+private fun WrappedRequest.respondRatings(player: Player, rating: PlayerGalaxyAtWar) {
     val level = rating.average()
-    val promotions = if (config.gaw.enablePromotions) player.getTotalPromotions() else 0
+    val promotions = if (GlobalConfig.gaw.enablePromotions) player.getTotalPromotions() else 0
     @Suppress("SpellCheckingInspection")
-    request.xml("galaxyatwargetratings") {
+    xml("galaxyatwargetratings") {
         element("ratings") {
             element("ratings", rating.a)
             element("ratings", rating.b)

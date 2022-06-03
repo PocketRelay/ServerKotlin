@@ -15,13 +15,13 @@ open class PathRoute(
     override val tokens = this.pattern
         .split('/')
 
-    override fun matches(config: Config, start: Int, request: WrappedRequest): Boolean {
+    override fun matches( start: Int, request: WrappedRequest): Boolean {
         if (method != Router.HttpMethod.ANY && method.value != request.method) return false
-        return super.matches(config, start, request)
+        return super.matches(start, request)
     }
 
-    override fun handle(config: Config, start: Int, request: WrappedRequest): Boolean {
-        handler.handle(config, request)
+    override fun handle(start: Int, request: WrappedRequest): Boolean {
+        handler.handle(request)
         return true
     }
 
