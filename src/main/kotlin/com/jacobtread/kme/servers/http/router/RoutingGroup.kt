@@ -3,9 +3,9 @@ package com.jacobtread.kme.servers.http.router
 import io.netty.handler.codec.http.HttpMethod
 
 interface RoutingGroup {
-    val routes: MutableList<RequestMatcher>
+    val routes: MutableList<RouteHandler>
 
-    operator fun RequestMatcher.unaryPlus() {
+    operator fun RouteHandler.unaryPlus() {
         routes.add(this)
     }
 }
@@ -29,10 +29,6 @@ fun RoutingGroup.put(pattern: String, handler: RequestHandler) {
 
 fun RoutingGroup.delete(pattern: String, handler: RequestHandler) {
     routes.add(PathRoute(pattern, HttpMethod.DELETE, handler))
-}
-
-fun RoutingGroup.middleware(middleware: Middleware) {
-    routes.add(middleware)
 }
 
 inline fun RoutingGroup.group(pattern: String, init: GroupRoute.() -> Unit) {

@@ -3,7 +3,6 @@ package com.jacobtread.kme.servers.http.routes
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.database.PlayerSettingsBase
 import com.jacobtread.kme.servers.http.router.*
-import io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import io.netty.handler.codec.http.HttpResponseStatus.OK
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -47,22 +46,22 @@ private fun RoutingGroup.routePlayersList() {
 private fun RoutingGroup.routePlayerSettings() {
     get("playerSettings") {
         val playerId = queryInt("id")
-        val player = Player.getById(playerId) ?: return@get response(BAD_REQUEST)
+        val player = Player.getById(playerId) ?: throw BadRequestException()
         responseJson(player.createSettingsMap())
     }
     post("setPlayerSettings") {
         val playerId = queryInt("id")
-        val player = Player.getById(playerId) ?: return@post response(BAD_REQUEST)
+        val player = Player.getById(playerId) ?: throw BadRequestException()
         val settings = contentJson<Map<String, String>>()
-        settings?.forEach { player.setSetting(it.key, it.value) }
+        settings.forEach { player.setSetting(it.key, it.value) }
         response(OK)
     }
 }
 
 private fun RoutingGroup.routeUpdatePlayer() {
     post("updatePlayer") {
-        val player = contentJson<PlayerSerial>() ?: return@post response(BAD_REQUEST)
-        val existing = Player.getById(player.id) ?: return@post response(BAD_REQUEST)
+        val player = contentJson<PlayerSerial>()
+        val existing = Player.getById(player.id) ?: throw BadRequestException()
         transaction {
             existing.displayName = player.displayName
             existing.email = player.email

@@ -1,5 +1,7 @@
 package com.jacobtread.kme.servers.http.router
 
-import com.jacobtread.kme.servers.http.WrappedRequest
+import com.jacobtread.kme.servers.http.HttpRequest
 
-typealias RequestHandler = WrappedRequest.() -> RequestResponse
+class BadRequestException : RuntimeException("Client request was invalid")
+
+typealias RequestHandler = HttpRequest.() -> RequestResponse

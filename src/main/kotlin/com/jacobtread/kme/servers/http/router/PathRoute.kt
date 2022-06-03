@@ -1,25 +1,30 @@
 package com.jacobtread.kme.servers.http.router
 
-import com.jacobtread.kme.servers.http.WrappedRequest
+import com.jacobtread.kme.servers.http.HttpRequest
 import io.netty.handler.codec.http.HttpMethod
 
-open class PathRoute(
+class PathRoute(
     pattern: String,
     private val method: HttpMethod?,
     private val handler: RequestHandler,
-) : TokenMatcher() {
-    private val pattern = pattern
-        .removePrefix("/")
-        .removeSuffix("/")
+) : Route(pattern) {
 
-    override val tokens = this.pattern
-        .split('/')
-
-    override fun matches(start: Int, request: WrappedRequest): Boolean {
-        if (method != null && method != request.method) return false
-        return super.matches(start, request)
+    override fun handle(start: Int, request: HttpRequest): RequestResponse? {
+        if (method != null && method != request.method) return null
+        if (!matches(start, request)) return null
+        return request.handler()
     }
 
-    override fun handle(start: Int, request: WrappedRequest): RequestResponse? = request.handler()
-    override fun toString(): String = "Path($pattern)"
+    override fun toString(): String {
+        val builder = StringBuilder("Path(pattern=\"")
+            .append(pattern)
+            .append("\"")
+        if (method != null) {
+            builder.append(", ")
+            builder.append(method.name())
+        }
+        return builder
+            .append(')')
+            .toString()
+    }
 }
