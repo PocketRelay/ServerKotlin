@@ -1,7 +1,6 @@
 package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.Environment
-import com.jacobtread.kme.GlobalConfig
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.Commands.ADVANCE_GAME_STATE
 import com.jacobtread.kme.blaze.Commands.CANCEL_MATCHMAKING
@@ -86,15 +85,14 @@ import java.time.LocalDate
  */
 fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
     try {
-        val port = GlobalConfig.ports.main
         ServerBootstrap()
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
             .childHandler(MainInitializer())
             // Bind the server to the host and port
-            .bind(port)
+            .bind(Environment.Config.ports.main)
             // Wait for the channel to bind
-            .addListener { info("Started Main Server on port $port") }
+            .addListener { info("Started Main Server on port ${Environment.Config.ports.main}") }
     } catch (e: IOException) {
         Logger.error("Exception in redirector server", e)
     }
@@ -829,7 +827,7 @@ private class MainHandler(
         +packet.respond { number("MCNT", 0x1) } // Number of messages
         val ip = channel.remoteAddress().toString()
         val player = session.player
-        val menuMessage = GlobalConfig.menuMessage
+        val menuMessage = Environment.Config.menuMessage
             .replace("{v}", Environment.KME_VERSION)
             .replace("{n}", player.displayName)
             .replace("{ip}", ip) + 0xA.toChar()
@@ -1134,9 +1132,9 @@ private class MainHandler(
 
             //  telemetryAddress = "reports.tools.gos.ea.com:9988"
             //  tickerAddress = "waleu2.tools.gos.ea.com:8999"
-
-            val address = GlobalConfig.externalAddress
-            val port = GlobalConfig.ports.discard
+            val config = Environment.Config
+            val address = config.externalAddress
+            val port = config.ports.discard
 
             +group("TELE") {
                 text("ADRS", address) // Server Address

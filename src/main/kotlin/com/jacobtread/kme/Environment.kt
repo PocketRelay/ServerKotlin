@@ -6,8 +6,15 @@ import com.jacobtread.kme.database.MySQLConfig
 import com.jacobtread.kme.database.SQLiteConfig
 import com.jacobtread.kme.utils.logging.Level
 import com.jacobtread.kme.utils.logging.Logger
-
-val GlobalConfig = Environment.createConfig()
+import com.jacobtread.kme.Config.GalaxyAtWarConfig
+import com.jacobtread.kme.Config.PanelConfig
+import com.jacobtread.kme.Config.Ports
+import kotlinx.serialization.decodeFromString
+import net.mamoe.yamlkt.Yaml
+import kotlin.io.path.Path
+import kotlin.io.path.notExists
+import kotlin.io.path.readText
+import kotlin.io.path.writeText
 
 /**
  * Environment This object stores the names of different system
@@ -17,6 +24,9 @@ val GlobalConfig = Environment.createConfig()
  * @constructor Create empty Environment
  */
 object Environment {
+
+    // The global app configuration loaded from env, file or both
+    val Config: Config = createConfig()
 
     // The version of KME
     const val KME_VERSION = "1.0.0"
@@ -91,7 +101,7 @@ object Environment {
      *
      * @return The modified / created configuration
      */
-    fun createConfig(): Config {
+    private fun createConfig(): Config {
         val env = System.getenv()
         val initial = if (env.bool(ENV_CONFIG, false)) {
             Config()
@@ -99,6 +109,33 @@ object Environment {
             loadConfigFile()
         }
         return recreateConfig(env, initial)
+    }
+
+    /**
+     * loadConfigFile Loads the configuration from the YAML config file
+     * config.yml if the config file doesn't exist a new one is created
+     *
+     * @return The loaded config file or default config if none
+     */
+    private fun loadConfigFile(): Config {
+        val configFile = Path("config.yml") // The path to the config file
+        if (configFile.notExists()) { // Check the config file doesn't exsit
+            // Config file doesn't exist
+            Logger.info("No configuration found. Using default")
+            val config = Config() // Create default config
+            try {
+                // Write config to config file
+                Logger.debug("Saving newly created config to: $configFile")
+                configFile.writeText(Yaml.encodeToString(config))
+            } catch (e: Exception) {
+                Logger.error("Failed to write newly created config file", e)
+            }
+            return config
+        }
+        val contents = configFile.readText()
+        val config: Config = Yaml.decodeFromString(contents)
+        Logger.info("Loaded Configuration from: $configFile")
+        return config
     }
 
 
@@ -112,8 +149,8 @@ object Environment {
      * @param gawConfig The default galaxy at war config
      * @return The modified galaxy at war config
      */
-    private fun createGawConfig(env: Map<String, String>, gawConfig: Config.GalaxyAtWarConfig): Config.GalaxyAtWarConfig {
-        return Config.GalaxyAtWarConfig(
+    private fun createGawConfig(env: Map<String, String>, gawConfig: GalaxyAtWarConfig): GalaxyAtWarConfig {
+        return GalaxyAtWarConfig(
             env.float(GAW_READINESS_DECAY, gawConfig.readinessDailyDecay),
             env.bool(GAW_ENABLE_PROMOTIONS, gawConfig.enablePromotions)
         )
@@ -130,8 +167,8 @@ object Environment {
      * @param panelConfig The default panel config
      * @return The modified panel config
      */
-    private fun createPanelConfig(env: Map<String, String>, panelConfig: Config.PanelConfig): Config.PanelConfig {
-        return Config.PanelConfig(
+    private fun createPanelConfig(env: Map<String, String>, panelConfig: PanelConfig): PanelConfig {
+        return PanelConfig(
             enabled = env.bool(PANEL_ENABLED, panelConfig.enabled),
             username = env.str(PANEL_USERNAME, panelConfig.username),
             password = env.str(PANEL_PASSWORD, panelConfig.password),
@@ -151,8 +188,8 @@ object Environment {
      * @param portsConfig The default ports config
      * @return The modified ports config
      */
-    private fun createPortsConfig(env: Map<String, String>, portsConfig: Config.Ports): Config.Ports {
-        return Config.Ports(
+    private fun createPortsConfig(env: Map<String, String>, portsConfig: Ports): Ports {
+        return Ports(
             redirector = env.int(REDIRECTOR_PORT, portsConfig.redirector),
             main = env.int(MAIN_PORT, portsConfig.main),
             discard = env.int(DISCARD_PORT, portsConfig.discard),

@@ -1,6 +1,6 @@
 package com.jacobtread.kme.servers.http.routes
 
-import com.jacobtread.kme.GlobalConfig
+import com.jacobtread.kme.Environment
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.database.PlayerGalaxyAtWar
 import com.jacobtread.kme.servers.http.router.*
@@ -73,7 +73,7 @@ private fun RoutingGroup.routeRatings() {
         val playerId = paramInt("id", 16)
         val player = Player.getById(playerId)
             ?: return@get response(BAD_REQUEST)
-        val rating = player.getOrCreateGAW(GlobalConfig.gaw)
+        val rating = player.getOrCreateGAW(Environment.Config.gaw)
         respondRatings(player, rating)
     }
 }
@@ -87,7 +87,7 @@ private fun RoutingGroup.routeIncreaseRatings() {
         transaction {
             val playerId = paramInt("id", 16)
             val player = Player.getById(playerId) ?: return@transaction response(BAD_REQUEST)
-            val rating = player.getOrCreateGAW(GlobalConfig.gaw)
+            val rating = player.getOrCreateGAW(Environment.Config.gaw)
             val maxValue = 10099
             rating.apply {
                 timestamp = unixTimeSeconds()
@@ -112,7 +112,7 @@ private fun RoutingGroup.routeIncreaseRatings() {
  */
 private fun respondRatings(player: Player, rating: PlayerGalaxyAtWar): HttpResponse {
     val level = rating.average()
-    val promotions = if (GlobalConfig.gaw.enablePromotions) player.getTotalPromotions() else 0
+    val promotions = if (Environment.Config.gaw.enablePromotions) player.getTotalPromotions() else 0
     @Suppress("SpellCheckingInspection")
     return responseXml("galaxyatwargetratings") {
         element("ratings") {

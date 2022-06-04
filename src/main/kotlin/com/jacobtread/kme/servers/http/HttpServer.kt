@@ -1,6 +1,6 @@
 package com.jacobtread.kme.servers.http
 
-import com.jacobtread.kme.GlobalConfig
+import com.jacobtread.kme.Environment
 import com.jacobtread.kme.servers.http.router.createRouter
 import com.jacobtread.kme.servers.http.routes.routeContents
 import com.jacobtread.kme.servers.http.routes.routeGroupGAW
@@ -28,8 +28,8 @@ fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
             .childHandler(router)
-            .bind(GlobalConfig.ports.http)
-            .addListener { Logger.info("Started HTTP Server on port ${GlobalConfig.ports.http}") }
+            .bind(Environment.Config.ports.http)
+            .addListener { Logger.info("Started HTTP Server on port ${Environment.Config.ports.http}") }
     } catch (e: IOException) {
         Logger.error("Exception when starting HTTP server", e)
     }

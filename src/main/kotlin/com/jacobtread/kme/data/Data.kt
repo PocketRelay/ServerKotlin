@@ -1,12 +1,10 @@
 package com.jacobtread.kme.data
 
-import com.jacobtread.kme.Config
-import com.jacobtread.kme.GlobalConfig
+import com.jacobtread.kme.Environment
 import com.jacobtread.kme.blaze.TdfBuilder
 import com.jacobtread.kme.blaze.group
 import java.io.BufferedReader
 import java.io.IOException
-import kotlin.random.Random
 
 /**
  * Data Pre constructed data and retrieval of data that's used throughout the app
@@ -227,8 +225,9 @@ object Data {
     }
 
     fun createDataConfig(): Map<String, String> {
-        val address = GlobalConfig.externalAddress
-        val port = GlobalConfig.ports.http
+        val config = Environment.Config
+        val address = config.externalAddress
+        val port = config.ports.http
         val host = if (port != 80) {
             "$address:$port"
         } else {
@@ -253,7 +252,6 @@ object Data {
             "TEL_SERVER" to "159.153.235.32",
         )
     }
-
 
 
     fun createServerMessage(): Map<String, String> = mapOf(

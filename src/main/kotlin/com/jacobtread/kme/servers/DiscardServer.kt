@@ -1,6 +1,6 @@
 package com.jacobtread.kme.servers
 
-import com.jacobtread.kme.GlobalConfig
+import com.jacobtread.kme.Environment
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.ChannelHandlerContext
@@ -42,8 +42,8 @@ fun startDiscardServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGr
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
             .childHandler(handler)
-            .bind(GlobalConfig.ports.discard)
-            .addListener { Logger.info("Started Discard Server on port ${GlobalConfig.ports.discard}") }
+            .bind(Environment.Config.ports.discard)
+            .addListener { Logger.info("Started Discard Server on port ${Environment.Config.ports.discard}") }
     } catch (e: IOException) {
         Logger.error("Exception when starting discard server", e)
     }

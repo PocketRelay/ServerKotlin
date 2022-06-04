@@ -1,6 +1,6 @@
 package com.jacobtread.kme.servers
 
-import com.jacobtread.kme.GlobalConfig
+import com.jacobtread.kme.Environment
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.logging.Logger.error
@@ -33,7 +33,7 @@ import javax.net.ssl.KeyManagerFactory
  */
 fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
     try {
-        val listenPort = GlobalConfig.ports.redirector
+        val listenPort = Environment.Config.ports.redirector
         val handler = RedirectorHandler()
         ServerBootstrap()
             .group(bossGroup, workerGroup)
@@ -42,7 +42,7 @@ fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
             .bind(listenPort)
             .addListener(handler)
     } catch (e: UnknownHostException) {
-        Logger.fatal("Unable to lookup server address \"${GlobalConfig.externalAddress}\"", e)
+        Logger.fatal("Unable to lookup server address \"${Environment.Config.externalAddress}\"", e)
     } catch (e: IOException) {
         error("Exception in redirector server", e)
     }
@@ -103,8 +103,8 @@ class RedirectorHandler() : ChannelInitializer<Channel>(), FutureListener<Void> 
         }
     }
 
-    private val targetAddress = lookupServerAddress(GlobalConfig.externalAddress)
-    private val targetPort = GlobalConfig.ports.main
+    private val targetAddress = lookupServerAddress(Environment.Config.externalAddress)
+    private val targetPort = Environment.Config.ports.main
     private val context = createSslContext()
     private val processor = PacketProcessor()
 
@@ -159,7 +159,7 @@ class RedirectorHandler() : ChannelInitializer<Channel>(), FutureListener<Void> 
      * @param future Ignored
      */
     override fun operationComplete(future: Future<Void>) {
-        val listenPort = GlobalConfig.ports.redirector
+        val listenPort = Environment.Config.ports.redirector
         info("Started Redirector on port $listenPort redirecting to:")
         info("Host: ${targetAddress.host}")
         info("IP: ${targetAddress.ip}")

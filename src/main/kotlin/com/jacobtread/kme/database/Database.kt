@@ -1,7 +1,7 @@
 package com.jacobtread.kme.database
 
 import com.jacobtread.kme.Config
-import com.jacobtread.kme.GlobalConfig
+import com.jacobtread.kme.Environment
 import com.jacobtread.kme.utils.MEStringParser
 import com.jacobtread.kme.utils.unixTimeSeconds
 import kotlinx.serialization.SerialName
@@ -110,7 +110,7 @@ data class SQLiteConfig(
  * @param config The database configuration
  */
 fun startDatabase() {
-    val config = GlobalConfig.database
+    val config = Environment.Config.database
     when (config.type) {
         DatabaseType.MYSQL -> {
             val mysql = config.mysql
@@ -740,13 +740,13 @@ class Message(id: EntityID<Int>) : IntEntity(id) {
             image: String = "Promo_n7.dds",
             priority: Short = 0,
             type: Byte = Messages.MENU_SCROLLING_TYPE,
-            endDate: LocalDate = LocalDate.now().plusDays(15)
+            endDate: LocalDate = LocalDate.now().plusDays(15),
         ) {
             val timestamp = endDate.toEpochDay()
             transaction {
                 Message.new {
                     this.endDate = timestamp
-                    this.image =image
+                    this.image = image
                     this.title = title
                     this.message = message
                     this.priority = priority

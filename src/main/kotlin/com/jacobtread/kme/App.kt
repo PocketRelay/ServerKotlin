@@ -14,7 +14,7 @@ fun main() {
     val bossGroup = NioEventLoopGroup()
     val workerGroup = NioEventLoopGroup()
 
-    Logger.init(GlobalConfig.logging)
+    Logger.init(Environment.Config.logging)
     Logger.info("Starting ME3 Server")
 
     startDatabase()
