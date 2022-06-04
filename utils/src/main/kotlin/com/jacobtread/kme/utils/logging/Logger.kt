@@ -131,7 +131,13 @@ object Logger {
             outputBuffer!!.clear()
         }
     }
-    
+
+    /**
+     * append
+     *
+     * @param level
+     * @param message
+     */
     private fun append(level: Level, message: String) {
         if (level.index > logLevel.index) return
         val time = printDateFormat.format(Date())
@@ -144,6 +150,7 @@ object Logger {
     }
 
     private fun appendThrowable(level: Level, message: String, throwable: Throwable) {
+        if (level.index > logLevel.index) return
         append(level, message)
         throwable.printStackTrace()
         if (logToFile) {
@@ -157,6 +164,7 @@ object Logger {
     }
 
     private fun appendVarargs(level: Level, message: String, args: Array<out Any?>) {
+        if (level.index > logLevel.index) return
         val time = printDateFormat.format(Date())
         var exceptions: ArrayList<Throwable>? = null
         val builder = StringBuilder()
