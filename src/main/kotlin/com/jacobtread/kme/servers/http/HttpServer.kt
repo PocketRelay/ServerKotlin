@@ -1,8 +1,11 @@
 package com.jacobtread.kme.servers.http
 
 import com.jacobtread.kme.GlobalConfig
+import com.jacobtread.kme.servers.http.HttpServer.router
 import com.jacobtread.kme.servers.http.router.createRouter
-import com.jacobtread.kme.servers.http.routes.*
+import com.jacobtread.kme.servers.http.routes.routeContents
+import com.jacobtread.kme.servers.http.routes.routeGroupGAW
+import com.jacobtread.kme.servers.http.routes.routeGroupPanel
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
@@ -18,27 +21,6 @@ import io.netty.util.concurrent.FutureListener
 import java.io.IOException
 
 /**
- * startHttpServer Starts the HTTP server
- *
- * @param bossGroup The boss event loop group to use
- * @param workerGroup The worker event loop group to use
- * @param config The server configuration
- */
-fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
-    try {
-        val handler = HttpHandler()
-        ServerBootstrap()
-            .group(bossGroup, workerGroup)
-            .channel(NioServerSocketChannel::class.java)
-            .childHandler(handler)
-            .bind(GlobalConfig.ports.http)
-            .addListener(handler)
-    } catch (e: IOException) {
-        Logger.error("Exception in HTTP server", e)
-    }
-}
-
-/**
  * HttpInitializer Initializes the channel to accept http adds the decoder
  * and encoder and aggregator and the router to the channel
  *
@@ -46,12 +28,32 @@ fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
  * @constructor Create empty HttpInitializer
  */
 @Sharable
-class HttpHandler : ChannelInitializer<Channel>(), FutureListener<Void> {
+object HttpServer : ChannelInitializer<Channel>(), FutureListener<Void> {
+
+    /**
+     * start Starts an HTTP server which uses this object as its
+     * handler and startup complete listener
+     *
+     * @param bossGroup The netty boss group
+     * @param workerGroup The netty worker group
+     */
+    fun start(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
+        try {
+            ServerBootstrap()
+                .group(bossGroup, workerGroup)
+                .channel(NioServerSocketChannel::class.java)
+                .childHandler(this)
+                .bind(GlobalConfig.ports.http)
+                .addListener(this)
+        } catch (e: IOException) {
+            Logger.error("Exception in HTTP server", e)
+        }
+    }
 
     /**
      * router Initializing the router paths
      */
-    val router = createRouter {
+    private val router = createRouter {
         routeGroupGAW() // Galaxy at war routing group
         if (GlobalConfig.panel.enabled) { // If the panel is enabled
             routeGroupPanel() // Panel routing group

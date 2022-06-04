@@ -13,6 +13,7 @@ import io.netty.handler.codec.http.HttpVersion
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
+// Content-Type constants
 const val XML_CONTENT_TYPE = "text/xml;charset=UTF-8"
 const val PLAIN_TEXT_CONTENT_TYPE = "text/plain;charset=UTF-8"
 const val HTML_CONTENT_TYPE = "text/html;charset=UTF-8"

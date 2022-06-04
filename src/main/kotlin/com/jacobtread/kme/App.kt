@@ -3,7 +3,7 @@
 package com.jacobtread.kme
 
 import com.jacobtread.kme.database.startDatabase
-import com.jacobtread.kme.servers.http.startHttpServer
+import com.jacobtread.kme.servers.http.HttpServer
 import com.jacobtread.kme.servers.startDiscardServer
 import com.jacobtread.kme.servers.startMainServer
 import com.jacobtread.kme.servers.startRedirector
@@ -20,7 +20,7 @@ fun main() {
     startDatabase()
     startRedirector(bossGroup, workerGroup)
     startMainServer(bossGroup, workerGroup)
-    startHttpServer(bossGroup, workerGroup)
+    HttpServer.start(bossGroup, workerGroup)
     startDiscardServer(bossGroup, workerGroup)
 }
 
