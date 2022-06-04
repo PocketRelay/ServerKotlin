@@ -3,7 +3,9 @@ package com.jacobtread.kme.utils.logging
 import kotlinx.serialization.Serializable
 import net.mamoe.yamlkt.Comment
 import java.io.IOException
+import java.io.PrintWriter
 import java.io.RandomAccessFile
+import java.io.StringWriter
 import java.nio.ByteBuffer
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -25,9 +27,6 @@ object Logger {
         @Comment("Whether to log the contents of incoming and outgoing packets (For debugging)")
         val packets: Boolean = false,
     )
-
-    private const val DEFAULT_BUFFER_SIZE = 4024
-
 
     private val printDateFormat = SimpleDateFormat("HH:mm:ss")
     private val loggingPath: Path = Paths.get("logs")
@@ -54,7 +53,7 @@ object Logger {
         if (logToFile) {
             try {
                 archiveOld()
-                outputBuffer =  ByteBuffer.allocate(DEFAULT_BUFFER_SIZE)
+                outputBuffer = ByteBuffer.allocate(4024)
                 file = createFile()
                 Runtime.getRuntime().addShutdownHook(Thread(this::close))
             } catch (e: IOException) {
@@ -64,26 +63,43 @@ object Logger {
         }
     }
 
-    fun info(text: String, vararg args: Any? = emptyArray()) = append(Level.INFO, text, *args)
+    fun info(text: String) = append(Level.INFO, text)
+    fun info(text: String, throwable: Throwable) = appendThrowable(Level.INFO, text, throwable)
+    fun info(text: String, vararg values: Any?) = appendVarargs(Level.INFO, text, values)
 
-    fun warn(text: String, vararg args: Any? = emptyArray()) = append(Level.WARN, text, *args)
+    fun warn(text: String) = append(Level.WARN, text)
+    fun warn(text: String, throwable: Throwable) = appendThrowable(Level.WARN, text, throwable)
+    fun warn(text: String, vararg values: Any?) = appendVarargs(Level.WARN, text, values)
 
-    fun fatal(text: String, vararg args: Any? = emptyArray()): Nothing {
-        append(Level.FATAL, text, *args)
+    fun fatal(text: String): Nothing {
+        append(Level.FATAL, text)
+        exitProcess(1)
+    }
+    fun fatal(text: String, throwable: Throwable): Nothing {
+        appendThrowable(Level.FATAL, text, throwable)
+        exitProcess(1)
+    }
+    fun fatal(text: String, vararg values: Any?): Nothing {
+        appendVarargs(Level.FATAL, text, values)
         exitProcess(1)
     }
 
-    inline fun logIfDebug(provider: () -> String) {
-        if (isDebugEnabled) {
-            debug(provider())
-        }
+    inline fun logIfDebug(text: () -> String) {
+        if (isDebugEnabled) debug(text())
     }
 
-    fun debug(text: String, vararg args: Any? = emptyArray()) = append(Level.DEBUG, text, *args)
+    fun debug(text: String) = append(Level.DEBUG, text)
+    fun debug(text: String, throwable: Throwable) = appendThrowable(Level.DEBUG, text, throwable)
+    fun debug(text: String, vararg values: Any?) = appendVarargs(Level.DEBUG, text, values)
 
-    fun error(text: String, vararg args: Any? = emptyArray()) = append(Level.ERROR, text, *args)
+    fun error(text: String) = append(Level.ERROR, text)
+    fun error(text: String, throwable: Throwable) = appendThrowable(Level.ERROR, text, throwable)
+    fun error(text: String, vararg values: Any?) = appendVarargs(Level.ERROR, text, values)
 
-    fun log(level: Level, text: String, vararg args: Any? = emptyArray()) = append(level, text, *args)
+    fun log(level: Level, text: String) = append(level, text)
+    fun log(level: Level, text: String, throwable: Throwable) = appendThrowable(level, text, throwable)
+    fun log(level: Level, text: String, vararg values: Any?) = appendVarargs(level, text, values)
+
 
     /**
      * close Called when the application is closing. Flushes
@@ -115,78 +131,78 @@ object Logger {
             outputBuffer!!.clear()
         }
     }
-
-    /**
-     * append Appends a new log entry
-     *
-     * @param level The level of the log
-     * @param message The message of the log
-     * @param args Arguments to be placed into it
-     */
-    private fun append(level: Level, message: String, vararg args: Any?) {
+    
+    private fun append(level: Level, message: String) {
         if (level.index > logLevel.index) return
         val time = printDateFormat.format(Date())
-        val hasArgs = args.isNotEmpty()
-        if (!hasArgs || args[0] is Throwable) {
-            val text = "[$time] [${level.levelName}] $message\n"
-            val coloredText = "[$time] ${level.coloredText()} $message\n"
-            if (level.index < 3) {
-                System.err.print(coloredText)
-            } else {
-                print(coloredText)
-            }
-            write(text)
-            if (hasArgs) {
-                val throwable = args[0] as Throwable
-                throwable.printStackTrace()
-                write(throwable.stackTraceToString() + '\n')
-            }
-        } else {
-            var exceptions: ArrayList<Throwable>? = null
-            val builder = StringBuilder()
-            var i = 0
-            var last = 0
-            while (true) {
-                val index = message.indexOf("{}", last)
-                if (index < 0) break
-                check(i < args.size) { "Incorrect number of arguments provided" }
-                builder.append(message.substring(last, index))
-                var arg = args[i]
-                while (arg is Throwable) {
-                    i++
-                    if (exceptions == null) {
-                        exceptions = ArrayList()
-                    }
-                    exceptions.add(arg)
-                    if (i < args.size) {
-                        arg = args[i]
-                    } else {
-                        arg = null
-                        break
-                    }
+        val text = "[$time] ${level.coloredText()} $message\n"
+        val stream = if (level.index < 3) System.err else System.out
+        stream.print(text)
+        if (logToFile) {
+            write("[$time] [${level.levelName}] $message\n")
+        }
+    }
+
+    private fun appendThrowable(level: Level, message: String, throwable: Throwable) {
+        append(level, message)
+        throwable.printStackTrace()
+        if (logToFile) {
+            val sw = StringWriter()
+            val pw = PrintWriter(sw)
+            throwable.printStackTrace(pw)
+            pw.println()
+            pw.flush()
+            write(sw.toString())
+        }
+    }
+
+    private fun appendVarargs(level: Level, message: String, args: Array<out Any?>) {
+        val time = printDateFormat.format(Date())
+        var exceptions: ArrayList<Throwable>? = null
+        val builder = StringBuilder()
+        var i = 0
+        var last = 0
+        while (true) {
+            val index = message.indexOf("{}", last)
+            if (index < 0) break
+            check(i < args.size) { "Incorrect number of arguments provided" }
+            builder.append(message.substring(last, index))
+            var arg = args[i]
+            while (arg is Throwable) {
+                i++
+                if (exceptions == null) {
+                    exceptions = ArrayList()
                 }
-                if (arg == null) {
-                    builder.append("null")
+                exceptions.add(arg)
+                if (i < args.size) {
+                    arg = args[i]
                 } else {
-                    builder.append(arg.toString())
+                    arg = null
+                    break
                 }
-                last = index + 2
             }
-            if (last < message.length) {
-                builder.append(message.substring(last))
-            }
-            val text = "[$time] [${level.levelName}] $builder\n"
-            val coloredText = "[$time] ${level.coloredText()} $builder\n"
-            if (level.index < 3) {
-                System.err.print(coloredText)
-            } else {
-                print(coloredText)
-            }
-            write(text)
+            builder.append(arg?.toString() ?: "null")
+            last = index + 2
+        }
+        if (last < message.length) {
+            builder.append(message.substring(last))
+        }
+        val text = "[$time] ${level.coloredText()} $builder\n"
+        val stream = if (level.index < 3) System.err else System.out
+        stream.print(text)
+        if (logToFile) {
+            write("[$time] [${level.levelName}] $builder\n")
+            val exSW = StringWriter()
+            val exPW = PrintWriter(exSW)
             exceptions?.forEach {
                 it.printStackTrace()
-                write(it.stackTraceToString() + '\n')
+                it.printStackTrace(exPW)
+                exPW.println()
             }
+            exPW.flush()
+            write(exSW.toString())
+        } else {
+            exceptions?.forEach { it.printStackTrace() }
         }
     }
 
