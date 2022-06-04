@@ -7,6 +7,11 @@ import io.netty.handler.codec.http.HttpResponseStatus.OK
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.transactions.transaction
 
+/**
+ * routeGroupApi Adds the routing for the API routes
+ * (/api) these are the routes for the panel api
+ *
+ */
 fun RoutingGroup.routeGroupApi() {
     group("api") {
         routePlayersList()
@@ -15,6 +20,16 @@ fun RoutingGroup.routeGroupApi() {
     }
 }
 
+/**
+ * PlayerSerial Serialization object for serializing/deserializing
+ * players as JSON objects to be sent/received over HTTP
+ *
+ * @property id The id of the player
+ * @property email The email of the player
+ * @property displayName The display name of the player
+ * @property settings The settings of the player
+ * @constructor Create empty PlayerSerial
+ */
 @Serializable
 data class PlayerSerial(
     val id: Int,
@@ -23,6 +38,11 @@ data class PlayerSerial(
     val settings: PlayerSettingsBase,
 )
 
+/**
+ * routePlayersList Adds the routing for the players list endpoint
+ * GET (/api/players) which responds with a list of players based on the
+ * provided limit and offset query parameters
+ */
 private fun RoutingGroup.routePlayersList() {
     get("players") {
         val limit = queryInt("limit", default = 10)
@@ -43,6 +63,11 @@ private fun RoutingGroup.routePlayersList() {
     }
 }
 
+/**
+ * routePlayerSettings Adds the routing for the player settings endpoints
+ * this includes the GET (/api/playerSettings) and POST (/api/setPlayerSettings)
+ * endpoints which retrieve and update player settings
+ */
 private fun RoutingGroup.routePlayerSettings() {
     get("playerSettings") {
         val playerId = queryInt("id")
@@ -58,6 +83,11 @@ private fun RoutingGroup.routePlayerSettings() {
     }
 }
 
+/**
+ * routeUpdatePlayer Adds the routing for updating a player
+ * POST (/api/updatePlayer) this takes a player serial and
+ * updates the player in the database
+ */
 private fun RoutingGroup.routeUpdatePlayer() {
     post("updatePlayer") {
         val player = contentJson<PlayerSerial>()
