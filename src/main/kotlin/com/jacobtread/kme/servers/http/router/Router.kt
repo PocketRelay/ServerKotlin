@@ -42,9 +42,9 @@ class Router : SimpleChannelInboundHandler<NettyHttpRequest>(), RoutingGroup {
         // Pipeline order = Decode -> Aggregator -> Encode
         val channel = ctx.channel()
         channel.pipeline()
-            .addFirst(HttpResponseEncoder())
             .addFirst(HttpObjectAggregator(1024 * 8))
             .addFirst(HttpRequestDecoder())
+            .addLast(HttpResponseEncoder())
     }
 
     /**
