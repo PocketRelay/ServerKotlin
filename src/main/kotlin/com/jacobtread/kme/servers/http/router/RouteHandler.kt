@@ -13,6 +13,6 @@ sealed interface RouteHandler {
      * @param request The request to handle
      * @return The request response or null
      */
-    fun handle(start: Int, request: HttpRequest): RequestResponse?
+    fun handle(start: Int, request: HttpRequest): HttpResponse?
 
 }

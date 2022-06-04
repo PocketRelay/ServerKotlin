@@ -9,6 +9,16 @@ import io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR
 import io.netty.handler.codec.http.HttpRequest as NettyHttpRequest
 
+/**
+ * Router A netty channel inbound handler for handling the routing
+ * of HTTP requests to different specified routes
+ *
+ * Note: Marked as sharable so that the same router can be added to multiple
+ * channels to prevent the unnecessarily large amount of allocations that would
+ * occur from recreating the router for every single channel
+ *
+ * @constructor Create empty Router
+ */
 @Sharable
 class Router : SimpleChannelInboundHandler<NettyHttpRequest>(), RoutingGroup {
     /**
@@ -43,7 +53,7 @@ class Router : SimpleChannelInboundHandler<NettyHttpRequest>(), RoutingGroup {
      * @param request The request to handle
      * @return The response to the request
      */
-    private fun handleHttpRequest(request: HttpRequest): RequestResponse {
+    private fun handleHttpRequest(request: HttpRequest): HttpResponse {
         try {
             for (route in routes) {
                 return route.handle(0, request) ?: continue

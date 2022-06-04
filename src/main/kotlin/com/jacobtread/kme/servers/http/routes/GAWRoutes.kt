@@ -110,7 +110,7 @@ private fun RoutingGroup.routeIncreaseRatings() {
  * @param rating The player galaxy at war rating data
  * @return The created ratings response
  */
-private fun respondRatings(player: Player, rating: PlayerGalaxyAtWar): RequestResponse {
+private fun respondRatings(player: Player, rating: PlayerGalaxyAtWar): HttpResponse {
     val level = rating.average()
     val promotions = if (GlobalConfig.gaw.enablePromotions) player.getTotalPromotions() else 0
     @Suppress("SpellCheckingInspection")

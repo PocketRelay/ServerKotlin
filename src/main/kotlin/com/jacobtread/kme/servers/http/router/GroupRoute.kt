@@ -41,7 +41,7 @@ class GroupRoute(pattern: String) : Route(pattern), RoutingGroup {
      * @param request The request that is being made
      * @return The response on success or null
      */
-    override fun handle(start: Int, request: HttpRequest): RequestResponse? {
+    override fun handle(start: Int, request: HttpRequest): HttpResponse? {
         val tokenCount = tokenCount
         // Try and match the tokens of the request
         if (!matchRange(request, start, tokenCount)) return null

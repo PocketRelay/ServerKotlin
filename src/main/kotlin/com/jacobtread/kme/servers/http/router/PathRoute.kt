@@ -30,7 +30,7 @@ class PathRoute(
      * @param request The request that is being made
      * @return The response on success or null
      */
-    override fun handle(start: Int, request: HttpRequest): RequestResponse? {
+    override fun handle(start: Int, request: HttpRequest): HttpResponse? {
         // Check that the method is null or matching
         if (method != null && method != request.method) return null
         // Match the url with the catch-all inclusive matcher
