@@ -1,6 +1,5 @@
 package com.jacobtread.kme.servers
 
-import com.jacobtread.kme.Config
 import com.jacobtread.kme.GlobalConfig
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.utils.logging.Logger

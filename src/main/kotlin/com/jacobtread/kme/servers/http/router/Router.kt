@@ -5,6 +5,9 @@ import com.jacobtread.kme.utils.logging.Logger
 import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.SimpleChannelInboundHandler
+import io.netty.handler.codec.http.HttpObjectAggregator
+import io.netty.handler.codec.http.HttpRequestDecoder
+import io.netty.handler.codec.http.HttpResponseEncoder
 import io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR
 import io.netty.handler.codec.http.HttpRequest as NettyHttpRequest
@@ -26,6 +29,23 @@ class Router : SimpleChannelInboundHandler<NettyHttpRequest>(), RoutingGroup {
      * determining how to handle incoming http requests
      */
     override val routes = ArrayList<RouteHandler>()
+
+    /**
+     * handlerAdded When the router handler is added it also
+     * needs to add the HttpRequest decoder and HttpResponse
+     * encoder along with the HttpObjectAggregator to
+     * aggregate the decoded body contents
+     *
+     * @param ctx The channel handler context
+     */
+    override fun handlerAdded(ctx: ChannelHandlerContext) {
+        // Pipeline order = Decode -> Aggregator -> Encode
+        val channel = ctx.channel()
+        channel.pipeline()
+            .addFirst(HttpResponseEncoder())
+            .addFirst(HttpObjectAggregator(1024 * 8))
+            .addFirst(HttpRequestDecoder())
+    }
 
     /**
      * channelRead0 Handles reading the raw netty http requests

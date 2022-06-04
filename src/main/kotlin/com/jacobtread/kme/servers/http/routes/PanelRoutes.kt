@@ -1,5 +1,6 @@
 package com.jacobtread.kme.servers.http.routes
 
+import com.jacobtread.kme.GlobalConfig
 import com.jacobtread.kme.servers.http.router.RoutingGroup
 import com.jacobtread.kme.servers.http.router.group
 import com.jacobtread.kme.servers.http.router.responseStatic
@@ -10,6 +11,8 @@ import com.jacobtread.kme.servers.http.router.responseStatic
  * routing group which handles the static assets
  */
 fun RoutingGroup.routeGroupPanel() {
+    // Ignore this route group if the panel is disabled
+    if (!GlobalConfig.panel.enabled) return
     group("panel") {
         routeGroupApi() // Add api routing group
         routePanelFallback() // Add fallback routing
