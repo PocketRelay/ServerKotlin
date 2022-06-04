@@ -34,9 +34,9 @@ object Logger {
     private val loggingPath: Path = Paths.get("logs")
     private val logFile: Path = loggingPath.resolve("latest.log")
     private var file: RandomAccessFile? = null
-    private val outputBuffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE)
+    private var outputBuffer: ByteBuffer? = null
     private var logLevel: Level = Level.INFO
-    private var logToFile = true
+    private var logToFile = false
     var isLogPackets = false
         private set
 
@@ -55,6 +55,7 @@ object Logger {
         if (logToFile) {
             try {
                 archiveOld()
+                outputBuffer =  ByteBuffer.allocate(DEFAULT_BUFFER_SIZE)
                 file = createFile()
                 Runtime.getRuntime().addShutdownHook(Thread(this::close))
             } catch (e: IOException) {
@@ -108,11 +109,11 @@ object Logger {
     @Synchronized
     private fun flush() {
         if (!logToFile) return
-        outputBuffer.flip()
+        outputBuffer!!.flip()
         try {
             file!!.channel.write(outputBuffer)
         } finally {
-            outputBuffer.clear()
+            outputBuffer!!.clear()
         }
     }
 
@@ -199,13 +200,13 @@ object Logger {
     private fun write(text: String) {
         if (!logToFile) return
         val bytes = text.toByteArray()
-        if (bytes.size > outputBuffer.remaining()) {
+        if (bytes.size > outputBuffer!!.remaining()) {
             synchronized(file!!) {
                 flush()
                 file!!.write(bytes)
             }
         } else {
-            outputBuffer.put(bytes)
+            outputBuffer!!.put(bytes)
         }
     }
 
