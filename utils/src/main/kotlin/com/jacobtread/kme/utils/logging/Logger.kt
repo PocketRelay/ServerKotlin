@@ -26,7 +26,6 @@ object Logger {
         val packets: Boolean = false,
     )
 
-    private const val COLOR_REST = "\u001B[0m"
     private const val DEFAULT_BUFFER_SIZE = 4024
 
 
@@ -127,14 +126,14 @@ object Logger {
     private fun append(level: Level, message: String, vararg args: Any?) {
         if (level.index > logLevel.index) return
         val time = printDateFormat.format(Date())
-        val threadName = Thread.currentThread().name
         val hasArgs = args.isNotEmpty()
         if (!hasArgs || args[0] is Throwable) {
             val text = "[$time] [${level.levelName}] $message\n"
+            val coloredText = "[$time] ${level.coloredText()} $message\n"
             if (level.index < 3) {
-                System.err.print(text)
+                System.err.print(coloredText)
             } else {
-                print(text)
+                print(coloredText)
             }
             write(text)
             if (hasArgs) {
@@ -176,11 +175,12 @@ object Logger {
             if (last < message.length) {
                 builder.append(message.substring(last))
             }
-            val text = "[$time] [$threadName/${level.levelName}] $builder\n"
+            val text = "[$time] [${level.levelName}] $builder\n"
+            val coloredText = "[$time] ${level.coloredText()} $builder\n"
             if (level.index < 3) {
-                System.err.print("${level.colorCode}$text$COLOR_REST")
+                System.err.print(coloredText)
             } else {
-                print("${level.colorCode}$text$COLOR_REST")
+                print(coloredText)
             }
             write(text)
             exceptions?.forEach {
