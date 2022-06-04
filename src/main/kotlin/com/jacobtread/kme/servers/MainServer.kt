@@ -67,6 +67,7 @@ import com.jacobtread.kme.utils.logging.Logger.info
 import com.jacobtread.kme.utils.unixTimeSeconds
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
+import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInitializer
 import io.netty.channel.SimpleChannelInboundHandler
@@ -105,6 +106,7 @@ fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
  *
  * @constructor Create empty MainClientInitializer
  */
+@Sharable
 class MainInitializer : ChannelInitializer<Channel>() {
     override fun initChannel(ch: Channel) {
         val remoteAddress = ch.remoteAddress() // The remote address of the user

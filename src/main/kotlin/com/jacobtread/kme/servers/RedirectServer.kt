@@ -2,10 +2,10 @@ package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.blaze.*
+import com.jacobtread.kme.utils.IPAddress
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.logging.Logger.error
 import com.jacobtread.kme.utils.logging.Logger.info
-import com.jacobtread.kme.utils.lookupServerAddress
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandler.Sharable
@@ -86,11 +86,12 @@ class RedirectorHandler() : ChannelInitializer<Channel>(), FutureListener<Void> 
             val packet = msg.respond {
                 if (msg.component == Components.REDIRECTOR && msg.command == Commands.GET_SERVER_INSTANCE) {
                     optional("ADDR", group("VALU") {
-                        if (targetAddress.isHostname) {
-                            text("HOST", targetAddress.host)
+                        if (target.isHostname) {
+                            text("HOST", target.host)
+                        } else {
+                            number("IP", target.address)
                         }
-                        number("IP", targetAddress.address)
-                        number("PORT", targetPort)
+                        number("PORT", target.port)
                     })
                     bool("SECU", false)
                     bool("XDNS", false)
@@ -103,8 +104,7 @@ class RedirectorHandler() : ChannelInitializer<Channel>(), FutureListener<Void> 
         }
     }
 
-    private val targetAddress = lookupServerAddress(Environment.Config.externalAddress)
-    private val targetPort = Environment.Config.ports.main
+    private val target = getRedirectTarget()
     private val context = createSslContext()
     private val processor = PacketProcessor()
 
@@ -161,8 +161,52 @@ class RedirectorHandler() : ChannelInitializer<Channel>(), FutureListener<Void> 
     override fun operationComplete(future: Future<Void>) {
         val listenPort = Environment.Config.ports.redirector
         info("Started Redirector on port $listenPort redirecting to:")
-        info("Host: ${targetAddress.host}")
-        info("IP: ${targetAddress.ip}")
-        info("Port: $targetPort")
+        if (target.isHostname) {
+            info("Host: ${target.host}")
+        } else {
+            info("Address: ${target.address}")
+        }
+        info("Port: ${target.port}")
+    }
+
+    /**
+     * RedirectTarget Represents the target at which the redirector
+     * should redirect clients to
+     *
+     * @property host The hostname to redirect to (this will be the ip in the case of non host redirects)
+     * @property address The encoded IP address for ip redirects or zero if it's a hostname
+     * @property port The port to redirect to
+     * @property isHostname Whether to use hostname redirection
+     * @constructor Create empty RedirectTarget
+     */
+    data class RedirectTarget(
+        val host: String,
+        val address: Long,
+        val port: Int,
+        val isHostname: Boolean,
+    )
+
+    /**
+     * getRedirectTarget Creates a redirect target based on the
+     * external address provided via the config.
+     *
+     * @return The created redirect target
+     */
+    private fun getRedirectTarget(): RedirectTarget {
+        val config = Environment.Config
+        val externalAddress = config.externalAddress
+        val targetPort = config.ports.main
+        // Regex pattern for matching IPv4 addresses
+        val ipv4Regex = Regex("^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)(\\.(?!\$)|\$)){4}\$")
+        return if (externalAddress.matches(ipv4Regex)) {
+            RedirectTarget(
+                externalAddress,
+                IPAddress.asLong(externalAddress),
+                targetPort,
+                false
+            )
+        } else {
+            RedirectTarget(externalAddress, 0, targetPort, true)
+        }
     }
 }
