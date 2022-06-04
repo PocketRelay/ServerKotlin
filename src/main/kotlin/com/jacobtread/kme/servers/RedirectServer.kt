@@ -11,7 +11,6 @@ import io.netty.channel.Channel
 import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
-import io.netty.channel.ChannelInitializer
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.ssl.SslContext
@@ -58,73 +57,62 @@ fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
  * @param config The server configuration
  */
 @Sharable
-class RedirectorHandler() : ChannelInitializer<Channel>(), FutureListener<Void> {
+class RedirectorHandler() : ChannelInboundHandlerAdapter(), FutureListener<Void> {
 
     /**
-     * PacketProcessor Processes any packets sent to the redirect server
-     * only properly responds to REDIRECTOR / GET_SERVER_INSTANCE packets
-     * all other packets get empty responses
+     * handlerAdded Handles initialization of the channel when the
+     * handler is added to it. Adds the SSL handler along with the
+     * packet encoder and decoder
      *
-     * @constructor Create empty PacketProcessor
+     * @param ctx
      */
-    @Sharable
-    inner class PacketProcessor : ChannelInboundHandlerAdapter() {
-        /**
-         * channelRead Handles interacting with the result of a read if the
-         * read value is a packet then it is handled and if it's a GET_SERVER_INSTANCE
-         * REDIRECTOR packet it is responded to with the redirect details
-         *
-         * @param ctx The channel context
-         * @param msg The message that was read
-         */
-        override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-            if (msg !is Packet) {
-                ctx.fireChannelRead(msg)
-                return
-            }
-            val channel = ctx.channel()
-            val packet = msg.respond {
-                if (msg.component == Components.REDIRECTOR && msg.command == Commands.GET_SERVER_INSTANCE) {
-                    optional("ADDR", group("VALU") {
-                        if (target.isHostname) {
-                            text("HOST", target.host)
-                        } else {
-                            number("IP", target.address)
-                        }
-                        number("PORT", target.port)
-                    })
-                    bool("SECU", false)
-                    bool("XDNS", false)
-                    val remoteAddress = channel.remoteAddress()
-                    info("Sent redirection to client at $remoteAddress. Closing Connection.")
-                }
-            }
-            channel.writeAndFlush(packet)
-            channel.close()
+    override fun handlerAdded(ctx: ChannelHandlerContext) {
+        val channel = ctx.channel()
+        channel.pipeline()
+            // Add handler for decoding packets
+            .addFirst(PacketDecoder())
+            // Add handler for decoding SSLv3
+            .addFirst(context.newHandler(channel.alloc()))
+            // Add handler for encoding packets
+            .addLast(PacketEncoder())
+    }
+
+    /**
+     * channelRead Handles interacting with the result of a read if the
+     * read value is a packet then it is handled and if it's a GET_SERVER_INSTANCE
+     * REDIRECTOR packet it is responded to with the redirect details
+     *
+     * @param ctx The channel context
+     * @param msg The message that was read
+     */
+    override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
+        if (msg !is Packet) {
+            ctx.fireChannelRead(msg)
+            return
         }
+        val channel = ctx.channel()
+        val packet = msg.respond {
+            if (msg.component == Components.REDIRECTOR && msg.command == Commands.GET_SERVER_INSTANCE) {
+                optional("ADDR", group("VALU") {
+                    if (target.isHostname) {
+                        text("HOST", target.host)
+                    } else {
+                        number("IP", target.address)
+                    }
+                    number("PORT", target.port)
+                })
+                bool("SECU", false)
+                bool("XDNS", false)
+                val remoteAddress = channel.remoteAddress()
+                info("Sent redirection to client at $remoteAddress. Closing Connection.")
+            }
+        }
+        channel.writeAndFlush(packet)
+        channel.close()
     }
 
     private val target = getRedirectTarget()
     private val context = createSslContext()
-    private val processor = PacketProcessor()
-
-
-    /**
-     * initChannel Handles channel initialization this adds the
-     * encoders and decoders for both SSL and packets
-     *
-     * @param ch The channel to initialize
-     */
-    override fun initChannel(ch: Channel) {
-        ch.pipeline()
-            // Add handler for decoding SSLv3
-            .addLast(context.newHandler(ch.alloc()))
-            // Add handler for decoding packets
-            .addLast(PacketDecoder())
-            .addLast(processor)
-            // Add handler for encoding packets
-            .addLast(PacketEncoder())
-    }
 
     /**
      * createSslContext Creates an SSLv3 capable context for the
