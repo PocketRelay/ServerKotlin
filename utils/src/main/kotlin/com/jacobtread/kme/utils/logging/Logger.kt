@@ -2,18 +2,10 @@ package com.jacobtread.kme.utils.logging
 
 import kotlinx.serialization.Serializable
 import net.mamoe.yamlkt.Comment
-import java.io.IOException
 import java.io.PrintWriter
-import java.io.RandomAccessFile
 import java.io.StringWriter
-import java.nio.ByteBuffer
-import java.nio.file.Path
-import java.nio.file.Paths
-import java.nio.file.StandardOpenOption
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.zip.GZIPOutputStream
-import kotlin.io.path.*
 import kotlin.system.exitProcess
 
 object Logger {
@@ -29,10 +21,7 @@ object Logger {
     )
 
     private val printDateFormat = SimpleDateFormat("HH:mm:ss")
-    private val loggingPath: Path = Paths.get("logs")
-    private val logFile: Path = loggingPath.resolve("latest.log")
-    private var file: RandomAccessFile? = null
-    private var outputBuffer: ByteBuffer? = null
+    private var writer: LogWriter? = null
     private var logLevel: Level = Level.INFO
     private var logToFile = false
     var isLogPackets = false
@@ -44,22 +33,16 @@ object Logger {
      *
      * @return
      */
-    val isDebugEnabled: Boolean get() = logLevel == Level.DEBUG
+    var isDebugEnabled: Boolean = false
+        private set
 
     fun init(config: Config) {
         logLevel = config.level
+        isDebugEnabled = logLevel == Level.DEBUG
         logToFile = config.save
         isLogPackets = config.packets
         if (logToFile) {
-            try {
-                archiveOld()
-                outputBuffer = ByteBuffer.allocate(4024)
-                file = createFile()
-                Runtime.getRuntime().addShutdownHook(Thread(this::close))
-            } catch (e: IOException) {
-                System.err.println("Failed to open RandomAccessFile to the logging path")
-                throw e
-            }
+            writer = LogWriter()
         }
     }
 
@@ -75,10 +58,12 @@ object Logger {
         append(Level.FATAL, text)
         exitProcess(1)
     }
+
     fun fatal(text: String, throwable: Throwable): Nothing {
         appendThrowable(Level.FATAL, text, throwable)
         exitProcess(1)
     }
+
     fun fatal(text: String, vararg values: Any?): Nothing {
         appendVarargs(Level.FATAL, text, values)
         exitProcess(1)
@@ -100,43 +85,11 @@ object Logger {
     fun log(level: Level, text: String, throwable: Throwable) = appendThrowable(level, text, throwable)
     fun log(level: Level, text: String, vararg values: Any?) = appendVarargs(level, text, values)
 
-
     /**
-     * close Called when the application is closing. Flushes
-     * the contents of the buffer and closes the [file]
-     */
-    @Synchronized
-    private fun close() {
-        if (!logToFile) return
-        try {
-            flush()
-            file!!.close()
-        } catch (e: Exception) {
-            println("Failed to save log")
-            e.printStackTrace()
-        }
-    }
-
-    /**
-     * flush Flushes the contents of the [outputBuffer] to
-     * the file and clears the buffer
-     */
-    @Synchronized
-    private fun flush() {
-        if (!logToFile) return
-        outputBuffer!!.flip()
-        try {
-            file!!.channel.write(outputBuffer)
-        } finally {
-            outputBuffer!!.clear()
-        }
-    }
-
-    /**
-     * append
+     * append Appends a simple message to the log.
      *
-     * @param level
-     * @param message
+     * @param level The level of logging for this log
+     * @param message The message for this log
      */
     private fun append(level: Level, message: String) {
         if (level.index > logLevel.index) return
@@ -145,10 +98,19 @@ object Logger {
         val stream = if (level.index < 3) System.err else System.out
         stream.print(text)
         if (logToFile) {
-            write("[$time] [${level.levelName}] $message\n")
+            writer?.write("[$time] [${level.levelName}] $message\n")
         }
     }
 
+    /**
+     * appendThrowable Appends a log that has a thrown exception
+     * attached to it. This exception will be printed and written
+     * to the log file if file logging is enabled
+     *
+     * @param level The level of logging for this log
+     * @param message The base message to log
+     * @param throwable The throwable exception
+     */
     private fun appendThrowable(level: Level, message: String, throwable: Throwable) {
         if (level.index > logLevel.index) return
         append(level, message)
@@ -159,10 +121,19 @@ object Logger {
             throwable.printStackTrace(pw)
             pw.println()
             pw.flush()
-            write(sw.toString())
+            writer?.write(sw.toString())
         }
     }
 
+    /**
+     * appendVarargs Appends a log that uses vararg arguments. This does replacements
+     * of {} variables using the provided args as well as providing a stack trace for
+     * all the exceptions that were provided
+     *
+     * @param level The log level
+     * @param message The base message to log
+     * @param args The provided arguments
+     */
     private fun appendVarargs(level: Level, message: String, args: Array<out Any?>) {
         if (level.index > logLevel.index) return
         val time = printDateFormat.format(Date())
@@ -199,7 +170,7 @@ object Logger {
         val stream = if (level.index < 3) System.err else System.out
         stream.print(text)
         if (logToFile) {
-            write("[$time] [${level.levelName}] $builder\n")
+            writer?.write("[$time] [${level.levelName}] $builder\n")
             val exSW = StringWriter()
             val exPW = PrintWriter(exSW)
             exceptions?.forEach {
@@ -208,76 +179,9 @@ object Logger {
                 exPW.println()
             }
             exPW.flush()
-            write(exSW.toString())
+            writer?.write(exSW.toString())
         } else {
             exceptions?.forEach { it.printStackTrace() }
-        }
-    }
-
-    /**
-     * write Writes the provided text to the [outputBuffer]
-     * but if it cannot fit the output buffer will be flushed
-     * to the [file] along with the bytes
-     *
-     * @param text The text to write to the log
-     */
-    private fun write(text: String) {
-        if (!logToFile) return
-        val bytes = text.toByteArray()
-        if (bytes.size > outputBuffer!!.remaining()) {
-            synchronized(file!!) {
-                flush()
-                file!!.write(bytes)
-            }
-        } else {
-            outputBuffer!!.put(bytes)
-        }
-    }
-
-
-    /**
-     * createFile Creates a new logging file and
-     * opens a random access file to that path
-     */
-    @Synchronized
-    private fun createFile(): RandomAccessFile {
-        val parent = logFile.parent
-        if (!parent.exists()) parent.createDirectories()
-        if (!logFile.exists()) logFile.createFile()
-        val randomAccess = RandomAccessFile(logFile.toFile(), "rw")
-        val length = randomAccess.length()
-        randomAccess.seek(length)
-        return randomAccess
-    }
-
-    /**
-     * archiveOld Archives any existing latest.log files as
-     * logs/{yyyy-MM-dd}-{i}.log.gz this is stored using the
-     * gzip file format.
-     */
-    @Synchronized
-    private fun archiveOld() {
-        if (logFile.isRegularFile()) {
-            val lastModified = logFile.getLastModifiedTime().toMillis()
-            val dateFormat = SimpleDateFormat("yyyy-MM-dd")
-            val date = dateFormat.format(Date(lastModified))
-            var file: Path? = null
-            var i = 1
-            while (file == null) {
-                val path = loggingPath.resolve("$date-$i.log.gz")
-                if (path.exists()) {
-                    i++
-                    continue
-                }
-                file = path
-            }
-
-            val inputStream = logFile.inputStream()
-            val outputStream = GZIPOutputStream(file.outputStream(StandardOpenOption.CREATE).buffered())
-            inputStream.copyTo(outputStream)
-            inputStream.close()
-            outputStream.close()
-            logFile.deleteExisting()
         }
     }
 
