@@ -28,14 +28,14 @@ import java.io.IOException
  * @constructor Create empty HttpInitializer
  */
 @Sharable
-object HttpServer : ChannelInitializer<Channel>(), FutureListener<Void> {
+object HttpServer : ChannelInitializer<Channel>(){
 
     /**
      * start Starts an HTTP server which uses this object as its
      * handler and startup complete listener
      *
-     * @param bossGroup The netty boss group
-     * @param workerGroup The netty worker group
+     * @param bossGroup The netty boss event loop group
+     * @param workerGroup The netty worker event loop group
      */
     fun start(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
         try {
@@ -44,7 +44,7 @@ object HttpServer : ChannelInitializer<Channel>(), FutureListener<Void> {
                 .channel(NioServerSocketChannel::class.java)
                 .childHandler(this)
                 .bind(GlobalConfig.ports.http)
-                .addListener(this)
+                .addListener { Logger.info("Started HTTP Server on port ${GlobalConfig.ports.http}") }
         } catch (e: IOException) {
             Logger.error("Exception in HTTP server", e)
         }
@@ -73,15 +73,5 @@ object HttpServer : ChannelInitializer<Channel>(), FutureListener<Void> {
             .addLast(HttpResponseEncoder())
             .addLast(HttpObjectAggregator(1024 * 8))
             .addLast(router)
-    }
-
-    /**
-     * operationComplete For listening to the future of the
-     * http server bind completion
-     *
-     * @param future Ignored
-     */
-    override fun operationComplete(future: Future<Void>) {
-        Logger.info("Started HTTP Server on port ${GlobalConfig.ports.http}")
     }
 }

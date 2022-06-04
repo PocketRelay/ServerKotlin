@@ -81,8 +81,8 @@ import java.time.LocalDate
 /**
  * startMainServer Starts the main server
  *
- * @param bossGroup The boss event loop group to use
- * @param workerGroup The worker event loop group to use
+ * @param bossGroup The netty boss event loop group
+ * @param workerGroup The netty worker event loop group
  */
 fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
     try {

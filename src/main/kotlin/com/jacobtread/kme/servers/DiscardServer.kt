@@ -3,51 +3,45 @@ package com.jacobtread.kme.servers
 import com.jacobtread.kme.GlobalConfig
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.bootstrap.ServerBootstrap
-import io.netty.buffer.ByteBuf
-import io.netty.channel.Channel
+import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
-import io.netty.channel.ChannelInitializer
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
+import io.netty.util.concurrent.Future
+import io.netty.util.concurrent.FutureListener
 import java.io.IOException
 
-/**
- * startDiscardServer Simple discard server. Reads all the input bytes
- * and throws away the contents
- */
-fun startDiscardServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
-    try {
-        val port = GlobalConfig.ports.discard
-        ServerBootstrap()
-            .group(bossGroup, workerGroup)
-            .channel(NioServerSocketChannel::class.java)
-            .childHandler(object : ChannelInitializer<Channel>() {
-                override fun initChannel(ch: Channel) {
-                    ch.pipeline()
-                        .addLast(object : ChannelInboundHandlerAdapter() {
-                            override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-                                if (msg is ByteBuf) {
-                                    val readable = msg.readableBytes()
-                                    if (readable > 0) {
-                                        val out = ByteArray(readable)
-                                        msg.readBytes(out)
-                                        ctx.flush()
-                                        if (Logger.isDebugEnabled) {
-                                            Logger.debug(out.contentToString())
-                                        }
-                                    }
-                                }
-                            }
-                        })
-                }
-            })
-            .bind(port)
-            .addListener {
-                Logger.info("Started discard server on port $port")
-            }
+@Sharable
+object DiscardServer : ChannelInboundHandlerAdapter() {
 
-    } catch (e: IOException) {
-        Logger.error("Exception in discard server", e)
+    /**
+     * start Starts the discard server this is used for
+     * discarding telemetry and ticker data from the client
+     *
+     * @param bossGroup The netty boss event loop group
+     * @param workerGroup The netty worker event loop group
+     */
+    fun start(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
+        try {
+            ServerBootstrap()
+                .group(bossGroup, workerGroup)
+                .channel(NioServerSocketChannel::class.java)
+                .childHandler(this)
+                .bind(GlobalConfig.ports.discard)
+                .addListener { Logger.info("Started Discard Server on port ${GlobalConfig.ports.discard}") }
+        } catch (e: IOException) {
+            Logger.error("Exception when starting discard server", e)
+        }
     }
+
+    /**
+     * channelRead Ignores anything sent to the discard server but
+     * overrides this function to prevent it from being passed down
+     * the pipeline
+     *
+     * @param ctx The channel handler context for this channel
+     * @param msg The received message
+     */
+    override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {}
 }

@@ -26,6 +26,12 @@ import java.security.KeyStore
 import java.security.Security
 import javax.net.ssl.KeyManagerFactory
 
+/**
+ * startRedirector
+ *
+ * @param bossGroup The netty boss event loop group
+ * @param workerGroup The netty worker event loop group
+ */
 fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
     try {
         val listenPort = GlobalConfig.ports.redirector
