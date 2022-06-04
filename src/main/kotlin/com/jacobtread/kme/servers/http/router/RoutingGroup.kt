@@ -4,18 +4,18 @@ import io.netty.handler.codec.http.HttpMethod
 
 interface RoutingGroup {
 
-    val routes: MutableList<RouteHandler>
+    val routes: ArrayList<RouteHandler>
 
-    fun addPath(pattern: String, method: HttpMethod?, handler: RequestHandler) {
+    fun route(pattern: String, method: HttpMethod?, handler: RequestHandler) {
         routes.add(PathRoute(pattern, method, handler))
     }
 
-    fun route(pattern: String, handler: RequestHandler) = addPath(pattern, null, handler)
-    fun get(pattern: String, handler: RequestHandler) = addPath(pattern, HttpMethod.GET, handler)
-    fun post(pattern: String, handler: RequestHandler) = addPath(pattern, HttpMethod.POST, handler)
-    fun put(pattern: String, handler: RequestHandler) = addPath(pattern, HttpMethod.PUT, handler)
-    fun delete(pattern: String, handler: RequestHandler) = addPath(pattern, HttpMethod.DELETE, handler)
-    fun everything(handler: RequestHandler) = addPath(":*", null, handler)
+    fun route(pattern: String, handler: RequestHandler) = route(pattern, null, handler)
+    fun get(pattern: String, handler: RequestHandler) = route(pattern, HttpMethod.GET, handler)
+    fun post(pattern: String, handler: RequestHandler) = route(pattern, HttpMethod.POST, handler)
+    fun put(pattern: String, handler: RequestHandler) = route(pattern, HttpMethod.PUT, handler)
+    fun delete(pattern: String, handler: RequestHandler) = route(pattern, HttpMethod.DELETE, handler)
+    fun everything(handler: RequestHandler) = route(":*", null, handler)
 }
 
 

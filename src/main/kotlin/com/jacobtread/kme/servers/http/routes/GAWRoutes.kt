@@ -64,7 +64,6 @@ private fun RoutingGroup.routeAuthentication() {
     }
 }
 
-
 /**
  * routeRatings Adds the route which handles Galaxy at war ratings
  * for the players with the provided player ID

@@ -61,16 +61,16 @@ abstract class Route(pattern: String) : RouteHandler {
     }
 
     /**
-     * matchCatchall Matches for patterns where the last token is a
+     * matchWithCatchall Matches for patterns where the last token is a
      * catch-all parameter and consumes the catchall tokens from the
      * request returning true if a catch-all was captured otherwise
-     * return false if it wasn't able to capture one
+     * attempts to match the entire url instead using matchRange
      *
      * @param start The index of the request tokens to match from
      * @param request The request to match
      * @return Whether the tokens were matches as a catch-all
      */
-    fun matchCatchall(start: Int, request: HttpRequest): Boolean {
+    fun matchWithCatchall(start: Int, request: HttpRequest): Boolean {
         val requestTokens = request.tokens
         val tokenCount = patternTokens.size
         if (tokenCount > 0 && patternTokens.last() == ":*") {
@@ -90,7 +90,8 @@ abstract class Route(pattern: String) : RouteHandler {
             request.setParam("*", builder.toString())
             return true
         } else {
-            return false
+            // Try and match all the tokens
+            return matchRange(request, start, tokenCount)
         }
     }
 }
