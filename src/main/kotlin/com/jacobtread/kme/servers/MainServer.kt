@@ -56,9 +56,10 @@ import com.jacobtread.kme.database.Message
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.exceptions.NotAuthenticatedException
 import com.jacobtread.kme.game.GameManager
-import com.jacobtread.kme.game.Matchmaking
+import com.jacobtread.kme.game.match.Matchmaking
 import com.jacobtread.kme.game.PlayerSession
 import com.jacobtread.kme.game.PlayerSession.NetData
+import com.jacobtread.kme.game.match.MatchRuleSet
 import com.jacobtread.kme.utils.IPAddress
 import com.jacobtread.kme.utils.comparePasswordHash
 import com.jacobtread.kme.utils.hashPassword
@@ -551,7 +552,7 @@ private class MainHandler(
         val player = session.player
         info("Player ${player.displayName} started match making")
 
-        val ruleSet = Matchmaking.RuleSet.extract(packet)
+        val ruleSet = MatchRuleSet(packet)
         val game = Matchmaking.getMatchOrQueue(session, ruleSet) ?: return +packet.respond()
         info("Found matching game for player ${player.displayName}")
         game.join(session)

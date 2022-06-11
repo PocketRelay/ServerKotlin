@@ -48,7 +48,6 @@ class Game(
         sendHostPlayerJoin(player)
     }
 
-    @Suppress("SpellCheckingInspection")
     private fun sendHostPlayerJoin(session: PlayerSession) {
         val player = session.player
         val sessionDetails = session.createSessionDetails()
@@ -119,7 +118,6 @@ class Game(
         }
     }
 
-    @Suppress("SpellCheckingInspection")
     fun createNotifyPacket(): Packet =
         unique(
             Components.GAME_MANAGER,
@@ -129,7 +127,6 @@ class Game(
             number("GID", id)
         }
 
-    @Suppress("SpellCheckingInspection")
     fun createPoolPacket(init: Boolean): Packet =
         unique(
             Components.GAME_MANAGER,

@@ -6,6 +6,7 @@ import com.jacobtread.kme.blaze.tdf.OptionalTdf
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.exceptions.NotAuthenticatedException
+import com.jacobtread.kme.game.match.Matchmaking
 import com.jacobtread.kme.utils.VarTripple
 import com.jacobtread.kme.utils.unixTimeSeconds
 import io.netty.channel.Channel
@@ -145,7 +146,6 @@ class PlayerSession {
      *
      * @return A USER_SESSIONS SET_SESSION packet
      */
-    @Suppress("SpellCheckingInspection")
     fun createSetSession(): Packet = unique(Components.USER_SESSIONS, Commands.SET_SESSION) {
         +createSessionDataGroup(0x2e, listOf(0xfff0fff, 0xfff0fff, 0xfff0fff))
         number("USID", if (_player != null) playerId else sessionId)
@@ -157,7 +157,6 @@ class PlayerSession {
      *
      * @return The packet which updates the client ID
      */
-    @Suppress("SpellCheckingInspection")
     fun createIdentityUpdate(): Packet =
         unique(
             Components.USER_SESSIONS,
@@ -176,7 +175,6 @@ class PlayerSession {
      * @param pslm Unknown But Nessicary
      * @return The created group
      */
-    @Suppress("SpellCheckingInspection")
     private fun createSessionDataGroup(dmapValue: Int, pslm: List<Long>?): GroupTdf {
         return group("DATA") {
             +createAddrOptional("ADDR")
@@ -206,7 +204,6 @@ class PlayerSession {
      *
      * @return A USER_SESSIONS SESSION_DETAILS packet describing this session
      */
-    @Suppress("SpellCheckingInspection")
     fun createSessionDetails(): Packet {
         val player = player
         val game = game
@@ -239,7 +236,6 @@ class PlayerSession {
      * @param label The label to give the union
      * @return The created union
      */
-    @Suppress("SpellCheckingInspection")
     fun createAddrOptional(label: String): OptionalTdf =
         OptionalTdf(label, 0x02, group("VALU") {
             +group("EXIP") { // External IP?
@@ -259,7 +255,6 @@ class PlayerSession {
      *
      * @return The persona list
      */
-    @Suppress("SpellCheckingInspection")
     fun createPersonaList(): GroupTdf {
         val player = player
         return group("PDTL" /* Persona Details? */) {
@@ -279,7 +274,6 @@ class PlayerSession {
      *
      * @param builder The builder to append to
      */
-    @Suppress("SpellCheckingInspection")
     fun appendPlayerSession(builder: TdfBuilder) {
         val player = player
         builder.apply {

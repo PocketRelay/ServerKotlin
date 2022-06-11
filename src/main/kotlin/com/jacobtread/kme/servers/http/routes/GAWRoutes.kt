@@ -33,7 +33,6 @@ private fun RoutingGroup.routeAuthentication() {
         val player = Player.getById(playerId) ?: return@get response(BAD_REQUEST)
         Logger.debug("Authenticated GAW User ${player.displayName}")
         val time = unixTimeSeconds()
-        @Suppress("SpellCheckingInspection")
         responseXml("fulllogin") {
             element("canageup", 0)
             element("legaldochost")
@@ -113,7 +112,6 @@ private fun RoutingGroup.routeIncreaseRatings() {
 private fun respondRatings(player: Player, rating: PlayerGalaxyAtWar): HttpResponse {
     val level = rating.average()
     val promotions = if (Environment.Config.gaw.enablePromotions) player.getTotalPromotions() else 0
-    @Suppress("SpellCheckingInspection")
     return responseXml("galaxyatwargetratings") {
         element("ratings") {
             element("ratings", rating.a)

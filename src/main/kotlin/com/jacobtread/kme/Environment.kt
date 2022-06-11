@@ -259,5 +259,4 @@ object Environment {
     private fun Map<String, String>.bool(key: String, default: Boolean): Boolean = get(key)?.toBooleanStrictOrNull() ?: default
     private fun Map<String, String>.int(key: String, default: Int): Int = get(key)?.toIntOrNull() ?: default
     private fun Map<String, String>.float(key: String, default: Float): Float = get(key)?.toFloatOrNull() ?: default
-
 }
