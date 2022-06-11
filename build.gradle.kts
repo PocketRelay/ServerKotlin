@@ -38,10 +38,9 @@ allprojects {
 
 val exposedVersion: String by project
 
-@Suppress("SpellCheckingInspection")
 dependencies {
     // JSON Serialization for the web
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
 
     // Local disk dependencies
     implementation(fileTree("libs") { include("*.jar") })

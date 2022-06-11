@@ -128,7 +128,6 @@ class MainInitializer : ChannelInitializer<Channel>() {
  * @property session The session data for this user
  * @constructor Create empty MainClient
  */
-@Suppress("SpellCheckingInspection")
 private class MainHandler(
     private val session: PlayerSession,
 ) : SimpleChannelInboundHandler<Packet>() {
