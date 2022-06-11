@@ -466,7 +466,7 @@ private class MainHandler(
         +packet.respond { number("GID", game.id) }
         +game.createPoolPacket(true) // Send the game pool details
         +session.createSetSession() // Send the user session
-        Matchmaking.onNewGameCreated(game)
+        Matchmaking.onGameCreated(game)
     }
 
     /**
