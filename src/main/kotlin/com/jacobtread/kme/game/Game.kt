@@ -9,7 +9,7 @@ import kotlin.concurrent.write
 class Game(
     val id: Long,
     val mid: Long,
-    val host: PlayerSession,
+    var host: PlayerSession,
 ) {
 
     companion object {
@@ -81,14 +81,6 @@ class Game(
     }
 
     fun removePlayer(playerId: Int) {
-        if (playerId == host.playerId) {
-            if (players.size < 1) {
-                GameManager.releaseGame(this)
-                isActive = false
-                players.clear()
-                return
-            }
-        }
         playersLock.read {
             val index = players.indexOfFirst { it.playerId == playerId }
             if (index != -1) {
@@ -99,14 +91,37 @@ class Game(
                     players.removeAt(index)
                 }
             }
-        }
-
-        playersLock.read {
+            if (playerId == host.playerId) {
+                if (players.isEmpty()) {
+                    return stop()
+                } else {
+                    val first = players.firstOrNull()
+                    if (first != null) {
+                        host = first
+                    } else {
+                        return stop()
+                    }
+                }
+            }
             val hostPacket = unique(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", host.playerId) }
             players.forEach {
-                val userPacket = unique(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", it.playerId) }
-                it.send(hostPacket)
-                host.send(userPacket)
+                if (it != host) {
+                    val userPacket = unique(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", it.playerId) }
+                    it.send(hostPacket)
+                    host.send(userPacket)
+                }
+            }
+        }
+    }
+
+    private fun stop() {
+        GameManager.releaseGame(this)
+        isActive = false
+        playersLock.write {
+            players.removeIf {
+                it.game = null
+                it.matchmaking = false
+                true
             }
         }
     }
