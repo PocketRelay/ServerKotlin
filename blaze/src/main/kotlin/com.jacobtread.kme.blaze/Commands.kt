@@ -1,5 +1,6 @@
 package com.jacobtread.kme.blaze
 
+@Suppress("unused")
 object Commands {
     //region AUTHENTICATION
 
@@ -439,6 +440,6 @@ object Commands {
         }
     }
 
-    fun hasName(component: Int, command: Int): Boolean =NAME_LOOKUP.containsKey((component shl 16) + command)
+    fun hasName(component: Int, command: Int): Boolean = NAME_LOOKUP.containsKey((component shl 16) + command)
 
 }

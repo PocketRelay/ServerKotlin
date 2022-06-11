@@ -1,5 +1,6 @@
 package com.jacobtread.kme.blaze
 
+@Suppress("unused", "MemberVisibilityCanBePrivate")
 object Components {
     const val AUTHENTICATION = 0x1
     const val EXAMPLE = 0x3

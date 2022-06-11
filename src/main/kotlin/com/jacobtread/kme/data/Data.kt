@@ -224,6 +224,14 @@ object Data {
         ))
     }
 
+    /**
+     * createDataConfig Creates a "data" configuration this contains information
+     * such as the image hosting url and the galaxy at war http server host. This
+     * is generated based on the environment config. There is also other configurations
+     * here however I haven't made use of/documented the rest of these
+     *
+     * @return The map of the data configuration
+     */
     fun createDataConfig(): Map<String, String> {
         val config = Environment.Config
         val address = config.externalAddress
