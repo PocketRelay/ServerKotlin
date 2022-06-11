@@ -287,6 +287,20 @@ class PlayerSession {
         }
     }
 
+    /**
+     * equals Equals checking only checks that the unique
+     * session ID matches the other player session
+     *
+     * @param other The other object to check
+     * @return Whether both sessions are equal
+     */
     override fun equals(other: Any?): Boolean = other is PlayerSession && sessionId == other.sessionId
+
+    /**
+     * hashCode Uniqiue hash code for this object this
+     * uses the player session ID as the hash code
+     *
+     * @return The hash code
+     */
     override fun hashCode(): Int = sessionId.hashCode()
 }
