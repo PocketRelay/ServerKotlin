@@ -206,22 +206,18 @@ class Game(
             }
 
             val pros = players.mapIndexed { index, playerSession ->
-                val tmppl = when (index) {
-                    0 -> host
-                    else -> if ((index - 1) < players.size) players[index - 1] else playerSession
-                }
                 val player = playerSession.player
                 group {
                     blob("BLOB")
                     number("EXID", 0x0)
-                    number("GID", this@Game.id)
-                    number("LOC", 0x64654445)
-                    text("NAME", player.displayName)
-                    number("PID", player.playerId)
-                    +host.createAddrOptional("PNET")
-                    number("SID", index)
+                    number("GID", this@Game.id) // Game ID
+                    number("LOC", 0x64654445) // Location
+                    text("NAME", player.displayName) // Player name
+                    number("PID", player.playerId) // Player id
+                    +host.createAddrOptional("PNET") // Player net info
+                    number("SID", index) // Slot ID
                     number("SLOT", 0x0)
-                    number("STAT", if (tmppl.playerId == player.playerId) 0x2 else 0x4)
+                    number("STAT", if (host.playerId == player.playerId) 0x2 else 0x4)
                     number("TIDX", 0xffff)
                     number("TIME", 0x4fd4ce4f6a036)
                     tripple("UGID", 0x0, 0x0, 0x0)

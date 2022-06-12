@@ -1,6 +1,7 @@
 package com.jacobtread.kme.blaze
 
 import com.jacobtread.kme.blaze.tdf.Tdf
+import com.jacobtread.kme.utils.logging.Logger
 import io.netty.buffer.ByteBuf
 
 /**
@@ -53,8 +54,10 @@ open class Packet(
                 values.add(Tdf.read(contentBuffer))
             }
         } catch (e: Throwable) {
-            println(values.last())
-            e.printStackTrace()
+            Logger.error("Failed to read packet contents", e)
+            if (values.isNotEmpty()) {
+                Logger.error("Last tdf in contents was: " + values.last())
+            }
         }
         contentBuffer.release()
         values

@@ -471,8 +471,11 @@ private class MainHandler(
 
         game.setAttributes(attributes ?: emptyMap()) // If the attributes are missing use empty
         +packet.respond { number("GID", game.id) }
-        +game.createPoolPacket(true) // Send the game pool details
-        +session.createSetSession() // Send the user session
+        val packetA = game.createPoolPacket(true) // Send the game pool details
+        val packetB= session.createSetSession() // Send the user session
+        channel.write(packetA)
+        channel.write(packetB)
+        channel.flush()
         Matchmaking.onGameCreated(game)
     }
 
