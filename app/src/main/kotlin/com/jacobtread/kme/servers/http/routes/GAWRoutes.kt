@@ -42,7 +42,7 @@ private fun RoutingGroup.routeAuthentication() {
             element("sessioninfo") {
                 element("blazeuserid", player.playerId)
                 element("isfirstlogin", "0")
-                element("sessionkey", player.playerId)
+                element("sessionkey", player.playerId.toString(16))
                 element("lastlogindatetime", time)
                 element("email", player.email)
                 element("personadetails") {

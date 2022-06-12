@@ -57,11 +57,12 @@ class Router : SimpleChannelInboundHandler<NettyHttpRequest>(), RoutingGroup {
      * @param msg The http request message
      */
     override fun channelRead0(ctx: ChannelHandlerContext, msg: NettyHttpRequest) {
-        Logger.debug("Http request for ${msg.uri()}")
+        Logger.logIfDebug { "Http request for ${msg.uri()}" }
         val request = HttpRequest(msg) // Create a request wrapper
         val response = handleHttpRequest(request) // Handle the response
         // Write the response and flush
         ctx.writeAndFlush(response)
+        Logger.logIfDebug { "Responded to http request with ${response.status()}" }
     }
 
     /**
