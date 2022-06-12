@@ -18,7 +18,7 @@ COPY --chown=gradle:gradle . /home/gradle/src
 WORKDIR /home/gradle/src
 
 # Build the shadow JAR
-RUN gradle shadowJar --no-daemon
+RUN gradle app:shadowJar --no-daemon
 
 # Run step uses OpenJDK 17 alpine
 FROM openjdk:17-alpine
@@ -80,7 +80,7 @@ RUN mkdir "/app"
 WORKDIR /app
 
 # Copy the compiled JAR from the build step
-COPY --from=build /home/gradle/src/build/libs/server.jar server.jar
+COPY --from=build /home/gradle/src/app/build/libs/server.jar server.jar
 
 VOLUME ["/run"]
 WORKDIR /run
