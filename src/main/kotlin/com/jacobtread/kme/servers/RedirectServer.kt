@@ -7,7 +7,6 @@ import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.logging.Logger.error
 import com.jacobtread.kme.utils.logging.Logger.info
 import io.netty.bootstrap.ServerBootstrap
-import io.netty.channel.Channel
 import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
@@ -54,10 +53,9 @@ fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
  *
  * @constructor
  *
- * @param config The server configuration
  */
 @Sharable
-class RedirectorHandler() : ChannelInboundHandlerAdapter(), FutureListener<Void> {
+class RedirectorHandler : ChannelInboundHandlerAdapter(), FutureListener<Void> {
 
     /**
      * handlerAdded Handles initialization of the channel when the
