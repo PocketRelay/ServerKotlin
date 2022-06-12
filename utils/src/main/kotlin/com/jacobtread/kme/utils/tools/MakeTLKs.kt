@@ -1,6 +1,5 @@
 package com.jacobtread.kme.utils.tools
 
-import java.util.*
 import kotlin.io.path.*
 
 /**
@@ -23,7 +22,7 @@ fun main() {
                 }
             }
             val outFile = outDir / newName
-            ResourceProcessing.processTlkBytes(it.readBytes())
+            ResourceProcessing.processTlkFile(it, outFile)
         }
     }
 }

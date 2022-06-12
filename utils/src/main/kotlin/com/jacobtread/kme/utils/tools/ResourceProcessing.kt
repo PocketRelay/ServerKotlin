@@ -16,7 +16,7 @@ object ResourceProcessing {
         output.writeText(result)
     }
 
-    fun processCoalescedBytes(contents: ByteArray): String {
+    private fun processCoalescedBytes(contents: ByteArray): String {
         val compress = Deflater()
         compress.setLevel(6)
         compress.setInput(contents)
@@ -49,7 +49,7 @@ object ResourceProcessing {
     }
 
     fun processTlkFile(file: Path, output: Path) {
-        require(file.exists()) { "No coalesced file at ${file.absolute()}" }
+        require(file.exists()) { "No tlk file at ${file.absolute()}" }
         require(file.isRegularFile()) { "Path ${file.fileName} is not a file" }
         val result = processTlkBytes(file.readBytes())
         if (!output.exists()) output.createFile()
@@ -57,10 +57,10 @@ object ResourceProcessing {
     }
 
 
-    fun processTlkBytes(contents: ByteArray): String {
+
+    private fun processTlkBytes(contents: ByteArray): String {
         return orderChunkedBase64(contents)
     }
-
     private fun orderChunkedBase64(bytes: ByteArray): String {
         val base64 = Base64.getEncoder().encodeToString(bytes)
         val chunks = base64.chunked(255)
