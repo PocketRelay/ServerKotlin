@@ -5,7 +5,9 @@ import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import java.text.SimpleDateFormat
 import java.time.format.DateTimeFormatter
+import java.util.Date
 import java.util.zip.GZIPOutputStream
 import kotlin.io.path.*
 
@@ -92,9 +94,9 @@ class LogWriter {
     fun archiveOldLog() {
         if (!file.isRegularFile()) return
         val logsPath = Path("logs")
-        val lastModified = file.getLastModifiedTime().toInstant()
-        val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        val date = dateFormat.format(lastModified)
+        val lastModified = file.getLastModifiedTime().toMillis()
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd")
+        val date = dateFormat.format(Date(lastModified))
         var newPath: Path
         var i = 1
         while (true) {
