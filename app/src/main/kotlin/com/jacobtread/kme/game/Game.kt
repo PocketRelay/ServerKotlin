@@ -163,14 +163,8 @@ class Game(
                 // Host network information
                 list("HNET", listOf(
                     group(start2 = true) {
-                        +group("EXIP") {
-                            number("IP", host.extNetData.address)
-                            number("PORT", host.extNetData.port)
-                        }
-                        +group("INIP") {
-                            number("IP", host.intNetData.address)
-                            number("PORT", host.intNetData.port)
-                        }
+                        +host.extNetData.createGroup("EXIP")
+                        +host.intNetData.createGroup("INIP")
                     }
                 ))
                 number("HSES", 0x112888c1)

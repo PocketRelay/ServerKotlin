@@ -3,6 +3,8 @@ package com.jacobtread.kme.game
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.tdf.GroupTdf
 import com.jacobtread.kme.blaze.tdf.OptionalTdf
+import com.jacobtread.kme.blaze.tdf.Tdf
+import com.jacobtread.kme.blaze.tdf.VarIntTdf
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.exceptions.NotAuthenticatedException
@@ -31,7 +33,14 @@ class PlayerSession {
      * @property port The encoded port of the network data
      * @constructor Create empty NetData
      */
-    data class NetData(var address: Long, var port: Int)
+    data class NetData(var address: Long, var port: Long) {
+        fun createGroup(label: String): GroupTdf {
+          return GroupTdf(label, false, listOf(
+               VarIntTdf("IP", address),
+               VarIntTdf("PORT", port)
+           ))
+        }
+    }
 
     companion object {
         // Atomic integer for incremental session ID's
@@ -155,12 +164,12 @@ class PlayerSession {
         val exip = group.group("EXIP")
         val exipIp = exip.number("IP")
         val exipPort = exip.number("IP")
-        extNetData = NetData(exipIp, exipPort.toInt())
+        extNetData = NetData(exipIp, exipPort)
 
         val inip = group.group("INIP")
         val inipIp = inip.number("IP")
         val inipPort = inip.number("IP")
-        extNetData = NetData(inipIp, inipPort.toInt())
+        extNetData = NetData(inipIp, inipPort)
     }
 
     /**
@@ -261,14 +270,8 @@ class PlayerSession {
      */
     fun createAddrOptional(label: String): OptionalTdf =
         OptionalTdf(label, 0x02, group("VALU") {
-            +group("EXIP") { // External IP?
-                number("IP", extNetData.address)
-                number("PORT", extNetData.port)
-            }
-            +group("INIP") {// Internal IP?
-                number("IP", intNetData.address)
-                number("PORT", intNetData.port)
-            }
+            +extNetData.createGroup("EXIP")
+            +intNetData.createGroup("INIP")
         })
 
     /**

@@ -16,10 +16,12 @@ fun main() {
     dir.forEachDirectoryEntry {
         if (it.fileName.toString().endsWith(".bin")) {
             val outFile = decodedDir / "${it.fileName}.txt"
+            val outFileRaw = decodedDir / "${it.fileName}.raw.txt"
             if (!outFile.exists()) outFile.createFile()
             val outBuilder = StringBuilder()
             val contents = it.readBytes()
             val buffer = Unpooled.wrappedBuffer(contents)
+            val bufferRaw = StringBuilder()
             while (buffer.readableBytes() > 0) {
                 try {
                     val length = buffer.readUnsignedShort();
@@ -31,15 +33,35 @@ fun main() {
                     val extLength = if ((qtype and 0x10) != 0) buffer.readUnsignedShort() else 0
                     val contentLength = length + (extLength shl 16)
                     val content = buffer.readBytes(contentLength)
+                    content.markReaderIndex()
                     val packet = Packet(component, command, error, qtype, id, content)
                     outBuilder.append(packetToBuilder(packet))
                     outBuilder.append('\n')
+                    content.resetReaderIndex()
+                    var count = 0
+                    while (content.readableBytes() > 0) {
+                        val byte = content.readUnsignedByte()
+                        bufferRaw
+                            .append(byte.toInt() and 255)
+                            .append(", ")
+                        count++
+                        if (count == 12) {
+                            bufferRaw.append('\n')
+                            count = 0
+                        }
+                    }
+                    bufferRaw.appendLine()
+                    bufferRaw.appendLine()
+                    content.release()
+
                 } catch (e: Throwable) {
                     e.printStackTrace()
                     break
                 }
             }
+            buffer.readerIndex(0)
             outFile.writeText(outBuilder.toString())
+            outFileRaw.writeText(bufferRaw.toString())
         }
     }
 }

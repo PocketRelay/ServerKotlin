@@ -966,7 +966,7 @@ private class MainHandler(
         val addr: GroupTdf? = packet.unionValueOrNull("ADDR") as GroupTdf?
         if (addr != null) {
             val inip: GroupTdf = addr.group("INIP")
-            val port: Int = inip.numberInt("PORT")
+            val port: Long = inip.number("PORT")
             val remoteAddress = channel.remoteAddress()
             val addressEncoded = IPAddress.asLong(remoteAddress)
             session.intNetData = NetData(addressEncoded, port)

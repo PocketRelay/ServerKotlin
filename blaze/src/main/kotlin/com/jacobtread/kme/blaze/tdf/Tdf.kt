@@ -34,8 +34,11 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
             val res = IntArray(3)
             val buff = IntArray(4)
             for (i in 0 until 4) {
-                if (i >= labelIn.length) break
-                buff[i] = labelIn[i].code
+                if (i >= labelIn.length) {
+                    buff[i] = 0
+                } else {
+                    buff[i] = labelIn[i].code
+                }
             }
             res[0] = res[0].or(buff[0].and(0x40).shl(1))
             res[0] = res[0].or(buff[0].and(0x10).shl(2))
@@ -64,7 +67,6 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
                 (tag shr 24).toByte(),
                 (tag shr 16).toByte(),
                 (tag shr 8).toByte(),
-                tag.toByte()
             )
             val res = IntArray(4)
             res[0] = res[0] or (buff[0].toInt() and 0x80 shr 1)

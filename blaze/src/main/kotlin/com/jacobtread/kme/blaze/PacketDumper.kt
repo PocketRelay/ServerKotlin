@@ -2,6 +2,7 @@ package com.jacobtread.kme.blaze
 
 import com.jacobtread.kme.blaze.tdf.*
 import com.jacobtread.kme.utils.VarTripple
+import com.jacobtread.kme.utils.logging.Logger
 
 
 fun packetToBuilder(rawPacket: Packet): String {
@@ -44,6 +45,46 @@ fun packetToBuilder(rawPacket: Packet): String {
     contentBuffer.resetReaderIndex()
     out.append("}")
     return out.toString()
+}
+
+fun logPacketException(packet: Packet, e: Throwable) {
+    Logger.warn("Packet Information ==================================")
+    Logger.warn("Component: 0x${packet.component.toString(16)} ${Components.getName(packet.component)}")
+    Logger.warn("Command: 0x${packet.command.toString(16)} ${Commands.getName(packet.component, packet.command)}")
+    Logger.warn("Error: 0x${packet.command.toString(16)}")
+    val typeName = when (packet.type) {
+        Packet.INCOMING_TYPE -> "INCOMING"
+        Packet.ERROR_TYPE -> "ERROR"
+        Packet.UNIQUE_TYPE -> "UNIQUE"
+        Packet.RESPONSE_TYPE -> "RESPONSE"
+        else -> "UNKNOWN"
+    }
+    Logger.warn("Type: $typeName (0x${packet.type.toString(16)})")
+    Logger.warn("ID: 0x${packet.id.toString(16)}")
+    Logger.warn("Cause: ${e.message}")
+    Logger.warn(e.stackTraceToString())
+    Logger.warn("Content Dump:")
+    println()
+
+    val buffer = StringBuffer()
+    val content = packet.contentBuffer
+    content.readerIndex(0)
+
+    var count = 0
+
+    while (content.readableBytes() > 0) {
+        val byte = content.readUnsignedByte()
+        buffer
+            .append(byte.toInt() and 255)
+            .append(", ")
+        count++
+        if (count == 12) {
+            buffer.append('\n')
+            count = 0
+        }
+    }
+    println(buffer)
+    Logger.warn("=====================================================")
 }
 
 private fun appendTdf(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Boolean) {

@@ -54,13 +54,14 @@ open class Packet(
             while (contentBuffer.readableBytes() > 4) {
                 values.add(Tdf.read(contentBuffer))
             }
+            contentBuffer.release() // Only release the content if we managed to read it
         } catch (e: Throwable) {
             Logger.error("Failed to read packet contents", e)
             if (values.isNotEmpty()) {
                 Logger.error("Last tdf in contents was: " + values.last())
             }
+            throw e
         }
-        contentBuffer.release()
         values
     }
 

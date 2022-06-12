@@ -26,6 +26,7 @@ class GroupTdf(label: String, val start2: Boolean, override val value: List<Tdf<
                 if (out.isNotEmpty()) {
                     Logger.error("Last tdf in group was: " + out.last())
                 }
+                throw e
             }
             return GroupTdf(label, start2, out)
         }

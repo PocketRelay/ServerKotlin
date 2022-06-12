@@ -12,22 +12,7 @@ class PacketEncoder : MessageToByteEncoder<Packet>() {
                 Logger.debug("SENT PACKET ===========\n" + packetToBuilder(msg) + "\n======================")
             } catch (e: Throwable) {
                 Logger.warn("Failed to decode sent packet contents for debugging: ")
-                Logger.warn("Packet Information ==================================")
-                Logger.warn("Component: ${msg.component.toString(16)} ${Components.getName(msg.component)}")
-                Logger.warn("Command: ${msg.command.toString(16)} ${Commands.getName(msg.component, msg.command)}")
-                Logger.warn("Error: ${msg.command.toString(16)}")
-                val typeName = when (msg.type) {
-                    Packet.INCOMING_TYPE -> "INCOMING"
-                    Packet.ERROR_TYPE -> "ERROR"
-                    Packet.UNIQUE_TYPE -> "UNIQUE"
-                    Packet.RESPONSE_TYPE -> "RESPONSE"
-                    else -> "UNKNOWN"
-                }
-                Logger.warn("Type: $typeName (${msg.type.toString(16)})")
-                Logger.warn("ID: ${msg.id.toString(16)}")
-                Logger.warn("Cause: ${e.message}")
-                Logger.warn(e.stackTraceToString())
-                Logger.warn("=====================================================")
+                logPacketException(msg, e)
             }
         }
         val content = msg.contentBuffer
