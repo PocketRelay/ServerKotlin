@@ -164,12 +164,12 @@ class Game(
                 list("HNET", listOf(
                     group(start2 = true) {
                         +group("EXIP") {
-                            number("IP", host.netData.address)
-                            number("PORT", host.netData.port)
+                            number("IP", host.extNetData.address)
+                            number("PORT", host.extNetData.port)
                         }
                         +group("INIP") {
-                            number("IP", host.netData.address)
-                            number("PORT", host.netData.port)
+                            number("IP", host.intNetData.address)
+                            number("PORT", host.intNetData.port)
                         }
                     }
                 ))
