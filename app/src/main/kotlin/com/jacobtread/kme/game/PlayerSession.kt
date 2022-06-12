@@ -54,7 +54,8 @@ class PlayerSession {
     private var channel: Channel? = null
 
     // The networking data for this session
-    var netData = SHARED_NET_DATA
+    var extNetData = SHARED_NET_DATA
+    var intNetData = SHARED_NET_DATA
 
     // The authenticated player for this session null if the player isn't authenticated
     private var _player: Player? = null
@@ -138,6 +139,18 @@ class PlayerSession {
      */
     fun setChannel(channel: Channel) {
         this.channel = channel
+    }
+
+    fun setNetworkingFromHNet(group: GroupTdf) {
+        val exip = group.group("EXIP")
+        val exipIp = exip.number("IP")
+        val exipPort = exip.number("IP")
+        extNetData = NetData(exipIp, exipPort.toInt())
+
+        val inip = group.group("INIP")
+        val inipIp = inip.number("IP")
+        val inipPort = inip.number("IP")
+        extNetData = NetData(inipIp, inipPort.toInt())
     }
 
     /**
@@ -239,12 +252,12 @@ class PlayerSession {
     fun createAddrOptional(label: String): OptionalTdf =
         OptionalTdf(label, 0x02, group("VALU") {
             +group("EXIP") { // External IP?
-                number("IP", netData.address)
-                number("PORT", netData.port)
+                number("IP", extNetData.address)
+                number("PORT", extNetData.port)
             }
             +group("INIP") {// Internal IP?
-                number("IP", netData.address)
-                number("PORT", netData.port)
+                number("IP", intNetData.address)
+                number("PORT", intNetData.port)
             }
         })
 

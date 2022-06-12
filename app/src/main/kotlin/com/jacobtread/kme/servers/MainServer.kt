@@ -462,6 +462,13 @@ private class MainHandler(
     private fun handleCreateGame(packet: Packet) {
         val attributes = packet.mapOrNull<String, String>("ATTR") // Get the provided users attributes
         val game = GameManager.createGame(session) // Create a new game
+
+        val hostNetworking = packet.listOrNull<GroupTdf>("HNET")
+        if (hostNetworking != null) {
+            val first = hostNetworking.firstOrNull()
+            if (first != null) session.setNetworkingFromHNet(first)
+        }
+
         game.setAttributes(attributes ?: emptyMap()) // If the attributes are missing use empty
         +packet.respond { number("GID", game.id) }
         +game.createPoolPacket(true) // Send the game pool details
@@ -960,7 +967,8 @@ private class MainHandler(
             val port: Int = inip.numberInt("PORT")
             val remoteAddress = channel.remoteAddress()
             val addressEncoded = IPAddress.asLong(remoteAddress)
-            session.netData = NetData(addressEncoded, port)
+            session.intNetData = NetData(addressEncoded, port)
+            session.extNetData = NetData(addressEncoded, port)
         }
         +packet.respond()
     }
