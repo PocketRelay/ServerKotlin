@@ -1,6 +1,11 @@
-group = "com.jacobtread.kme.blaze"
-version = "1.0-SNAPSHOT"
+plugins {
+    kotlin("jvm")
+}
+
+val nettyVersion: String by project
 
 dependencies {
     implementation(project(":utils"))
+    implementation("io.netty:netty-buffer:$nettyVersion")
+    implementation("io.netty:netty-handler:$nettyVersion")
 }

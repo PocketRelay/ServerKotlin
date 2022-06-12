@@ -12,4 +12,4 @@ pluginManagement {
 }
 
 rootProject.name = "kme"
-include("blaze", "utils")
+include("app", "blaze", "utils")
