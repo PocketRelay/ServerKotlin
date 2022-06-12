@@ -8,6 +8,7 @@ import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.exceptions.NotAuthenticatedException
 import com.jacobtread.kme.game.match.Matchmaking
 import com.jacobtread.kme.utils.VarTripple
+import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.unixTimeSeconds
 import io.netty.channel.Channel
 import java.util.concurrent.atomic.AtomicInteger
@@ -55,7 +56,15 @@ class PlayerSession {
 
     // The networking data for this session
     var extNetData = SHARED_NET_DATA
+        set(value) {
+            field = value
+            Logger.logIfDebug { "Updated ext net data for user with session ID $sessionId" }
+        }
     var intNetData = SHARED_NET_DATA
+        set(value) {
+            field = value
+            Logger.logIfDebug { "Updated int net data for user with session ID $sessionId" }
+        }
 
     // The authenticated player for this session null if the player isn't authenticated
     private var _player: Player? = null
@@ -63,6 +72,7 @@ class PlayerSession {
     val playerId: Int get() = player.playerId
 
     var sendSession = false
+
     // The time in milliseconds of when the last ping was received from the client
     var lastPingTime = -1L
 

@@ -209,6 +209,7 @@ private class MainHandler(
             +msg.respond()
         }
         ctx.flush()
+        msg.release() // Release content from message at end of handling
     }
 
     //region Authentication Component Region
@@ -471,10 +472,8 @@ private class MainHandler(
 
         game.setAttributes(attributes ?: emptyMap()) // If the attributes are missing use empty
         +packet.respond { number("GID", game.id) }
-        val packetA = game.createPoolPacket(true) // Send the game pool details
-        val packetB= session.createSetSession() // Send the user session
-        channel.write(packetA)
-        channel.write(packetB)
+        channel.write(game.createPoolPacket(true)) // Send the game pool details
+        channel.write(session.createSetSession()) // Send the user session
         channel.flush()
         Matchmaking.onGameCreated(game)
     }

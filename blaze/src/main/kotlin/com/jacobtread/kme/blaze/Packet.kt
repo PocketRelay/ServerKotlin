@@ -3,6 +3,7 @@ package com.jacobtread.kme.blaze
 import com.jacobtread.kme.blaze.tdf.Tdf
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.buffer.ByteBuf
+import io.netty.util.ReferenceCounted
 
 /**
  * Packet Represents a Blaze packet
@@ -68,5 +69,11 @@ open class Packet(
 
     override fun toString(): String {
         return "Packet (Component: $component, Command: $command, Error; $error, QType: $type, Id: $id, Content: [${content.joinToString(", ") { it.toString() }})"
+    }
+
+    fun release() {
+        if (contentBuffer.refCnt() > 0) {
+            contentBuffer.release()
+        }
     }
 }
