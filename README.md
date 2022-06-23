@@ -18,6 +18,9 @@ In order to be able to connect to the server the following entry needs to be mad
 gosredirector.ea.com and this needs to point to the IP address of the host
 I plan on making a tool for doing this automatically
 
+> Note: if you play other EA games such as Battlefield this may affect your ability to connect
+> to the servers for those games, so you will need to remove this redirect before playing them
+
 ## Working so far
 
 - [x] Working Server & Client Connections
