@@ -10,7 +10,6 @@ class VarIntTdf(label: String, override val value: ULong) : Tdf<ULong>(label, VA
     }
 
     override fun write(out: ByteBuf) {
-        println("WRITING VARINT $label $value")
         out.writeVarInt(value)
     }
 
