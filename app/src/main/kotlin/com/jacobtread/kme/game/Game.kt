@@ -132,6 +132,7 @@ class Game(
     fun broadcastAttributeUpdate() {
         playersLock.read {
             val packet = createNotifyPacket()
+            packet.contentBuffer.retain(players.size - 1)
             players.forEach { it.send(packet) }
         }
     }
