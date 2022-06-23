@@ -222,6 +222,7 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
         fun getById(id: ULong): Player? = transaction { findById(id.toInt()) }
         fun getById(id: Long): Player? = transaction { findById(id.toInt()) }
         fun getById(id: Int): Player? = transaction { findById(id) }
+        fun getBySessionKey(sessionKey: String): Player? = transaction { findOne { Players.sessionToken eq sessionKey } }
 
     }
 

@@ -28,6 +28,7 @@ import com.jacobtread.kme.blaze.Commands.PING
 import com.jacobtread.kme.blaze.Commands.POST_AUTH
 import com.jacobtread.kme.blaze.Commands.PRE_AUTH
 import com.jacobtread.kme.blaze.Commands.REMOVE_PLAYER
+import com.jacobtread.kme.blaze.Commands.RESUME_SESSION
 import com.jacobtread.kme.blaze.Commands.SEND_MESSAGE
 import com.jacobtread.kme.blaze.Commands.SET_CLIENT_METRICS
 import com.jacobtread.kme.blaze.Commands.SET_GAME_ATTRIBUTES
@@ -954,8 +955,24 @@ private class MainHandler(
             UPDATE_HARDWARE_FLAGS,
             UPDATE_NETWORK_INFO,
             -> updateSessionNetworkInfo(packet)
+            RESUME_SESSION -> handleResumeSession(packet)
             else -> +packet.respond()
         }
+    }
+
+    /**
+     * handleResumeSession Handles resuming a previously existing client
+     * session using a session token provided by the client. Checks the
+     * database for any players with the provided session token and if one
+     * is found that is set as the authenticated session
+     *
+     * @param packet The packet requesting a session resumption
+     */
+    private fun handleResumeSession(packet: Packet) {
+        val sessionKey = packet.text("SKEY");
+        val player = Player.getBySessionKey(sessionKey) ?: return +LoginError.INVALID_INFORMATION(packet)
+        session.setAuthenticated(player) // Set the authenticated session
+        +packet.respond()
     }
 
     /**
