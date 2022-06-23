@@ -1,6 +1,7 @@
 package com.jacobtread.kme.blaze.tdf
 
 import com.jacobtread.kme.blaze.TdfContainer
+import com.jacobtread.kme.blaze.appendTdfToBuffer
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.buffer.ByteBuf
 
@@ -9,23 +10,31 @@ class GroupTdf(label: String, val start2: Boolean, override val value: List<Tdf<
         fun read(label: String, input: ByteBuf): GroupTdf {
             val out = ArrayList<Tdf<*>>()
             var start2 = false
-            var byte: Int
             try {
+                var byte: Int
                 while (true) {
                     byte = input.readUnsignedByte().toInt()
-                    if (byte == 0) break
-                    if (byte == 2) {
+
+                    if (byte == 0) {
+                        break
+                    } else if (byte == 2) {
                         start2 = true
                     } else {
                         input.readerIndex(input.readerIndex() - 1)
+                        out.add(read(input))
                     }
-                    out.add(read(input))
                 }
             } catch (e: Throwable) {
-                Logger.error("Failed to read group tdf contents", e)
+                Logger.error("Failed to read group tdf contents at index ${input.readerIndex()}", e)
                 if (out.isNotEmpty()) {
                     Logger.error("Last tdf in group was: " + out.last())
                 }
+                val output = StringBuilder("\n")
+                out.forEach {
+                    appendTdfToBuffer(output, 0, it, false)
+                    output.append('\n')
+                }
+                Logger.error(output.toString())
                 throw e
             }
             return GroupTdf(label, start2, out)

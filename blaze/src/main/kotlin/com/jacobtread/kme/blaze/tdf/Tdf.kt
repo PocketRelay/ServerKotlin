@@ -1,5 +1,6 @@
 package com.jacobtread.kme.blaze.tdf
 
+import com.jacobtread.kme.blaze.TdfReadException
 import com.jacobtread.kme.utils.VarTripple
 import io.netty.buffer.ByteBuf
 
@@ -95,19 +96,24 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
             val head = input.readUnsignedInt()
             val tag = (head and 0xFFFFFF00)
             val label = createLabel(tag)
-            return when (val type = (head and 0xFF).toInt()) {
-                VARINT -> VarIntTdf.read(label, input)
-                STRING -> StringTdf.read(label, input)
-                BLOB -> BlobTdf.read(label, input)
-                GROUP -> GroupTdf.read(label, input)
-                LIST -> ListTdf.read(label, input)
-                MAP -> MapTdf.read(label, input)
-                OPTIONAL -> OptionalTdf.read(label, input)
-                INT_LIST -> VarIntList.read(label, input)
-                PAIR -> PairTdf.read(label, input)
-                TRIPPLE -> TrippleTdf.read(label, input)
-                FLOAT -> FloatTdf.read(label, input)
-                else -> throw IllegalStateException("Unknown Tdf type: $type")
+            val type = (head and 0xFF).toInt()
+            try {
+                return when (type) {
+                    VARINT -> VarIntTdf.read(label, input)
+                    STRING -> StringTdf.read(label, input)
+                    BLOB -> BlobTdf.read(label, input)
+                    GROUP -> GroupTdf.read(label, input)
+                    LIST -> ListTdf.read(label, input)
+                    MAP -> MapTdf.read(label, input)
+                    OPTIONAL -> OptionalTdf.read(label, input)
+                    INT_LIST -> VarIntList.read(label, input)
+                    PAIR -> PairTdf.read(label, input)
+                    TRIPPLE -> TrippleTdf.read(label, input)
+                    FLOAT -> FloatTdf.read(label, input)
+                    else -> throw IllegalStateException("Unknown Tdf type: $type")
+                }
+            } catch (e: Throwable) {
+                throw TdfReadException(label, type, e)
             }
         }
     }

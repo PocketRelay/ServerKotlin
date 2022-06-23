@@ -38,7 +38,7 @@ fun packetToBuilder(rawPacket: Packet): String {
     contentBuffer.markReaderIndex()
 
     rawPacket.content.forEach {
-        appendTdf(out, 1, it, false)
+        appendTdfToBuffer(out, 1, it, false)
         out.append('\n')
     }
 
@@ -121,8 +121,7 @@ fun logPacketException(text: String, packet: Packet, e: Throwable) {
         Logger.warn("Exception when handling packet dump exception",e)
     }
 }
-
-private fun appendTdf(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Boolean) {
+ fun appendTdfToBuffer(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Boolean) {
     when (value) {
         is VarIntTdf -> {
             out.append("  ".repeat(indent))
@@ -180,7 +179,7 @@ private fun appendTdf(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Bo
             }
             val contents = value.value
             contents.forEach {
-                appendTdf(out, indent + 1, it, false)
+                appendTdfToBuffer(out, indent + 1, it, false)
                 out.append('\n')
             }
             out.append("  ".repeat(indent)).append("}")
@@ -235,7 +234,7 @@ private fun appendTdf(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Bo
                 else -> {
                     out.append('\n')
                     for (i in content.indices) {
-                        appendTdf(out, indent + 1, content[i] as GroupTdf, true)
+                        appendTdfToBuffer(out, indent + 1, content[i] as GroupTdf, true)
                         if (i != length - 1) {
                             out.append(',')
                         }
@@ -258,7 +257,7 @@ private fun appendTdf(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Bo
                     .append("0x")
                     .append(value.type.toString(16))
                     .append(",\n")
-                appendTdf(out, indent + 1, content, true)
+                appendTdfToBuffer(out, indent + 1, content, true)
                 out.append("\n")
                     .append("  ".repeat(indent))
                     .append(')')
@@ -294,7 +293,7 @@ private fun appendTdf(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Bo
                     is ULong -> out.append("0x")
                         .append(va.toString(16))
                     is Float -> out.append(va.toString())
-                    is GroupTdf -> appendTdf(out, indent + 1, va, true)
+                    is GroupTdf -> appendTdfToBuffer(out, indent + 1, va, true)
                 }
                 out.append(",\n")
             }

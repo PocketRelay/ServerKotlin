@@ -32,10 +32,11 @@ internal class TdfTest {
             return buildString { repeat(length) { append(CHARS.random()) } }
         }
 
+
         val LabelGen: Generator<String> = {
-            val possibleChars = ABC.uppercase().toCharArray() + Char.MIN_VALUE
+            val possibleChars = ABC.uppercase().toCharArray()
             val chars = CharArray(4) { possibleChars.random() }
-            chars.toString()
+            chars.concatToString()
         }
 
         private val ULongGen: Generator<ULong> = {
@@ -53,8 +54,13 @@ internal class TdfTest {
         private val PairGen: Generator<VarPair> = { VarPair(ULongGen(), ULongGen()) }
         private val FloatGen: Generator<Float> = { Random.nextFloat() }
 
-        private val VarIntTdfGen: Generator<VarIntTdf> = { VarIntTdf(LabelGen(), ULongGen()) }
-        private val StringTdfGen: Generator<StringTdf> = { StringTdf(LabelGen(), StringGen()) }
+        private val VarIntTdfGen: Generator<VarIntTdf> = {
+            val value = LabelGen()
+            VarIntTdf(value, ULongGen())
+        }
+        private val StringTdfGen: Generator<StringTdf> = {
+            StringTdf(LabelGen(), StringGen())
+        }
 
         private val BlobTdfGen: Generator<BlobTdf> = {
             val minLength = 0
@@ -66,7 +72,7 @@ internal class TdfTest {
 
         private val GroupTdfGen: Generator<GroupTdf> = {
             val minValues = 0
-            val maxValues = 20
+            val maxValues = 5
             val values = Random.nextInt(minValues..maxValues)
             val valueList = ArrayList<Tdf<*>>(values)
             repeat(values) { valueList.add(createRandomTdf()) }
@@ -74,30 +80,39 @@ internal class TdfTest {
             GroupTdf(LabelGen(), isTwo, valueList)
         }
 
+        private val UnnamedGroupTdfGen: Generator<GroupTdf> = {
+            val minValues = 0
+            val maxValues = 5
+            val values = Random.nextInt(minValues..maxValues)
+            val valueList = ArrayList<Tdf<*>>(values)
+            repeat(values) { valueList.add(createRandomTdf()) }
+            val isTwo = Random.nextBoolean()
+            GroupTdf("", isTwo, valueList)
+        }
+
         private val ListTdfGen: Generator<ListTdf> = {
             val minValues = 0
             val maxValues = 20
             val values = Random.nextInt(minValues..maxValues)
-            val valueType = Random.nextInt(0..3)
+            val valueType = Random.nextInt(0..100)
             val listContents = ArrayList<Any>(values)
             val listType: Int = when (valueType) {
-                0 -> {
-                    repeat(values) { listContents.add(ULongGen()) }
-                    Tdf.VARINT
-                }
                 1 -> {
                     repeat(values) { listContents.add(StringGen()) }
                     Tdf.STRING
                 }
-                2 -> {
-                    repeat(values) { listContents.add(GroupTdfGen()) }
+                50 -> {
+                    repeat(values) { listContents.add(UnnamedGroupTdfGen()) }
                     Tdf.GROUP
                 }
                 3 -> {
                     repeat(values) { listContents.add(TrippleGen()) }
                     Tdf.TRIPPLE
                 }
-                else -> throw IllegalArgumentException("Not expecting value greater than 3")
+                else -> {
+                    repeat(values) { listContents.add(ULongGen()) }
+                    Tdf.VARINT
+                }
             }
             ListTdf(LabelGen(), listType, listContents)
         }
@@ -112,13 +127,12 @@ internal class TdfTest {
                 1 -> Tdf.STRING
                 else -> throw IllegalArgumentException("Unexpected value")
             }
-            val valueTypeRaw = Random.nextInt(0..3)
+            val valueTypeRaw = Random.nextInt(0..100)
             val valueType = when (valueTypeRaw) {
-                0 -> Tdf.VARINT
                 1 -> Tdf.STRING
-                2 -> Tdf.GROUP
+                100 -> Tdf.GROUP
                 3 -> Tdf.FLOAT
-                else -> throw IllegalArgumentException("Unexpected value")
+                else -> Tdf.VARINT
             }
             val map = LinkedHashMap<Any, Any>()
 
@@ -129,11 +143,10 @@ internal class TdfTest {
                     else -> throw IllegalArgumentException("Unexpected value")
                 }
                 val value: Any = when (valueTypeRaw) {
-                    0 -> ULongGen()
                     1 -> StringGen()
-                    2 -> GroupTdfGen()
+                    100 -> UnnamedGroupTdfGen()
                     3 -> FloatGen()
-                    else -> throw IllegalArgumentException("Unexpected value")
+                    else -> ULongGen()
                 }
                 map[key] = value
             }
@@ -151,7 +164,7 @@ internal class TdfTest {
             val maxValues = 20
             val values = Random.nextInt(minValues..maxValues)
             val valuesList = ArrayList<ULong>(values)
-            repeat(values) {valuesList.add(ULongGen())}
+            repeat(values) { valuesList.add(ULongGen()) }
             VarIntList(LabelGen(), valuesList)
         }
 
@@ -160,11 +173,10 @@ internal class TdfTest {
         private val FloatTdfGen: Generator<FloatTdf> = { FloatTdf(LabelGen(), FloatGen()) }
 
         private fun createRandomTdf(): Tdf<*> {
-            val generator: Generator<Tdf<*>> = when (Random.nextInt(0..10)) {
-                0 -> VarIntTdfGen
+            val generator: Generator<Tdf<*>> = when (Random.nextInt(0..100)) {
                 1 -> StringTdfGen
                 2 -> BlobTdfGen
-                3 -> GroupTdfGen
+                100 -> GroupTdfGen
                 4 -> ListTdfGen
                 5 -> MapTdfGen
                 6 -> OptionalTdfGen
@@ -172,7 +184,7 @@ internal class TdfTest {
                 8 -> PairTdfGen
                 9 -> TrippleTdfGen
                 10 -> FloatTdfGen
-                else -> throw IllegalArgumentException("Unexpected value")
+                else -> VarIntTdfGen
             }
             return generator()
         }
@@ -216,4 +228,25 @@ internal class TdfTest {
      */
     @Test
     fun `test group`() = testTdfIterations(GroupTdfGen)
+
+    @Test
+    fun `test list`() = testTdfIterations(ListTdfGen)
+
+    @Test
+    fun `test map`() = testTdfIterations(MapTdfGen)
+
+    @Test
+    fun `test optional`() = testTdfIterations(OptionalTdfGen)
+
+    @Test
+    fun `test var int list`() = testTdfIterations(VarIntListTdfGen)
+
+    @Test
+    fun `test pair`() = testTdfIterations(PairTdfGen)
+
+    @Test
+    fun `test tripple`() = testTdfIterations(TrippleTdfGen)
+
+    @Test
+    fun `test float`() = testTdfIterations(FloatTdfGen)
 }
