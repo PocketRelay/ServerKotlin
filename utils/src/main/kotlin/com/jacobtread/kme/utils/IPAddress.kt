@@ -11,13 +11,12 @@ object IPAddress {
         return address.address.address
     }
 
-    fun asLong(address: SocketAddress): Long {
+    fun asLong(address: SocketAddress): ULong {
         val bytes = convertToBytes(address)
-        bytes.reverse()
-        return (bytes[0].toLong() shl 24)
-            .or(bytes[1].toLong() shl 16)
-            .or(bytes[2].toLong() shl 8)
-            .or(bytes[3].toLong())
+        return (bytes[0].toULong() shl 24)
+            .or(bytes[1].toULong() shl 16)
+            .or(bytes[2].toULong() shl 8)
+            .or(bytes[3].toULong())
     }
 
     fun asLong(value: String): Long {
@@ -29,7 +28,7 @@ object IPAddress {
             .or(parts[3].toLong())
     }
 
-    fun fromLong(value: Long): InetAddress {
+    fun fromULong(value: ULong): InetAddress {
         val bytes = byteArrayOf(
             value.toByte(),
             (value shr 8).toByte(),
@@ -37,5 +36,9 @@ object IPAddress {
             (value shr 24).toByte(),
         )
         return InetAddress.getByAddress(bytes)
+    }
+
+    fun fromULongStr(value: ULong): String {
+        return ((value shr 24) and 255u).toString() + "." + ((value shr 16) and 255u) + "." + ((value shr 8) and 255u) + "." + (value and 255u)
     }
 }

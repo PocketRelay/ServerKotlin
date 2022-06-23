@@ -970,7 +970,7 @@ private class MainHandler(
             val inip: GroupTdf = addr.group("INIP")
             val port: ULong = inip.number("PORT")
             val remoteAddress = channel.remoteAddress()
-            val addressEncoded = IPAddress.asLong(remoteAddress).toULong()
+            val addressEncoded = IPAddress.asLong(remoteAddress)
             info("Encoded address $addressEncoded for ${session.player.displayName}")
             session.intNetData = NetData(addressEncoded, port)
             session.extNetData = NetData(addressEncoded, port)

@@ -110,7 +110,7 @@ fun logPacketException(packet: Packet, e: Throwable) {
     }
     buffer.appendLine()
     buffer.appendLine("=====================================================")
-    println(buffer.toString())
+    Logger.warn(buffer.toString())
 }
 
 private fun appendTdf(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Boolean) {

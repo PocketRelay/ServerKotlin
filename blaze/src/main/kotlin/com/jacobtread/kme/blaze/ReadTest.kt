@@ -1,13 +1,8 @@
 package com.jacobtread.kme.blaze
 
-import com.jacobtread.kme.blaze.tdf.Tdf
-import com.jacobtread.kme.blaze.utils.readVarInt
 import com.jacobtread.kme.utils.IPAddress
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
-import java.nio.file.Files
-import java.nio.file.Path
-import kotlin.io.path.writeBytes
 
 fun main() {
     val bytes = intArrayOf(
@@ -18,8 +13,8 @@ fun main() {
     val wrapper = Unpooled.wrappedBuffer(b)
     val varInt = wrapper.readVarIntPrint()
     println(varInt)
-
-//    println(IPAddress.fromLong(192).toString())
+    val ipbytes = IPAddress.asLong("192.168.1.74");
+    println(IPAddress.fromULongStr(0xc0a8014au))
 //    val v = wrapper.readUnsignedInt()
 //
 //    println(v)
