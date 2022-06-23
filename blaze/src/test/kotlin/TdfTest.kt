@@ -1,3 +1,4 @@
+import com.jacobtread.kme.blaze.tdf.BlobTdf
 import com.jacobtread.kme.blaze.tdf.StringTdf
 import com.jacobtread.kme.blaze.tdf.Tdf
 import com.jacobtread.kme.blaze.tdf.VarIntTdf
@@ -78,6 +79,27 @@ internal class TdfTest {
             val valueLength = Random.nextInt(minLength..maxLength)
             val value = createRandomString(valueLength)
             val tdf = StringTdf(LABEL, value)
+            testTdf(buffer, tdf)
+        }
+    }
+
+    /**
+     * test blob Tests the blob (ByteArray) encoding on random
+     * byte arrays with lengths between 0 and 500 and ensures
+     * the output is always the same as the input
+     */
+    @Test
+    fun `test blob`() {
+        val minLength = 0
+        val maxLength = 500
+
+        val buffer = Unpooled.buffer()
+        repeat(ITERATIONS) {
+            // Reset the buffer position
+            buffer.discardReadBytes()
+            val arrayLength = Random.nextInt(minLength until maxLength)
+            val value = Random.nextBytes(arrayLength)
+            val tdf = BlobTdf(LABEL, value)
             testTdf(buffer, tdf)
         }
     }
