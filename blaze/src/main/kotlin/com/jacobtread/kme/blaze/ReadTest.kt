@@ -14,7 +14,11 @@ fun main() {
     val varInt = wrapper.readVarIntPrint()
     println(varInt)
     val ipbytes = IPAddress.asLong("192.168.1.74");
-    println(IPAddress.fromULongStr(3232235851u))
+    println(IPAddress.fromULongStr(0xc0a8014au))
+    println(IPAddress.fromULongStr(0x7f000001u))
+
+    println(IPAddress.fromULongStr(0xc0a8014bu))
+    println(IPAddress.fromULongStr(0xc0a8014bu))
 //    val v = wrapper.readUnsignedInt()
 //
 //    println(v)
