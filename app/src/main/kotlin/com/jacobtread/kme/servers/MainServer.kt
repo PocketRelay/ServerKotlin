@@ -521,10 +521,10 @@ private class MainHandler(
             number("MSID", game.mid)
             number("GID", game.id)
         }
-        push(game.host.createSessionDetails())
         game.getActivePlayers().forEach {
-            val sessionDetails = it.createSessionDetails()
-            push(sessionDetails)
+            if (it.sessionId != session.sessionId) {
+                push(it.createSessionDetails())
+            }
         }
         push(game.createPoolPacket(false))
     }
@@ -581,6 +581,7 @@ private class MainHandler(
 
         pushAll(a, b, c)
         host.pushAll(a, b, c)
+        packet.pushEmptyResponse()
     }
 
     //endregion
