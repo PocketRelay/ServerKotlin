@@ -124,4 +124,20 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
         out.writeByte(tagType)
         write(out)
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Tdf<*>) return false
+        if (label != other.label) return false
+        if (tagType != other.tagType) return false
+        if (value != other.value) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = label.hashCode()
+        result = 31 * result + tagType
+        result = 31 * result + (value?.hashCode() ?: 0)
+        return result
+    }
 }
