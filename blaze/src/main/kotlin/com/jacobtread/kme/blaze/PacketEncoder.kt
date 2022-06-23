@@ -11,8 +11,7 @@ class PacketEncoder : MessageToByteEncoder<Packet>() {
             try {
                 Logger.debug("SENT PACKET ===========\n" + packetToBuilder(msg) + "\n======================")
             } catch (e: Throwable) {
-                Logger.warn("Failed to decode sent packet contents for debugging: ")
-                logPacketException(msg, e)
+                logPacketException("Failed to decode sent packet contents for debugging: ", msg, e)
             }
         }
         val content = msg.contentBuffer

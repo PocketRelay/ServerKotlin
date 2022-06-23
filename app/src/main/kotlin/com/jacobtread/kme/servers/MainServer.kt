@@ -621,6 +621,11 @@ private class MainHandler(
             number("OPER", 0)
             number("UID", host.playerId)
         }
+
+        a.contentBuffer.retain()
+        b.contentBuffer.retain()
+        c.contentBuffer.retain()
+
         +a
         +b
         +c

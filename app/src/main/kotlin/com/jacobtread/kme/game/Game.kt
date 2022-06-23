@@ -104,6 +104,8 @@ class Game(
                 }
             }
             val hostPacket = unique(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", host.playerId) }
+            val hostContent = hostPacket.contentBuffer
+            hostContent.retain(players.size - 1)
             players.forEach {
                 if (it != host) {
                     val userPacket = unique(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", it.playerId) }
@@ -111,6 +113,7 @@ class Game(
                     host.send(userPacket)
                 }
             }
+
         }
     }
 

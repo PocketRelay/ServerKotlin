@@ -35,8 +35,7 @@ class PacketDecoder : ByteToMessageDecoder() {
                         try {
                             Logger.debug("RECEIVED PACKET =======\n" + packetToBuilder(packet) + "\n======================")
                         } catch (e: Throwable) {
-                            Logger.warn("Failed to decode incoming packet contents for debugging: ")
-                            logPacketException(packet, e)
+                            logPacketException("Failed to decode incoming packet contents for debugging:", packet, e)
                         }
                     }
                     out.add(packet) // Add the packet to the output

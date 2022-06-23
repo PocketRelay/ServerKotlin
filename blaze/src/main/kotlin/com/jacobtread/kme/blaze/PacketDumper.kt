@@ -47,70 +47,79 @@ fun packetToBuilder(rawPacket: Packet): String {
     return out.toString()
 }
 
-fun logPacketException(packet: Packet, e: Throwable) {
-    val buffer = StringBuffer("\n")
-    buffer
-        .appendLine("Packet Information ==================================")
-        .append("Component: 0x")
-        .append(packet.component.toString(16))
-        .append(' ')
-        .append(Components.getName(packet.component))
-        .appendLine()
+fun logPacketException(text: String, packet: Packet, e: Throwable) {
+    try {
+        val buffer = StringBuffer(text)
+            .appendLine()
+            .appendLine("Packet Information ==================================")
+            .append("Component: 0x")
+            .append(packet.component.toString(16))
+            .append(' ')
+            .append(Components.getName(packet.component))
+            .appendLine()
 
-        .append("Command: 0x")
-        .append(packet.command.toString(16))
-        .append(' ')
-        .append(Commands.getName(packet.component, packet.command))
-        .appendLine()
+            .append("Command: 0x")
+            .append(packet.command.toString(16))
+            .append(' ')
+            .append(Commands.getName(packet.component, packet.command))
+            .appendLine()
 
-        .append("Error: 0x")
-        .append(packet.error.toString(16))
-        .appendLine()
+            .append("Error: 0x")
+            .append(packet.error.toString(16))
+            .appendLine()
 
-        .append("Type: ")
-        .append(
-            when (packet.type) {
-                Packet.INCOMING_TYPE -> "INCOMING"
-                Packet.ERROR_TYPE -> "ERROR"
-                Packet.UNIQUE_TYPE -> "UNIQUE"
-                Packet.RESPONSE_TYPE -> "RESPONSE"
-                else -> "UNKNOWN"
+            .append("Type: ")
+            .append(
+                when (packet.type) {
+                    Packet.INCOMING_TYPE -> "INCOMING"
+                    Packet.ERROR_TYPE -> "ERROR"
+                    Packet.UNIQUE_TYPE -> "UNIQUE"
+                    Packet.RESPONSE_TYPE -> "RESPONSE"
+                    else -> "UNKNOWN"
+                }
+            )
+            .append(" (0x")
+            .append(packet.type.toString(16))
+            .append(')')
+            .appendLine()
+
+            .append("ID: 0x")
+            .append(packet.id.toString(16))
+            .appendLine()
+
+            .append("Cause: ")
+            .append(e.message)
+            .appendLine()
+            .append(e.stackTraceToString())
+            .appendLine()
+            .append("Content Dump:")
+            .appendLine()
+
+        val content = packet.contentBuffer
+        try {
+            content.readerIndex(0)
+            var count = 0
+            while (content.readableBytes() > 0) {
+                val byte = content.readUnsignedByte()
+                buffer
+                    .append(byte.toUByte().toString())
+                    .append(", ")
+                count++
+                if (count == 12) {
+                    buffer.append('\n')
+                    count = 0
+                }
             }
-        )
-        .append(" (0x")
-        .append(packet.type.toString(16))
-        .append(')')
-        .appendLine()
-
-        .append("ID: 0x")
-        .append(packet.id.toString(16))
-        .appendLine()
-
-        .append("Cause: ")
-        .append(e.message)
-        .appendLine()
-        .append(e.stackTraceToString())
-        .appendLine()
-        .append("Content Dump:")
-        .appendLine()
-
-    val content = packet.contentBuffer
-    content.readerIndex(0)
-    var count = 0
-    while (content.readableBytes() > 0) {
-        val byte = content.readUnsignedByte()
-        buffer
-            .append(byte.toInt() and 255)
-            .append(", ")
-        count++
-        if (count == 12) {
-            buffer.append('\n')
-            count = 0
+        } catch (e: Throwable) {
+            buffer.append("Failed to encode packet raw contents:")
+                .append(e.stackTraceToString())
         }
+        buffer.appendLine()
+        buffer.appendLine("=====================================================")
+        Logger.warn(buffer.toString())
+    } catch (e: Throwable) {
+        Logger.warn("Exception when handling packet dump exception",e)
     }
-    buffer.appendLine()
-    buffer.appendLine("=====================================================")
-    Logger.warn(buffer.toString())
 }
 
 private fun appendTdf(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Boolean) {
