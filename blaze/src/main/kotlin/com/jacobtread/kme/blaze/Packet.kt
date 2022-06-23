@@ -56,7 +56,8 @@ open class Packet(
             }
             contentBuffer.release() // Only release the content if we managed to read it
         } catch (e: Throwable) {
-            Logger.error("Failed to read packet contents", e)
+
+            Logger.error("Failed to read packet contents at index ${contentBuffer.readerIndex()}", e)
             if (values.isNotEmpty()) {
                 Logger.error("Last tdf in contents was: " + values.last())
             }

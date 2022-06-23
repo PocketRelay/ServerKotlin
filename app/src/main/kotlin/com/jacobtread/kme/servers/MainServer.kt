@@ -583,6 +583,8 @@ private class MainHandler(
      * @param packet The packet requesting to cancel matchmaking
      */
     private fun handleCancelMatchmaking(packet: Packet) {
+        val player = session.player
+        info("Player ${player.displayName} cancelled match making")
         Matchmaking.removeFromQueue(session)
         session.leaveGame()
         +packet.respond()

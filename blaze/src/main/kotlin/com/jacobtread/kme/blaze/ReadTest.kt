@@ -5,7 +5,6 @@ import com.jacobtread.kme.blaze.utils.readVarInt
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 
-@OptIn(ExperimentalUnsignedTypes::class)
 fun main() {
     val value: ULong = 0x5a4f2b378b715c6u
     val bytes = intArrayOf(
