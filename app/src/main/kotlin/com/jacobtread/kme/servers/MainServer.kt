@@ -84,7 +84,7 @@ class MainInitializer : ChannelInitializer<Channel>() {
 private class MainHandler(
     private val session: PlayerSession,
 ) : SimpleChannelInboundHandler<Packet>(), PacketPushable {
-    
+
     inline fun Packet.pushResponse(init: ContentInitializer) = push(respond(init))
     fun Packet.pushEmptyResponse() = push(respond())
     fun Packet.pushEmptyError(error: Int) = push(error(error))

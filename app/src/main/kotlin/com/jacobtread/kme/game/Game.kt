@@ -5,6 +5,7 @@ import com.jacobtread.kme.data.Data
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
+import kotlin.math.max
 
 class Game(
     val id: ULong,
@@ -105,7 +106,7 @@ class Game(
             }
             val hostPacket = unique(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", host.playerId) }
             val hostContent = hostPacket.contentBuffer
-            hostContent.retain(players.size - 1)
+            if (players.size > 1) hostContent.retain(players.size - 1)
             players.forEach {
                 if (it != host) {
                     val userPacket = unique(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", it.playerId) }
@@ -132,7 +133,7 @@ class Game(
     fun broadcastAttributeUpdate() {
         playersLock.read {
             val packet = createNotifyPacket()
-            packet.contentBuffer.retain(players.size - 1)
+            if (players.size > 1) packet.contentBuffer.retain(players.size - 1)
             players.forEach { it.push(packet) }
         }
     }
