@@ -213,7 +213,7 @@ class Game(
                     number("LOC", 0x64654445) // Location
                     text("NAME", player.displayName) // Player name
                     number("PID", player.playerId) // Player id
-                    +host.createAddrOptional("PNET") // Player net info
+                    +playerSession.createAddrOptional("PNET") // Player net info
                     number("SID", index) // Slot ID
                     number("SLOT", 0x0)
                     number("STAT", if (host.playerId == player.playerId) 0x2 else 0x4)
