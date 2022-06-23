@@ -15,4 +15,18 @@ class FloatTdf(label: String, override val value: Float) : Tdf<Float>(label, FLO
     }
 
     override fun toString(): String = "Float($label: $value)"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is FloatTdf) return false
+        if (!super.equals(other)) return false
+        if (value != other.value) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = super.hashCode()
+        result = 31 * result + value.hashCode()
+        return result
+    }
 }

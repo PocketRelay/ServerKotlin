@@ -68,4 +68,20 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
     }
 
     override fun toString(): String = "List($label: $value)"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is ListTdf) return false
+        if (!super.equals(other)) return false
+        if (type != other.type) return false
+        if (value != other.value) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = super.hashCode()
+        result = 31 * result + type
+        result = 31 * result + value.hashCode()
+        return result
+    }
 }

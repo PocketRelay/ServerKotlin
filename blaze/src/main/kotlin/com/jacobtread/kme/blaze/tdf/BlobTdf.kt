@@ -22,4 +22,18 @@ class BlobTdf(label: String, override val value: ByteArray) : Tdf<ByteArray>(lab
     }
 
     override fun toString(): String = "Blob($label: ${value.contentToString()})"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is BlobTdf) return false
+        if (!super.equals(other)) return false
+        if (!value.contentEquals(other.value)) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = super.hashCode()
+        result = 31 * result + value.contentHashCode()
+        return result
+    }
 }

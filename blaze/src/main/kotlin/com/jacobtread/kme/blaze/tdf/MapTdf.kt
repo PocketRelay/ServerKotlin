@@ -73,4 +73,22 @@ class MapTdf(
     }
 
     override fun toString(): String = "Map($label: $value)"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is MapTdf) return false
+        if (!super.equals(other)) return false
+        if (keyType != other.keyType) return false
+        if (valueType != other.valueType) return false
+        if (value != other.value) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = super.hashCode()
+        result = 31 * result + keyType
+        result = 31 * result + valueType
+        result = 31 * result + value.hashCode()
+        return result
+    }
 }

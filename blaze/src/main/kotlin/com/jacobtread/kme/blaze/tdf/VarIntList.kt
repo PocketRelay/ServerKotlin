@@ -22,4 +22,18 @@ class VarIntList(label: String, override val value: List<ULong>) : Tdf<List<ULon
     }
 
     override fun toString(): String = "VarIntList($label: $value)"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is VarIntList) return false
+        if (!super.equals(other)) return false
+        if (value != other.value) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = super.hashCode()
+        result = 31 * result + value.hashCode()
+        return result
+    }
 }

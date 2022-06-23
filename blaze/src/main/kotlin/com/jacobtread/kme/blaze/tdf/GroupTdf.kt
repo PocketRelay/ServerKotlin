@@ -42,4 +42,20 @@ class GroupTdf(label: String, val start2: Boolean, override val value: List<Tdf<
 
     override fun getTdfByLabel(label: String): Tdf<*>? = value.find { it.label == label }
     override fun toString(): String = "Struct($label: $value)"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is GroupTdf) return false
+        if (!super.equals(other)) return false
+        if (start2 != other.start2) return false
+        if (value != other.value) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = super.hashCode()
+        result = 31 * result + start2.hashCode()
+        result = 31 * result + value.hashCode()
+        return result
+    }
 }

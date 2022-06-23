@@ -22,4 +22,18 @@ class TrippleTdf(label: String, override val value: VarTripple) : Tdf<VarTripple
     }
 
     override fun toString(): String = "Tripple($label: $value)"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is TrippleTdf) return false
+        if (!super.equals(other)) return false
+        if (value != other.value) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = super.hashCode()
+        result = 31 * result + value.hashCode()
+        return result
+    }
 }

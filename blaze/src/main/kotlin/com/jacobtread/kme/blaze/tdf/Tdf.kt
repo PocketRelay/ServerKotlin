@@ -130,7 +130,6 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
         if (other !is Tdf<*>) return false
         if (label != other.label) return false
         if (tagType != other.tagType) return false
-        if (value != other.value) return false
         return true
     }
 
