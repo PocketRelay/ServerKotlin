@@ -106,14 +106,15 @@ inline fun TdfContainer.optionalOrNull(label: String): OptionalTdf? = getTdfOrNu
 // Non-nullable Helpers
 
 inline fun TdfContainer.text(label: String): String = getTdf(StringTdf::class.java, label).value
-inline fun TdfContainer.number(label: String): Long = getTdf(VarIntTdf::class.java, label).value
+inline fun TdfContainer.number(label: String): ULong = getTdf(VarIntTdf::class.java, label).value
+inline fun TdfContainer.numberLong(label: String): Long = number(label).toLong()
 inline fun TdfContainer.numberInt(label: String): Int = number(label).toInt()
 inline fun TdfContainer.float(label: String): Float = getTdf(FloatTdf::class.java, label).value
 inline fun TdfContainer.blob(label: String): ByteArray = getTdf(BlobTdf::class.java, label).value
 inline fun TdfContainer.unionValue(label: String): Tdf<*>? = getTdf(OptionalTdf::class.java, label).value
 inline fun TdfContainer.tripple(label: String): VarTripple = getTdf(TrippleTdf::class.java, label).value
 inline fun TdfContainer.pair(label: String): VarPair = getTdf(PairTdf::class.java, label).value
-inline fun TdfContainer.varIntList(label: String): List<Long> = getTdf(VarIntList::class.java, label).value
+inline fun TdfContainer.varIntList(label: String): List<ULong> = getTdf(VarIntList::class.java, label).value
 
 @Suppress("UNCHECKED_CAST")
 inline fun <V : Any> TdfContainer.list(label: String): List<V> = getValue(ListTdf::class.java, label) as List<V>
@@ -124,14 +125,15 @@ inline fun <K : Any, V : Any> TdfContainer.map(label: String): Map<K, V> = getVa
 // Nullable Helpers
 
 inline fun TdfContainer.textOrNull(label: String): String? = getValueOrNull(StringTdf::class.java, label)
-inline fun TdfContainer.numberOrNull(label: String): Long? = getValueOrNull(VarIntTdf::class.java, label)
+inline fun TdfContainer.numberOrNull(label: String): ULong? = getValueOrNull(VarIntTdf::class.java, label)
+inline fun TdfContainer.numberLongOrNull(label: String): Long? = numberOrNull(label)?.toLong()
 inline fun TdfContainer.numberIntOrNull(label: String): Int? = numberOrNull(label)?.toInt()
 inline fun TdfContainer.floatOrNull(label: String): Float? = getValueOrNull(FloatTdf::class.java, label)
 inline fun TdfContainer.blobOrNull(label: String): ByteArray? = getValueOrNull(BlobTdf::class.java, label)
 inline fun TdfContainer.unionValueOrNull(label: String): Tdf<*>? = getValueOrNull(OptionalTdf::class.java, label)
 inline fun TdfContainer.trippleOrNull(label: String): VarTripple? = getValueOrNull(TrippleTdf::class.java, label)
 inline fun TdfContainer.pairOrNull(label: String): VarPair? = getValueOrNull(PairTdf::class.java, label)
-inline fun TdfContainer.varIntListOrNull(label: String): List<Long>? = getValueOrNull(VarIntList::class.java, label)
+inline fun TdfContainer.varIntListOrNull(label: String): List<ULong>? = getValueOrNull(VarIntList::class.java, label)
 
 
 @Suppress("UNCHECKED_CAST")

@@ -219,6 +219,7 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
                 .firstOrNull()
         }
 
+        fun getById(id: ULong): Player? = transaction { findById(id.toInt()) }
         fun getById(id: Long): Player? = transaction { findById(id.toInt()) }
         fun getById(id: Int): Player? = transaction { findById(id) }
 

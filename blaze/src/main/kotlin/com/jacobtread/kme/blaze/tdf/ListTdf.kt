@@ -12,7 +12,7 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
             val count = input.readVarInt().toInt()
             return when (subType) {
                 VARINT -> {
-                    val values = ArrayList<Long>(count)
+                    val values = ArrayList<ULong>(count)
                     repeat(count) { values.add(input.readVarInt()) }
                     ListTdf(label, subType, values)
                 }
@@ -48,7 +48,14 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
         out.writeByte(this.type)
         out.writeVarInt(value.size)
         when (this.type) {
-            VARINT -> value.forEach { out.writeVarInt(it) }
+            VARINT -> value.forEach {
+                when (it) {
+                    is Int -> out.writeVarInt(it)
+                    is Long -> out.writeVarInt(it)
+                    is ULong -> out.writeVarInt(it)
+                    is UInt -> out.writeVarInt(it)
+                }
+            }
             STRING -> value.forEach { out.writeString(it as String) }
             GROUP -> value.forEach { (it as GroupTdf).write(out) }
             TRIPPLE -> value.forEach {

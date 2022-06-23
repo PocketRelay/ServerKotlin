@@ -41,7 +41,7 @@ class TdfBuilder {
      * @param label The label of the Tdf
      * @param value The long value of the Tdf
      */
-    fun number(label: String, value: Long) {
+    fun number(label: String, value: ULong) {
         values.add(VarIntTdf(label, value))
     }
 
@@ -52,8 +52,16 @@ class TdfBuilder {
      * @param label The label of the Tdf
      * @param value The int value of the Tdf
      */
+    fun number(label: String, value: UInt) {
+        values.add(VarIntTdf(label, value.toULong()))
+    }
+
     fun number(label: String, value: Int) {
-        values.add(VarIntTdf(label, value.toLong()))
+        values.add(VarIntTdf(label, value.toULong()))
+    }
+
+    fun number(label: String, value: Long) {
+        values.add(VarIntTdf(label, value.toULong()))
     }
 
     /**
@@ -64,7 +72,7 @@ class TdfBuilder {
      * @param value The boolean value of the Tdf true = 0x1 false = 0x0
      */
     fun bool(label: String, value: Boolean) {
-        values.add(VarIntTdf(label, if (value) 0x1 else 0x0))
+        values.add(VarIntTdf(label, if (value) 1u else 0u))
     }
 
 
@@ -89,6 +97,10 @@ class TdfBuilder {
      * @param c The third value of the tripple
      */
     fun tripple(label: String, a: Long, b: Long, c: Long) {
+        values.add(TrippleTdf(label, VarTripple(a.toULong(), b.toULong(), c.toULong())))
+    }
+
+    fun tripple(label: String, a: ULong, b: ULong, c: ULong) {
         values.add(TrippleTdf(label, VarTripple(a, b, c)))
     }
 
@@ -113,6 +125,10 @@ class TdfBuilder {
      * @param b The second value of the pair
      */
     fun pair(label: String, a: Long, b: Long) {
+        values.add(PairTdf(label, VarPair(a.toULong(), b.toULong())))
+    }
+
+    fun pair(label: String, a: ULong, b: ULong) {
         values.add(PairTdf(label, VarPair(a, b)))
     }
 
@@ -190,7 +206,7 @@ class TdfBuilder {
      * @param label The label of the Tdf
      * @param value The list value
      */
-    fun varList(label: String, value: List<Long> = emptyList()) {
+    fun varList(label: String, value: List<ULong> = emptyList()) {
         values.add(VarIntList(label, value))
     }
 

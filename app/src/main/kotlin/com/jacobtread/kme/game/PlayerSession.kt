@@ -3,7 +3,6 @@ package com.jacobtread.kme.game
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.tdf.GroupTdf
 import com.jacobtread.kme.blaze.tdf.OptionalTdf
-import com.jacobtread.kme.blaze.tdf.Tdf
 import com.jacobtread.kme.blaze.tdf.VarIntTdf
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Player
@@ -33,7 +32,7 @@ class PlayerSession {
      * @property port The encoded port of the network data
      * @constructor Create empty NetData
      */
-    data class NetData(var address: Long, var port: Long) {
+    data class NetData(var address: ULong, var port: ULong) {
         fun createGroup(label: String): GroupTdf {
           return GroupTdf(label, false, listOf(
                VarIntTdf("IP", address),
@@ -47,7 +46,7 @@ class PlayerSession {
         val SESSION_ID = AtomicInteger(0)
 
         // Shared global net data to prevent unnecessary allocation for initial connections
-        val SHARED_NET_DATA = NetData(0, 0)
+        val SHARED_NET_DATA = NetData(0u, 0u)
 
         /**
          * PLAYER_ID_FLAG The flag key for UPDATE_EXTENDED_DATA_ATTRIBUTE which indicates
@@ -163,12 +162,12 @@ class PlayerSession {
     fun setNetworkingFromHNet(group: GroupTdf) {
         val exip = group.group("EXIP")
         val exipIp = exip.number("IP")
-        val exipPort = exip.number("IP")
+        val exipPort = exip.number("PORT")
         extNetData = NetData(exipIp, exipPort)
 
         val inip = group.group("INIP")
         val inipIp = inip.number("IP")
-        val inipPort = inip.number("IP")
+        val inipPort = inip.number("PORT")
         extNetData = NetData(inipIp, inipPort)
     }
 
@@ -224,7 +223,7 @@ class PlayerSession {
                 number("UBPS", 0)
             }
             number("UATT", 0)
-            list("ULST", listOf(VarTripple(0x4, 0x1, game?.id ?: Game.MIN_ID)))
+            list("ULST", listOf(VarTripple(4u, 1u, (game?.id ?: Game.MIN_ID))))
         }
 
     }

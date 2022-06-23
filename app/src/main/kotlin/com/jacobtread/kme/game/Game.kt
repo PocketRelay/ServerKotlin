@@ -7,15 +7,15 @@ import kotlin.concurrent.read
 import kotlin.concurrent.write
 
 class Game(
-    val id: Long,
-    val mid: Long,
+    val id: ULong,
+    val mid: ULong,
     var host: PlayerSession,
 ) {
 
     companion object {
         const val MAX_PLAYERS = 4
-        const val MIN_ID = 0x5DC695L
-        const val MIN_MID = 0x1129DA20L
+        const val MIN_ID = 0x5DC695uL
+        const val MIN_MID = 0x1129DA20uL
     }
 
     var gameState: Int = 0x1

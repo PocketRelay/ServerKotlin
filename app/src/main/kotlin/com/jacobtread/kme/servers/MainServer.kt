@@ -354,7 +354,7 @@ private class MainHandler(
      * @param packet The packet requesting silent login
      */
     private fun handleSilentLogin(packet: Packet) {
-        val pid: Long = packet.number("PID")
+        val pid: ULong = packet.number("PID")
         val auth: String = packet.text("AUTH")
         // Find the player with a matching ID or send an INVALID_ACCOUNT error
         val player = Player.getById(pid) ?: return +LoginError.INVALID_ACCOUNT(packet)
@@ -968,9 +968,10 @@ private class MainHandler(
         val addr: GroupTdf? = packet.unionValueOrNull("ADDR") as GroupTdf?
         if (addr != null) {
             val inip: GroupTdf = addr.group("INIP")
-            val port: Long = inip.number("PORT")
+            val port: ULong = inip.number("PORT")
             val remoteAddress = channel.remoteAddress()
-            val addressEncoded = IPAddress.asLong(remoteAddress)
+            val addressEncoded = IPAddress.asLong(remoteAddress).toULong()
+            info("Encoded address $addressEncoded for ${session.player.displayName}")
             session.intNetData = NetData(addressEncoded, port)
             session.extNetData = NetData(addressEncoded, port)
         }
@@ -1212,8 +1213,8 @@ private class MainHandler(
      */
     private fun handleSuspendUserPing(packet: Packet) {
         +when (packet.numberOrNull("TVAL")) {
-            0x1312D00L -> packet.error(0x12D)
-            0x55D4A80L -> packet.error(0x12E)
+            0x1312D00uL -> packet.error(0x12D)
+            0x55D4A80uL -> packet.error(0x12E)
             else -> packet.respond()
         }
     }

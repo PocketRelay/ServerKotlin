@@ -48,30 +48,55 @@ fun packetToBuilder(rawPacket: Packet): String {
 }
 
 fun logPacketException(packet: Packet, e: Throwable) {
-    Logger.warn("Packet Information ==================================")
-    Logger.warn("Component: 0x${packet.component.toString(16)} ${Components.getName(packet.component)}")
-    Logger.warn("Command: 0x${packet.command.toString(16)} ${Commands.getName(packet.component, packet.command)}")
-    Logger.warn("Error: 0x${packet.command.toString(16)}")
-    val typeName = when (packet.type) {
-        Packet.INCOMING_TYPE -> "INCOMING"
-        Packet.ERROR_TYPE -> "ERROR"
-        Packet.UNIQUE_TYPE -> "UNIQUE"
-        Packet.RESPONSE_TYPE -> "RESPONSE"
-        else -> "UNKNOWN"
-    }
-    Logger.warn("Type: $typeName (0x${packet.type.toString(16)})")
-    Logger.warn("ID: 0x${packet.id.toString(16)}")
-    Logger.warn("Cause: ${e.message}")
-    Logger.warn(e.stackTraceToString())
-    Logger.warn("Content Dump:")
-    println()
+    val buffer = StringBuffer("\n")
+    buffer
+        .appendLine("Packet Information ==================================")
+        .append("Component: 0x")
+        .append(packet.component.toString(16))
+        .append(' ')
+        .append(Components.getName(packet.component))
+        .appendLine()
 
-    val buffer = StringBuffer()
+        .append("Command: 0x")
+        .append(packet.command.toString(16))
+        .append(' ')
+        .append(Commands.getName(packet.component, packet.command))
+        .appendLine()
+
+        .append("Error: 0x")
+        .append(packet.error.toString(16))
+        .appendLine()
+
+        .append("Type: ")
+        .append(
+            when (packet.type) {
+                Packet.INCOMING_TYPE -> "INCOMING"
+                Packet.ERROR_TYPE -> "ERROR"
+                Packet.UNIQUE_TYPE -> "UNIQUE"
+                Packet.RESPONSE_TYPE -> "RESPONSE"
+                else -> "UNKNOWN"
+            }
+        )
+        .append(" (0x")
+        .append(packet.type.toString(16))
+        .append(')')
+        .appendLine()
+
+        .append("ID: 0x")
+        .append(packet.id.toString(16))
+        .appendLine()
+
+        .append("Cause: ")
+        .append(e.message)
+        .appendLine()
+        .append(e.stackTraceToString())
+        .appendLine()
+        .append("Content Dump:")
+        .appendLine()
+
     val content = packet.contentBuffer
     content.readerIndex(0)
-
     var count = 0
-
     while (content.readableBytes() > 0) {
         val byte = content.readUnsignedByte()
         buffer
@@ -83,8 +108,9 @@ fun logPacketException(packet: Packet, e: Throwable) {
             count = 0
         }
     }
-    println(buffer)
-    Logger.warn("=====================================================")
+    buffer.appendLine()
+    buffer.appendLine("=====================================================")
+    println(buffer.toString())
 }
 
 private fun appendTdf(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Boolean) {
@@ -160,10 +186,10 @@ private fun appendTdf(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Bo
             val length = content.size
 
             when (content[0]) {
-                is Long -> {
+                is ULong -> {
                     for (i in content.indices) {
                         out.append("0x")
-                            .append((content[i] as Long).toString(16))
+                            .append((content[i] as ULong).toString(16))
                         if (i != length - 1) {
                             out.append(", ")
                         }
@@ -248,7 +274,7 @@ private fun appendTdf(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Bo
                     is String -> out.append('"')
                         .append(key)
                         .append('"')
-                    is Long -> out.append("0x")
+                    is ULong -> out.append("0x")
                         .append(key.toString(16))
                 }
                 out.append(" to ")
@@ -256,7 +282,7 @@ private fun appendTdf(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Bo
                     is String -> out.append('"')
                         .append(va)
                         .append('"')
-                    is Long -> out.append("0x")
+                    is ULong -> out.append("0x")
                         .append(va.toString(16))
                     is Float -> out.append(va.toString())
                     is GroupTdf -> appendTdf(out, indent + 1, va, true)

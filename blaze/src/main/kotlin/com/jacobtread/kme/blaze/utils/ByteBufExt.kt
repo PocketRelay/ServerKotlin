@@ -3,57 +3,37 @@ package com.jacobtread.kme.blaze.utils
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 
-fun ByteBuf.writeVarInt(value: Any) {
-    when (value) {
-        is Long -> writeVarInt(value)
-        is Int -> writeVarInt(value)
-        else -> throw IllegalArgumentException("Unexpected type for varint")
-    }
-}
+fun ByteBuf.writeVarInt(value: Long) = writeVarInt(value.toULong())
+fun ByteBuf.writeVarInt(value: UInt) = writeVarInt(value.toULong())
+fun ByteBuf.writeVarInt(value: Int) = writeVarInt(value.toULong())
 
-fun ByteBuf.writeVarInt(value: Long) {
-    if (value < 0x40) {
-        writeByte((value and 0xFF).toInt())
+fun ByteBuf.writeVarInt(value: ULong) {
+    if (value < 64u) {
+        writeByte((value and 255u).toInt())
     } else {
-        var curByte = (value and 0x3F).toInt() or 0x80
-        writeByte(curByte)
+        var curByte = (value and 63u).toUByte() or 0x80u
+        writeByte(curByte.toInt())
         var curShift = value shr 6
-        while (curShift >= 0x80) {
-            curByte = ((curShift and 0x7F) or 0x80).toInt()
+        while (curShift >= 128u) {
+            curByte = ((curShift and 127u) or 128u).toUByte()
             curShift = curShift shr 7
-            writeByte(curByte)
+            writeByte(curByte.toInt())
         }
         writeByte(curShift.toInt())
     }
 }
 
-fun ByteBuf.writeVarInt(value: Int) {
-    if (value < 0x40) {
-        writeByte((value and 0xFF))
-    } else {
-        var curByte = (value and 0x3F) or 0x80
-        writeByte(curByte)
-        var curShift = value shr 6
-        while (curShift >= 0x80) {
-            curByte = ((curShift and 0x7F) or 0x80)
-            curShift = curShift shr 7
-            writeByte(curByte)
-        }
-        writeByte(curShift)
-    }
-}
-
-fun ByteBuf.readVarInt(): Long {
-    val firstByte = readUnsignedByte().toLong()
-    if (firstByte < 0x80) return firstByte and 0x3F
+fun ByteBuf.readVarInt(): ULong {
+    val firstByte = readUnsignedByte().toUByte()
+    var result: ULong = (firstByte and 63u).toULong()
+    if (firstByte < 128u) return result
     var shift = 6
-    var result = firstByte and 0x3F
-    var byte: Long
+    var byte: UByte
     do {
-        byte = readUnsignedByte().toLong()
-        result = result or ((byte and 0x7F) shl shift)
+        byte = readUnsignedByte().toUByte()
+        result = result or ((byte and 127u).toULong() shl shift)
         shift += 7
-    } while (byte >= 0x80)
+    } while (byte >= 128u)
     return result
 }
 
@@ -72,6 +52,17 @@ fun ByteBuf.writeString(value: String) {
     writeBytes(bytes)
 }
 
+fun ByteBuf.asString(): String {
+    val start = readerIndex()
+    val valueClone = copy(start, readableBytes())
+    val output = StringBuilder()
+    valueClone.forEachByte {
+        output.append(it.toUByte().toString())
+        output.append(", ")
+        true
+    }
+    return output.toString()
+}
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun String.copiedBuffer(): ByteBuf = Unpooled.copiedBuffer(this, Charsets.UTF_8)

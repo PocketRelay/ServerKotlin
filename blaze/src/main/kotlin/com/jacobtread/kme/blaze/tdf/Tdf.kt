@@ -11,7 +11,7 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
         const val GROUP = 0x3
         const val LIST = 0x4
         const val MAP = 0x5
-        const val UNION = 0x6
+        const val OPTIONAL = 0x6
         const val INT_LIST = 0x7
         const val PAIR = 0x8
         const val TRIPPLE = 0x9
@@ -102,7 +102,7 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
                 GROUP -> GroupTdf.read(label, input)
                 LIST -> ListTdf.read(label, input)
                 MAP -> MapTdf.read(label, input)
-                UNION -> OptionalTdf.read(label, input)
+                OPTIONAL -> OptionalTdf.read(label, input)
                 INT_LIST -> VarIntList.read(label, input)
                 PAIR -> PairTdf.read(label, input)
                 TRIPPLE -> TrippleTdf.read(label, input)

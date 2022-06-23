@@ -10,8 +10,8 @@ import kotlin.concurrent.write
 object GameManager {
 
     private val gamesLock = ReentrantReadWriteLock()
-    private val games = HashMap<Long, Game>()
-    private var gameId: Int = 0
+    private val games = HashMap<ULong, Game>()
+    private var gameId: UInt = 0u
 
     fun createGame(host: PlayerSession): Game = gamesLock.write {
         removeInactive()
@@ -26,14 +26,14 @@ object GameManager {
     fun tryFindGame(test: (Game) -> Boolean): Game? = gamesLock.read { games.values.firstOrNull(test) }
 
     private fun removeInactive() {
-        val removeKeys = ArrayList<Long>()
+        val removeKeys = ArrayList<ULong>()
         games.forEach { (key, game) ->
             if (game.isInActive()) removeKeys.add(key)
         }
         removeKeys.forEach { games.remove(it) }
     }
 
-    fun getGameById(id: Long): Game? = gamesLock.read { games.values.find { it.id == id } }
+    fun getGameById(id: ULong): Game? = gamesLock.read { games.values.find { it.id == id } }
     fun releaseGame(game: Game) = gamesLock.write {
         Logger.info("Releasing game back to pool (${game.id}, ${game.mid})")
         games.remove(game.id)

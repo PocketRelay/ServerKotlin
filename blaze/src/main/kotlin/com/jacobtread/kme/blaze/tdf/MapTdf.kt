@@ -45,12 +45,26 @@ class MapTdf(
         out.writeVarInt(entries.size)
         for ((key, value) in entries) {
             when (keyType) {
-                VARINT -> out.writeVarInt(key as Any)
+                VARINT -> {
+                    when (key) {
+                        is Int -> out.writeVarInt(key)
+                        is Long -> out.writeVarInt(key)
+                        is ULong -> out.writeVarInt(key)
+                        is UInt -> out.writeVarInt(key)
+                    }
+                }
                 STRING -> out.writeString(key as String)
                 FLOAT -> out.writeFloat(key as Float)
             }
             when (valueType) {
-                VARINT -> out.writeVarInt(value as Any)
+                VARINT -> {
+                    when (value) {
+                        is Int -> out.writeVarInt(value)
+                        is Long -> out.writeVarInt(value)
+                        is ULong -> out.writeVarInt(value)
+                        is UInt -> out.writeVarInt(value)
+                    }
+                }
                 STRING -> out.writeString(value as String)
                 GROUP -> (value as GroupTdf).write(out)
                 FLOAT -> out.writeFloat(value as Float)
