@@ -2,54 +2,6 @@ package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.blaze.*
-import com.jacobtread.kme.blaze.Commands.ADVANCE_GAME_STATE
-import com.jacobtread.kme.blaze.Commands.CANCEL_MATCHMAKING
-import com.jacobtread.kme.blaze.Commands.CREATE_ACCOUNT
-import com.jacobtread.kme.blaze.Commands.CREATE_GAME
-import com.jacobtread.kme.blaze.Commands.FETCH_CLIENT_CONFIG
-import com.jacobtread.kme.blaze.Commands.FETCH_MESSAGES
-import com.jacobtread.kme.blaze.Commands.GAME_MANAGER_1E
-import com.jacobtread.kme.blaze.Commands.GAME_MANAGER_74
-import com.jacobtread.kme.blaze.Commands.GAME_MANAGER_CA
-import com.jacobtread.kme.blaze.Commands.GAME_REPORT_RESULT_72
-import com.jacobtread.kme.blaze.Commands.GET_AUTH_TOKEN
-import com.jacobtread.kme.blaze.Commands.GET_CENTERED_LEADERBOARD
-import com.jacobtread.kme.blaze.Commands.GET_FILTERED_LEADERBOARD
-import com.jacobtread.kme.blaze.Commands.GET_LEADERBOARD_ENTITY_COUNT
-import com.jacobtread.kme.blaze.Commands.GET_LEADERBOARD_GROUP
-import com.jacobtread.kme.blaze.Commands.GET_LISTS
-import com.jacobtread.kme.blaze.Commands.LIST_USER_ENTITLEMENTS_2
-import com.jacobtread.kme.blaze.Commands.LOGIN
-import com.jacobtread.kme.blaze.Commands.LOGIN_PERSONA
-import com.jacobtread.kme.blaze.Commands.LOGOUT
-import com.jacobtread.kme.blaze.Commands.MIGRATE_ADMIN_PLAYER
-import com.jacobtread.kme.blaze.Commands.ORIGIN_LOGIN
-import com.jacobtread.kme.blaze.Commands.PING
-import com.jacobtread.kme.blaze.Commands.POST_AUTH
-import com.jacobtread.kme.blaze.Commands.PRE_AUTH
-import com.jacobtread.kme.blaze.Commands.REMOVE_PLAYER
-import com.jacobtread.kme.blaze.Commands.RESUME_SESSION
-import com.jacobtread.kme.blaze.Commands.SEND_MESSAGE
-import com.jacobtread.kme.blaze.Commands.SET_CLIENT_METRICS
-import com.jacobtread.kme.blaze.Commands.SET_GAME_ATTRIBUTES
-import com.jacobtread.kme.blaze.Commands.SET_GAME_SETTINGS
-import com.jacobtread.kme.blaze.Commands.SILENT_LOGIN
-import com.jacobtread.kme.blaze.Commands.START_MATCHMAKING
-import com.jacobtread.kme.blaze.Commands.SUBMIT_OFFLINE_GAME_REPORT
-import com.jacobtread.kme.blaze.Commands.SUSPEND_USER_PING
-import com.jacobtread.kme.blaze.Commands.UPDATE_HARDWARE_FLAGS
-import com.jacobtread.kme.blaze.Commands.UPDATE_MESH_CONNECTION
-import com.jacobtread.kme.blaze.Commands.UPDATE_NETWORK_INFO
-import com.jacobtread.kme.blaze.Commands.USER_SETTINGS_LOAD_ALL
-import com.jacobtread.kme.blaze.Commands.USER_SETTINGS_SAVE
-import com.jacobtread.kme.blaze.Components.ASSOCIATION_LISTS
-import com.jacobtread.kme.blaze.Components.AUTHENTICATION
-import com.jacobtread.kme.blaze.Components.GAME_MANAGER
-import com.jacobtread.kme.blaze.Components.GAME_REPORTING
-import com.jacobtread.kme.blaze.Components.MESSAGING
-import com.jacobtread.kme.blaze.Components.STATS
-import com.jacobtread.kme.blaze.Components.USER_SESSIONS
-import com.jacobtread.kme.blaze.Components.UTIL
 import com.jacobtread.kme.blaze.tdf.GroupTdf
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.data.LoginError
@@ -57,10 +9,10 @@ import com.jacobtread.kme.database.Message
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.exceptions.NotAuthenticatedException
 import com.jacobtread.kme.game.GameManager
-import com.jacobtread.kme.game.match.Matchmaking
 import com.jacobtread.kme.game.PlayerSession
 import com.jacobtread.kme.game.PlayerSession.NetData
 import com.jacobtread.kme.game.match.MatchRuleSet
+import com.jacobtread.kme.game.match.Matchmaking
 import com.jacobtread.kme.utils.IPAddress
 import com.jacobtread.kme.utils.comparePasswordHash
 import com.jacobtread.kme.utils.hashPassword
@@ -131,11 +83,13 @@ class MainInitializer : ChannelInitializer<Channel>() {
  */
 private class MainHandler(
     private val session: PlayerSession,
-) : SimpleChannelInboundHandler<Packet>() {
-
-    @Suppress("NOTHING_TO_INLINE")
-    private inline operator fun Packet.unaryPlus() {
-        channel.write(this)
+) : SimpleChannelInboundHandler<Packet>(), PacketPushable {
+    
+    inline fun Packet.pushResponse(init: ContentInitializer) = push(respond(init))
+    fun Packet.pushEmptyResponse() = push(respond())
+    fun Packet.pushEmptyError(error: Int) = push(error(error))
+    override fun push(packet: Packet) {
+        channel.write(packet)
     }
 
     lateinit var channel: Channel
@@ -191,23 +145,23 @@ private class MainHandler(
     override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
         try {
             when (msg.component) {
-                AUTHENTICATION -> handleAuthentication(msg)
-                GAME_MANAGER -> handleGameManager(msg)
-                STATS -> handleStats(msg)
-                MESSAGING -> handleMessaging(msg)
-                ASSOCIATION_LISTS -> handleAssociationLists(msg)
-                GAME_REPORTING -> handleGameReporting(msg)
-                USER_SESSIONS -> handleUserSessions(msg)
-                UTIL -> handleUtil(msg)
-                else -> +msg.respond()
+                Components.AUTHENTICATION -> handleAuthentication(msg)
+                Components.GAME_MANAGER -> handleGameManager(msg)
+                Components.STATS -> handleStats(msg)
+                Components.MESSAGING -> handleMessaging(msg)
+                Components.ASSOCIATION_LISTS -> handleAssociationLists(msg)
+                Components.GAME_REPORTING -> handleGameReporting(msg)
+                Components.USER_SESSIONS -> handleUserSessions(msg)
+                Components.UTIL -> handleUtil(msg)
+                else -> pushEmptyResponse(msg)
             }
         } catch (e: NotAuthenticatedException) { // Handle player access with no player
             val address = channel.remoteAddress()
-            +LoginError.INVALID_ACCOUNT(msg)
+            push(LoginError.INVALID_ACCOUNT(msg))
             Logger.warn("Client at $address tried to access a authenticated route without authenticating")
         } catch (e: Exception) {
             Logger.warn("Failed to handle packet: $msg", e)
-            +msg.respond()
+            msg.pushEmptyResponse()
         }
         ctx.flush()
         msg.release() // Release content from message at end of handling
@@ -223,15 +177,15 @@ private class MainHandler(
      */
     private fun handleAuthentication(packet: Packet) {
         when (packet.command) {
-            LIST_USER_ENTITLEMENTS_2 -> handleListUserEntitlements2(packet)
-            GET_AUTH_TOKEN -> handleGetAuthToken(packet)
-            LOGIN -> handleLogin(packet)
-            SILENT_LOGIN -> handleSilentLogin(packet)
-            LOGIN_PERSONA -> handleLoginPersona(packet)
-            ORIGIN_LOGIN -> handleOriginLogin(packet)
-            CREATE_ACCOUNT -> handleCreateAccount(packet)
-            LOGOUT -> handleLogout(packet)
-            else -> +packet.respond()
+            Commands.LIST_USER_ENTITLEMENTS_2 -> handleListUserEntitlements2(packet)
+            Commands.GET_AUTH_TOKEN -> handleGetAuthToken(packet)
+            Commands.LOGIN -> handleLogin(packet)
+            Commands.SILENT_LOGIN -> handleSilentLogin(packet)
+            Commands.LOGIN_PERSONA -> handleLoginPersona(packet)
+            Commands.ORIGIN_LOGIN -> handleOriginLogin(packet)
+            Commands.CREATE_ACCOUNT -> handleCreateAccount(packet)
+            Commands.LOGOUT -> handleLogout(packet)
+            else -> packet.pushEmptyResponse()
         }
     }
 
@@ -244,7 +198,7 @@ private class MainHandler(
      */
     private fun handleOriginLogin(packet: Packet) {
         info("Recieved unsupported request for Origin Login")
-        +packet.respond()
+        packet.pushEmptyResponse()
     }
 
     /**
@@ -257,7 +211,7 @@ private class MainHandler(
         val player = session.player
         info("Logged out player ${player.displayName}")
         session.setAuthenticated(null)
-        +packet.respond()
+        packet.pushEmptyResponse()
     }
 
     /**
@@ -270,18 +224,17 @@ private class MainHandler(
     private fun handleListUserEntitlements2(packet: Packet) {
         val etag = packet.text("ETAG")
         if (etag.isNotEmpty()) { // Empty responses for packets with ETAG's
-            return +packet.respond()
+            return packet.pushEmptyResponse()
         }
 
         // Respond with the entitlements
-        val response = packet.respond { Data.createUserEntitlements(this) }
-        channel.write(response)
+        packet.pushResponse { Data.createUserEntitlements(this) }
 
         // If the player hasn't yet recieved their session info send them it
         if (!session.sendSession) {
             session.sendSession = true
             // Send a set session packet for the current player
-            channel.write(session.createSetSession())
+            push(session.createSetSession())
         }
     }
 
@@ -309,27 +262,27 @@ private class MainHandler(
         val email: String = packet.text("MAIL")
         val password: String = packet.text("PASS")
         if (email.isBlank() || password.isBlank()) { // If we are missing email or password
-            return +LoginError.INVALID_ACCOUNT(packet)
+            return push(LoginError.INVALID_ACCOUNT(packet))
         }
 
         // Regex for matching emails
         val emailRegex = Regex("^[\\p{L}\\p{N}._%+-]+@[\\p{L}\\p{N}.\\-]+\\.\\p{L}{2,}$")
         if (!email.matches(emailRegex)) { // If the email is not a valid email
-            return +LoginError.INVALID_EMAIL(packet)
+            return push(LoginError.INVALID_EMAIL(packet))
         }
 
         // Retrieve the player with this email or send an email not found error
-        val player = Player.getByEmail(email) ?: return +LoginError.EMAIL_NOT_FOUND(packet)
+        val player = Player.getByEmail(email) ?: return push(LoginError.EMAIL_NOT_FOUND(packet))
 
         // Compare the provided password with the hashed password of the player
         if (!comparePasswordHash(password, player.password)) { // If it's not the same password
-            return +LoginError.WRONG_PASSWORD(packet)
+            return push(LoginError.WRONG_PASSWORD(packet))
         }
 
         session.setAuthenticated(player) // Set the authenticated session
 
         // Send the authenticated response with a persona list
-        +packet.respond {
+        packet.pushResponse {
             text("LDHT", "")
             number("NTOS", 0)
             text("PCTK", player.sessionToken)
@@ -358,13 +311,13 @@ private class MainHandler(
         val pid: ULong = packet.number("PID")
         val auth: String = packet.text("AUTH")
         // Find the player with a matching ID or send an INVALID_ACCOUNT error
-        val player = Player.getById(pid) ?: return +LoginError.INVALID_ACCOUNT(packet)
+        val player = Player.getById(pid) ?: return push(LoginError.INVALID_ACCOUNT(packet))
         // If the session token's don't match send INVALID_ACCOUNT error
-        if (!player.isSessionToken(auth)) return +LoginError.INVALID_ACCOUNT(packet)
+        if (!player.isSessionToken(auth)) return push(LoginError.INVALID_ACCOUNT(packet))
         val sessionToken = player.sessionToken // Session token grabbed after auth as to not generate new one
         session.setAuthenticated(player)
         // We don't store last login time so this is just computed here
-        +packet.respond {
+        packet.pushResponse {
             number("AGUP", 0)
             text("LDHT", "")
             number("NTOS", 0)
@@ -376,8 +329,8 @@ private class MainHandler(
             text("TSUI", "")
             text("TURI", "")
         }
-        +session.createSessionDetails()
-        +session.createIdentityUpdate()
+        push(session.createSessionDetails())
+        push(session.createIdentityUpdate())
     }
 
     /**
@@ -390,7 +343,7 @@ private class MainHandler(
         val email: String = packet.text("MAIL")
         val password: String = packet.text("PASS")
         if (Player.isEmailTaken(email)) { // Check if the email is already in use
-            return +LoginError.EMAIL_ALREADY_IN_USE(packet)
+            return push(LoginError.EMAIL_ALREADY_IN_USE(packet))
         }
         val hashedPassword = hashPassword(password) // Hash the password
         // Create the new player account
@@ -402,7 +355,7 @@ private class MainHandler(
             }
         }
         session.setAuthenticated(player) // Link the player to this session
-        +packet.respond {
+        packet.pushResponse {
             text("LDHT", "")
             number("NTOS", 0)
             text("PCTK", player.sessionToken)
@@ -424,11 +377,11 @@ private class MainHandler(
      * @param packet The packet requesting persona login
      */
     private fun handleLoginPersona(packet: Packet) {
-        +packet.respond {
+        packet.pushResponse {
             session.appendPlayerSession(this)
         }
-        +session.createSessionDetails()
-        +session.createIdentityUpdate()
+        push(session.createSessionDetails())
+        push(session.createIdentityUpdate())
     }
 
     //endregion
@@ -443,15 +396,15 @@ private class MainHandler(
      */
     private fun handleGameManager(packet: Packet) {
         when (packet.command) {
-            CREATE_GAME -> handleCreateGame(packet)
-            ADVANCE_GAME_STATE -> handleAdvanceGameState(packet)
-            SET_GAME_SETTINGS -> handleSetGameSettings(packet)
-            SET_GAME_ATTRIBUTES -> handleSetGameAttributes(packet)
-            REMOVE_PLAYER -> handleRemovePlayer(packet)
-            START_MATCHMAKING -> handleStartMatchmaking(packet)
-            CANCEL_MATCHMAKING -> handleCancelMatchmaking(packet)
-            UPDATE_MESH_CONNECTION -> handleUpdateMeshConnection(packet)
-            else -> +packet.respond()
+            Commands.CREATE_GAME -> handleCreateGame(packet)
+            Commands.ADVANCE_GAME_STATE -> handleAdvanceGameState(packet)
+            Commands.SET_GAME_SETTINGS -> handleSetGameSettings(packet)
+            Commands.SET_GAME_ATTRIBUTES -> handleSetGameAttributes(packet)
+            Commands.REMOVE_PLAYER -> handleRemovePlayer(packet)
+            Commands.START_MATCHMAKING -> handleStartMatchmaking(packet)
+            Commands.CANCEL_MATCHMAKING -> handleCancelMatchmaking(packet)
+            Commands.UPDATE_MESH_CONNECTION -> handleUpdateMeshConnection(packet)
+            else -> packet.pushEmptyResponse()
         }
     }
 
@@ -472,9 +425,9 @@ private class MainHandler(
         }
 
         game.setAttributes(attributes ?: emptyMap()) // If the attributes are missing use empty
-        +packet.respond { number("GID", game.id) }
-        channel.write(game.createPoolPacket(true)) // Send the game pool details
-        channel.write(session.createSetSession()) // Send the user session
+        packet.pushResponse { number("GID", game.id) }
+        push(game.createPoolPacket(true)) // Send the game pool details
+        push(session.createSetSession()) // Send the user session
         channel.flush()
         Matchmaking.onGameCreated(game)
     }
@@ -493,7 +446,7 @@ private class MainHandler(
         if (game != null) {
             game.gameState = gameState
         }
-        +packet.respond()
+        packet.pushEmptyResponse()
     }
 
     /**
@@ -509,9 +462,8 @@ private class MainHandler(
         if (game != null) {
             game.gameSetting = setting
         }
-        +packet.respond()
-
-        +unique(GAME_MANAGER, MIGRATE_ADMIN_PLAYER) {
+        packet.pushEmptyResponse()
+        pushUnique(Components.GAME_MANAGER, Commands.MIGRATE_ADMIN_PLAYER) {
             number("ATTR", setting)
             number("GID", gameId)
         }
@@ -526,13 +478,13 @@ private class MainHandler(
      */
     private fun handleSetGameAttributes(packet: Packet) {
         val gameId = packet.number("GID")
-        val attributes = packet.mapOrNull<String, String>("ATTR") ?: return +packet.respond()
+        val attributes = packet.mapOrNull<String, String>("ATTR") ?: return packet.pushEmptyResponse()
         val game = GameManager.getGameById(gameId)
         if (game != null) {
             game.setAttributes(attributes)
             game.broadcastAttributeUpdate()
         }
-        +packet.respond()
+        packet.pushEmptyResponse()
     }
 
     /**
@@ -546,7 +498,7 @@ private class MainHandler(
         val gameId = packet.number("GID")
         val game = GameManager.getGameById(gameId)
         game?.removePlayer(playerId)
-        +packet.respond()
+        packet.pushEmptyResponse()
     }
 
     /**
@@ -562,19 +514,19 @@ private class MainHandler(
         info("Player ${player.displayName} started match making")
 
         val ruleSet = MatchRuleSet(packet)
-        val game = Matchmaking.getMatchOrQueue(session, ruleSet) ?: return +packet.respond()
+        val game = Matchmaking.getMatchOrQueue(session, ruleSet) ?: return packet.pushEmptyResponse()
         info("Found matching game for player ${player.displayName}")
         game.join(session)
-        +packet.respond {
+        packet.pushResponse {
             number("MSID", game.mid)
             number("GID", game.id)
         }
-        +game.host.createSessionDetails()
+        push(game.host.createSessionDetails())
         game.getActivePlayers().forEach {
             val sessionDetails = it.createSessionDetails()
-            +sessionDetails
+            push(sessionDetails)
         }
-        +game.createPoolPacket(false)
+        push(game.createPoolPacket(false))
     }
 
     /**
@@ -588,7 +540,7 @@ private class MainHandler(
         info("Player ${player.displayName} cancelled match making")
         Matchmaking.removeFromQueue(session)
         session.leaveGame()
-        +packet.respond()
+        packet.pushEmptyResponse()
     }
 
     /**
@@ -601,36 +553,34 @@ private class MainHandler(
         val gameId = packet.number("GID")
         val game = GameManager.getGameById(gameId)
         if (game == null || !session.matchmaking) {
-            return +packet.respond()
+            return packet.pushEmptyResponse()
         }
         val player = session.player
         val host = game.host
         session.matchmaking = false
-        val a = unique(GAME_MANAGER, GAME_MANAGER_74) {
+        val a = unique(Components.GAME_MANAGER, Commands.GAME_MANAGER_74) {
             number("GID", gameId)
             number("PID", player.playerId)
             number("STAT", 4)
         }
-        val b = unique(GAME_MANAGER, GAME_MANAGER_1E) {
+        val b = unique(Components.GAME_MANAGER, Commands.GAME_MANAGER_1E) {
             number("GID", gameId)
             number("PID", player.playerId)
         }
-        val c = unique(GAME_MANAGER, GAME_MANAGER_CA) {
+        val c = unique(Components.GAME_MANAGER, Commands.GAME_MANAGER_CA) {
             number("ALST", player.playerId)
             number("GID", gameId)
             number("OPER", 0)
             number("UID", host.playerId)
         }
 
+        // Retain all the content buffers so they can be sent to the host aswell
         a.contentBuffer.retain()
         b.contentBuffer.retain()
         c.contentBuffer.retain()
 
-        +a
-        +b
-        +c
-
-        host.send(a, b, c)
+        pushAll(a, b, c)
+        host.pushAll(a, b, c)
     }
 
     //endregion
@@ -645,11 +595,11 @@ private class MainHandler(
      */
     private fun handleStats(packet: Packet) {
         when (packet.command) {
-            GET_LEADERBOARD_GROUP -> handleLeaderboardGroup(packet)
-            GET_FILTERED_LEADERBOARD -> handleFilteredLeaderboard(packet)
-            GET_LEADERBOARD_ENTITY_COUNT -> handleLeaderboardEntityCount(packet)
-            GET_CENTERED_LEADERBOARD -> handleCenteredLeadboard(packet)
-            else -> +packet.respond()
+            Commands.GET_LEADERBOARD_GROUP -> handleLeaderboardGroup(packet)
+            Commands.GET_FILTERED_LEADERBOARD -> handleFilteredLeaderboard(packet)
+            Commands.GET_LEADERBOARD_ENTITY_COUNT -> handleLeaderboardEntityCount(packet)
+            Commands.GET_CENTERED_LEADERBOARD -> handleCenteredLeadboard(packet)
+            else -> packet.pushEmptyResponse()
         }
     }
 
@@ -709,7 +659,7 @@ private class MainHandler(
                 sdsc = "Challenge Points"
                 gname = "ME3ChallengePoints"
             }
-            +packet.respond {
+            packet.pushResponse {
                 number("ACSD", 0x0)
                 text("BNAM", name)
                 text("DESC", desc)
@@ -739,7 +689,7 @@ private class MainHandler(
                 text("SNAM", sname)
             }
         } else {
-            +packet.respond()
+            packet.pushEmptyResponse()
         }
     }
 
@@ -754,7 +704,7 @@ private class MainHandler(
         when (name) {
             "N7RatingGlobal" -> {
                 val rating = player.getN7Rating().toString()
-                +packet.respond {
+                packet.pushResponse {
                     list("LDLS", listOf(
                         group {
                             text("ENAM", player.displayName)
@@ -771,7 +721,7 @@ private class MainHandler(
             }
             "ChallengePointsGlobal" -> {
                 val challengePoints = "0"
-                +packet.respond {
+                packet.pushResponse {
                     list("LDLS", listOf(
                         group {
                             text("ENAM", player.displayName)
@@ -786,7 +736,7 @@ private class MainHandler(
                     ))
                 }
             }
-            else -> +packet.respond()
+            else -> packet.pushEmptyResponse()
         }
     }
 
@@ -798,11 +748,9 @@ private class MainHandler(
      * @param packet The packet requesting the leadboard entity count
      */
     private fun handleLeaderboardEntityCount(packet: Packet) {
-        transaction {
-            val playerCount = Player.count()
-            +packet.respond {
-                number("CNT", playerCount)
-            }
+        val playerCount = transaction { Player.count() }
+        packet.pushResponse {
+            number("CNT", playerCount)
         }
     }
 
@@ -813,7 +761,7 @@ private class MainHandler(
      */
     private fun handleCenteredLeadboard(packet: Packet) {
         // TODO: Currenlty not implemented
-        +packet.respond {
+        packet.pushResponse {
             list("LDLS", emptyList<GroupTdf>())
         }
     }
@@ -830,8 +778,8 @@ private class MainHandler(
      */
     private fun handleMessaging(packet: Packet) {
         when (packet.command) {
-            FETCH_MESSAGES -> handleFetchMessages(packet)
-            else -> +packet.respond()
+            Commands.FETCH_MESSAGES -> handleFetchMessages(packet)
+            else -> packet.pushEmptyResponse()
         }
     }
 
@@ -843,14 +791,14 @@ private class MainHandler(
      * @param packet The packet requesting the messages
      */
     private fun handleFetchMessages(packet: Packet) {
-        +packet.respond { number("MCNT", 0x1) } // Number of messages
+        packet.pushResponse { number("MCNT", 0x1) } // Number of messages
         val ip = channel.remoteAddress().toString()
         val player = session.player
         val menuMessage = Environment.Config.menuMessage
             .replace("{v}", Environment.KME_VERSION)
             .replace("{n}", player.displayName)
             .replace("{ip}", ip) + 0xA.toChar()
-        +unique(MESSAGING, SEND_MESSAGE) {
+        pushUnique(Components.MESSAGING, Commands.SEND_MESSAGE) {
             number("FLAG", 0x01)
             number("MGID", 0x01)
             text("NAME", menuMessage)
@@ -880,8 +828,8 @@ private class MainHandler(
      */
     private fun handleAssociationLists(packet: Packet) {
         when (packet.command) {
-            GET_LISTS -> handleAssociationListGetLists(packet)
-            else -> +packet.respond()
+            Commands.GET_LISTS -> handleAssociationListGetLists(packet)
+            else -> packet.pushEmptyResponse()
         }
     }
 
@@ -892,7 +840,7 @@ private class MainHandler(
      * @param packet The packet requesting the list
      */
     private fun handleAssociationListGetLists(packet: Packet) {
-        +packet.respond {
+        packet.pushResponse {
             list("LMAP", listOf(
                 group {
                     +group("INFO") {
@@ -923,25 +871,15 @@ private class MainHandler(
      * @param packet The packet requesting the GAME_REPORTING
      */
     private fun handleGameReporting(packet: Packet) {
-        when (packet.command) {
-            SUBMIT_OFFLINE_GAME_REPORT -> handleOfflineGameReport(packet)
-            else -> +packet.respond()
-        }
-    }
-
-    /**
-     * handleOfflineGameReport Handles offline report submission
-     *
-     * @param packet The packet requesting submission of offline game report
-     */
-    private fun handleOfflineGameReport(packet: Packet) {
-        +packet.respond()
-        +unique(GAME_REPORTING, GAME_REPORT_RESULT_72) {
-            varList("DATA")
-            number("EROR", 0)
-            number("FNL", 0)
-            number("GHID", 0)
-            number("GRID", 0)
+        packet.pushEmptyResponse()
+        if (packet.command == Commands.SUBMIT_OFFLINE_GAME_REPORT) {
+            pushUnique(Components.GAME_REPORTING, Commands.GAME_REPORT_RESULT_72) {
+                varList("DATA")
+                number("EROR", 0)
+                number("FNL", 0)
+                number("GHID", 0)
+                number("GRID", 0)
+            }
         }
     }
 
@@ -957,11 +895,11 @@ private class MainHandler(
      */
     private fun handleUserSessions(packet: Packet) {
         when (packet.command) {
-            UPDATE_HARDWARE_FLAGS,
-            UPDATE_NETWORK_INFO,
+            Commands.UPDATE_HARDWARE_FLAGS,
+            Commands.UPDATE_NETWORK_INFO,
             -> updateSessionNetworkInfo(packet)
-            RESUME_SESSION -> handleResumeSession(packet)
-            else -> +packet.respond()
+            Commands.RESUME_SESSION -> handleResumeSession(packet)
+            else -> packet.pushEmptyResponse()
         }
     }
 
@@ -975,9 +913,9 @@ private class MainHandler(
      */
     private fun handleResumeSession(packet: Packet) {
         val sessionKey = packet.text("SKEY");
-        val player = Player.getBySessionKey(sessionKey) ?: return +LoginError.INVALID_INFORMATION(packet)
+        val player = Player.getBySessionKey(sessionKey) ?: return push(LoginError.INVALID_INFORMATION(packet))
         session.setAuthenticated(player) // Set the authenticated session
-        +packet.respond()
+        packet.pushEmptyResponse()
     }
 
     /**
@@ -997,7 +935,7 @@ private class MainHandler(
             session.intNetData = NetData(addressEncoded, port)
             session.extNetData = NetData(addressEncoded, port)
         }
-        +packet.respond()
+        packet.pushEmptyResponse()
     }
 
     //endregion
@@ -1006,15 +944,14 @@ private class MainHandler(
 
     private fun handleUtil(packet: Packet) {
         when (packet.command) {
-            FETCH_CLIENT_CONFIG -> handleFetchClientConfig(packet)
-            PING -> handlePing(packet)
-            PRE_AUTH -> handlePreAuth(packet)
-            POST_AUTH -> handlePostAuth(packet)
-            USER_SETTINGS_SAVE -> handleUserSettingsSave(packet)
-            USER_SETTINGS_LOAD_ALL -> handleUserSettingsLoadAll(packet)
-            SET_CLIENT_METRICS -> +packet.respond()
-            SUSPEND_USER_PING -> handleSuspendUserPing(packet)
-            else -> +packet.respond()
+            Commands.FETCH_CLIENT_CONFIG -> handleFetchClientConfig(packet)
+            Commands.PING -> handlePing(packet)
+            Commands.PRE_AUTH -> handlePreAuth(packet)
+            Commands.POST_AUTH -> handlePostAuth(packet)
+            Commands.USER_SETTINGS_SAVE -> handleUserSettingsSave(packet)
+            Commands.USER_SETTINGS_LOAD_ALL -> handleUserSettingsLoadAll(packet)
+            Commands.SUSPEND_USER_PING -> handleSuspendUserPing(packet)
+            else -> packet.pushEmptyResponse()
         }
     }
 
@@ -1045,7 +982,7 @@ private class MainHandler(
                 else -> emptyMap()
             }
         }
-        +packet.respond { map("CONF", conf) }
+        packet.pushResponse { map("CONF", conf) }
     }
 
     private fun getServerMessages(): LinkedHashMap<String, String> {
@@ -1082,7 +1019,7 @@ private class MainHandler(
     private fun handlePing(packet: Packet) {
         Logger.logIfDebug { "Received ping update from client: ${session.sessionId}" }
         session.lastPingTime = System.currentTimeMillis()
-        +packet.respond { number("STIM", unixTimeSeconds()) }
+        packet.pushResponse { number("STIM", unixTimeSeconds()) }
     }
 
     /**
@@ -1092,7 +1029,7 @@ private class MainHandler(
      * @param packet The packet requesting pre-auth information
      */
     private fun handlePreAuth(packet: Packet) {
-        +packet.respond {
+        packet.pushResponse {
             number("ANON", 0x0)
             number("ASRC", 303107)
             list("CIDS", Data.CIDS)
@@ -1157,7 +1094,7 @@ private class MainHandler(
      * @param packet The packet requesting post-auth information
      */
     private fun handlePostAuth(packet: Packet) {
-        +packet.respond {
+        packet.pushResponse {
             +group("PSS") {
                 text("ADRS", "playersyncservice.ea.com")
                 blob("CSIG")
@@ -1213,7 +1150,7 @@ private class MainHandler(
         if (value != null && key != null) {
             session.player.setSetting(key, value)
         }
-        +packet.respond()
+        packet.pushEmptyResponse()
     }
 
     /**
@@ -1223,7 +1160,7 @@ private class MainHandler(
      * @param packet The packet requesting the user settings
      */
     private fun handleUserSettingsLoadAll(packet: Packet) {
-        +packet.respond {
+        packet.pushResponse {
             map("SMAP", session.player.createSettingsMap())
         }
     }
@@ -1234,10 +1171,10 @@ private class MainHandler(
      * @param packet The packet requesting suspend user ping
      */
     private fun handleSuspendUserPing(packet: Packet) {
-        +when (packet.numberOrNull("TVAL")) {
-            0x1312D00uL -> packet.error(0x12D)
-            0x55D4A80uL -> packet.error(0x12E)
-            else -> packet.respond()
+        when (packet.numberOrNull("TVAL")) {
+            0x1312D00uL -> packet.pushEmptyError(0x12D)
+            0x55D4A80uL -> packet.pushEmptyError(0x12E)
+            else -> packet.pushEmptyResponse()
         }
     }
 

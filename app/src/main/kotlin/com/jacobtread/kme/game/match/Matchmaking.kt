@@ -42,11 +42,11 @@ object Matchmaking {
                 val (session, ruleSet) = iterator.next()
                 if (ruleSet.validate(attributes)) {
                     game.join(session)
-                    session.send(game.host.createSessionDetails())
+                    session.push(game.host.createSessionDetails())
                     game.getActivePlayers().forEach {
-                        session.send(it.createSessionDetails())
+                        session.push(it.createSessionDetails())
                     }
-                    session.send(game.createPoolPacket(false))
+                    session.push(game.createPoolPacket(false))
                     waitingLock.write {
                         session.matchmaking = false
                         iterator.remove()

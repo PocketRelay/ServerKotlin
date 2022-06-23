@@ -51,7 +51,7 @@ class Game(
     private fun sendHostPlayerJoin(session: PlayerSession) {
         val player = session.player
         val sessionDetails = session.createSessionDetails()
-        host.send(
+        host.pushAll(
             sessionDetails,
             unique(Components.GAME_MANAGER, Commands.JOIN_GAME_BY_GROUP) {
                 number("GID", id)
@@ -109,8 +109,8 @@ class Game(
             players.forEach {
                 if (it != host) {
                     val userPacket = unique(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", it.playerId) }
-                    it.send(hostPacket)
-                    host.send(userPacket)
+                    it.push(hostPacket)
+                    host.push(userPacket)
                 }
             }
 
@@ -133,7 +133,7 @@ class Game(
         playersLock.read {
             val packet = createNotifyPacket()
             packet.contentBuffer.retain(players.size - 1)
-            players.forEach { it.send(packet) }
+            players.forEach { it.push(packet) }
         }
     }
 

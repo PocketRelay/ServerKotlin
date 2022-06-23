@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger
  *
  * @constructor Create empty PlayerSession
  */
-class PlayerSession {
+class PlayerSession : PacketPushable {
 
     /**
      * NetData Represents an IP address and a port that belongs to a session
@@ -34,10 +34,12 @@ class PlayerSession {
      */
     data class NetData(var address: ULong, var port: ULong) {
         fun createGroup(label: String): GroupTdf {
-          return GroupTdf(label, false, listOf(
-               VarIntTdf("IP", address),
-               VarIntTdf("PORT", port)
-           ))
+            return GroupTdf(
+                label, false, listOf(
+                    VarIntTdf("IP", address),
+                    VarIntTdf("PORT", port)
+                )
+            )
         }
     }
 
@@ -115,23 +117,12 @@ class PlayerSession {
     }
 
     /**
-     * send Sends multiple packets to the channel for this session. Will
-     * write all the packets before flushing the channel
+     * push Sends a single packet to the channel for this
+     * session then flushes
      *
-     * @param packets The packets to send
+     * @param packet
      */
-    fun send(vararg packets: Packet) {
-        val channel = channel ?: return // TODO: Throw closed access exception?
-        packets.forEach { channel.write(it) }
-        channel.flush()
-    }
-
-    /**
-     * send Sends a single packet to the channel and flushes straight away
-     *
-     * @param packet The packet to send
-     */
-    fun send(packet: Packet) {
+    override fun push(packet: Packet) {
         val channel = channel ?: return // TODO: Throw closed access exception?
         channel.write(packet)
         channel.flush()
