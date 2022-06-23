@@ -155,9 +155,12 @@ internal class TdfTest {
             VarIntList(LabelGen(), valuesList)
         }
 
+        private val PairTdfGen: Generator<PairTdf> = { PairTdf(LabelGen(), PairGen()) }
+        private val TrippleTdfGen: Generator<TrippleTdf> = { TrippleTdf(LabelGen(), TrippleGen()) }
+        private val FloatTdfGen: Generator<FloatTdf> = { FloatTdf(LabelGen(), FloatGen()) }
+
         private fun createRandomTdf(): Tdf<*> {
-            val random = Random.nextInt(0..10)
-            val generator: Generator<Tdf<*>> = when (random) {
+            val generator: Generator<Tdf<*>> = when (Random.nextInt(0..10)) {
                 0 -> VarIntTdfGen
                 1 -> StringTdfGen
                 2 -> BlobTdfGen
@@ -166,6 +169,9 @@ internal class TdfTest {
                 5 -> MapTdfGen
                 6 -> OptionalTdfGen
                 7 -> VarIntListTdfGen
+                8 -> PairTdfGen
+                9 -> TrippleTdfGen
+                10 -> FloatTdfGen
                 else -> throw IllegalArgumentException("Unexpected value")
             }
             return generator()
