@@ -6,11 +6,13 @@ import java.net.SocketAddress
 
 object IPAddress {
 
-    private fun convertToBytes(address: SocketAddress): ByteArray {
+    @OptIn(ExperimentalUnsignedTypes::class)
+    private fun convertToBytes(address: SocketAddress): UByteArray {
         require(address is InetSocketAddress) { "Address is not InetSocketAddress" }
-        return address.address.address
+        return address.address.address.toUByteArray()
     }
 
+    @OptIn(ExperimentalUnsignedTypes::class)
     fun asLong(address: SocketAddress): ULong {
         val bytes = convertToBytes(address)
         return (bytes[0].toULong() shl 24)

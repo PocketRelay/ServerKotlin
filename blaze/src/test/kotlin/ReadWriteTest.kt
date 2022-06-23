@@ -9,12 +9,12 @@ fun main() {
 
 fun testReadWriteVarInt() {
     val buffer = Unpooled.buffer()
-    buffer.writeVarInt(-64L)
+    buffer.writeVarInt(64uL)
 
     val bufferString = buffer.asString()
 
     val value = buffer.readVarInt()
-    assert(value == -64L)
+    assert(value == 64uL)
 
     println(value)
     println(bufferString)
