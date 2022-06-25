@@ -176,9 +176,10 @@ class Game(
                 number("IGNO", 0x0)
                 number("MCAP", 0x4)
                 +group("NQOS") {
-                    number("DBPS", if (init) 0x0 else 0x5b8d800)
-                    number("NATT", Data.NAT_TYPE)
-                    number("UBPS", if (init) 0x0 else 0x4016400)
+                    val otherNetData= host.otherNetData
+                    number("DBPS", otherNetData.dbps)
+                    number("NATT", otherNetData.natt)
+                    number("UBPS", otherNetData.ubps)
                 }
                 number("NRES", 0x0)
                 number("NTOP", 0x0)

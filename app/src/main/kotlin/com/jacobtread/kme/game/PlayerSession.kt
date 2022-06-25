@@ -45,12 +45,19 @@ class PlayerSession : PacketPushable {
         fun isDefault(): Boolean = this === SHARED_NET_DATA
     }
 
+    data class OtherNetData(
+        val dbps: ULong,
+        val natt: ULong,
+        val ubps: ULong,
+    )
+
     companion object {
         // Atomic integer for incremental session ID's
         val SESSION_ID = AtomicInteger(0)
 
         // Shared global net data to prevent unnecessary allocation for initial connections
         val SHARED_NET_DATA = NetData(0u, 0u)
+        val SHARED_OTHER_NET_DATA = OtherNetData(0u, 4u, 0u)
 
         /**
          * PLAYER_ID_FLAG The flag key for UPDATE_EXTENDED_DATA_ATTRIBUTE which indicates
@@ -77,6 +84,8 @@ class PlayerSession : PacketPushable {
             field = value
             Logger.logIfDebug { "Updated int net data for user with session ID $sessionId" }
         }
+
+    var otherNetData = SHARED_OTHER_NET_DATA
 
     // The authenticated player for this session null if the player isn't authenticated
     private var _player: Player? = null
@@ -211,9 +220,9 @@ class PlayerSession : PacketPushable {
                 list("PSLM", pslm)
             }
             +group("QDAT") {
-                number("DBPS", 0)
-                number("NATT", Data.NAT_TYPE)
-                number("UBPS", 0)
+                number("DBPS", otherNetData.dbps)
+                number("NATT", otherNetData.natt)
+                number("UBPS", otherNetData.ubps)
             }
             number("UATT", 0)
             list("ULST", listOf(VarTripple(4u, 1u, (game?.id ?: Game.MIN_ID))))
@@ -260,7 +269,7 @@ class PlayerSession : PacketPushable {
      * @param label The label to give the union
      * @return The created union
      */
-    fun createAddrOptional(label: String): OptionalTdf  {
+    fun createAddrOptional(label: String): OptionalTdf {
         return if (extNetData.isDefault() && intNetData.isDefault()) {
             OptionalTdf(label)
         } else {

@@ -453,11 +453,9 @@ private class MainHandler(
      * @param packet The packet requesting persona login
      */
     private fun handleLoginPersona(packet: Packet) {
-        packet.pushResponse {
-            session.appendPlayerSession(this)
-        }
-        push(session.createSessionDetails())
-        push(session.createIdentityUpdate())
+        packet.pushResponse { session.appendPlayerSession(this) }
+        push(session.createSessionDetails()) // Send session details
+        push(session.createIdentityUpdate()) // Ask for networking info
     }
 
     //endregion
@@ -1002,17 +1000,29 @@ private class MainHandler(
      * @param packet The packet requesting the updated networking info
      */
     private fun updateSessionNetworkInfo(packet: Packet) {
+        val displayName = session.player.displayName
         val addr: GroupTdf? = packet.unionValueOrNull("ADDR") as GroupTdf?
         if (addr != null) {
             val inip: GroupTdf = addr.group("INIP")
             val port: ULong = inip.number("PORT")
             val remoteAddress = channel.remoteAddress()
             val addressEncoded = IPAddress.asLong(remoteAddress)
-            info("Encoded address $addressEncoded (${remoteAddress.toString()}) for ${session.player.displayName}")
+            info("Updated player network info ($remoteAddress) for $displayName")
             session.intNetData = NetData(addressEncoded, port)
             session.extNetData = NetData(addressEncoded, port)
         }
+        val nqos: GroupTdf? = packet.unionValueOrNull("NQOS") as GroupTdf?
+        if (nqos != null) {
+            val dbps = nqos.number("DBPS")
+            val natt = nqos.number("NATT")
+            val ubps = nqos.number("UBPS")
+            info("Updated player other network info ($dbps, $natt, $ubps) for $displayName")
+            session.otherNetData = PlayerSession.OtherNetData(dbps, natt, ubps)
+        }
         packet.pushEmptyResponse()
+        if (addr != null || nqos != null) {
+            push(session.createSetSession()) // Send the user session
+        }
     }
 
     //endregion
