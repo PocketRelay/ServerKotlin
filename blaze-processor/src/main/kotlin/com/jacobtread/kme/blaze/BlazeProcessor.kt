@@ -96,7 +96,7 @@ class BlazeProcessor(
             )
             // Initialize the lookup variable
 
-            val routeFunc = FunSpec.builder("route")
+            val routeFunc = FunSpec.builder("route${className}")
                 .addParameter("processor", classType)
                 .addParameter("channel", Channel::class)
                 .addParameter("msg", Packet::class)
@@ -114,7 +114,7 @@ class BlazeProcessor(
                 .addImport("com.jacobtread.kme.blaze", "respond", "NotAuthenticatedException", "LoginError", "Packet")
                 .addImport("com.jacobtread.kme.utils.logging", "Logger")
                 .addImport("kotlin.system", "measureNanoTime")
-                .addType(clazz)
+                .addFunction(routeFunc)
                 .build()
             file.writeTo(codeGenerator, false)
         }

@@ -30,7 +30,6 @@ import io.netty.channel.socket.nio.NioServerSocketChannel
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.IOException
 import java.time.LocalDate
-import kotlin.system.measureNanoTime
 
 /**
  * startMainServer Starts the main server
@@ -122,7 +121,7 @@ class MainProcessor(
 
     override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
         try { // Automatic routing to the desired function
-            MainProcessorRouter.route(this, channel, msg)
+            routeMainProcessor(this, channel, msg)
         } catch (e: NotAuthenticatedException) { // Handle player access with no player
             push(LoginError.INVALID_ACCOUNT(msg))
             val address = ctx.channel().remoteAddress()
