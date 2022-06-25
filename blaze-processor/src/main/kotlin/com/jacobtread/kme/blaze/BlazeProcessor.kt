@@ -10,9 +10,12 @@ import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.*
 import com.jacobtread.kme.blaze.annotations.PacketHandler
 import com.jacobtread.kme.blaze.annotations.PacketProcessor
+import com.jacobtread.kme.utils.logging.Logger
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.jvm.jvmOverloads
+import com.squareup.kotlinpoet.ksp.toTypeName
+import com.squareup.kotlinpoet.ksp.writeTo
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.SimpleChannelInboundHandler
 import kotlin.reflect.KClass
@@ -39,13 +42,13 @@ class BlazeProcessor(
                 continue
             }
 
-            val classPackage = classDeclaration.packageName
-            val className = classDeclaration.simpleName.toString()
+            val classPackage = classDeclaration.packageName.asString()
+            val className = classDeclaration.simpleName.asString()
             val functionDeclarations: Sequence<KSFunctionDeclaration> =
                 classDeclaration.getAllFunctions()
                     .filter { it.isAnnotationPresent(PacketHandler::class) }
 
-            val functionMappings = HashMap<Int, String>()
+            val functionMappings = LinkedHashMap<Int, LinkedHashMap<Int, String>>()
 
             for (functionDeclaration in functionDeclarations) {
 
@@ -62,37 +65,54 @@ class BlazeProcessor(
                     continue
                 }
 
-                val command = handlerAnnotation.command
                 val component = handlerAnnotation.component
+                val command = handlerAnnotation.command
 
-                val lookupKey = ((component shl 16) + command)
-                val functionName = functionDeclaration.simpleName.toString()
+                val functionName = functionDeclaration.simpleName.asString()
 
-                functionMappings[lookupKey] = functionName
+                val values = functionMappings.getOrPut(component) { LinkedHashMap() }
+                values[command] = functionName
             }
-
-            val imports = """
-                |import com.jacobtread.kme.blaze.*
-                |import io.netty.channel.ChannelHandlerContext
-            """.trimMargin()
 
             val codeTextBuilder = StringBuilder()
-            codeTextBuilder.append("""
-                |val lookupKey: Int = ((msg.component shl 16) + msg.command
+            codeTextBuilder.appendLine("""
+                |val timeTaken = measureTimeMillis {
                 |try {
-                |   when(lookupKey) {
+                |   when(msg.component) {
             """.trimMargin())
-            for ((lookupKey, functionName) in functionMappings) {
-                codeTextBuilder.append("    ")
-                    .append(lookupKey)
-                    .append(" -> ")
-                    .append(functionName)
-                    .append("(msg)")
-            }
-            codeTextBuilder.append(""""
-                |    else -> {
-                |       ctx.write(respond())
+            for ((component, map) in functionMappings) {
+                codeTextBuilder.append("    0x")
+                    .append(component.toString(16))
+                    .append(" -> when (msg.command) {\n")
+                for ((command, functionName) in map) {
+                    codeTextBuilder.append("      0x")
+                        .append(command.toString(16))
+                        .append(" -> ")
+                        .append(functionName)
+                        .append("(msg)\n")
+                }
+                codeTextBuilder.appendLine("""
+                |      else -> ctx.write(msg.respond())
                 |    }
+                """.trimMargin())
+            }
+            val va= "\${className}"
+            codeTextBuilder.append("""
+                |    else -> ctx.write(msg.respond())
+                |  }
+                |} catch (e: NotAuthenticatedException) { // Handle player access with no player
+                |  ctx.write(LoginError.INVALID_ACCOUNT(msg))
+                |  val address = ctx.channel().remoteAddress()
+                |  Logger.warn("Client at {} tried to access a authenticated route without authenticating", address)
+                |} catch (e: Exception) {
+                |  Logger.warn("Failed to handle packet: {}", msg, e)
+                |  ctx.write(msg.respond())
+                |}
+                |}
+                |ctx.flush()
+                |msg.release() // Release content from message at end of handling
+                |
+                |Logger.debug("Request took {} ns",timeTaken)
             """.trimMargin())
             // Initialize the lookup variable
 
@@ -101,12 +121,25 @@ class BlazeProcessor(
                 .addParameter("msg", Packet::class)
                 .addModifiers(KModifier.OVERRIDE)
                 .addCode(CodeBlock.of(codeTextBuilder.toString()))
+                .build()
 
-            val classBuilder = TypeSpec.classBuilder("${className}Impl")
+            val fileName = "${className}Impl"
+
+            val classBuilder = TypeSpec.classBuilder(fileName)
                 .superclass(SimpleChannelInboundHandler::class.parameterizedBy(Packet::class))
+                .addSuperinterface( classDeclaration.asType(emptyList()).toTypeName())
                 .addModifiers(KModifier.ABSTRACT)
+                .addFunction(channelRead0)
 
-
+            val clazz = classBuilder.build()
+            val file = FileSpec.builder(classPackage, fileName)
+                .addImport("io.netty.channel", "ChannelHandlerContext")
+                .addImport("com.jacobtread.kme.blaze", "respond","NotAuthenticatedException", "LoginError", "Packet")
+                .addImport("com.jacobtread.kme.utils.logging", "Logger")
+                .addImport("kotlin.system","measureNanoTime")
+                .addType(clazz)
+                .build()
+            file.writeTo(codeGenerator, false)
         }
 
         return bad

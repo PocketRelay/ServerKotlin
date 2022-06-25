@@ -42,8 +42,6 @@ fun authFlow(details: ServerDetails) {
     val serverDetails = handler.serverDetails
     requireNotNull(serverDetails) { "Server details were null" }
     Logger.info("Obtained server details: $serverDetails")
-
-    return serverDetails
 }
 
 private fun createRedirectPacket(): Packet {
