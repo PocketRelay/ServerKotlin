@@ -623,16 +623,16 @@ private class MainHandler(
 
         val player = session.player
         val host = game.host
-        val a = unique(Components.GAME_MANAGER, Commands.GAME_MANAGER_74) {
+        val a = unique(Components.GAME_MANAGER, Commands.NOTIFY_GAME_PLAYER_STATE_CHANGE) {
             number("GID", gameId)
             number("PID", player.playerId)
             number("STAT", 4)
         }
-        val b = unique(Components.GAME_MANAGER, Commands.GAME_MANAGER_1E) {
+        val b = unique(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOIN_COMPLETED) {
             number("GID", gameId)
             number("PID", player.playerId)
         }
-        val c = unique(Components.GAME_MANAGER, Commands.GAME_MANAGER_CA) {
+        val c = unique(Components.GAME_MANAGER, Commands.NOTIFY_ADMIN_LIST_CHANGE) {
             number("ALST", player.playerId)
             number("GID", gameId)
             number("OPER", 0)

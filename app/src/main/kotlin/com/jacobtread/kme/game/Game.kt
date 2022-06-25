@@ -164,7 +164,7 @@ class Game(
                     number("SLOT", 0x0)
                     number("STAT", if (host.playerId == player.playerId) 0x4 else 0x2)
                     number("TIDX", 0xffff)
-                    number("TIME", 0x4fd4ce4f6a036)
+                    number("TIME", 0x0)
                     tripple("UGID", 0x0, 0x0, 0x0)
                     number("UID", player.playerId)
                 }
@@ -180,7 +180,7 @@ class Game(
                 text("GNAM", hostPlayer.displayName)
                 number("GPVH", 0x5a4f2b378b715c6)
                 number("GSET", gameSetting)
-                number("GSID", 0x4000000618E41C)
+                number("GSID", 0x4000000a71dc21)
                 number("GSTA", gameState)
                 text("GTYP", "")
                 // Host network information
@@ -190,7 +190,7 @@ class Game(
                         +host.intNetData.createGroup("INIP")
                     }
                 ))
-                number("HSES", 0x10f3e3ed)
+                number("HSES", 0x10f3e7f2)
                 number("IGNO", 0x0)
                 number("MCAP", 0x4)
                 +group("NQOS") {
@@ -207,10 +207,10 @@ class Game(
                     number("HPID", hostPlayer.playerId)
                     number("HSLT", 0x0)
                 }
-                number("PRES", 0x2)
+                number("PRES", 0x1)
                 text("PSAS", "")
                 number("QCAP", 0x0)
-                number("SEED", 0x74988476) // Seed? Could be used for game randomness?
+                number("SEED", 0x4cbc8585) // Seed? Could be used for game randomness?
                 number("TCAP", 0x0)
                 +group("THST") {
                     number("HPID", hostPlayer.playerId)
@@ -218,7 +218,7 @@ class Game(
                 }
                 text("UUID", "286a2373-3e6e-46b9-8294-3ef05e479503")
                 number("VOIP", 0x2)
-                text("VSTR", "ME3-295976325-179181965240128")
+                text("VSTR", "ME3-295976325-179181965240128") // Mass effect version string
                 blob("XNNC")
                 blob("XSES")
             }
