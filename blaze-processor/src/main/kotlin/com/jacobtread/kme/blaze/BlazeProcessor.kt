@@ -7,17 +7,19 @@ import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
-import com.google.devtools.ksp.symbol.*
+import com.google.devtools.ksp.symbol.KSAnnotated
+import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.jacobtread.kme.blaze.annotations.PacketHandler
 import com.jacobtread.kme.blaze.annotations.PacketProcessor
-import com.jacobtread.kme.utils.logging.Logger
-import com.squareup.kotlinpoet.*
-import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.jvm.jvmOverloads
+import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
+import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
-import io.netty.channel.SimpleChannelInboundHandler
 import kotlin.reflect.KClass
 
 class BlazeProcessor(
@@ -36,12 +38,6 @@ class BlazeProcessor(
 
         for (classDeclaration in classes) {
 
-            if (classDeclaration.classKind != ClassKind.INTERFACE) {
-                bad.add(classDeclaration)
-                logger.error("PacketProcessor annotation was present on non interface", classDeclaration)
-                continue
-            }
-
             val classPackage = classDeclaration.packageName.asString()
             val className = classDeclaration.simpleName.asString()
             val functionDeclarations: Sequence<KSFunctionDeclaration> =
@@ -49,6 +45,8 @@ class BlazeProcessor(
                     .filter { it.isAnnotationPresent(PacketHandler::class) }
 
             val functionMappings = LinkedHashMap<Int, LinkedHashMap<Int, String>>()
+
+            val classType = classDeclaration.asType(emptyList()).toTypeName()
 
             for (functionDeclaration in functionDeclarations) {
 
@@ -75,68 +73,47 @@ class BlazeProcessor(
             }
 
             val codeTextBuilder = StringBuilder()
-            codeTextBuilder.appendLine("""
-                |val timeTaken = measureTimeMillis {
-                |try {
-                |   when(msg.component) {
-            """.trimMargin())
+            codeTextBuilder.appendLine("when(msg.component) {")
             for ((component, map) in functionMappings) {
-                codeTextBuilder.append("    0x")
+                codeTextBuilder.append("  0x")
                     .append(component.toString(16))
                     .append(" -> when (msg.command) {\n")
                 for ((command, functionName) in map) {
                     codeTextBuilder.append("      0x")
                         .append(command.toString(16))
-                        .append(" -> ")
+                        .append(" -> processor.")
                         .append(functionName)
                         .append("(msg)\n")
                 }
-                codeTextBuilder.appendLine("""
-                |      else -> ctx.write(msg.respond())
-                |    }
-                """.trimMargin())
+                codeTextBuilder.appendLine("      else -> channel.write(msg.respond())")
+                    .appendLine("  }")
             }
-            val va= "\${className}"
-            codeTextBuilder.append("""
-                |    else -> ctx.write(msg.respond())
-                |  }
-                |} catch (e: NotAuthenticatedException) { // Handle player access with no player
-                |  ctx.write(LoginError.INVALID_ACCOUNT(msg))
-                |  val address = ctx.channel().remoteAddress()
-                |  Logger.warn("Client at {} tried to access a authenticated route without authenticating", address)
-                |} catch (e: Exception) {
-                |  Logger.warn("Failed to handle packet: {}", msg, e)
-                |  ctx.write(msg.respond())
+            codeTextBuilder.append(
+                """
+                |  else -> channel.write(msg.respond())
                 |}
-                |}
-                |ctx.flush()
-                |msg.release() // Release content from message at end of handling
-                |
-                |Logger.debug("Request took {} ns",timeTaken)
-            """.trimMargin())
+            """.trimMargin()
+            )
             // Initialize the lookup variable
 
-            val channelRead0 = FunSpec.builder("channelRead0")
-                .addParameter("ctx", ChannelHandlerContext::class)
+            val routeFunc = FunSpec.builder("route")
+                .addParameter("processor", classType)
+                .addParameter("channel", Channel::class)
                 .addParameter("msg", Packet::class)
-                .addModifiers(KModifier.OVERRIDE)
                 .addCode(CodeBlock.of(codeTextBuilder.toString()))
                 .build()
 
-            val fileName = "${className}Impl"
+            val fileName = "${className}Router"
 
-            val classBuilder = TypeSpec.classBuilder(fileName)
-                .superclass(SimpleChannelInboundHandler::class.parameterizedBy(Packet::class))
-                .addSuperinterface( classDeclaration.asType(emptyList()).toTypeName())
-                .addModifiers(KModifier.ABSTRACT)
-                .addFunction(channelRead0)
+            val classBuilder = TypeSpec.objectBuilder(fileName)
+                .addFunction(routeFunc)
 
             val clazz = classBuilder.build()
             val file = FileSpec.builder(classPackage, fileName)
                 .addImport("io.netty.channel", "ChannelHandlerContext")
-                .addImport("com.jacobtread.kme.blaze", "respond","NotAuthenticatedException", "LoginError", "Packet")
+                .addImport("com.jacobtread.kme.blaze", "respond", "NotAuthenticatedException", "LoginError", "Packet")
                 .addImport("com.jacobtread.kme.utils.logging", "Logger")
-                .addImport("kotlin.system","measureNanoTime")
+                .addImport("kotlin.system", "measureNanoTime")
                 .addType(clazz)
                 .build()
             file.writeTo(codeGenerator, false)

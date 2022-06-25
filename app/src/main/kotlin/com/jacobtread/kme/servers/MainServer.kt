@@ -2,10 +2,10 @@ package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.blaze.*
+import com.jacobtread.kme.blaze.annotations.PacketHandler
 import com.jacobtread.kme.blaze.annotations.PacketProcessor
 import com.jacobtread.kme.blaze.tdf.GroupTdf
 import com.jacobtread.kme.data.Data
-import com.jacobtread.kme.blaze.LoginError
 import com.jacobtread.kme.database.Message
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.game.GameManager
@@ -29,8 +29,8 @@ import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.IOException
-import java.net.SocketException
 import java.time.LocalDate
+import kotlin.system.measureNanoTime
 
 /**
  * startMainServer Starts the main server
@@ -70,7 +70,7 @@ class MainInitializer : ChannelInitializer<Channel>() {
             // Add handler for decoding packet
             .addLast(PacketDecoder())
             // Add handler for processing packets
-            .addLast(MainHandler(session))
+            .addLast(MainProcessor(session))
             .addLast(PacketEncoder())
     }
 }
@@ -82,9 +82,10 @@ class MainInitializer : ChannelInitializer<Channel>() {
  * @property session The session data for this user
  * @constructor Create empty MainClient
  */
-private class MainHandler(
+@PacketProcessor
+class MainProcessor(
     private val session: PlayerSession,
-) : MainPacketProcessorImpl(), PacketPushable {
+) : SimpleChannelInboundHandler<Packet>(), PacketPushable {
 
     inline fun Packet.pushResponse(init: ContentInitializer) = push(respond(init))
     fun Packet.pushEmptyResponse() = push(respond())
@@ -108,23 +109,6 @@ private class MainHandler(
     }
 
     /**
-     * exceptionCaught Exception handling for unhandled exceptions in the
-     * channel pipline. Messages that aren't connection resets are logged
-     *
-     * @param ctx The channel context
-     * @param cause The exception cause
-     */
-    @Deprecated("Deprecated in Java")
-    override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
-        if (cause is SocketException) {
-            if (cause.message?.startsWith("Connection reset") == true) {
-                return
-            }
-        }
-        Logger.warn("Exception in MainServer", cause)
-    }
-
-    /**
      * channelInactive Handles when the channel becomes inactive. Used
      * to release and cleanup the session so that it can be released
      * by the garbage collector
@@ -134,6 +118,24 @@ private class MainHandler(
     override fun channelInactive(ctx: ChannelHandlerContext) {
         session.release()
         super.channelInactive(ctx)
+    }
+
+    override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
+        try { // Automatic routing to the desired function
+            MainProcessorRouter.route(this, channel, msg)
+        } catch (e: NotAuthenticatedException) { // Handle player access with no player
+            push(LoginError.INVALID_ACCOUNT(msg))
+            val address = ctx.channel().remoteAddress()
+            Logger.warn(
+                "Client at {} tried to access a authenticated route without authenticating",
+                address
+            )
+        } catch (e: Exception) {
+            Logger.warn("Failed to handle packet: {}", msg, e)
+            msg.pushEmptyResponse()
+        }
+        ctx.flush()
+        msg.release()
     }
 
 
@@ -146,7 +148,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting the legal doc info
      */
-    override fun handleGetLegalDocsInfo(packet: Packet) {
+    @PacketHandler(Components.AUTHENTICATION, Commands.GET_LEGAL_DOCS_INFO)
+    fun handleGetLegalDocsInfo(packet: Packet) {
         packet.pushResponse {
             number("EAMC", 0x0)
             text("LHST", "")
@@ -163,7 +166,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting the TOS contents
      */
-    override fun handleTermsOfServiceContent(packet: Packet) {
+    @PacketHandler(Components.AUTHENTICATION, Commands.GET_TERMS_OF_SERVICE_CONTENT)
+    fun handleTermsOfServiceContent(packet: Packet) {
         // Terms of service is represented as HTML this is currently a placeholder value
         // in the future Ideally this would be editable from the web control
         val content = """
@@ -184,7 +188,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting the TOS contents
      */
-    override fun handlePrivacyPolicyContent(packet: Packet) {
+    @PacketHandler(Components.AUTHENTICATION, Commands.GET_PRIVACY_POLICY_CONTENT)
+    fun handlePrivacyPolicyContent(packet: Packet) {
         // THe privacy policy is represented as HTML this is currently a placeholder value
         // in the future Ideally this would be editable from the web control
         val content = """
@@ -205,7 +210,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting the password reset
      */
-    override fun handlePasswordForgot(packet: Packet) {
+    @PacketHandler(Components.AUTHENTICATION, Commands.PASSWORD_FORGOT)
+    fun handlePasswordForgot(packet: Packet) {
         val mail = packet.text("MAIL") // The email of the account that wants a reset
         info("Recieved password reset for $mail")
         packet.pushEmptyResponse()
@@ -218,7 +224,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting the origin login
      */
-    override fun handleOriginLogin(packet: Packet) {
+    @PacketHandler(Components.AUTHENTICATION, Commands.ORIGIN_LOGIN)
+    fun handleOriginLogin(packet: Packet) {
         info("Recieved unsupported request for Origin Login")
         packet.pushEmptyResponse()
     }
@@ -229,7 +236,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting the logout
      */
-    override fun handleLogout(packet: Packet) {
+    @PacketHandler(Components.AUTHENTICATION, Commands.LOGOUT)
+    fun handleLogout(packet: Packet) {
         val player = session.player
         info("Logged out player ${player.displayName}")
         session.setAuthenticated(null)
@@ -243,7 +251,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting the user entitlements
      */
-    override fun handleListUserEntitlements2(packet: Packet) {
+    @PacketHandler(Components.AUTHENTICATION, Commands.LIST_USER_ENTITLEMENTS_2)
+    fun handleListUserEntitlements2(packet: Packet) {
         val etag = packet.text("ETAG")
         if (etag.isNotEmpty()) { // Empty responses for packets with ETAG's
             return packet.pushEmptyResponse()
@@ -259,7 +268,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting the auth token
      */
-    override fun handleGetAuthToken(packet: Packet) {
+    @PacketHandler(Components.AUTHENTICATION, Commands.GET_AUTH_TOKEN)
+    fun handleGetAuthToken(packet: Packet) {
         packet.pushResponse {
             text("AUTH", session.playerId.toString(16).uppercase())
         }
@@ -272,7 +282,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting login
      */
-    override fun handleLogin(packet: Packet) {
+    @PacketHandler(Components.AUTHENTICATION, Commands.LOGIN)
+    fun handleLogin(packet: Packet) {
         val email: String = packet.text("MAIL")
         val password: String = packet.text("PASS")
         if (email.isBlank() || password.isBlank()) { // If we are missing email or password
@@ -321,7 +332,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting silent login
      */
-    override fun handleSilentLogin(packet: Packet) {
+    @PacketHandler(Components.AUTHENTICATION, Commands.SILENT_LOGIN)
+    fun handleSilentLogin(packet: Packet) {
         val pid: ULong = packet.number("PID")
         val auth: String = packet.text("AUTH")
         // Find the player with a matching ID or send an INVALID_ACCOUNT error
@@ -353,7 +365,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting account creation
      */
-    override fun handleCreateAccount(packet: Packet) {
+    @PacketHandler(Components.AUTHENTICATION, Commands.CREATE_ACCOUNT)
+    fun handleCreateAccount(packet: Packet) {
         val email: String = packet.text("MAIL")
         val password: String = packet.text("PASS")
         if (Player.isEmailTaken(email)) { // Check if the email is already in use
@@ -390,7 +403,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting persona login
      */
-    override fun handleLoginPersona(packet: Packet) {
+    @PacketHandler(Components.AUTHENTICATION, Commands.LOGIN_PERSONA)
+    fun handleLoginPersona(packet: Packet) {
         packet.pushResponse { session.appendPlayerSession(this) }
         push(session.createSessionDetails()) // Send session details
         push(session.createIdentityUpdate()) // Ask for networking info
@@ -406,7 +420,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting creation of a game
      */
-    override fun handleCreateGame(packet: Packet) {
+    @PacketHandler(Components.GAME_MANAGER, Commands.CREATE_GAME)
+    fun handleCreateGame(packet: Packet) {
         val attributes = packet.mapOrNull<String, String>("ATTR") // Get the provided users attributes
         val game = GameManager.createGame(session) // Create a new game
 
@@ -431,7 +446,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting game state change
      */
-    override fun handleAdvanceGameState(packet: Packet) {
+    @PacketHandler(Components.GAME_MANAGER, Commands.ADVANCE_GAME_STATE)
+    fun handleAdvanceGameState(packet: Packet) {
         val gameId = packet.number("GID")
         val gameState = packet.number("GSTA").toInt()
         val game = GameManager.getGameById(gameId)
@@ -447,7 +463,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting set game settings
      */
-    override fun handleSetGameSettings(packet: Packet) {
+    @PacketHandler(Components.GAME_MANAGER, Commands.SET_GAME_SETTINGS)
+    fun handleSetGameSettings(packet: Packet) {
         val gameId = packet.number("GID")
         val setting = packet.number("GSET").toInt()
         val game = GameManager.getGameById(gameId)
@@ -468,7 +485,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting attribute changes
      */
-    override fun handleSetGameAttributes(packet: Packet) {
+    @PacketHandler(Components.GAME_MANAGER, Commands.SET_GAME_ATTRIBUTES)
+    fun handleSetGameAttributes(packet: Packet) {
         val gameId = packet.number("GID")
         val attributes = packet.mapOrNull<String, String>("ATTR") ?: return packet.pushEmptyResponse()
         val game = GameManager.getGameById(gameId)
@@ -485,7 +503,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting the player removal
      */
-    override fun handleRemovePlayer(packet: Packet) {
+    @PacketHandler(Components.GAME_MANAGER, Commands.REMOVE_PLAYER)
+    fun handleRemovePlayer(packet: Packet) {
         val playerId = packet.number("PID").toInt()
         val gameId = packet.number("GID")
         val game = GameManager.getGameById(gameId)
@@ -500,7 +519,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting to start matchmaking
      */
-    override fun handleStartMatchmaking(packet: Packet) {
+    @PacketHandler(Components.GAME_MANAGER, Commands.START_MATCHMAKING)
+    fun handleStartMatchmaking(packet: Packet) {
         val player = session.player
         info("Player ${player.displayName} started match making")
 
@@ -527,7 +547,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting to cancel matchmaking
      */
-    override fun handleCancelMatchmaking(packet: Packet) {
+    @PacketHandler(Components.GAME_MANAGER, Commands.CANCEL_MATCHMAKING)
+    fun handleCancelMatchmaking(packet: Packet) {
         val player = session.player
         info("Player ${player.displayName} cancelled match making")
         Matchmaking.removeFromQueue(session)
@@ -541,7 +562,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting the update mesh connection
      */
-    override fun handleUpdateMeshConnection(packet: Packet) {
+    @PacketHandler(Components.GAME_MANAGER, Commands.UPDATE_MESH_CONNECTION)
+    fun handleUpdateMeshConnection(packet: Packet) {
         val gameId = packet.number("GID")
         val game = GameManager.getGameById(gameId)
         packet.pushEmptyResponse()
@@ -603,7 +625,8 @@ private class MainHandler(
      *
      * @param packet Packet requesting a leaderboard group
      */
-    override fun handleLeaderboardGroup(packet: Packet) {
+    @PacketHandler(Components.STATS, Commands.GET_LEADERBOARD_GROUP)
+    fun handleLeaderboardGroup(packet: Packet) {
         val name: String = packet.text("NAME")
         val isN7 = name.startsWith("N7Rating")
         if (isN7 || name.startsWith("ChallengePoints")) {
@@ -673,7 +696,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting a filtered leaderboard
      */
-    override fun handleFilteredLeaderboard(packet: Packet) {
+    @PacketHandler(Components.STATS, Commands.GET_FILTERED_LEADERBOARD)
+    fun handleFilteredLeaderboard(packet: Packet) {
         val name: String = packet.text("NAME")
         val player = session.player
         when (name) {
@@ -722,7 +746,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting the leadboard entity count
      */
-    override fun handleLeaderboardEntityCount(packet: Packet) {
+    @PacketHandler(Components.STATS, Commands.GET_LEADERBOARD_ENTITY_COUNT)
+    fun handleLeaderboardEntityCount(packet: Packet) {
         val playerCount = transaction { Player.count() }
         packet.pushResponse {
             number("CNT", playerCount)
@@ -734,7 +759,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting a centered leaderboard
      */
-    override fun handleCenteredLeadboard(packet: Packet) {
+    @PacketHandler(Components.STATS, Commands.GET_CENTERED_LEADERBOARD)
+    fun handleCenteredLeadboard(packet: Packet) {
         // TODO: Currenlty not implemented
         packet.pushResponse {
             list("LDLS", emptyList<GroupTdf>())
@@ -752,7 +778,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting the messages
      */
-    override fun handleFetchMessages(packet: Packet) {
+    @PacketHandler(Components.MESSAGING, Commands.FETCH_MESSAGES)
+    fun handleFetchMessages(packet: Packet) {
         packet.pushResponse { number("MCNT", 0x1) } // Number of messages
         val ip = channel.remoteAddress().toString()
         val player = session.player
@@ -788,7 +815,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting the list
      */
-    override fun handleAssociationListGetLists(packet: Packet) {
+    @PacketHandler(Components.ASSOCIATION_LISTS, Commands.GET_LISTS)
+    fun handleAssociationListGetLists(packet: Packet) {
         packet.pushResponse {
             list("LMAP", listOf(
                 group {
@@ -819,7 +847,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting the GAME_REPORTING
      */
-    override fun handleSubmitOfflineReport(packet: Packet) {
+    @PacketHandler(Components.GAME_REPORTING, Commands.SUBMIT_OFFLINE_GAME_REPORT)
+    fun handleSubmitOfflineReport(packet: Packet) {
         packet.pushEmptyResponse()
         pushUnique(Components.GAME_REPORTING, Commands.GAME_REPORT_RESULT_72) {
             varList("DATA")
@@ -842,14 +871,16 @@ private class MainHandler(
      *
      * @param packet The packet requesting a session resumption
      */
-    override fun handleResumeSession(packet: Packet) {
+    @PacketHandler(Components.USER_SESSIONS, Commands.RESUME_SESSION)
+    fun handleResumeSession(packet: Packet) {
         val sessionKey = packet.text("SKEY");
         val player = Player.getBySessionKey(sessionKey) ?: return push(LoginError.INVALID_INFORMATION(packet))
         session.setAuthenticated(player) // Set the authenticated session
         packet.pushEmptyResponse()
     }
 
-    override fun updateHardwareFlag(packet: Packet) {
+    @PacketHandler(Components.USER_SESSIONS, Commands.UPDATE_HARDWARE_FLAGS)
+    fun updateHardwareFlag(packet: Packet) {
         val value = packet.number("HWFG")
         session.hardwareFlag = value.toInt()
         packet.pushEmptyResponse()
@@ -862,7 +893,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting the updated networking info
      */
-    override fun updateSessionNetworkInfo(packet: Packet) {
+    @PacketHandler(Components.USER_SESSIONS, Commands.UPDATE_NETWORK_INFO)
+    fun updateSessionNetworkInfo(packet: Packet) {
         val displayName = session.player.displayName
         val addr: GroupTdf? = packet.unionValueOrNull("ADDR") as GroupTdf?
         if (addr != null) {
@@ -897,7 +929,8 @@ private class MainHandler(
      *
      * @param packet The packet updating client metrics
      */
-    override fun handleClientMetrics(packet: Packet) {
+    @PacketHandler(Components.UTIL, Commands.SET_CLIENT_METRICS)
+    fun handleClientMetrics(packet: Packet) {
         if (Logger.isDebugEnabled) {
             val ubfl = packet.number("UBFL")
             val udev = packet.text("UDEV")
@@ -922,7 +955,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting a client config
      */
-    override fun handleFetchClientConfig(packet: Packet) {
+    @PacketHandler(Components.UTIL, Commands.FETCH_CLIENT_CONFIG)
+    fun handleFetchClientConfig(packet: Packet) {
         val type = packet.text("CFID")
         val conf: Map<String, String>
         if (type.startsWith("ME3_LIVE_TLK_PC_")) { // Filter TLK files
@@ -977,7 +1011,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting a ping update
      */
-    override fun handlePing(packet: Packet) {
+    @PacketHandler(Components.UTIL, Commands.PING)
+    fun handlePing(packet: Packet) {
         Logger.logIfDebug { "Received ping update from client: ${session.sessionId}" }
         session.lastPingTime = System.currentTimeMillis()
         packet.pushResponse { number("STIM", unixTimeSeconds()) }
@@ -989,7 +1024,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting pre-auth information
      */
-    override fun handlePreAuth(packet: Packet) {
+    @PacketHandler(Components.UTIL, Commands.PRE_AUTH)
+    fun handlePreAuth(packet: Packet) {
         packet.pushResponse {
             number("ANON", 0x0)
             text("ASRC", "303107")
@@ -1049,7 +1085,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting post-auth information
      */
-    override fun handlePostAuth(packet: Packet) {
+    @PacketHandler(Components.UTIL, Commands.POST_AUTH)
+    fun handlePostAuth(packet: Packet) {
         packet.pushResponse {
             +group("PSS") { // Player Sync Service?
                 text("ADRS", "playersyncservice.ea.com") // Host / Address
@@ -1100,7 +1137,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting a setting update
      */
-    override fun handleUserSettingsSave(packet: Packet) {
+    @PacketHandler(Components.UTIL, Commands.USER_SETTINGS_SAVE)
+    fun handleUserSettingsSave(packet: Packet) {
         val value = packet.textOrNull("DATA")
         val key = packet.textOrNull("KEY")
         if (value != null && key != null) {
@@ -1115,7 +1153,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting the user settings
      */
-    override fun handleUserSettingsLoadAll(packet: Packet) {
+    @PacketHandler(Components.UTIL, Commands.USER_SETTINGS_LOAD_ALL)
+    fun handleUserSettingsLoadAll(packet: Packet) {
         packet.pushResponse {
             map("SMAP", session.player.createSettingsMap())
         }
@@ -1126,7 +1165,8 @@ private class MainHandler(
      *
      * @param packet The packet requesting suspend user ping
      */
-    override fun handleSuspendUserPing(packet: Packet) {
+    @PacketHandler(Components.UTIL, Commands.SUSPEND_USER_PING)
+    fun handleSuspendUserPing(packet: Packet) {
         when (packet.numberOrNull("TVAL")) {
             0x1312D00uL -> packet.pushEmptyError(0x12D)
             0x55D4A80uL -> packet.pushEmptyError(0x12E)
