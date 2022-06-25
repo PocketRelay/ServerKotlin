@@ -215,7 +215,7 @@ class PlayerSession : PacketPushable {
     private fun createSessionDataGroup(dmapValue: Int, details: Boolean): GroupTdf {
         return group("DATA") {
             +createAddrOptional("ADDR")
-            text("BPS", "rs-lhr")
+            text("BPS", "ea-sjc")
             text("CTY")
             varList("CVAR")
             map("DMAP", mapOf(0x70001 to dmapValue))

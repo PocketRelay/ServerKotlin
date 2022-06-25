@@ -582,7 +582,6 @@ private class MainHandler(
      * @param packet The packet requesting to start matchmaking
      */
     private fun handleStartMatchmaking(packet: Packet) {
-        session.matchmaking = true
         val player = session.player
         info("Player ${player.displayName} started match making")
 
@@ -625,12 +624,10 @@ private class MainHandler(
         val gameId = packet.number("GID")
         val game = GameManager.getGameById(gameId)
         packet.pushEmptyResponse()
-        if (game == null || !session.matchmaking) {
-            return
-        }
+        if (game == null || !session.matchmaking) return
+
         val player = session.player
         val host = game.host
-        session.matchmaking = false
         val a = unique(Components.GAME_MANAGER, Commands.GAME_MANAGER_74) {
             number("GID", gameId)
             number("PID", player.playerId)

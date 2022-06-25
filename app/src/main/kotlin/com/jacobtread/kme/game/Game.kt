@@ -73,8 +73,8 @@ class Game(
                     number("UID", player.playerId)
                 }
             },
-            session.createSetSession()
         )
+        session.push(session.createSetSession())
     }
 
     fun removePlayer(player: PlayerSession) {
@@ -87,7 +87,6 @@ class Game(
             if (index != -1) {
                 val player: PlayerSession = players[index]
                 player.game = null
-                player.matchmaking = false
                 playersLock.write {
                     players.removeAt(index)
                 }
@@ -124,7 +123,6 @@ class Game(
         playersLock.write {
             players.removeIf {
                 it.game = null
-                it.matchmaking = false
                 true
             }
         }
@@ -152,10 +150,32 @@ class Game(
             Components.GAME_MANAGER,
             Commands.RETURN_DEDICATED_SERVER_TO_POOL
         ) {
+            val playerIds = ArrayList<Long>()
+            val pros = players.mapIndexed { index, playerSession ->
+                val player = playerSession.player
+                playerIds.add(player.playerId.toLong())
+                group {
+                    blob("BLOB")
+                    number("EXID", 0x0)
+                    number("GID", this@Game.id) // Game ID
+                    number("LOC", 0x64654445) // Location
+                    text("NAME", player.displayName) // Player name
+                    number("PID", player.playerId) // Player id
+                    +playerSession.createAddrOptional("PNET") // Player net info
+                    number("SID", index) // Slot ID
+                    number("SLOT", 0x0)
+                    number("STAT", if (host.playerId == player.playerId) 0x4 else 0x2)
+                    number("TIDX", 0xffff)
+                    number("TIME", 0x4fd4ce4f6a036)
+                    tripple("UGID", 0x0, 0x0, 0x0)
+                    number("UID", player.playerId)
+                }
+            }
+
             val hostPlayer = host.player
             +group("GAME") {
                 // Game Admins
-                list("ADMN", listOf(hostPlayer.playerId))
+                list("ADMN", playerIds)
                 map("ATTR", getAttributes())
                 list("CAP", listOf(0x4, 0x0))
                 number("GID", id)
@@ -192,37 +212,17 @@ class Game(
                 number("PRES", 0x1)
                 text("PSAS", "")
                 number("QCAP", 0x0)
-                number("SEED", 0x2cf2048f) // Seed? Could be used for game randomness?
+                number("SEED", 0x74988476) // Seed? Could be used for game randomness?
                 number("TCAP", 0x0)
                 +group("THST") {
                     number("HPID", hostPlayer.playerId)
                     number("HSLT", 0x0)
                 }
-                text("UUID", "f5193367-c991-4429-aee4-8d5f3adab938")
+                text("UUID", "286a2373-3e6e-46b9-8294-3ef05e479503")
                 number("VOIP", 0x2)
                 text("VSTR", "ME3-295976325-179181965240128")
                 blob("XNNC")
                 blob("XSES")
-            }
-
-            val pros = players.mapIndexed { index, playerSession ->
-                val player = playerSession.player
-                group {
-                    blob("BLOB")
-                    number("EXID", 0x0)
-                    number("GID", this@Game.id) // Game ID
-                    number("LOC", 0x64654445) // Location
-                    text("NAME", player.displayName) // Player name
-                    number("PID", player.playerId) // Player id
-                    +playerSession.createAddrOptional("PNET") // Player net info
-                    number("SID", index) // Slot ID
-                    number("SLOT", 0x0)
-                    number("STAT", if (host.playerId == player.playerId) 0x4 else 0x2)
-                    number("TIDX", 0xffff)
-                    number("TIME", 0x4fd4ce4f6a036)
-                    tripple("UGID", 0x0, 0x0, 0x0)
-                    number("UID", player.playerId)
-                }
             }
 
             list("PROS", pros)
