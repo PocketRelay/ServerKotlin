@@ -92,6 +92,8 @@ class PlayerSession : PacketPushable {
     val player: Player get() = _player ?: throw throw NotAuthenticatedException()
     val playerId: Int get() = player.playerId
 
+    var hardwareFlag: Int = 0
+
     var sendSession = false
 
     // The time in milliseconds of when the last ping was received from the client
@@ -180,7 +182,7 @@ class PlayerSession : PacketPushable {
      * @return A USER_SESSIONS SET_SESSION packet
      */
     fun createSetSession(): Packet = unique(Components.USER_SESSIONS, Commands.SET_SESSION) {
-        +createSessionDataGroup(0, 0x2e, listOf(0xfff0fff, 0xfff0fff, 0xfff0fff))
+        +createSessionDataGroup(0x2e, listOf(0xfff0fff, 0xfff0fff, 0xfff0fff))
         number("USID", if (_player != null) playerId else sessionId)
     }
 
@@ -208,14 +210,14 @@ class PlayerSession : PacketPushable {
      * @param pslm Unknown But Nessicary
      * @return The created group
      */
-    private fun createSessionDataGroup(hwfg: Int, dmapValue: Int, pslm: List<Long>?): GroupTdf {
+    private fun createSessionDataGroup(dmapValue: Int, pslm: List<Long>?): GroupTdf {
         return group("DATA") {
             +createAddrOptional("ADDR")
             text("BPS", "rs-lhr")
             text("CTY")
             varList("CVAR")
             map("DMAP", mapOf(0x70001 to dmapValue))
-            number("HWFG", hwfg)
+            number("HWFG", hardwareFlag)
             if (pslm != null) {
                 list("PSLM", pslm)
             }
@@ -246,9 +248,9 @@ class PlayerSession : PacketPushable {
         ) {
             // Session Data
             if (game != null) {
-                +createSessionDataGroup(1, 0x291, listOf(0xea, 0x9c, 0x5e))
+                +createSessionDataGroup(0x291, listOf(0xea, 0x9c, 0x5e))
             } else {
-                +createSessionDataGroup(0, 0x22, null)
+                +createSessionDataGroup(0x22, null)
             }
             // Player Data
             +group("USER") {

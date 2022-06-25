@@ -969,9 +969,8 @@ private class MainHandler(
      */
     private fun handleUserSessions(packet: Packet) {
         when (packet.command) {
-            Commands.UPDATE_HARDWARE_FLAGS,
-            Commands.UPDATE_NETWORK_INFO,
-            -> updateSessionNetworkInfo(packet)
+            Commands.UPDATE_HARDWARE_FLAGS -> updateHardwareFlag(packet)
+            Commands.UPDATE_NETWORK_INFO -> updateSessionNetworkInfo(packet)
             Commands.RESUME_SESSION -> handleResumeSession(packet)
             else -> packet.pushEmptyResponse()
         }
@@ -990,6 +989,13 @@ private class MainHandler(
         val player = Player.getBySessionKey(sessionKey) ?: return push(LoginError.INVALID_INFORMATION(packet))
         session.setAuthenticated(player) // Set the authenticated session
         packet.pushEmptyResponse()
+    }
+
+    private fun updateHardwareFlag(packet: Packet) {
+        val value = packet.number("HWFG")
+        session.hardwareFlag = value.toInt()
+        packet.pushEmptyResponse()
+        push(session.createSetSession()) // Send the user session
     }
 
     /**
@@ -1019,9 +1025,7 @@ private class MainHandler(
             session.otherNetData = PlayerSession.OtherNetData(dbps, natt, ubps)
         }
         packet.pushEmptyResponse()
-        if (addr != null || nqos != null) {
-            push(session.createSetSession()) // Send the user session
-        }
+        push(session.createSetSession()) // Send the user session
     }
 
     //endregion
@@ -1040,6 +1044,7 @@ private class MainHandler(
             else -> packet.pushEmptyResponse()
         }
     }
+
 
     /**
      * handleFetchClientConfig Retrieves configurations for the client from the
