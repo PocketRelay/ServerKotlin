@@ -15,6 +15,7 @@ enum class LoginError(val value: Int) {
     SERVER_UNAVAILABLE(0x0),
     EMAIL_NOT_FOUND(0xB),
     WRONG_PASSWORD(0x0C),
+    INVALID_SESSION(0xD),
     EMAIL_ALREADY_IN_USE(0x0F),
     AGE_RESTRICTION(0x10),
     INVALID_ACCOUNT(0x11),

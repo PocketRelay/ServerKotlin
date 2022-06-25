@@ -311,9 +311,9 @@ private class MainHandler(
         val pid: ULong = packet.number("PID")
         val auth: String = packet.text("AUTH")
         // Find the player with a matching ID or send an INVALID_ACCOUNT error
-        val player = Player.getById(pid) ?: return push(LoginError.INVALID_ACCOUNT(packet))
+        val player = Player.getById(pid) ?: return push(LoginError.INVALID_SESSION(packet))
         // If the session token's don't match send INVALID_ACCOUNT error
-        if (!player.isSessionToken(auth)) return push(LoginError.INVALID_ACCOUNT(packet))
+        if (!player.isSessionToken(auth)) return push(LoginError.INVALID_SESSION(packet))
         val sessionToken = player.sessionToken // Session token grabbed after auth as to not generate new one
         session.setAuthenticated(player)
         // We don't store last login time so this is just computed here
@@ -1053,38 +1053,33 @@ private class MainHandler(
             // The following addresses have all been redirected to localhost to be ignored
             +group("QOSS") {
                 +group("BWPS") {
-
-                    // was gossjcprod-qos01.ea.com
-                    text("PSA", "127.0.0.1")
-                    number("PSP", 17502)
-                    text("SNA", "prod-sjc")
+                    text("PSA", "127.0.0.1")   // Server Address (formerly gossjcprod-qos01.ea.com)
+                    number("PSP", 17502)  // Server Port
+                    text("SNA", "prod-sjc")  // Server name?
                 }
 
                 number("LNP", 0xA)
                 map("LTPS", mapOf(
                     "ea-sjc" to group {
-                        // was gossjcprod-qos01.ea.com
-                        text("PSA", "127.0.0.1")
-                        number("PSP", 17502)
-                        text("SNA", "prod-sjc")
+                        text("PSA", "127.0.0.1")  // Server Address (formerly gossjcprod-qos01.ea.com)
+                        number("PSP", 17502)  // Server Port
+                        text("SNA", "prod-sjc") // Server name?
                     },
                     "rs-iad" to group {
-                        // was gosiadprod-qos01.ea.com
-                        text("PSA", "127.0.0.1")
-                        number("PSP", 17502)
-                        text("SNA", "rs-prod-iad")
+                        text("PSA", "127.0.0.1") // Server Address (formerly gosiadprod-qos01.ea.com)
+                        number("PSP", 17502)  // Server Port
+                        text("SNA", "bio-iad-prod-shared") // Server name?
                     },
                     "rs-lhr" to group {
-                        // was gosgvaprod-qos01.ea.com
-                        text("PSA", "127.0.0.1")
-                        number("PSP", 17502)
-                        text("SNA", "rs-prod-lhr")
+                        text("PSA", "127.0.0.1") // Server Address (formerly gosgvaprod-qos01.ea.com)
+                        number("PSP", 17502) // Server Port
+                        text("SNA", "bio-dub-prod-shared") // Server name?
                     }
                 ))
                 number("SVID", 0x45410805)
             }
             text("RSRC", "303107")
-            text("SVER", "Blaze 3.15.08.0 (CL# 750727)") // Server Version
+            text("SVER", "Blaze 3.15.08.0 (CL# 1629389)") // Server Version
         }
     }
 
