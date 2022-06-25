@@ -6,7 +6,7 @@ import com.jacobtread.kme.blaze.tdf.OptionalTdf
 import com.jacobtread.kme.blaze.tdf.VarIntTdf
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Player
-import com.jacobtread.kme.exceptions.NotAuthenticatedException
+import com.jacobtread.kme.blaze.NotAuthenticatedException
 import com.jacobtread.kme.game.match.Matchmaking
 import com.jacobtread.kme.utils.VarTripple
 import com.jacobtread.kme.utils.logging.Logger

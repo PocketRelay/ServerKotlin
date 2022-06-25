@@ -4,6 +4,8 @@ plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
     id("com.github.johnrengelman.shadow")
+    id("com.google.devtools.ksp") version "1.7.0-1.0.6"
+    idea
 }
 
 dependencies {
@@ -21,7 +23,19 @@ dependencies {
     // Subprojects for blaze networking and utilities
     implementation(project(":blaze"))
     implementation(project(":utils"))
+
+    ksp(project(":blaze-processor"))
 }
+
+idea {
+    module {
+        // Not using += due to https://github.com/gradle/gradle/issues/8749
+        sourceDirs = sourceDirs + file("build/generated/ksp/main/kotlin") // or tasks["kspKotlin"].destination
+        testSourceDirs = testSourceDirs + file("build/generated/ksp/test/kotlin")
+        generatedSourceDirs = generatedSourceDirs + file("build/generated/ksp/main/kotlin") + file("build/generated/ksp/test/kotlin")
+    }
+}
+
 
 /**
  * localDependencies Adds the local dependencies stores in the ../libs
