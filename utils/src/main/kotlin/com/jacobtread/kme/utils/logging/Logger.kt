@@ -22,10 +22,9 @@ object Logger {
 
     private val printDateFormat = SimpleDateFormat("HH:mm:ss")
     private var writer: LogWriter? = null
-    private var logLevel: Level = Level.INFO
+    var logLevel: Level = Level.INFO
     private var logToFile = false
     var isLogPackets = false
-        private set
 
     /**
      * isDebugEnabled Checks whether the current

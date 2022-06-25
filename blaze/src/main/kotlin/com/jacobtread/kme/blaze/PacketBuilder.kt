@@ -3,6 +3,7 @@
 package com.jacobtread.kme.blaze
 
 import com.jacobtread.kme.blaze.Packet.Companion.ERROR_TYPE
+import com.jacobtread.kme.blaze.Packet.Companion.INCOMING_TYPE
 import com.jacobtread.kme.blaze.Packet.Companion.NO_ERROR
 import com.jacobtread.kme.blaze.Packet.Companion.RESPONSE_TYPE
 import com.jacobtread.kme.blaze.Packet.Companion.UNIQUE_TYPE
@@ -13,6 +14,9 @@ import io.netty.buffer.Unpooled
  * @see TdfBuilder
  */
 typealias ContentInitializer = TdfBuilder.() -> Unit
+
+inline fun clientPacket(component: Int, command: Int, id: Int, init: ContentInitializer): Packet = initializePacket(component, command, NO_ERROR, INCOMING_TYPE, id, init)
+
 
 /**
  * respond Creates a packet responding to the packet that this was called on.
