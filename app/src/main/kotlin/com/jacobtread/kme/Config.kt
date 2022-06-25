@@ -52,6 +52,9 @@ data class Config(
 
     @Comment("Galaxy At War config")
     val gaw: GalaxyAtWarConfig = GalaxyAtWarConfig(),
+
+    @Comment("MITM")
+    val mitm: MITM = MITM()
 ) {
     /**
      * Ports Configuration for the different ports that the servers will use
@@ -82,6 +85,18 @@ data class Config(
         val discard: Int = 9988,
         @Comment("Port for the http server")
         val http: Int = 80,
+    )
+
+    @Serializable
+    data class MITM(
+        @Comment("""
+            Whether to enable Man-In-The-Middle instead of running a server. This is
+            used to send your traffic to the official servers and log everything
+        """)
+        val enabled: Boolean = false,
+        val host: String = "gsprodblapp-02.ea.com",
+        val port: Int = 10019,
+        val secure: Boolean = true,
     )
 
 

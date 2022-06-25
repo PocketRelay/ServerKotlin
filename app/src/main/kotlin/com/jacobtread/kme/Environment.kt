@@ -1,14 +1,12 @@
 package com.jacobtread.kme
 
+import com.jacobtread.kme.Config.*
 import com.jacobtread.kme.database.DatabaseConfig
 import com.jacobtread.kme.database.DatabaseType
 import com.jacobtread.kme.database.MySQLConfig
 import com.jacobtread.kme.database.SQLiteConfig
 import com.jacobtread.kme.utils.logging.Level
 import com.jacobtread.kme.utils.logging.Logger
-import com.jacobtread.kme.Config.GalaxyAtWarConfig
-import com.jacobtread.kme.Config.PanelConfig
-import com.jacobtread.kme.Config.Ports
 import kotlinx.serialization.decodeFromString
 import net.mamoe.yamlkt.Yaml
 import kotlin.io.path.Path
@@ -73,6 +71,11 @@ object Environment {
     private const val LOGGER_SAVE = "KME_LOGGER_SAVE"
     private const val LOGGER_PACKETS = "KME_LOGGER_PACKETS"
 
+    private const val MITM_ENABLED = "KME_MITM_ENABLED"
+    private const val MITM_HOST = "KME_MITM_HOST"
+    private const val MITM_PORT = "KME_MITM_PORT"
+    private const val MITM_SECURE = "KME_MITM_SECURE"
+
     /**
      * recreateConfig Recreates the config based on the environment
      * variables present. The config is immutable so new objects must
@@ -89,7 +92,8 @@ object Environment {
             menuMessage = env.str(MENU_MESSAGE, config.menuMessage),
             database = createDatabaseConfig(env, config.database),
             panel = createPanelConfig(env, config.panel),
-            gaw = createGawConfig(env, config.gaw)
+            gaw = createGawConfig(env, config.gaw),
+            mitm = createMITMConfig(env, config.mitm)
         )
     }
 
@@ -153,6 +157,15 @@ object Environment {
         return GalaxyAtWarConfig(
             env.float(GAW_READINESS_DECAY, gawConfig.readinessDailyDecay),
             env.bool(GAW_ENABLE_PROMOTIONS, gawConfig.enablePromotions)
+        )
+    }
+
+   private fun createMITMConfig(env: Map<String, String>, mitmConfig: MITM): MITM {
+        return MITM(
+            env.bool(MITM_ENABLED, mitmConfig.enabled),
+            env.str(MITM_HOST, mitmConfig.host),
+            env.int(MITM_PORT, mitmConfig.port),
+            env.bool(MITM_SECURE, mitmConfig.secure)
         )
     }
 
