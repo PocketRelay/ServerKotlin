@@ -321,10 +321,9 @@ private class MainHandler(
      * @param packet The packet requesting the auth token
      */
     private fun handleGetAuthToken(packet: Packet) {
-        val response = packet.respond {
+        packet.pushResponse {
             text("AUTH", session.playerId.toString(16).uppercase())
         }
-        channel.write(response)
     }
 
     /**
@@ -919,7 +918,7 @@ private class MainHandler(
             list("LMAP", listOf(
                 group {
                     +group("INFO") {
-                        tripple("BOID", 0x19, 0x1, 0x28557f3)
+                        tripple("BOID", 0x19, 0x1, 0x74b09c4)
                         number("FLGS", 4)
                         +group("LID") {
                             text("LNM", "friendList")
