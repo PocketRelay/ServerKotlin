@@ -185,8 +185,22 @@ private class MainHandler(
             Commands.ORIGIN_LOGIN -> handleOriginLogin(packet)
             Commands.CREATE_ACCOUNT -> handleCreateAccount(packet)
             Commands.LOGOUT -> handleLogout(packet)
+            Commands.PASSWORD_FORGOT -> handlePasswordForgot(packet)
             else -> packet.pushEmptyResponse()
         }
+    }
+
+    /**
+     * handlePasswordForgot This would handle email password reset emails for
+     * users who have forgotten passwords but this system doesn't support that yet
+     * so instead this just doesn't get handled
+     *
+     * @param packet The packet requesting the password reset
+     */
+    private fun handlePasswordForgot(packet: Packet) {
+        val mail = packet.text("MAIL") // The email of the account that wants a reset
+        info("Recieved password reset for $mail")
+        packet.pushEmptyResponse()
     }
 
     /**
