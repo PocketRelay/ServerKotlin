@@ -4,6 +4,7 @@ plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
     id("com.github.johnrengelman.shadow")
+    id("com.google.devtools.ksp") version "1.7.0-1.0.6"
 }
 
 dependencies {
@@ -21,6 +22,9 @@ dependencies {
     // Subprojects for blaze networking and utilities
     implementation(project(":blaze"))
     implementation(project(":utils"))
+
+    ksp(project(":blaze-processor"))
+
 }
 
 /**
