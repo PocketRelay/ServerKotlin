@@ -101,7 +101,7 @@ internal class TdfTest {
                     repeat(values) { listContents.add(StringGen()) }
                     Tdf.STRING
                 }
-                50 -> {
+                in 48 .. 50 -> {
                     repeat(values) { listContents.add(UnnamedGroupTdfGen()) }
                     Tdf.GROUP
                 }
