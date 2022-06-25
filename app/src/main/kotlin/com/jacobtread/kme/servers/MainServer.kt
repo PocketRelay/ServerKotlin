@@ -1041,10 +1041,36 @@ private class MainHandler(
             Commands.USER_SETTINGS_SAVE -> handleUserSettingsSave(packet)
             Commands.USER_SETTINGS_LOAD_ALL -> handleUserSettingsLoadAll(packet)
             Commands.SUSPEND_USER_PING -> handleSuspendUserPing(packet)
+            Commands.SET_CLIENT_METRICS -> handleClientMetrics(packet)
             else -> packet.pushEmptyResponse()
         }
     }
 
+    /**
+     * handleClientMetrics Handles logging of client metrics this handler
+     * will always respond with empty but will log the details for the client
+     * if DEBUG logging is enabled
+     *
+     * @param packet The packet updating client metrics
+     */
+    private fun handleClientMetrics(packet: Packet) {
+        if (Logger.isDebugEnabled) {
+            val ubfl = packet.number("UBFL")
+            val udev = packet.text("UDEV")
+            val uflg = packet.number("UFLG")
+            val unat = packet.number("UNAT")
+            val usta = packet.number("USTA")
+            val uwan = packet.number("UWAN")
+            Logger.debug("Recieved client metrics")
+            Logger.debug("UBFL: $ubfl")
+            Logger.debug("UDEV: $udev")
+            Logger.debug("UFLG: $uflg")
+            Logger.debug("UNAT: $unat")
+            Logger.debug("USTA: $usta")
+            Logger.debug("UWAN: $uwan")
+        }
+        packet.pushEmptyResponse()
+    }
 
     /**
      * handleFetchClientConfig Retrieves configurations for the client from the
