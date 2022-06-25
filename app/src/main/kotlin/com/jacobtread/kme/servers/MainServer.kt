@@ -186,7 +186,69 @@ private class MainHandler(
             Commands.CREATE_ACCOUNT -> handleCreateAccount(packet)
             Commands.LOGOUT -> handleLogout(packet)
             Commands.PASSWORD_FORGOT -> handlePasswordForgot(packet)
+            Commands.GET_LEGAL_DOCS_INFO -> handleGetLegalDocsInfo(packet)
+            Commands.GET_TERMS_OF_SERVICE_CONTENT -> handleTermsOfServiceContent(packet)
+            Commands.GET_PRIVACY_POLICY_CONTENT -> handlePrivacyPolicyContent(packet)
             else -> packet.pushEmptyResponse()
+        }
+    }
+
+    /**
+     * handleGetLegalDocsInfo Retrieves info about the legal documents
+     * the contents of this packet need further research and are currently
+     * not documented
+     *
+     * @param packet The packet requesting the legal doc info
+     */
+    private fun handleGetLegalDocsInfo(packet: Packet) {
+        packet.pushResponse {
+            number("EAMC", 0x0)
+            text("LHST", "")
+            number("PMC", 0x0)
+            text("PPUI", "")
+            text("TSUI", "")
+        }
+    }
+
+    /**
+     * handleTermsOfServiceContent Handles serving the contents of the
+     * terms of service to the clients this is displayed if the user
+     * pushes the terms of service button in the login screen
+     *
+     * @param packet The packet requesting the TOS contents
+     */
+    private fun handleTermsOfServiceContent(packet: Packet) {
+        // Terms of service is represented as HTML this is currently a placeholder value
+        // in the future Ideally this would be editable from the web control
+        val content = """
+            <div style="font-family: Calibri; margin: 4px;"><h1>This is a terms of service placeholder</h1></div>
+        """.trimIndent()
+        packet.pushResponse {
+            // This is the URL of the page source this is prefixed by https://tos.ea.com/legalapp
+            text("LDVC", "webterms/au/en/pc/default/09082020/02042022")
+            number("TCOL", 0xdaed)
+            text("TCOT", content) // The HTML contents of this legal doc
+        }
+    }
+
+    /**
+     * handlePrivacyPolicyContent Handles serving the contents of the
+     * privacy policy to the clients this is displayed if the user
+     * pushes the privacy policy button in the login screen
+     *
+     * @param packet The packet requesting the TOS contents
+     */
+    private fun handlePrivacyPolicyContent(packet: Packet) {
+        // THe privacy policy is represented as HTML this is currently a placeholder value
+        // in the future Ideally this would be editable from the web control
+        val content = """
+            <div style="font-family: Calibri; margin: 4px;"><h1>This is a terms of service placeholder</h1></div>
+        """.trimIndent()
+        packet.pushResponse {
+            // This is the URL of the page source this is prefixed by https://tos.ea.com/legalapp
+            text("LDVC", "webprivacy/au/en/pc/default/08202020/02042022")
+            number("TCOL", 0xc99c)
+            text("TCOT", content) // The HTML contents of this legal doc
         }
     }
 
