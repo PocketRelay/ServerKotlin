@@ -1032,15 +1032,15 @@ private class MainHandler(
     private fun handlePreAuth(packet: Packet) {
         packet.pushResponse {
             number("ANON", 0x0)
-            number("ASRC", 303107)
+            text("ASRC", "303107")
             list("CIDS", Data.CIDS)
             text("CNGN", "")
             +group("CONF") {
                 map(
                     "CONF", mapOf(
-                        "pingPeriod" to "15s",
-                        "voipHeadsetUpdateRate" to "1000",
-                        "xlspConnectionIdleTimeout" to "300"
+                        "pingPeriod" to Data.PING_PERIOD,
+                        "voipHeadsetUpdateRate" to Data.VOIP_HEADSET_UPDATE_RATE,
+                        "xlspConnectionIdleTimeout" to Data.XLSP_CONNECTION_IDLE_TIMEOUT
                     )
                 )
             }

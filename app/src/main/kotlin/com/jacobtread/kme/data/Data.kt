@@ -30,9 +30,12 @@ object Data {
         ),
         Charsets.UTF_8
     )
-    const val SKEY2 = "11229301_9b171d92cc562b293e602ee8325612e7"
     val CIDS = listOf(1, 25, 4, 28, 7, 9, 63490, 30720, 15, 30721, 30722, 30723, 30725, 30726, 2000)
 
+    const val SKEY2 = "11229301_9b171d92cc562b293e602ee8325612e7"
+    const val PING_PERIOD = "15s"
+    const val VOIP_HEADSET_UPDATE_RATE = "1000"
+    const val XLSP_CONNECTION_IDLE_TIMEOUT = "300"
 
     //region ME3 Data
     /**
