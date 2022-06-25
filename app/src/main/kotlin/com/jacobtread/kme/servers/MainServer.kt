@@ -1167,11 +1167,11 @@ private class MainHandler(
      */
     private fun handlePostAuth(packet: Packet) {
         packet.pushResponse {
-            +group("PSS") {
-                text("ADRS", "playersyncservice.ea.com")
+            +group("PSS") { // Player Sync Service?
+                text("ADRS", "playersyncservice.ea.com") // Host / Address
                 blob("CSIG")
                 text("PJID", "303107")
-                number("PORT", 443)
+                number("PORT", 443) // Port
                 number("RPRT", 0xF)
                 number("TIID", 0x0)
             }

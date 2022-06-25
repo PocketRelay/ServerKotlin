@@ -41,6 +41,8 @@ class PlayerSession : PacketPushable {
                 )
             )
         }
+
+        fun isDefault(): Boolean = this === SHARED_NET_DATA
     }
 
     companion object {
@@ -258,11 +260,17 @@ class PlayerSession : PacketPushable {
      * @param label The label to give the union
      * @return The created union
      */
-    fun createAddrOptional(label: String): OptionalTdf =
-        OptionalTdf(label, 0x02, group("VALU") {
-            +extNetData.createGroup("EXIP")
-            +intNetData.createGroup("INIP")
-        })
+    fun createAddrOptional(label: String): OptionalTdf  {
+        return if (extNetData.isDefault() && intNetData.isDefault()) {
+            OptionalTdf(label)
+        } else {
+            OptionalTdf(label, 0x02, group("VALU") {
+                +extNetData.createGroup("EXIP")
+                +intNetData.createGroup("INIP")
+            })
+        }
+    }
+
 
     /**
      * createPersonaList Creates a list of the account "personas" we don't
@@ -296,7 +304,7 @@ class PlayerSession : PacketPushable {
             number("BUID", player.playerId)
             number("FRST", 0)
             text("KEY", Data.SKEY2)
-            number("LLOG", unixTimeSeconds())
+            number("LLOG", 0)
             text("MAIL", player.email)
             +createPersonaList()
             number("UID", player.playerId)
