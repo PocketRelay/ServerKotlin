@@ -192,7 +192,7 @@ class Game(
                 number("PRES", 0x1)
                 text("PSAS", "")
                 number("QCAP", 0x0)
-                number("SEED", 0x2cf2048f)
+                number("SEED", 0x2cf2048f) // Seed? Could be used for game randomness?
                 number("TCAP", 0x0)
                 +group("THST") {
                     number("HPID", hostPlayer.playerId)
@@ -217,7 +217,7 @@ class Game(
                     +playerSession.createAddrOptional("PNET") // Player net info
                     number("SID", index) // Slot ID
                     number("SLOT", 0x0)
-                    number("STAT", if (host.playerId == player.playerId) 0x2 else 0x4)
+                    number("STAT", if (host.playerId == player.playerId) 0x4 else 0x2)
                     number("TIDX", 0xffff)
                     number("TIME", 0x4fd4ce4f6a036)
                     tripple("UGID", 0x0, 0x0, 0x0)

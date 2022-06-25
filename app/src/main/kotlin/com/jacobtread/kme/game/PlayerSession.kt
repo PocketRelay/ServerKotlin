@@ -92,6 +92,8 @@ class PlayerSession : PacketPushable {
     val player: Player get() = _player ?: throw throw NotAuthenticatedException()
     val playerId: Int get() = player.playerId
 
+    val displayName: String get() = player.displayName
+
     var hardwareFlag: Int = 0
 
     var sendSession = false
@@ -182,7 +184,7 @@ class PlayerSession : PacketPushable {
      * @return A USER_SESSIONS SET_SESSION packet
      */
     fun createSetSession(): Packet = unique(Components.USER_SESSIONS, Commands.SET_SESSION) {
-        +createSessionDataGroup(0x2e, listOf(0xfff0fff, 0xfff0fff, 0xfff0fff))
+        +createSessionDataGroup(0x2e, false)
         number("USID", if (_player != null) playerId else sessionId)
     }
 
@@ -210,7 +212,7 @@ class PlayerSession : PacketPushable {
      * @param pslm Unknown But Nessicary
      * @return The created group
      */
-    private fun createSessionDataGroup(dmapValue: Int, pslm: List<Long>?): GroupTdf {
+    private fun createSessionDataGroup(dmapValue: Int, details: Boolean): GroupTdf {
         return group("DATA") {
             +createAddrOptional("ADDR")
             text("BPS", "rs-lhr")
@@ -218,8 +220,11 @@ class PlayerSession : PacketPushable {
             varList("CVAR")
             map("DMAP", mapOf(0x70001 to dmapValue))
             number("HWFG", hardwareFlag)
-            if (pslm != null) {
-                list("PSLM", pslm)
+            if (details) {
+                list("PSLM", listOf(if (matchmaking) 0x4e else 0x2f, 0xfff0fff, 0xfff0fff))
+            } else {
+                // Could be replaced with
+                list("PSLM", listOf(0x9c, 0xfff0fff, 0xfff0fff))
             }
             +group("QDAT") {
                 number("DBPS", otherNetData.dbps)
@@ -248,9 +253,9 @@ class PlayerSession : PacketPushable {
         ) {
             // Session Data
             if (game != null) {
-                +createSessionDataGroup(0x291, listOf(0xea, 0x9c, 0x5e))
+                +createSessionDataGroup(0x291, true)
             } else {
-                +createSessionDataGroup(0x22, null)
+                +createSessionDataGroup(0x22, true)
             }
             // Player Data
             +group("USER") {

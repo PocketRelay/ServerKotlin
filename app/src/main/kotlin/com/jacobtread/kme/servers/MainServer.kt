@@ -592,7 +592,6 @@ private class MainHandler(
         game.join(session)
         packet.pushResponse {
             number("MSID", game.mid)
-            number("GID", game.id)
         }
         game.getActivePlayers().forEach {
             if (it.sessionId != session.sessionId) {
@@ -625,8 +624,9 @@ private class MainHandler(
     private fun handleUpdateMeshConnection(packet: Packet) {
         val gameId = packet.number("GID")
         val game = GameManager.getGameById(gameId)
+        packet.pushEmptyResponse()
         if (game == null || !session.matchmaking) {
-            return packet.pushEmptyResponse()
+            return
         }
         val player = session.player
         val host = game.host
@@ -654,7 +654,6 @@ private class MainHandler(
 
         pushAll(a, b, c)
         host.pushAll(a, b, c)
-        packet.pushEmptyResponse()
     }
 
     //endregion
