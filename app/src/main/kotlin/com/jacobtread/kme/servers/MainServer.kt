@@ -242,7 +242,7 @@ private class MainHandler(
         // THe privacy policy is represented as HTML this is currently a placeholder value
         // in the future Ideally this would be editable from the web control
         val content = """
-            <div style="font-family: Calibri; margin: 4px;"><h1>This is a terms of service placeholder</h1></div>
+            <div style="font-family: Calibri; margin: 4px;"><h1>This is a privacy policy placeholder</h1></div>
         """.trimIndent()
         packet.pushResponse {
             // This is the URL of the page source this is prefixed by https://tos.ea.com/legalapp
