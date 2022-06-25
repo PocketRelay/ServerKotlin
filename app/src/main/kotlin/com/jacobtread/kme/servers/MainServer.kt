@@ -2,6 +2,7 @@ package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.blaze.*
+import com.jacobtread.kme.blaze.annotations.PacketProcessor
 import com.jacobtread.kme.blaze.tdf.GroupTdf
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.data.LoginError
@@ -74,6 +75,9 @@ class MainInitializer : ChannelInitializer<Channel>() {
             .addLast(PacketEncoder())
     }
 }
+ abstract class TestImpl {
+
+}
 
 /**
  * MainHandler A handler for clients connected to the main server
@@ -81,6 +85,7 @@ class MainInitializer : ChannelInitializer<Channel>() {
  * @property session The session data for this user
  * @constructor Create empty MainClient
  */
+@PacketProcessor
 private class MainHandler(
     private val session: PlayerSession,
 ) : SimpleChannelInboundHandler<Packet>(), PacketPushable {
@@ -143,55 +148,32 @@ private class MainHandler(
      * @param msg The reieved packet
      */
     override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
-        try {
-            when (msg.component) {
-                Components.AUTHENTICATION -> handleAuthentication(msg)
-                Components.GAME_MANAGER -> handleGameManager(msg)
-                Components.STATS -> handleStats(msg)
-                Components.MESSAGING -> handleMessaging(msg)
-                Components.ASSOCIATION_LISTS -> handleAssociationLists(msg)
-                Components.GAME_REPORTING -> handleGameReporting(msg)
-                Components.USER_SESSIONS -> handleUserSessions(msg)
-                Components.UTIL -> handleUtil(msg)
-                else -> pushEmptyResponse(msg)
-            }
-        } catch (e: NotAuthenticatedException) { // Handle player access with no player
-            val address = channel.remoteAddress()
-            push(LoginError.INVALID_ACCOUNT(msg))
-            Logger.warn("Client at $address tried to access a authenticated route without authenticating")
-        } catch (e: Exception) {
-            Logger.warn("Failed to handle packet: $msg", e)
-            msg.pushEmptyResponse()
-        }
+        ctx.channel()
+//        try {
+//            when (msg.component) {
+//                Components.AUTHENTICATION -> handleAuthentication(msg)
+//                Components.GAME_MANAGER -> handleGameManager(msg)
+//                Components.STATS -> handleStats(msg)
+//                Components.MESSAGING -> handleMessaging(msg)
+//                Components.ASSOCIATION_LISTS -> handleAssociationLists(msg)
+//                Components.GAME_REPORTING -> handleGameReporting(msg)
+//                Components.USER_SESSIONS -> handleUserSessions(msg)
+//                Components.UTIL -> handleUtil(msg)
+//                else -> pushEmptyResponse(msg)
+//            }
+//        } catch (e: NotAuthenticatedException) { // Handle player access with no player
+//            val address = channel.remoteAddress()
+//            push(LoginError.INVALID_ACCOUNT(msg))
+//            Logger.warn("Client at $address tried to access a authenticated route without authenticating")
+//        } catch (e: Exception) {
+//            Logger.warn("Failed to handle packet: $msg", e)
+//            msg.pushEmptyResponse()
+//        }
         ctx.flush()
         msg.release() // Release content from message at end of handling
     }
 
     //region Authentication Component Region
-
-    /**
-     * handleAuthentication Handles the authentication component and passes
-     * the call onto the other functions that handle the commmands
-     *
-     * @param packet The packet with an authentication component
-     */
-    private fun handleAuthentication(packet: Packet) {
-        when (packet.command) {
-            Commands.LIST_USER_ENTITLEMENTS_2 -> handleListUserEntitlements2(packet)
-            Commands.GET_AUTH_TOKEN -> handleGetAuthToken(packet)
-            Commands.LOGIN -> handleLogin(packet)
-            Commands.SILENT_LOGIN -> handleSilentLogin(packet)
-            Commands.LOGIN_PERSONA -> handleLoginPersona(packet)
-            Commands.ORIGIN_LOGIN -> handleOriginLogin(packet)
-            Commands.CREATE_ACCOUNT -> handleCreateAccount(packet)
-            Commands.LOGOUT -> handleLogout(packet)
-            Commands.PASSWORD_FORGOT -> handlePasswordForgot(packet)
-            Commands.GET_LEGAL_DOCS_INFO -> handleGetLegalDocsInfo(packet)
-            Commands.GET_TERMS_OF_SERVICE_CONTENT -> handleTermsOfServiceContent(packet)
-            Commands.GET_PRIVACY_POLICY_CONTENT -> handlePrivacyPolicyContent(packet)
-            else -> packet.pushEmptyResponse()
-        }
-    }
 
     /**
      * handleGetLegalDocsInfo Retrieves info about the legal documents
@@ -455,26 +437,6 @@ private class MainHandler(
     //region Game Manager Component Region
 
     /**
-     * handleGameManager Handles commands under the GAME_MANAGER component this handles
-     * things such as game creation, managements, and matchmaking
-     *
-     * @param packet The packet with a GAME_MANAGER component
-     */
-    private fun handleGameManager(packet: Packet) {
-        when (packet.command) {
-            Commands.CREATE_GAME -> handleCreateGame(packet)
-            Commands.ADVANCE_GAME_STATE -> handleAdvanceGameState(packet)
-            Commands.SET_GAME_SETTINGS -> handleSetGameSettings(packet)
-            Commands.SET_GAME_ATTRIBUTES -> handleSetGameAttributes(packet)
-            Commands.REMOVE_PLAYER -> handleRemovePlayer(packet)
-            Commands.START_MATCHMAKING -> handleStartMatchmaking(packet)
-            Commands.CANCEL_MATCHMAKING -> handleCancelMatchmaking(packet)
-            Commands.UPDATE_MESH_CONNECTION -> handleUpdateMeshConnection(packet)
-            else -> packet.pushEmptyResponse()
-        }
-    }
-
-    /**
      * handleCreateGame Handles creating a game based on the provided attributes
      * and then tells the client the details of the created game
      *
@@ -653,22 +615,6 @@ private class MainHandler(
     //region Stats Component Region
 
     /**
-     * handleStats Handles commands under the STATS component handles
-     * functionality for the leaderboard logic
-     *
-     * @param packet The packet with the STATS component
-     */
-    private fun handleStats(packet: Packet) {
-        when (packet.command) {
-            Commands.GET_LEADERBOARD_GROUP -> handleLeaderboardGroup(packet)
-            Commands.GET_FILTERED_LEADERBOARD -> handleFilteredLeaderboard(packet)
-            Commands.GET_LEADERBOARD_ENTITY_COUNT -> handleLeaderboardEntityCount(packet)
-            Commands.GET_CENTERED_LEADERBOARD -> handleCenteredLeadboard(packet)
-            else -> packet.pushEmptyResponse()
-        }
-    }
-
-    /**
      * getLocaleName Translates the provided locale name
      * to the user readable name
      *
@@ -836,19 +782,6 @@ private class MainHandler(
     //region Messaging Component Region
 
     /**
-     * handleMessaging Handles the ingame message retrieval in this case its
-     * only used for getting the message that's displayed on the main menu
-     *
-     * @param packet The packet with the MESSAGING component
-     */
-    private fun handleMessaging(packet: Packet) {
-        when (packet.command) {
-            Commands.FETCH_MESSAGES -> handleFetchMessages(packet)
-            else -> packet.pushEmptyResponse()
-        }
-    }
-
-    /**
      * handleFetchMessages Handles fetch messages requests from the client this
      * will send a MESSAGING SEND_MESSAGE packet to the client containing the
      * generated main menu message
@@ -884,19 +817,6 @@ private class MainHandler(
     //endregion
 
     //region Association Lists Component Region
-
-    /**
-     * handleAssociationLists Handles getting assocation lists in this case
-     * only the friends list will be returned
-     *
-     * @param packet The packet requesting ASSOCIATION_LISTS
-     */
-    private fun handleAssociationLists(packet: Packet) {
-        when (packet.command) {
-            Commands.GET_LISTS -> handleAssociationListGetLists(packet)
-            else -> packet.pushEmptyResponse()
-        }
-    }
 
     /**
      * handleAssociationListGetLists Handles getting associated lists.
@@ -935,37 +855,20 @@ private class MainHandler(
      *
      * @param packet The packet requesting the GAME_REPORTING
      */
-    private fun handleGameReporting(packet: Packet) {
+    private fun handleSubmitOfflineReport(packet: Packet) {
         packet.pushEmptyResponse()
-        if (packet.command == Commands.SUBMIT_OFFLINE_GAME_REPORT) {
-            pushUnique(Components.GAME_REPORTING, Commands.GAME_REPORT_RESULT_72) {
-                varList("DATA")
-                number("EROR", 0)
-                number("FNL", 0)
-                number("GHID", 0)
-                number("GRID", 0)
-            }
+        pushUnique(Components.GAME_REPORTING, Commands.GAME_REPORT_RESULT_72) {
+            varList("DATA")
+            number("EROR", 0)
+            number("FNL", 0)
+            number("GHID", 0)
+            number("GRID", 0)
         }
     }
 
     //endregion
 
     //region User Sessions Component Region
-
-    /**
-     * handleUserSessions Handles updating the session of the user in this
-     * case we only update the networking information from the client
-     *
-     * @param packet The packet requesting a session change
-     */
-    private fun handleUserSessions(packet: Packet) {
-        when (packet.command) {
-            Commands.UPDATE_HARDWARE_FLAGS -> updateHardwareFlag(packet)
-            Commands.UPDATE_NETWORK_INFO -> updateSessionNetworkInfo(packet)
-            Commands.RESUME_SESSION -> handleResumeSession(packet)
-            else -> packet.pushEmptyResponse()
-        }
-    }
 
     /**
      * handleResumeSession Handles resuming a previously existing client
@@ -1022,20 +925,6 @@ private class MainHandler(
     //endregion
 
     //region Util Component Region
-
-    private fun handleUtil(packet: Packet) {
-        when (packet.command) {
-            Commands.FETCH_CLIENT_CONFIG -> handleFetchClientConfig(packet)
-            Commands.PING -> handlePing(packet)
-            Commands.PRE_AUTH -> handlePreAuth(packet)
-            Commands.POST_AUTH -> handlePostAuth(packet)
-            Commands.USER_SETTINGS_SAVE -> handleUserSettingsSave(packet)
-            Commands.USER_SETTINGS_LOAD_ALL -> handleUserSettingsLoadAll(packet)
-            Commands.SUSPEND_USER_PING -> handleSuspendUserPing(packet)
-            Commands.SET_CLIENT_METRICS -> handleClientMetrics(packet)
-            else -> packet.pushEmptyResponse()
-        }
-    }
 
     /**
      * handleClientMetrics Handles logging of client metrics this handler
