@@ -305,13 +305,6 @@ private class MainHandler(
 
         // Respond with the entitlements
         packet.pushResponse { Data.createUserEntitlements(this) }
-
-        // If the player hasn't yet recieved their session info send them it
-        if (!session.sendSession) {
-            session.sendSession = true
-            // Send a set session packet for the current player
-            push(session.createSetSession())
-        }
     }
 
     /**
@@ -499,7 +492,7 @@ private class MainHandler(
 
         game.setAttributes(attributes ?: emptyMap()) // If the attributes are missing use empty
         packet.pushResponse { number("GID", game.id) }
-        push(game.createPoolPacket(true)) // Send the game pool details
+        push(game.createPoolPacket(true, session)) // Send the game pool details
         push(session.createSetSession()) // Send the user session
         channel.flush()
         Matchmaking.onGameCreated(game)
@@ -588,16 +581,18 @@ private class MainHandler(
         val ruleSet = MatchRuleSet(packet)
         val game = Matchmaking.getMatchOrQueue(session, ruleSet) ?: return packet.pushEmptyResponse()
         info("Found matching game for player ${player.displayName}")
-        game.join(session)
         packet.pushResponse {
             number("MSID", game.mid)
         }
+        game.join(session)
         game.getActivePlayers().forEach {
             if (it.sessionId != session.sessionId) {
                 push(it.createSessionDetails())
+                push(it.createIdentityUpdate())
             }
         }
-        push(game.createPoolPacket(false))
+        push(game.createPoolPacket(false, session))
+        push(session.createSetSession())
     }
 
     /**
@@ -624,7 +619,7 @@ private class MainHandler(
         val gameId = packet.number("GID")
         val game = GameManager.getGameById(gameId)
         packet.pushEmptyResponse()
-        if (game == null || !session.matchmaking) return
+        if (game == null) return
 
         val player = session.player
         val host = game.host

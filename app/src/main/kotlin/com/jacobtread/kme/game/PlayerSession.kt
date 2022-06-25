@@ -96,8 +96,6 @@ class PlayerSession : PacketPushable {
 
     var hardwareFlag: Int = 0
 
-    var sendSession = false
-
     // The time in milliseconds of when the last ping was received from the client
     var lastPingTime = -1L
 
@@ -185,7 +183,7 @@ class PlayerSession : PacketPushable {
      */
     fun createSetSession(): Packet = unique(Components.USER_SESSIONS, Commands.SET_SESSION) {
         +createSessionDataGroup(0x2e, false)
-        number("USID", if (_player != null) playerId else sessionId)
+        number("USID", playerId)
     }
 
     /**
@@ -223,7 +221,6 @@ class PlayerSession : PacketPushable {
             if (details) {
                 list("PSLM", listOf(if (matchmaking) 0x4e else 0x2f, 0xfff0fff, 0xfff0fff))
             } else {
-                // Could be replaced with
                 list("PSLM", listOf(0x9c, 0xfff0fff, 0xfff0fff))
             }
             +group("QDAT") {

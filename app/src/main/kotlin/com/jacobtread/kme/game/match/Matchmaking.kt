@@ -46,7 +46,7 @@ object Matchmaking {
                     game.getActivePlayers().forEach {
                         session.push(it.createSessionDetails())
                     }
-                    session.push(game.createPoolPacket(false))
+                    session.push(game.createPoolPacket(false, session))
                     waitingLock.write {
                         session.matchmaking = false
                         iterator.remove()

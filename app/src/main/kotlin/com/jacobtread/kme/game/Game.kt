@@ -52,29 +52,27 @@ class Game(
     private fun sendHostPlayerJoin(session: PlayerSession) {
         val player = session.player
         val sessionDetails = session.createSessionDetails()
-        host.pushAll(
-            sessionDetails,
-            unique(Components.GAME_MANAGER, Commands.JOIN_GAME_BY_GROUP) {
+        host.push(sessionDetails)
+        host.pushUnique(Components.GAME_MANAGER, Commands.JOIN_GAME_BY_GROUP){
+            number("GID", id)
+            +group("PDAT") {
+                blob("BLOB")
+                number("EXID", 0x0)
                 number("GID", id)
-                +group("PDAT") {
-                    blob("BLOB")
-                    number("EXID", 0x0)
-                    number("GID", id)
-                    number("LOC", 0x64654445)
-                    text("NAME", player.displayName)
-                    number("PID", player.playerId)
-                    +session.createAddrOptional("PNET")
-                    number("SID", players.size)
-                    number("SLOT", 0x0)
-                    number("STAT", 0x2)
-                    number("TIDX", 0xffff)
-                    number("TIME", 0x0)
-                    tripple("UGID", 0x0, 0x0, 0x0)
-                    number("UID", player.playerId)
-                }
-            },
-        )
-        session.push(session.createSetSession())
+                number("LOC", 0x64654445)
+                text("NAME", player.displayName)
+                number("PID", player.playerId)
+                +session.createAddrOptional("PNET")
+                number("SID", players.size - 1)
+                number("SLOT", 0x0)
+                number("STAT", 0x2)
+                number("TIDX", 0xffff)
+                number("TIME", 0x0)
+                tripple("UGID", 0x0, 0x0, 0x0)
+                number("UID", player.playerId)
+            }
+        }
+        host.push(session.createSetSession())
     }
 
     fun removePlayer(player: PlayerSession) {
@@ -145,7 +143,7 @@ class Game(
             number("GID", id)
         }
 
-    fun createPoolPacket(init: Boolean): Packet =
+    fun createPoolPacket(init: Boolean, forSession: PlayerSession): Packet =
         unique(
             Components.GAME_MANAGER,
             Commands.RETURN_DEDICATED_SERVER_TO_POOL
@@ -192,7 +190,7 @@ class Game(
                         +host.intNetData.createGroup("INIP")
                     }
                 ))
-                number("HSES", 0x112888c1)
+                number("HSES", 0x10f3e3ed)
                 number("IGNO", 0x0)
                 number("MCAP", 0x4)
                 +group("NQOS") {
@@ -209,7 +207,7 @@ class Game(
                     number("HPID", hostPlayer.playerId)
                     number("HSLT", 0x0)
                 }
-                number("PRES", 0x1)
+                number("PRES", 0x2)
                 text("PSAS", "")
                 number("QCAP", 0x0)
                 number("SEED", 0x74988476) // Seed? Could be used for game randomness?
@@ -232,11 +230,11 @@ class Game(
                 })
             } else {
                 optional("REAS", 0x3, group("VALU") {
-                    number("FIT", 0x53fc)
+                    number("FIT", 0x3f7a)
                     number("MAXF", 0x5460)
                     number("MSID", mid)
                     number("RSLT", 0x2)
-                    number("USID", hostPlayer.playerId)
+                    number("USID", forSession.playerId)
                 })
             }
         }
