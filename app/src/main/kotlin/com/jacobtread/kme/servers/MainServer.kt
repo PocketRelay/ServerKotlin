@@ -38,6 +38,10 @@ import java.time.LocalDate
  * @param workerGroup The netty worker event loop group
  */
 fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
+    if (Environment.Config.mitm.enabled) { // If MITM is enabled
+        startMITMServer(bossGroup, workerGroup)
+        return // Don't create the normal main server
+    }
     try {
         ServerBootstrap()
             .group(bossGroup, workerGroup)
@@ -939,7 +943,7 @@ class MainProcessor(
      */
     @PacketHandler(Components.UTIL, Commands.SET_CLIENT_METRICS)
     fun handleClientMetrics(packet: Packet) {
-        if (Logger.isDebugEnabled) {
+        if (Logger.debugEnabled) {
             val ubfl = packet.number("UBFL")
             val udev = packet.text("UDEV")
             val uflg = packet.number("UFLG")

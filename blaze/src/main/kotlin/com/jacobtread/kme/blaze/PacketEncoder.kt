@@ -7,7 +7,7 @@ import io.netty.handler.codec.MessageToByteEncoder
 
 class PacketEncoder : MessageToByteEncoder<Packet>() {
     override fun encode(ctx: ChannelHandlerContext, msg: Packet, out: ByteBuf) {
-        if (Logger.isLogPackets) {
+        if (Logger.logPackets) {
             try {
                 Logger.debug("SENT PACKET ===========\n" + packetToBuilder(msg) + "\n======================")
             } catch (e: Throwable) {

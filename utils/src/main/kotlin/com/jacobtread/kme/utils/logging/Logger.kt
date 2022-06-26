@@ -1,7 +1,7 @@
+@file:Suppress("unused")
+
 package com.jacobtread.kme.utils.logging
 
-import kotlinx.serialization.Serializable
-import net.mamoe.yamlkt.Comment
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.text.SimpleDateFormat
@@ -10,21 +10,22 @@ import kotlin.system.exitProcess
 
 object Logger {
 
-    @Serializable
-    data class Config(
-        @Comment("The level of logging that should be used: INFO, WARN, ERROR, FATAL, DEBUG")
-        val level: Level = Level.INFO,
-        @Comment("Enable to keep track of logs in the logs/ directory will archive old logs with gzip")
-        val save: Boolean = true,
-        @Comment("Whether to log the contents of incoming and outgoing packets (For debugging)")
-        val packets: Boolean = false,
-    )
-
     private val printDateFormat = SimpleDateFormat("HH:mm:ss")
     private var writer: LogWriter? = null
-    var logLevel: Level = Level.INFO
-    private var logToFile = false
-    var isLogPackets = false
+    private var level: Level = Level.INFO
+        set(value) {
+            field = value
+            debugEnabled = value == Level.DEBUG
+        }
+    private var saveFile = false
+        set(value) {
+            field = value
+            writer = if (value) LogWriter() else null
+        }
+
+
+    var logPackets = false
+        private set
 
     /**
      * isDebugEnabled Checks whether the current
@@ -32,17 +33,18 @@ object Logger {
      *
      * @return
      */
-    var isDebugEnabled: Boolean = false
+    var debugEnabled: Boolean = false
         private set
 
-    fun init(config: Config) {
-        logLevel = config.level
-        isDebugEnabled = logLevel == Level.DEBUG
-        logToFile = config.save
-        isLogPackets = config.packets
-        if (logToFile) {
-            writer = LogWriter()
-        }
+
+    fun init(
+        levelName: String,
+        file: Boolean,
+        packets: Boolean,
+    ) {
+        level = Level.fromName(levelName)
+        saveFile = file
+        logPackets = packets
     }
 
     fun info(text: String) = append(Level.INFO, text)
@@ -69,7 +71,7 @@ object Logger {
     }
 
     inline fun logIfDebug(text: () -> String) {
-        if (isDebugEnabled) debug(text())
+        if (debugEnabled) debug(text())
     }
 
     fun debug(text: String) = append(Level.DEBUG, text)
@@ -91,12 +93,12 @@ object Logger {
      * @param message The message for this log
      */
     private fun append(level: Level, message: String) {
-        if (level.index > logLevel.index) return
+        if (level.index > this.level.index) return
         val time = printDateFormat.format(Date())
         val text = "[$time] ${level.coloredText()} $message\n"
         val stream = if (level.index < 3) System.err else System.out
         stream.print(text)
-        if (logToFile) {
+        if (saveFile) {
             writer?.write("[$time] [${level.levelName}] $message\n")
         }
     }
@@ -111,10 +113,10 @@ object Logger {
      * @param throwable The throwable exception
      */
     private fun appendThrowable(level: Level, message: String, throwable: Throwable) {
-        if (level.index > logLevel.index) return
+        if (level.index > this.level.index) return
         append(level, message)
         throwable.printStackTrace()
-        if (logToFile) {
+        if (saveFile) {
             val sw = StringWriter()
             val pw = PrintWriter(sw)
             throwable.printStackTrace(pw)
@@ -134,7 +136,7 @@ object Logger {
      * @param args The provided arguments
      */
     private fun appendVarargs(level: Level, message: String, args: Array<out Any?>) {
-        if (level.index > logLevel.index) return
+        if (level.index > this.level.index) return
         val time = printDateFormat.format(Date())
         var exceptions: ArrayList<Throwable>? = null
         val builder = StringBuilder()
@@ -168,7 +170,7 @@ object Logger {
         val text = "[$time] ${level.coloredText()} $builder\n"
         val stream = if (level.index < 3) System.err else System.out
         stream.print(text)
-        if (logToFile) {
+        if (saveFile) {
             writer?.write("[$time] [${level.levelName}] $builder\n")
             val exSW = StringWriter()
             val exPW = PrintWriter(exSW)

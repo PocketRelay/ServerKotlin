@@ -1,7 +1,6 @@
 package com.jacobtread.kme
 
 import com.jacobtread.kme.database.DatabaseConfig
-import com.jacobtread.kme.utils.logging.Logger
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.mamoe.yamlkt.Comment
@@ -34,7 +33,7 @@ data class Config(
     @Comment("The ports for each sub server")
     val ports: Ports = Ports(),
 
-    val logging: Logger.Config = Logger.Config(),
+    val logging: LoggingConfig = LoggingConfig(),
     @Comment(
         """
     The message displayed in the main menu format codes:
@@ -54,8 +53,20 @@ data class Config(
     val gaw: GalaxyAtWarConfig = GalaxyAtWarConfig(),
 
     @Comment("MITM")
-    val mitm: MITM = MITM()
+    val mitm: MITM = MITM(),
 ) {
+
+    @Serializable
+    data class LoggingConfig(
+        @Comment("The level of logging that should be used: INFO, WARN, ERROR, FATAL, DEBUG")
+        val level: String = "INFO",
+        @Comment("Enable to keep track of logs in the logs/ directory will archive old logs with gzip")
+        val save: Boolean = true,
+        @Comment("Whether to log the contents of incoming and outgoing packets (For debugging)")
+        val packets: Boolean = false,
+    )
+
+
     /**
      * Ports Configuration for the different ports that the servers will use
      *
@@ -89,10 +100,12 @@ data class Config(
 
     @Serializable
     data class MITM(
-        @Comment("""
+        @Comment(
+            """
             Whether to enable Man-In-The-Middle instead of running a server. This is
             used to send your traffic to the official servers and log everything
-        """)
+        """
+        )
         val enabled: Boolean = false,
         val host: String = "gsprodblapp-02.ea.com",
         val port: Int = 10019,

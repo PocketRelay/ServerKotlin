@@ -221,9 +221,9 @@ object Environment {
      * @param loggingConfig The default logging config
      * @return The modified logging config
      */
-    private fun createLoggingConfig(env: Map<String, String>, loggingConfig: Logger.Config): Logger.Config {
-        return Logger.Config(
-            level = env.env(LOGGER_LEVEL, Level::fromName, loggingConfig.level),
+    private fun createLoggingConfig(env: Map<String, String>, loggingConfig: LoggingConfig): LoggingConfig {
+        return LoggingConfig(
+            level = env.str(LOGGER_LEVEL, loggingConfig.level),
             save = env.bool(LOGGER_SAVE, loggingConfig.save),
             packets = env.bool(LOGGER_PACKETS, loggingConfig.packets)
         )
