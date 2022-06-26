@@ -9,12 +9,15 @@ object MakeTLKs {
      * main Function for processing TLK files in the data/tlk directory.
      * Converts the files into base64 encoded chunks for sending over the
      * packet system
+     *
+     * THIS SCRIPT EXPECTS TO BE EXECUTED WITH THE ROOT OF THE
+     * PROJECT AS THE WORKING DIR DOING SO FROM ELSEWHERE COULD
+     * BE PROBLEMATIC AND CAUSE FOLDERS IN THE WRONG PLACES
      */
     @JvmStatic
     fun main(args: Array<String>) {
         val tlkDir = Path("data/tlk")
-
-        val outDir = tlkDir / "processed"
+        val outDir = Path("app/src/main/resources/data/tlk")
         if (!outDir.exists()) outDir.createDirectories()
         tlkDir.forEachDirectoryEntry {
             val fileName = it.fileName.toString()

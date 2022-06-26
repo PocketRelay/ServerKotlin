@@ -135,3 +135,14 @@ tasks.create("makeCoalesced", JavaExec::class) {
     classpath(sourceSets["main"].runtimeClasspath)
     workingDir(rootProject.projectDir)
 }
+
+/**
+ * Gradle task for generated the tlk files place all the tlk files
+ * in the data/tlk directory ME3TLK.tlk will be used as the default
+ * file and all other languages should be named ME3TLK_${LANG_CODE}.tlk
+ */
+tasks.create("makeTLKs", JavaExec::class) {
+    mainClass.set("com.jacobtread.kme.tools.MakeTLKs")
+    classpath(sourceSets["main"].runtimeClasspath)
+    workingDir(rootProject.projectDir)
+}
