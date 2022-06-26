@@ -8,22 +8,36 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.system.exitProcess
 
+/**
+ * Logger is my personal no-fluff logging implementation It's
+ * intended to be a bare not very featured logger that does its
+ * job and that's it.
+ *
+ * @constructor Create empty Logger
+ */
 object Logger {
 
+    // The date format used when printing
     private val printDateFormat = SimpleDateFormat("HH:mm:ss")
+
+    // The log file writer null unless file logging is enabled
     private var writer: LogWriter? = null
+
+    // The level of logging
     private var level: Level = Level.INFO
         set(value) {
             field = value
             debugEnabled = value == Level.DEBUG
         }
+
+    // Whether to save the logs to files
     private var saveFile = false
         set(value) {
             field = value
             writer = if (value) LogWriter() else null
         }
 
-
+    // Whether to log packets
     var logPackets = false
         private set
 
@@ -36,7 +50,14 @@ object Logger {
     var debugEnabled: Boolean = false
         private set
 
-
+    /**
+     * init Initialize the logger settings using the
+     * provided values
+     *
+     * @param levelName The logging level name
+     * @param file Whether to save the log output to the log files
+     * @param packets Whether to log packet input and output
+     */
     fun init(
         levelName: String,
         file: Boolean,
@@ -172,17 +193,17 @@ object Logger {
         stream.println(text)
         if (saveFile) {
             writer?.write("[$time] [${level.levelName}] $builder\n")
-            val exSW = StringWriter()
-            val exPW = PrintWriter(exSW)
+            val exStringWriter = StringWriter() // String writer to write the exceptions to
+            val exPrintWriter = PrintWriter(exStringWriter) // Print writer abstraction
             exceptions?.forEach {
-                it.printStackTrace()
-                it.printStackTrace(exPW)
-                exPW.println()
+                it.printStackTrace(stream) // Print the exception to the console
+                it.printStackTrace(exPrintWriter) // Print the exception to the writer
+                exPrintWriter.println() // Print a new line
             }
-            exPW.flush()
-            writer?.write(exSW.toString())
+            exPrintWriter.flush() // Flush the writer
+            writer?.write(exStringWriter.toString()) // Write the string to the log file
         } else {
-            exceptions?.forEach { it.printStackTrace() }
+            exceptions?.forEach { it.printStackTrace() } // Print the exceptions to console
         }
     }
 }

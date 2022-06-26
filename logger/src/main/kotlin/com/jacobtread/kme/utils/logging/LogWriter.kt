@@ -17,6 +17,7 @@ import kotlin.io.path.*
  * @constructor Create empty LogWriter
  */
 class LogWriter {
+
     private val fileChannel: FileChannel
     private val outputBuffer: ByteBuffer = ByteBuffer.allocate(4024)
 
