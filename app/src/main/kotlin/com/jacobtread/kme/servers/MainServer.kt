@@ -76,7 +76,7 @@ class MainInitializer : ChannelInitializer<Channel>() {
 
 
 /**
- * MainHandler A handler for clients connected to the main server
+ * MainProcessor The packet processor for the main server.
  *
  * @property session The session data for this user
  * @constructor Create empty MainClient
@@ -86,9 +86,10 @@ class MainProcessor(
     private val session: PlayerSession,
 ) : SimpleChannelInboundHandler<Packet>(), PacketPushable {
 
-    inline fun Packet.pushResponse(init: ContentInitializer) = push(respond(init))
-    fun Packet.pushEmptyResponse() = push(respond())
-    fun Packet.pushEmptyError(error: Int) = push(error(error))
+    private inline fun Packet.pushResponse(init: ContentInitializer) = push(respond(init))
+    private fun Packet.pushEmptyResponse() = push(respond())
+    private fun Packet.pushEmptyError(error: Int) = push(error(error))
+
     override fun push(packet: Packet) {
         channel.write(packet)
     }

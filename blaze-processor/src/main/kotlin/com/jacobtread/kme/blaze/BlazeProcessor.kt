@@ -18,11 +18,25 @@ import com.squareup.kotlinpoet.ksp.writeTo
 import io.netty.channel.Channel
 import java.util.*
 
+/**
+ * BlazeProcessor Symbol processor for generating routing for blaze packets
+ *
+ * @property codeGenerator The KSP provided code generator used to generate the new source file
+ * @property logger The KSP provided logger used for logging errors while processing
+ * @constructor Create empty BlazeProcessor
+ */
 class BlazeProcessor(
     private val codeGenerator: CodeGenerator,
     private val logger: KSPLogger,
 ) : SymbolProcessor {
 
+    /**
+     * process Processes the annotations in the code source and
+     * generates the routing functions from them
+     *
+     * @param resolver The KSP resolver
+     * @return Always an empty list
+     */
     @OptIn(KspExperimental::class)
     override fun process(resolver: Resolver): List<KSAnnotated> {
         val classes = resolver.getSymbolsWithAnnotation(PacketProcessor::class.qualifiedName!!)
