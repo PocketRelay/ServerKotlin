@@ -5,7 +5,7 @@ import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.database.PlayerGalaxyAtWar
 import com.jacobtread.kme.servers.http.router.*
 import com.jacobtread.kme.utils.logging.Logger
-import com.jacobtread.kme.utils.unixTimeSeconds
+import com.jacobtread.kme.tools.unixTimeSeconds
 import io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import org.jetbrains.exposed.sql.transactions.transaction
 import kotlin.math.min

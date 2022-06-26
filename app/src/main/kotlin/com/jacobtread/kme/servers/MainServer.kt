@@ -13,11 +13,11 @@ import com.jacobtread.kme.game.PlayerSession
 import com.jacobtread.kme.game.PlayerSession.NetData
 import com.jacobtread.kme.game.match.MatchRuleSet
 import com.jacobtread.kme.game.match.Matchmaking
-import com.jacobtread.kme.utils.comparePasswordHash
-import com.jacobtread.kme.utils.hashPassword
+import com.jacobtread.kme.tools.comparePasswordHash
+import com.jacobtread.kme.tools.hashPassword
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.logging.Logger.info
-import com.jacobtread.kme.utils.unixTimeSeconds
+import com.jacobtread.kme.tools.unixTimeSeconds
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandler.Sharable

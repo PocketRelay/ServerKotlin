@@ -3,7 +3,7 @@ package com.jacobtread.kme.database
 import com.jacobtread.kme.Config
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.tools.MEStringParser
-import com.jacobtread.kme.utils.unixTimeSeconds
+import com.jacobtread.kme.tools.unixTimeSeconds
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.mamoe.yamlkt.Comment

@@ -10,7 +10,7 @@ import com.jacobtread.kme.blaze.NotAuthenticatedException
 import com.jacobtread.kme.game.match.Matchmaking
 import com.jacobtread.kme.blaze.data.VarTripple
 import com.jacobtread.kme.utils.logging.Logger
-import com.jacobtread.kme.utils.unixTimeSeconds
+import com.jacobtread.kme.tools.unixTimeSeconds
 import io.netty.channel.Channel
 import java.util.concurrent.atomic.AtomicInteger
 
