@@ -1,4 +1,4 @@
-package com.jacobtread.kme.utils.tools
+package com.jacobtread.kme.tools
 
 import io.netty.buffer.Unpooled
 import java.nio.file.Path

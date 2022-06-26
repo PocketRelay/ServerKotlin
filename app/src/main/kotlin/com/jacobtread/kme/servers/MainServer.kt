@@ -13,7 +13,6 @@ import com.jacobtread.kme.game.PlayerSession
 import com.jacobtread.kme.game.PlayerSession.NetData
 import com.jacobtread.kme.game.match.MatchRuleSet
 import com.jacobtread.kme.game.match.Matchmaking
-import com.jacobtread.kme.utils.IPAddress
 import com.jacobtread.kme.utils.comparePasswordHash
 import com.jacobtread.kme.utils.hashPassword
 import com.jacobtread.kme.utils.logging.Logger
@@ -29,6 +28,7 @@ import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.IOException
+import java.net.InetSocketAddress
 import java.time.LocalDate
 
 /**
@@ -893,6 +893,7 @@ class MainProcessor(
      *
      * @param packet The packet requesting the updated networking info
      */
+    @OptIn(ExperimentalUnsignedTypes::class)
     @PacketHandler(Components.USER_SESSIONS, Commands.UPDATE_NETWORK_INFO)
     fun updateSessionNetworkInfo(packet: Packet) {
         val displayName = session.player.displayName
@@ -901,7 +902,14 @@ class MainProcessor(
             val inip: GroupTdf = addr.group("INIP")
             val port: ULong = inip.number("PORT")
             val remoteAddress = channel.remoteAddress()
-            val addressEncoded = IPAddress.asLong(remoteAddress)
+
+            require(remoteAddress is InetSocketAddress) { "Remote address was not a socket address" }
+            val addressBytes = remoteAddress.address.address.toUByteArray()
+            val addressEncoded = (addressBytes[0].toULong() shl 24)
+                .or(addressBytes[1].toULong() shl 16)
+                .or(addressBytes[2].toULong() shl 8)
+                .or(addressBytes[3].toULong())
+
             info("Updated player network info ($remoteAddress) for $displayName")
             session.intNetData = NetData(addressEncoded, port)
             session.extNetData = NetData(addressEncoded, port)

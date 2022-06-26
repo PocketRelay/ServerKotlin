@@ -8,7 +8,7 @@ import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.blaze.NotAuthenticatedException
 import com.jacobtread.kme.game.match.Matchmaking
-import com.jacobtread.kme.utils.VarTripple
+import com.jacobtread.kme.blaze.data.VarTripple
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.unixTimeSeconds
 import io.netty.channel.Channel

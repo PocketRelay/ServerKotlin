@@ -1,10 +1,7 @@
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.tdf.GroupTdf
-import com.jacobtread.kme.utils.IPAddress
-import com.jacobtread.kme.utils.logging.Level
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.bootstrap.Bootstrap
-import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.channel.nio.NioEventLoopGroup
@@ -105,7 +102,8 @@ class ClientHandler : ChannelInboundHandlerAdapter() {
             val ip = value.number("IP")
             val port = value.number("PORT")
             val secure: Boolean = msg.number("SECU") == 0x1uL
-            serverDetails = ServerDetails(host, IPAddress.fromULongStr(ip) ,port.toInt(), secure)
+            val ipString = ((ip shr 24) and 255u).toString() + "." + ((ip shr 16) and 255u) + "." + ((ip shr 8) and 255u) + "." + (ip and 255u)
+            serverDetails = ServerDetails(host, ipString, port.toInt(), secure)
             ctx.close()
         }
     }

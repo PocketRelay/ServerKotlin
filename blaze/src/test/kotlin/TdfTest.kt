@@ -1,6 +1,6 @@
 import com.jacobtread.kme.blaze.tdf.*
-import com.jacobtread.kme.utils.VarPair
-import com.jacobtread.kme.utils.VarTripple
+import com.jacobtread.kme.blaze.data.VarPair
+import com.jacobtread.kme.blaze.data.VarTripple
 import io.netty.buffer.Unpooled
 import kotlin.random.Random
 import kotlin.random.nextInt

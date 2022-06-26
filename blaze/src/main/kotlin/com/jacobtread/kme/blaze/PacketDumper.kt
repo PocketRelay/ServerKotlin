@@ -1,7 +1,7 @@
 package com.jacobtread.kme.blaze
 
 import com.jacobtread.kme.blaze.tdf.*
-import com.jacobtread.kme.utils.VarTripple
+import com.jacobtread.kme.blaze.data.VarTripple
 import com.jacobtread.kme.utils.logging.Logger
 
 

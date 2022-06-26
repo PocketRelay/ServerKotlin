@@ -2,7 +2,6 @@ package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.blaze.*
-import com.jacobtread.kme.utils.IPAddress
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.logging.Logger.error
 import com.jacobtread.kme.utils.logging.Logger.info
@@ -167,7 +166,7 @@ class RedirectorHandler : ChannelInboundHandlerAdapter(), FutureListener<Void> {
      */
     data class RedirectTarget(
         val host: String,
-        val address: Long,
+        val address: ULong,
         val port: Int,
         val isHostname: Boolean,
     )
@@ -185,14 +184,23 @@ class RedirectorHandler : ChannelInboundHandlerAdapter(), FutureListener<Void> {
         // Regex pattern for matching IPv4 addresses
         val ipv4Regex = Regex("^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)(\\.(?!\$)|\$)){4}\$")
         return if (externalAddress.matches(ipv4Regex)) {
+
+            val ipParts = externalAddress.split('.', limit = 4)
+            require(ipParts.size == 4) { "Invalid IPv4 Address" }
+
+            val ipEncoded: ULong = (ipParts[0].toULong() shl 24)
+                .or(ipParts[1].toULong() shl 16)
+                .or(ipParts[2].toULong() shl 8)
+                .or(ipParts[3].toULong())
+
             RedirectTarget(
                 externalAddress,
-                IPAddress.asLong(externalAddress),
+                ipEncoded,
                 targetPort,
                 false
             )
         } else {
-            RedirectTarget(externalAddress, 0, targetPort, true)
+            RedirectTarget(externalAddress, 0u, targetPort, true)
         }
     }
 }
