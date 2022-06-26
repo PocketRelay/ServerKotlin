@@ -5,8 +5,8 @@ plugins {
 val nettyVersion: String by project
 
 dependencies {
-    // Utils project for logging
-    implementation(project(":utils"))
+    // Logging implementation
+    implementation(project(":logger"))
 
     implementation("io.netty:netty-buffer:$nettyVersion")
     implementation("io.netty:netty-handler:$nettyVersion")

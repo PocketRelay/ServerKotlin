@@ -22,7 +22,7 @@ dependencies {
 
     // Subprojects for blaze networking and utilities
     implementation(project(":blaze"))
-    implementation(project(":utils"))
+    implementation(project(":logger"))
 
     // KSP annoatation processing for packet routing
     ksp(project(":blaze-processor"))

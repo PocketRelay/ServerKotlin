@@ -167,9 +167,9 @@ object Logger {
         if (last < message.length) {
             builder.append(message.substring(last))
         }
-        val text = "[$time] ${level.coloredText()} $builder\n"
+        val text = "[$time] ${level.coloredText()} $builder"
         val stream = if (level.index < 3) System.err else System.out
-        stream.print(text)
+        stream.println(text)
         if (saveFile) {
             writer?.write("[$time] [${level.levelName}] $builder\n")
             val exSW = StringWriter()
@@ -185,5 +185,4 @@ object Logger {
             exceptions?.forEach { it.printStackTrace() }
         }
     }
-
 }
