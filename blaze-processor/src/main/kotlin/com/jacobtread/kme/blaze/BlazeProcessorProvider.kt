@@ -6,7 +6,8 @@ import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.processing.SymbolProcessorProvider
 
 /**
- * BlazeProcessorProvider
+ * BlazeProcessorProvider Provides an instance of the BlazeProcessor
+ * based on the environment provided
  *
  * @constructor Create empty BlazeProcessorProvider
  */

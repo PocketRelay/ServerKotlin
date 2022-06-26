@@ -3,9 +3,10 @@ plugins {
     kotlin("plugin.serialization")
 }
 
-val nettyVersion: String by project
-
 dependencies {
-    implementation("net.mamoe.yamlkt:yamlkt:0.10.2")
+    val nettyVersion: String by project
+    val yamlktVersion: String by project
+
+    implementation("net.mamoe.yamlkt:yamlkt:$yamlktVersion")
     implementation("io.netty:netty-buffer:$nettyVersion")
 }

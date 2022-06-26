@@ -2,18 +2,18 @@ plugins {
     kotlin("jvm")
 }
 
-
-val nettyVersion: String by project
+// Variables from gradle.properties
+val kotlinPoetVersion: String by project
+val kspVersion: String by project
 
 dependencies {
-    implementation("io.netty:netty-handler:$nettyVersion")
-    implementation(project(":utils"))
+    // The blaze project for annotations and packet
     implementation(project(":blaze"))
 
-    implementation("com.google.devtools.ksp:symbol-processing-api:1.7.0-1.0.6")
+    // Symbol processing api for annotation processing
+    implementation("com.google.devtools.ksp:symbol-processing-api:$kspVersion")
 
-    // Kotlin Poet
-    val kotlinPoetVersion = "1.12.0"
+    // Kotlin Poet for generating source code
     implementation("com.squareup:kotlinpoet-ksp:$kotlinPoetVersion")
     implementation("com.squareup:kotlinpoet:$kotlinPoetVersion")
 }

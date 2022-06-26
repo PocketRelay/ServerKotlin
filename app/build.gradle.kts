@@ -4,7 +4,7 @@ plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
     id("com.github.johnrengelman.shadow")
-    id("com.google.devtools.ksp") version "1.7.0-1.0.6"
+    id("com.google.devtools.ksp")
     idea
 }
 
@@ -24,15 +24,19 @@ dependencies {
     implementation(project(":blaze"))
     implementation(project(":utils"))
 
+    // KSP annoatation processing for packet routing
     ksp(project(":blaze-processor"))
 }
 
+// Adding sources for generated code
 idea {
     module {
-        // Not using += due to https://github.com/gradle/gradle/issues/8749
-        sourceDirs = sourceDirs + file("build/generated/ksp/main/kotlin") // or tasks["kspKotlin"].destination
-        testSourceDirs = testSourceDirs + file("build/generated/ksp/test/kotlin")
-        generatedSourceDirs = generatedSourceDirs + file("build/generated/ksp/main/kotlin") + file("build/generated/ksp/test/kotlin")
+        val mainSources = file("build/generated/ksp/main/kotlin")
+        val testSources = file("build/generated/ksp/test/kotlin")
+
+        sourceDirs = sourceDirs + mainSources
+        testSourceDirs = testSourceDirs + testSources
+        generatedSourceDirs = generatedSourceDirs + mainSources + testSources
     }
 }
 
@@ -50,8 +54,10 @@ fun DependencyHandlerScope.localDependencies() {
  * dependencies that this project uses for serialization
  */
 fun DependencyHandlerScope.serializationDependencies() {
-    implementation("net.mamoe.yamlkt:yamlkt:0.10.2") // YAML
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3") // JSON
+    val yamlktVersion: String by project
+    val kotlinxSerializationJson: String by project
+    implementation("net.mamoe.yamlkt:yamlkt:$yamlktVersion") // YAML
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinxSerializationJson") // JSON
 }
 
 /**
@@ -70,8 +76,10 @@ fun DependencyHandlerScope.nettyDependencies() {
  * currently this is only the MySQL and SQLite drivers
  */
 fun DependencyHandlerScope.databaseDrivers() {
-    implementation("mysql:mysql-connector-java:8.0.29")
-    implementation("org.xerial:sqlite-jdbc:3.36.0.3")
+    val mysqlDriverVersion: String by project
+    val sqliteDriverVersion: String by project
+    implementation("mysql:mysql-connector-java:$mysqlDriverVersion")
+    implementation("org.xerial:sqlite-jdbc:$sqliteDriverVersion")
 }
 
 /**
