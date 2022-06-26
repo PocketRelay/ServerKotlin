@@ -565,7 +565,7 @@ class MainProcessor(
             number("UID", host.playerId)
         }
 
-        // Retain all the content buffers so they can be sent to the host aswell
+        // Retain all the content buffers, so they can be sent to the host aswell
         a.contentBuffer.retain()
         b.contentBuffer.retain()
         c.contentBuffer.retain()
@@ -583,7 +583,7 @@ class MainProcessor(
      * to the user readable name
      *
      * @param code The shorthand code for the locale name
-     * @return The human readable locale name
+     * @return The human-readable locale name
      */
     private fun getLocaleName(code: String): String = when (code.lowercase()) {
         "global" -> "Global"
