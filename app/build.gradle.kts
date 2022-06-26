@@ -97,22 +97,41 @@ fun DependencyHandlerScope.exposedDatabaseDependencies() {
  * Hooks into the kotlin compiling task to set the
  * jvm target and add the defaults' compiler arg
  */
-tasks.withType(KotlinCompile::class.java) {
+tasks.withType(KotlinCompile::class) {
     kotlinOptions {
         jvmTarget = "17"
         freeCompilerArgs = freeCompilerArgs + "-Xjvm-default=all"
     }
 }
 
-
 /*
  * Hooks into the Jar tasks to change the file name and
  * manifest contents
  */
-tasks.withType(Jar::class.java) {
+tasks.withType(Jar::class) {
     archiveFileName.set("server.jar") // Set the output jar name to server.jar
     manifest {
         // Set the main class of the jar in the manifest
         attributes["Main-Class"] = "com.jacobtread.kme.App"
     }
+}
+
+/**
+ * Gradle task for starting the application
+ */
+tasks.create("startApp", JavaExec::class) {
+    mainClass.set("com.jacobtread.kme.App")
+    classpath(sourceSets["main"].runtimeClasspath)
+    workingDir(rootProject.projectDir.resolve("run"))
+}
+
+/**
+ * Gradle task for generating the bini.bin.chunked Coalesced file
+ * to use this first place the coalesced file at "data/bini.bin"
+ * from the root directory then execute this task
+ */
+tasks.create("makeCoalesced", JavaExec::class) {
+    mainClass.set("com.jacobtread.kme.tools.MakeCoalesced")
+    classpath(sourceSets["main"].runtimeClasspath)
+    workingDir(rootProject.projectDir)
 }

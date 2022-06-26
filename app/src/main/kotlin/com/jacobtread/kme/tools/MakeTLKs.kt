@@ -13,6 +13,7 @@ object MakeTLKs {
     @JvmStatic
     fun main(args: Array<String>) {
         val tlkDir = Path("data/tlk")
+
         val outDir = tlkDir / "processed"
         if (!outDir.exists()) outDir.createDirectories()
         tlkDir.forEachDirectoryEntry {

@@ -73,7 +73,7 @@ class MITMHandler(val eventLoopGroup: NioEventLoopGroup) : SimpleChannelInboundH
             .channel(NioSocketChannel::class.java)
             .handler(object : SimpleChannelInboundHandler<Packet>() {
                 override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
-                    channelReadOffical(ctx, msg)
+                    channelReadOffical(msg)
                 }
             })
             .connect(config.host, config.port)
@@ -108,7 +108,7 @@ class MITMHandler(val eventLoopGroup: NioEventLoopGroup) : SimpleChannelInboundH
         }
     }
 
-    fun channelReadOffical(ctx: ChannelHandlerContext, msg: Packet) {
+    fun channelReadOffical(msg: Packet) {
         try {
             Logger.debug("RECIEVED PACKET FROM EA =======\n" + packetToBuilder(msg) + "\n======================")
         } catch (e: Throwable) {
