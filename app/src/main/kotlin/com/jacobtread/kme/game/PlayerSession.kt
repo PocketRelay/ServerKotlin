@@ -186,6 +186,21 @@ class PlayerSession : PacketPushable {
         number("USID", playerId)
     }
 
+    fun authResponse(packet: Packet) = packet.respond {
+        val player = player
+        text("LDHT", "")
+        number("NTOS", 0)
+        text("PCTK", player.sessionToken)
+        list("PLST", listOf(createPersonaList()))
+        text("PRIV", "")
+        text("SKEY", Data.SKEY2)
+        number("SPAM", 0)
+        text("THST", "")
+        text("TSUI", "")
+        text("TURI", "")
+        number("UID", player.playerId)
+    }
+
     /**
      * createIdentityUpdate Creates a packet which updates the ID of the
      * current player session for the client

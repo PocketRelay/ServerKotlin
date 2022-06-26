@@ -309,21 +309,7 @@ class MainProcessor(
         }
 
         session.setAuthenticated(player) // Set the authenticated session
-
-        // Send the authenticated response with a persona list
-        packet.pushResponse {
-            text("LDHT", "")
-            number("NTOS", 0)
-            text("PCTK", player.sessionToken)
-            list("PLST", listOf(session.createPersonaList()))
-            text("PRIV", "")
-            text("SKEY", Data.SKEY2)
-            number("SPAM", 0)
-            text("THST", "")
-            text("TSUI", "")
-            text("TURI", "")
-            number("UID", player.id.value)
-        }
+        push(session.authResponse(packet))
     }
 
     /**
@@ -386,19 +372,7 @@ class MainProcessor(
             }
         }
         session.setAuthenticated(player) // Link the player to this session
-        packet.pushResponse {
-            text("LDHT", "")
-            number("NTOS", 0)
-            text("PCTK", player.sessionToken)
-            list("PLST", listOf(session.createPersonaList()))
-            text("PRIV", "")
-            text("SKEY", Data.SKEY2)
-            number("SPAM", 0)
-            text("THST", "")
-            text("TSUI", "")
-            text("TURI", "")
-            number("UID", player.id.value)
-        }
+        push(session.authResponse(packet))
     }
 
     /**
@@ -877,7 +851,7 @@ class MainProcessor(
      */
     @PacketHandler(Components.USER_SESSIONS, Commands.RESUME_SESSION)
     fun handleResumeSession(packet: Packet) {
-        val sessionKey = packet.text("SKEY");
+        val sessionKey = packet.text("SKEY")
         val player = Player.getBySessionKey(sessionKey) ?: return push(LoginError.INVALID_INFORMATION(packet))
         session.setAuthenticated(player) // Set the authenticated session
         packet.pushEmptyResponse()
