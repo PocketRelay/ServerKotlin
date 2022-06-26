@@ -17,7 +17,6 @@ import kotlin.io.path.*
  * @constructor Create empty LogWriter
  */
 class LogWriter {
-    private val file = Path("logs", "latest.log")
     private val fileChannel: FileChannel
     private val outputBuffer: ByteBuffer = ByteBuffer.allocate(4024)
 
@@ -76,7 +75,8 @@ class LogWriter {
      */
     @Synchronized
     private fun createFileChannel(): FileChannel {
-        val parent = file.parent
+        val parent = Path("logs")
+        val file = parent.resolve("latest.log")
         if (parent.notExists()) parent.createDirectories()
         if (file.notExists()) file.createFile()
         return FileChannel.open(file, StandardOpenOption.CREATE, StandardOpenOption.APPEND)
@@ -91,6 +91,7 @@ class LogWriter {
      */
     @Synchronized
     fun archiveOldLog() {
+        val file = Path("logs", "latest.log")
         if (!file.isRegularFile()) return
         val logsPath = Path("logs")
         val lastModified = file.getLastModifiedTime().toMillis()
