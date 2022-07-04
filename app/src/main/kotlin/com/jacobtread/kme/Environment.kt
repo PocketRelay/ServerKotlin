@@ -6,9 +6,6 @@ import com.jacobtread.kme.utils.logging.Logger
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import java.io.InputStream
-import java.io.OutputStream
-import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLClassLoader
 import java.nio.file.Paths
@@ -194,25 +191,19 @@ object Environment {
         fileName: String,
     ) {
         val driversPath = Path("drivers")
+        if (!driversPath.exists()) driversPath.createDirectories()
         val path = driversPath.resolve(fileName)
         if (path.notExists()) {
             Logger.info("Database driver not installed. Downloading $fileName...")
-            var inputStream: InputStream? = null
-            var outputStream: OutputStream? = null
             try {
-                val connection = URL(url).openConnection() as HttpURLConnection
-                connection.doInput = true
-                connection.connect()
-                if (!driversPath.exists()) driversPath.createDirectories()
-                inputStream = connection.inputStream
-                outputStream = path.outputStream(StandardOpenOption.CREATE_NEW)
-                inputStream.copyTo(outputStream)
-                Logger.info("Download Completed.")
+                URL(url).openStream().use { input ->
+                    path.outputStream(StandardOpenOption.CREATE_NEW).use { output ->
+                        input.copyTo(output)
+                        Logger.info("Download Completed.")
+                    }
+                }
             } catch (e: Exception) {
                 Logger.fatal("Failed to downlaod database driver", e)
-            } finally {
-                inputStream?.close()
-                outputStream?.close()
             }
         }
         // Load the jar file and create the wrapped runtime driver
