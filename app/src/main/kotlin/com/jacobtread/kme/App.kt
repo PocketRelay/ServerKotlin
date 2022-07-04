@@ -9,6 +9,7 @@ import com.jacobtread.kme.servers.startRedirector
 import io.netty.channel.nio.NioEventLoopGroup
 
 fun main() {
+    // Makes use of environment
     Environment
 
     val bossGroup = NioEventLoopGroup()

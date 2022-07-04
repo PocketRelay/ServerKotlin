@@ -11,6 +11,8 @@ with the aim to improve it and take it to the level of a server that can be used
 
 **Hosting Setup**: You can find the setup guide for running your own KME servers [Here](docs/SETUP_HOSTER.md)
 
+## Configuration Reference
+For information about the configuration file and what each setting in the file means see [Here](docs/CONFIG_REFERENCE.md)
 
 ## Connection requirements
 

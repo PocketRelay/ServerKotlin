@@ -4,7 +4,6 @@ import com.jacobtread.kme.Environment
 import com.jacobtread.kme.tools.MEStringParser
 import com.jacobtread.kme.tools.unixTimeSeconds
 import kotlinx.serialization.Serializable
-import net.mamoe.yamlkt.Comment
 import org.jetbrains.exposed.dao.Entity
 import org.jetbrains.exposed.dao.EntityClass
 import org.jetbrains.exposed.dao.IntEntity
@@ -33,19 +32,12 @@ import org.jetbrains.exposed.sql.Database as ExposedDatabase
  */
 @Serializable
 data class DatabaseConfig(
-    @Comment("The type of database to use mysql or sqlite")
-    val type: String = "SQLITE",
-    @Comment("Host of the Database server (MySQL only)")
+    val type: String = "sqlite",
     val host: String = "127.0.0.1",
-    @Comment("Port of the database server (MySQL only)")
     val port: Int = 3306,
-    @Comment("Username for the database server (MySQL only)")
     val user: String = "root",
-    @Comment("Password for the database server (MySQL only)")
     val password: String = "password",
-    @Comment("Database on the database server (MySQL only)")
     val database: String = "kme",
-    @Comment("Path from working directory for database file (SQLite only)")
     val file: String = "data/app.db",
 )
 

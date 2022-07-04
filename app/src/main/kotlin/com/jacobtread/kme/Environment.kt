@@ -4,7 +4,8 @@ import com.jacobtread.kme.database.setupMySQLDatabase
 import com.jacobtread.kme.database.setupSQLiteDatabase
 import com.jacobtread.kme.utils.logging.Logger
 import kotlinx.serialization.decodeFromString
-import net.mamoe.yamlkt.Yaml
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import kotlin.io.path.Path
 import kotlin.io.path.notExists
 import kotlin.io.path.readText
@@ -43,11 +44,6 @@ object Environment {
     val panelUsername: String
     val panelPassword: String
 
-    fun init() {
-        Logger.info("Environment Initialized")
-        Logger.info("Starting ME3 Server")
-    }
-
     /**
      * Initializes the environment values from the system
      * environment variables as well as the config file if
@@ -56,6 +52,9 @@ object Environment {
      * used.
      */
     init {
+        Logger.info("Environment Initialized")
+        Logger.info("Starting ME3 Server")
+
         val env = System.getenv() // Wrapper over the environment variables
 
         // Choose whether to load the config or use the default
@@ -120,6 +119,8 @@ object Environment {
             )
             "sqlite" -> setupSQLiteDatabase(env.stringValue("KME_SQLITE_FILE", databaseConfig.file))
         }
+
+        System.gc() // Clean up all the created objects
     }
 
     private fun Map<String, String>.stringValue(key: String, default: String): String = getOrDefault(key, default)
@@ -128,13 +129,17 @@ object Environment {
     private fun Map<String, String>.floatValue(key: String, default: Float): Float = get(key)?.toFloatOrNull() ?: default
 
     /**
-     * loadConfigFile Loads the configuration from the YAML config file
+     * loadConfigFile Loads the configuration from the JSON config file
      * config.yml if the config file doesn't exist a new one is created
      *
      * @return The loaded config file or default config if none
      */
     private fun loadConfigFile(): Config {
-        val configFile = Path("config.yml") // The path to the config file
+        val json = Json {
+            encodeDefaults = true
+            prettyPrint = true
+        }
+        val configFile = Path("config.json") // The path to the config file
         if (configFile.notExists()) { // Check the config file doesn't exsit
             // Config file doesn't exist
             Logger.info("No configuration found. Using default")
@@ -142,13 +147,13 @@ object Environment {
             try {
                 // Write config to config file
                 Logger.debug("Saving newly created config to: $configFile")
-                configFile.writeText(Yaml.encodeToString(config))
+                configFile.writeText(json.encodeToString(config))
             } catch (e: Exception) {
                 Logger.error("Failed to write newly created config file", e)
             }
             return config
         }
         val contents = configFile.readText()
-        return Yaml.decodeFromString(contents)
+        return json.decodeFromString(contents)
     }
 }

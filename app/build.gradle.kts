@@ -54,9 +54,7 @@ fun DependencyHandlerScope.localDependencies() {
  * dependencies that this project uses for serialization
  */
 fun DependencyHandlerScope.serializationDependencies() {
-    val yamlktVersion: String by project
     val kotlinxSerializationJson: String by project
-    implementation("net.mamoe.yamlkt:yamlkt:$yamlktVersion") // YAML
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinxSerializationJson") // JSON
 }
 
