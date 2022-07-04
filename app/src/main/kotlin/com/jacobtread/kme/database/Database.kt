@@ -39,6 +39,12 @@ data class DatabaseConfig(
     val file: String = "data/app.db",
 )
 
+/**
+ * Create database tables Creates the nessicary database tables
+ * using the SchemaUtils this is required for the program to
+ * continue
+ *
+ */
 internal fun createDatabaseTables() {
     transaction {
         SchemaUtils.create(
