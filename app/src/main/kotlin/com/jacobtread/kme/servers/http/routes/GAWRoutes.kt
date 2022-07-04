@@ -72,7 +72,7 @@ private fun RoutingGroup.routeRatings() {
         val playerId = paramInt("id", 16)
         val player = Player.getById(playerId)
             ?: return@get response(BAD_REQUEST)
-        val rating = player.getOrCreateGAW(Environment.Config.gaw)
+        val rating = player.getOrCreateGAW()
         respondRatings(player, rating)
     }
 }
@@ -86,7 +86,7 @@ private fun RoutingGroup.routeIncreaseRatings() {
         transaction {
             val playerId = paramInt("id", 16)
             val player = Player.getById(playerId) ?: return@transaction response(BAD_REQUEST)
-            val rating = player.getOrCreateGAW(Environment.Config.gaw)
+            val rating = player.getOrCreateGAW()
             val maxValue = 10099
             rating.apply {
                 timestamp = unixTimeSeconds()
@@ -111,7 +111,7 @@ private fun RoutingGroup.routeIncreaseRatings() {
  */
 private fun respondRatings(player: Player, rating: PlayerGalaxyAtWar): HttpResponse {
     val level = rating.average()
-    val promotions = if (Environment.Config.gaw.enablePromotions) player.getTotalPromotions() else 0
+    val promotions = if (Environment.gawEnabledPromotions) player.getTotalPromotions() else 0
     return responseXml("galaxyatwargetratings") {
         element("ratings") {
             element("ratings", rating.a)

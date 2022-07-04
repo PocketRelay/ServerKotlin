@@ -38,7 +38,8 @@ import java.time.LocalDate
  * @param workerGroup The netty worker event loop group
  */
 fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
-    if (Environment.Config.mitm.enabled) { // If MITM is enabled
+
+    if (Environment.mitmEnabled) { // If MITM is enabled
         startMITMServer(bossGroup, workerGroup)
         return // Don't create the normal main server
     }
@@ -48,9 +49,9 @@ fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
             .channel(NioServerSocketChannel::class.java)
             .childHandler(MainInitializer())
             // Bind the server to the host and port
-            .bind(Environment.Config.ports.main)
+            .bind(Environment.mainPort)
             // Wait for the channel to bind
-            .addListener { info("Started Main Server on port ${Environment.Config.ports.main}") }
+            .addListener { info("Started Main Server on port ${Environment.mainPort}") }
     } catch (e: IOException) {
         Logger.error("Exception in redirector server", e)
     }
@@ -761,7 +762,7 @@ class MainProcessor(
         packet.pushResponse { number("MCNT", 0x1) } // Number of messages
         val ip = channel.remoteAddress().toString()
         val player = session.player
-        val menuMessage = Environment.Config.menuMessage
+        val menuMessage = Environment.menuMessage
             .replace("{v}", Environment.KME_VERSION)
             .replace("{n}", player.displayName)
             .replace("{ip}", ip) + 0xA.toChar()
@@ -1085,9 +1086,8 @@ class MainProcessor(
 
             //  telemetryAddress = "reports.tools.gos.ea.com:9988"
             //  tickerAddress = "waleu2.tools.gos.ea.com:8999"
-            val config = Environment.Config
-            val address = config.externalAddress
-            val port = config.ports.discard
+            val address = Environment.externalAddress
+            val port = Environment.discardPort
 
             +group("TELE") {
                 text("ADRS", address) // Server Address

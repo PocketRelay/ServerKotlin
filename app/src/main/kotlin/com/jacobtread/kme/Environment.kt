@@ -1,11 +1,7 @@
 package com.jacobtread.kme
 
-import com.jacobtread.kme.Config.*
-import com.jacobtread.kme.database.DatabaseConfig
-import com.jacobtread.kme.database.DatabaseType
-import com.jacobtread.kme.database.MySQLConfig
-import com.jacobtread.kme.database.SQLiteConfig
-import com.jacobtread.kme.utils.logging.Level
+import com.jacobtread.kme.database.setupMySQLDatabase
+import com.jacobtread.kme.database.setupSQLiteDatabase
 import com.jacobtread.kme.utils.logging.Logger
 import kotlinx.serialization.decodeFromString
 import net.mamoe.yamlkt.Yaml
@@ -23,97 +19,113 @@ import kotlin.io.path.writeText
  */
 object Environment {
 
-    // The global app configuration loaded from env, file or both
-    val Config: Config = createConfig()
-
     // The version of KME
     const val KME_VERSION = "1.0.0"
 
+    val externalAddress: String
 
-    // Disabled config creation and only uses environment variables
-    private const val ENV_CONFIG = "KME_ENVIRONMENT_CONFIG"
+    val redirectorPort: Int
+    val mainPort: Int
+    val discardPort: Int
+    val httpPort: Int
 
-    // External address
-    private const val EXTERNAL_ADDRESS = "KME_EXTERNAL_ADDRESS"
+    val menuMessage: String
 
-    // Server ports
-    private const val REDIRECTOR_PORT = "KME_REDIRECTOR_PORT"
-    private const val MAIN_PORT = "KME_MAIN_PORT"
-    private const val DISCARD_PORT = "KME_DISCARD_PORT"
-    private const val HTTP_PORT = "KME_HTTP_PORT"
+    val mitmHost: String
+    val mitmPort: Int
+    val mitmEnabled: Boolean
+    val mitmSecure: Boolean
 
-    // Panel configuration
-    private const val PANEL_ENABLED = "KME_PANEL_ENABLED"
-    private const val PANEL_USERNAME = "KME_PANEL_USERNAME"
-    private const val PANEL_PASSWORD = "KME_PANEL_PASSWORD"
+    val gawReadinessDecay: Float
+    val gawEnabledPromotions: Boolean
 
-    // Database typ
-    private const val DATABASE_TYPE = "KME_DATABASE_TYPE"
+    val panelEnabled: Boolean
+    val panelUsername: String
+    val panelPassword: String
 
-    // SQLite database config
-    private const val SQLITE_FILE = "KME_SQLITE_FILE"
-
-    // MySQL database config
-    private const val MYSQL_HOST = "KME_MYSQL_HOST"
-    private const val MYSQL_PORT = "KME_MYSQL_PORT"
-    private const val MYSQL_USER = "KME_MYSQL_USER"
-    private const val MYSQL_PASSWORD = "KME_MYSQL_PASSWORD"
-    private const val MYSQL_DATABASE = "KME_MYSQL_DATABASE"
-
-    // Menu message
-    private const val MENU_MESSAGE = "KME_MENU_MESSAGE"
-
-    // Galaxy at war
-    private const val GAW_READINESS_DECAY = "KME_GAW_READINESS_DECAY"
-    private const val GAW_ENABLE_PROMOTIONS = "KME_GAW_ENABLE_PROMOTIONS"
-
-    private const val LOGGER_LEVEL = "KME_LOGGER_LEVEL"
-    private const val LOGGER_SAVE = "KME_LOGGER_SAVE"
-    private const val LOGGER_PACKETS = "KME_LOGGER_PACKETS"
-
-    private const val MITM_ENABLED = "KME_MITM_ENABLED"
-    private const val MITM_HOST = "KME_MITM_HOST"
-    private const val MITM_PORT = "KME_MITM_PORT"
-    private const val MITM_SECURE = "KME_MITM_SECURE"
-
-    /**
-     * recreateConfig Recreates the config based on the environment
-     * variables present. The config is immutable so new objects must
-     * be created.
-     *
-     * @param config The original configuration
-     * @return The modified environment configuration
-     */
-    private fun recreateConfig(env: Map<String, String>, config: Config): Config {
-        return Config(
-            externalAddress = env.str(EXTERNAL_ADDRESS, config.externalAddress),
-            ports = createPortsConfig(env, config.ports),
-            logging = createLoggingConfig(env, config.logging),
-            menuMessage = env.str(MENU_MESSAGE, config.menuMessage),
-            database = createDatabaseConfig(env, config.database),
-            panel = createPanelConfig(env, config.panel),
-            gaw = createGawConfig(env, config.gaw),
-            mitm = createMITMConfig(env, config.mitm)
-        )
+    fun init() {
+        Logger.info("Environment Initialized")
+        Logger.info("Starting ME3 Server")
     }
 
     /**
-     * createConfig Creates a configuration. If the environment variable ENV_CONFIG
-     * is set to true then a config file will not be created and instead ONLY the
-     * environment variables will be respected. Otherwise, the loaded config file
-     * will be recreated with the environment variable adjustments
-     *
-     * @return The modified / created configuration
+     * Initializes the environment values from the system
+     * environment variables as well as the config file if
+     * KME_ENVIRONMENT_CONFIG then only the environment
+     * variables and default configuration values will be
+     * used.
      */
-    private fun createConfig(): Config {
-        val env = System.getenv()
-        val initial = if (env.bool(ENV_CONFIG, false)) {
-            Config()
+    init {
+        val env = System.getenv() // Wrapper over the environment variables
+
+        // Choose whether to load the config or use the default
+        val config = if (env.booleanValue("KME_ENVIRONMENT_CONFIG", false)) {
+            Config() // Generate the default config
         } else {
-            loadConfigFile()
+            loadConfigFile() // Load the existing config file
         }
-        return recreateConfig(env, initial)
+
+        // External address string
+        externalAddress = env.stringValue("KME_EXTERNAL_ADDRESS", config.externalAddress)
+
+
+        // Server ports
+        val portsConfig = config.ports
+        redirectorPort = env.intValue("KME_REDIRECTOR_PORT", portsConfig.redirector)
+        mainPort = env.intValue("KME_MAIN_PORT", portsConfig.main)
+        discardPort = env.intValue("KME_DISCARD_PORT", portsConfig.discard)
+        httpPort = env.intValue("KME_HTTP_PORT", portsConfig.http)
+
+        val loggingConfig = config.logging
+
+        // Initialize the logger with its configuration
+        Logger.init(
+            env.stringValue("KME_LOGGER_LEVEL", loggingConfig.level),
+            env.booleanValue("KME_LOGGER_SAVE", loggingConfig.save),
+            env.booleanValue("KME_LOGGER_PACKETS", loggingConfig.packets)
+        )
+
+        // Main menu message string
+        menuMessage = env.stringValue("KME_MENU_MESSAGE", config.menuMessage)
+
+        // Man in the middle configuration
+        val mitmConfig = config.mitm
+        mitmEnabled = env.booleanValue("KME_MITM_ENABLED", mitmConfig.enabled)
+        mitmHost = env.stringValue("KME_MITM_HOST", mitmConfig.host)
+        mitmPort = env.intValue("KME_MITM_PORT", mitmConfig.port)
+        mitmSecure = env.booleanValue("KME_MITM_SECURE", mitmConfig.secure)
+
+        // Galaxy at war configuration
+        val gawConfig = config.gaw
+        gawReadinessDecay = env.floatValue("KME_GAW_READINESS_DECAY", gawConfig.readinessDailyDecay)
+        gawEnabledPromotions = env.booleanValue("KME_GAW_ENABLE_PROMOTIONS", gawConfig.enablePromotions)
+
+        // Panel configuration
+        val panelConfig = config.panel
+        panelEnabled = env.booleanValue("KME_PANEL_ENABLED", panelConfig.enabled)
+        panelUsername = env.stringValue("KME_PANEL_USERNAME", panelConfig.username)
+        panelPassword = env.stringValue("KME_PANEL_PASSWORD", panelConfig.password)
+
+        // Database configuration
+        val databaseConfig = config.database
+        val databaseType = env.stringValue("KME_DATABASE_TYPE", databaseConfig.type)
+            .lowercase();
+        when (databaseType) {
+            "mysql" -> setupMySQLDatabase(
+                env.stringValue("KME_MYSQL_HOST", databaseConfig.host),
+                env.intValue("KME_MYSQL_PORT", databaseConfig.port),
+                env.stringValue("KME_MYSQL_USER", databaseConfig.user),
+                env.stringValue("KME_MYSQL_PASSWORD", databaseConfig.password),
+                env.stringValue("KME_MYSQL_DATABASE", databaseConfig.database)
+            )
+            "sqlite" -> setupSQLiteDatabase(env.stringValue("KME_SQLITE_FILE", databaseConfig.file))
+        }
     }
+
+    private fun Map<String, String>.stringValue(key: String, default: String): String = getOrDefault(key, default)
+    private fun Map<String, String>.booleanValue(key: String, default: Boolean): Boolean = get(key)?.toBooleanStrictOrNull() ?: default
+    private fun Map<String, String>.intValue(key: String, default: Int): Int = get(key)?.toIntOrNull() ?: default
+    private fun Map<String, String>.floatValue(key: String, default: Float): Float = get(key)?.toFloatOrNull() ?: default
 
     /**
      * loadConfigFile Loads the configuration from the YAML config file
@@ -137,139 +149,6 @@ object Environment {
             return config
         }
         val contents = configFile.readText()
-        val config: Config = Yaml.decodeFromString(contents)
-        Logger.info("Loaded Configuration from: $configFile")
-        return config
+        return Yaml.decodeFromString(contents)
     }
-
-
-    /**
-     * createGawConfig Creates a new galaxy at war config from the
-     * following environment variables
-     * - KME_GAW_READINESS_DECAY
-     * - KME_GAW_ENABLE_PROMOTIONS
-     *
-     * @param env The system environment
-     * @param gawConfig The default galaxy at war config
-     * @return The modified galaxy at war config
-     */
-    private fun createGawConfig(env: Map<String, String>, gawConfig: GalaxyAtWarConfig): GalaxyAtWarConfig {
-        return GalaxyAtWarConfig(
-            env.float(GAW_READINESS_DECAY, gawConfig.readinessDailyDecay),
-            env.bool(GAW_ENABLE_PROMOTIONS, gawConfig.enablePromotions)
-        )
-    }
-
-   private fun createMITMConfig(env: Map<String, String>, mitmConfig: MITM): MITM {
-        return MITM(
-            env.bool(MITM_ENABLED, mitmConfig.enabled),
-            env.str(MITM_HOST, mitmConfig.host),
-            env.int(MITM_PORT, mitmConfig.port),
-            env.bool(MITM_SECURE, mitmConfig.secure)
-        )
-    }
-
-    /**
-     * createPanelConfig Creates a new panel config from the
-     * following environment variables:
-     * - KME_PANEL_ENABLED
-     * - KME_PANEL_USERNAME
-     * - KME_PANEL_PASSWORD
-     *
-     * @param env The system environment
-     * @param panelConfig The default panel config
-     * @return The modified panel config
-     */
-    private fun createPanelConfig(env: Map<String, String>, panelConfig: PanelConfig): PanelConfig {
-        return PanelConfig(
-            enabled = env.bool(PANEL_ENABLED, panelConfig.enabled),
-            username = env.str(PANEL_USERNAME, panelConfig.username),
-            password = env.str(PANEL_PASSWORD, panelConfig.password),
-        )
-    }
-
-    /**
-     * createPortsConfig Creates a new port config from the
-     * following environment variables:
-     * - KME_REDIRECTOR_PORT
-     * - KME_MAIN_PORT
-     * - KME_TICKER_PORT
-     * - KME_TELEMETRY_PORT
-     * - KME_HTTP_PORT
-     *
-     * @param env The system environment
-     * @param portsConfig The default ports config
-     * @return The modified ports config
-     */
-    private fun createPortsConfig(env: Map<String, String>, portsConfig: Ports): Ports {
-        return Ports(
-            redirector = env.int(REDIRECTOR_PORT, portsConfig.redirector),
-            main = env.int(MAIN_PORT, portsConfig.main),
-            discard = env.int(DISCARD_PORT, portsConfig.discard),
-            http = env.int(HTTP_PORT, portsConfig.http),
-        )
-    }
-
-    /**
-     * createLoggingConfig Creates a new logging config from the
-     * following environment variables
-     * - KME_LOGGER_LEVEL
-     * - KME_LOGGER_SAVE
-     * - KME_LOGGER_PACKETS
-     *
-     * @param env The system environment
-     * @param loggingConfig The default logging config
-     * @return The modified logging config
-     */
-    private fun createLoggingConfig(env: Map<String, String>, loggingConfig: LoggingConfig): LoggingConfig {
-        return LoggingConfig(
-            level = env.str(LOGGER_LEVEL, loggingConfig.level),
-            save = env.bool(LOGGER_SAVE, loggingConfig.save),
-            packets = env.bool(LOGGER_PACKETS, loggingConfig.packets)
-        )
-    }
-
-    /**
-     * createDatabaseConfig Creates a new database config from the
-     * following environment variables
-     * - KME_DATABASE_TYPE
-     * - KME_MYSQL_HOST
-     * - KME_MYSQL_PORT
-     * - KME_MYSQL_USER
-     * - KME_MYSQL_PASSWORD
-     * - KME_MYSQL_DATABASE
-     * - KME_SQLITE_FILE
-     *
-     * @param env The system environment
-     * @param databaseConfig The default database config
-     * @return The modified database config
-     */
-    private fun createDatabaseConfig(env: Map<String, String>, databaseConfig: DatabaseConfig): DatabaseConfig {
-        val databaseType = env.env(DATABASE_TYPE, DatabaseType::fromName, databaseConfig.type)
-        var mysqlConfig = databaseConfig.mysql
-        var sqliteConfig = databaseConfig.sqlite
-        when (databaseType) {
-            DatabaseType.MYSQL -> {
-                mysqlConfig = MySQLConfig(
-                    host = env.str(MYSQL_HOST, mysqlConfig.host),
-                    port = env.int(MYSQL_PORT, mysqlConfig.port),
-                    user = env.str(MYSQL_USER, mysqlConfig.user),
-                    password = env.str(MYSQL_PASSWORD, mysqlConfig.password),
-                    database = env.str(MYSQL_DATABASE, mysqlConfig.database)
-                )
-            }
-            DatabaseType.SQLITE -> {
-                sqliteConfig = SQLiteConfig(
-                    file = env.str(SQLITE_FILE, sqliteConfig.file)
-                )
-            }
-        }
-        return DatabaseConfig(databaseType, mysqlConfig, sqliteConfig)
-    }
-
-    private fun Map<String, String>.str(key: String, default: String): String = getOrDefault(key, default)
-    private inline fun <V> Map<String, String>.env(key: String, transform: (String) -> V, default: V): V = get(key)?.let(transform) ?: default
-    private fun Map<String, String>.bool(key: String, default: Boolean): Boolean = get(key)?.toBooleanStrictOrNull() ?: default
-    private fun Map<String, String>.int(key: String, default: Int): Int = get(key)?.toIntOrNull() ?: default
-    private fun Map<String, String>.float(key: String, default: Float): Float = get(key)?.toFloatOrNull() ?: default
 }

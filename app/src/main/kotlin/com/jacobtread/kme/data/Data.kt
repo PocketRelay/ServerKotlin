@@ -235,9 +235,8 @@ object Data {
      * @return The map of the data configuration
      */
     fun createDataConfig(): Map<String, String> {
-        val config = Environment.Config
-        val address = config.externalAddress
-        val port = config.ports.http
+        val address = Environment.externalAddress
+        val port = Environment.httpPort
         val host = if (port != 80) {
             "$address:$port"
         } else {

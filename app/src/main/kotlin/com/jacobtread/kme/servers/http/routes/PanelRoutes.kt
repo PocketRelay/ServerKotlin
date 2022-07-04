@@ -12,7 +12,7 @@ import com.jacobtread.kme.servers.http.router.responseStatic
  */
 fun RoutingGroup.routeGroupPanel() {
     // Ignore this route group if the panel is disabled
-    if (!Environment.Config.panel.enabled) return
+    if (!Environment.panelEnabled) return
     group("panel") {
         routeGroupApi() // Add api routing group
         routePanelFallback() // Add fallback routing

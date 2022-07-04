@@ -29,9 +29,9 @@ fun startMITMServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
             .channel(NioServerSocketChannel::class.java)
             .childHandler(MITMHandler(workerGroup))
             // Bind the server to the host and port
-            .bind(Environment.Config.ports.main)
+            .bind(Environment.mainPort)
             // Wait for the channel to bind
-            .addListener { info("Started MITM Server on port ${Environment.Config.ports.main}") }
+            .addListener { info("Started MITM Server on port ${Environment.mainPort}") }
     } catch (e: IOException) {
         Logger.error("Exception in redirector server", e)
     }
@@ -67,7 +67,6 @@ class MITMHandler(val eventLoopGroup: NioEventLoopGroup) : SimpleChannelInboundH
     }
 
     fun createOfficialConnection(): Channel {
-        val config = Environment.Config.mitm
         val channelFuture = Bootstrap()
             .group(eventLoopGroup)
             .channel(NioSocketChannel::class.java)
@@ -76,17 +75,17 @@ class MITMHandler(val eventLoopGroup: NioEventLoopGroup) : SimpleChannelInboundH
                     channelReadOffical(msg)
                 }
             })
-            .connect(config.host, config.port)
+            .connect(Environment.mitmHost, Environment.mitmPort)
             .addListener {
                 info("Created new MITM connection")
             }.sync()
         val channel = channelFuture.channel()
         val pipeline = channel.pipeline()
         pipeline.addFirst(PacketDecoder())
-        if (config.secure) {
+        if (Environment.mitmSecure) {
             val context = SslContextBuilder.forClient()
                 .ciphers(listOf("TLS_RSA_WITH_RC4_128_SHA", "TLS_RSA_WITH_RC4_128_MD5"))
-                .protocols("SSLv3", "TLSv1",  "TLSv1.1", "TLSv1.2", "TLSv1.3")
+                .protocols("SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3")
                 .startTls(true)
                 .trustManager(InsecureTrustManagerFactory.INSTANCE)
                 .build()

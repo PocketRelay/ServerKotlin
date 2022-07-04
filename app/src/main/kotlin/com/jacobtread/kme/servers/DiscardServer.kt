@@ -42,8 +42,8 @@ fun startDiscardServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGr
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
             .childHandler(handler)
-            .bind(Environment.Config.ports.discard)
-            .addListener { Logger.info("Started Discard Server on port ${Environment.Config.ports.discard}") }
+            .bind(Environment.discardPort)
+            .addListener { Logger.info("Started Discard Server on port ${Environment.discardPort}") }
     } catch (e: IOException) {
         Logger.error("Exception when starting discard server", e)
     }

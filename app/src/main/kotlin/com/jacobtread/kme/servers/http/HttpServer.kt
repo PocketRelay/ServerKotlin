@@ -28,8 +28,8 @@ fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
             .childHandler(router)
-            .bind(Environment.Config.ports.http)
-            .addListener { Logger.info("Started HTTP Server on port ${Environment.Config.ports.http}") }
+            .bind(Environment.httpPort)
+            .addListener { Logger.info("Started HTTP Server on port ${Environment.httpPort}") }
     } catch (e: IOException) {
         Logger.error("Exception when starting HTTP server", e)
     }

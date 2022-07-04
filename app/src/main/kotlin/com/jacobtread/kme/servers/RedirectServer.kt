@@ -30,7 +30,7 @@ import javax.net.ssl.KeyManagerFactory
  */
 fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
     try {
-        val listenPort = Environment.Config.ports.redirector
+        val listenPort = Environment.redirectorPort
         val handler = RedirectorHandler()
         ServerBootstrap()
             .group(bossGroup, workerGroup)
@@ -39,7 +39,7 @@ fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
             .bind(listenPort)
             .addListener(handler)
     } catch (e: UnknownHostException) {
-        Logger.fatal("Unable to lookup server address \"${Environment.Config.externalAddress}\"", e)
+        Logger.fatal("Unable to lookup server address \"${Environment.externalAddress}\"", e)
     } catch (e: IOException) {
         error("Exception in redirector server", e)
     }
@@ -96,7 +96,7 @@ class RedirectorHandler : ChannelInboundHandlerAdapter(), FutureListener<Void> {
                     } else {
                         number("IP", target.address)
                     }
-                    number("PORT", target.port)
+                    number("PORT", Environment.mainPort)
                 })
                 bool("SECU", false)
                 bool("XDNS", false)
@@ -144,14 +144,14 @@ class RedirectorHandler : ChannelInboundHandlerAdapter(), FutureListener<Void> {
      * @param future Ignored
      */
     override fun operationComplete(future: Future<Void>) {
-        val listenPort = Environment.Config.ports.redirector
+        val listenPort = Environment.redirectorPort
         info("Started Redirector on port $listenPort redirecting to:")
         if (target.isHostname) {
             info("Host: ${target.host}")
         } else {
             info("Address: ${target.address}")
         }
-        info("Port: ${target.port}")
+        info("Port: ${Environment.mainPort}")
     }
 
     /**
@@ -167,7 +167,6 @@ class RedirectorHandler : ChannelInboundHandlerAdapter(), FutureListener<Void> {
     data class RedirectTarget(
         val host: String,
         val address: ULong,
-        val port: Int,
         val isHostname: Boolean,
     )
 
@@ -178,9 +177,7 @@ class RedirectorHandler : ChannelInboundHandlerAdapter(), FutureListener<Void> {
      * @return The created redirect target
      */
     private fun getRedirectTarget(): RedirectTarget {
-        val config = Environment.Config
-        val externalAddress = config.externalAddress
-        val targetPort = config.ports.main
+        val externalAddress = Environment.externalAddress
         // Regex pattern for matching IPv4 addresses
         val ipv4Regex = Regex("^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)(\\.(?!\$)|\$)){4}\$")
         return if (externalAddress.matches(ipv4Regex)) {
@@ -196,11 +193,10 @@ class RedirectorHandler : ChannelInboundHandlerAdapter(), FutureListener<Void> {
             RedirectTarget(
                 externalAddress,
                 ipEncoded,
-                targetPort,
                 false
             )
         } else {
-            RedirectTarget(externalAddress, 0u, targetPort, true)
+            RedirectTarget(externalAddress, 0u, true)
         }
     }
 }

@@ -1,10 +1,8 @@
 package com.jacobtread.kme.database
 
-import com.jacobtread.kme.Config
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.tools.MEStringParser
 import com.jacobtread.kme.tools.unixTimeSeconds
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.mamoe.yamlkt.Comment
 import org.jetbrains.exposed.dao.Entity
@@ -13,10 +11,7 @@ import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
-import org.jetbrains.exposed.sql.Op
-import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.SqlExpressionBuilder
-import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.nio.file.Paths
 import java.time.LocalDate
@@ -27,31 +22,6 @@ import kotlin.io.path.notExists
 import kotlin.math.max
 import org.jetbrains.exposed.sql.Database as ExposedDatabase
 
-/**
- * DatabaseType Enum containing the different supported Database
- * connection types. Currently, only MySQL and SQLite may add more
- * such as PostgresSQL when releasing for production
- *
- * @constructor Create empty DatabaseType
- */
-@Serializable
-enum class DatabaseType {
-    @SerialName("mysql")
-    MYSQL,
-
-    @SerialName("sqlite")
-    SQLITE;
-
-    companion object {
-        fun fromName(name: String): DatabaseType {
-            return when (name.lowercase()) {
-                "sqlite" -> SQLITE
-                "mysql" -> MYSQL
-                else -> SQLITE
-            }
-        }
-    }
-}
 
 /**
  * DatabaseConfig Stores configuration information about the database
@@ -64,70 +34,44 @@ enum class DatabaseType {
 @Serializable
 data class DatabaseConfig(
     @Comment("The type of database to use mysql or sqlite")
-    val type: DatabaseType = DatabaseType.SQLITE,
-    @Comment("Settings for connecting to a MySQL database")
-    val mysql: MySQLConfig = MySQLConfig(),
-    @Comment("Settings used for connecting to an SQLite database")
-    val sqlite: SQLiteConfig = SQLiteConfig(),
-)
-
-/**
- * MySQLConfig The config to use when targeting a MySQL database
- *
- * @property host The host address of the MySQL server
- * @property port The port of the MySQL server
- * @property user The user account for the MySQL server
- * @property password The password for the MySQL server account
- * @property database The database on the MySQL server to use
- * @constructor Create empty MySQLConfig
- */
-@Serializable
-data class MySQLConfig(
+    val type: String = "SQLITE",
+    @Comment("Host of the Database server (MySQL only)")
     val host: String = "127.0.0.1",
+    @Comment("Port of the database server (MySQL only)")
     val port: Int = 3306,
+    @Comment("Username for the database server (MySQL only)")
     val user: String = "root",
+    @Comment("Password for the database server (MySQL only)")
     val password: String = "password",
+    @Comment("Database on the database server (MySQL only)")
     val database: String = "kme",
-)
-
-/**
- * SQLiteConfig The config to use when targeting a SQLite
- * database takes only a file path
- *
- * @property file The file to use as the SQLite database
- * @constructor Create empty SQLiteConfig
- */
-@Serializable
-data class SQLiteConfig(
+    @Comment("Path from working directory for database file (SQLite only)")
     val file: String = "data/app.db",
 )
 
-/**
- * startDatabase "Starts" the database by connecting to the database
- * that was specified in the configuration file. Then creates the
- * necessary tables if they don't already exist
- *
- * @param config The database configuration
- */
-fun startDatabase() {
-    val config = Environment.Config.database
-    when (config.type) {
-        DatabaseType.MYSQL -> {
-            val mysql = config.mysql
-            ExposedDatabase.connect(
-                url = "jdbc:mysql://${mysql.host}:${mysql.port}/${mysql.database}",
-                user = mysql.user,
-                password = mysql.password
-            )
-        }
-        DatabaseType.SQLITE -> {
-            val file = config.sqlite.file
-            val parentDir = Paths.get(file).absolute().parent
-            if (parentDir.notExists()) parentDir.createDirectories()
-            ExposedDatabase.connect("jdbc:sqlite:$file")
-        }
-    }
+fun setupSQLiteDatabase(file: String) {
+    val parentDir = Paths.get(file).absolute().parent
+    if (parentDir.notExists()) parentDir.createDirectories()
+    ExposedDatabase.connect("jdbc:sqlite:$file")
+    createTables()
+}
 
+fun setupMySQLDatabase(
+    host: String,
+    port: Int,
+    user: String,
+    password: String,
+    database: String,
+) {
+    ExposedDatabase.connect(
+        url = "jdbc:mysql://${host}:${port}/${database}",
+        user = user,
+        password = password
+    )
+    createTables()
+}
+
+private fun createTables() {
     transaction {
         SchemaUtils.create(
             Players,
@@ -248,14 +192,14 @@ class Player(id: EntityID<Int>) : IntEntity(id) {
      * @param config The config for getting the decay rate
      * @return The galaxy at war values for this player
      */
-    fun getOrCreateGAW(config: Config.GalaxyAtWarConfig): PlayerGalaxyAtWar {
+    fun getOrCreateGAW(): PlayerGalaxyAtWar {
         val existing = PlayerGalaxyAtWar.findOne { (PlayerGalaxyAtWars.player eq this@Player.id) }
         if (existing != null) {
-            if (config.readinessDailyDecay > 0f) {
+            if (Environment.gawReadinessDecay > 0f) {
                 val time = unixTimeSeconds()
                 val timeDiff = time - existing.timestamp
                 val days = timeDiff.toFloat() / 86400
-                val decayValue = (config.readinessDailyDecay * days * 100).toInt()
+                val decayValue = (Environment.gawReadinessDecay * days * 100).toInt()
                 transaction {
                     existing.a = max(MIN_GAW_VALUE, existing.a - decayValue)
                     existing.b = max(MIN_GAW_VALUE, existing.b - decayValue)
