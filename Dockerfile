@@ -3,8 +3,14 @@ FROM gradle:7.4.2-jdk17-alpine AS cache
 RUN mkdir -p /home/gradle/cache_home
 ENV GRADLE_USER_HOME /home/gradle/cache_home
 COPY build.gradle.kts gradle.properties settings.gradle.kts /home/gradle/app/
+
+COPY /app/build.gradle.kts /home/gradle/app/app/build.gradle.kts
+COPY /blaze/build.gradle.kts /home/gradle/app/blaze/build.gradle.kts
+COPY /blaze-processor/build.gradle.kts /home/gradle/app/blaze-processor/build.gradle.kts
+COPY /logger/build.gradle.kts /home/gradle/app/logger/build.gradle.kts
+
 WORKDIR /home/gradle/app
-RUN gradle clean build -i --stacktrace
+RUN gradle app:clean app:build -i --stacktrace
 
 # Building with gradle 7.4.2 and JDK 17
 FROM gradle:7.4.2-jdk17-alpine AS build
