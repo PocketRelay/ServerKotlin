@@ -28,9 +28,6 @@ object Environment {
     // The version of KME
     const val KME_VERSION = "1.0.0"
 
-    const val MYSQL_DRIVER_VERSION = "8.0.29"
-    const val SQLITE_DRIVER_VERSION = "3.36.0.3"
-
     val externalAddress: String
 
     val redirectorPort: Int
@@ -118,7 +115,7 @@ object Environment {
             .lowercase();
         when (databaseType) {
             "mysql" -> {
-                val version = MYSQL_DRIVER_VERSION
+                val version = "8.0.29"
                 val url = "https://repo1.maven.org/maven2/mysql/mysql-connector-java/$version/mysql-connector-java-$version.jar"
                 setupDatabaseDriver(url, "com.mysql.cj.jdbc.Driver", "mysql.jar")
                 val host = env.stringValue("KME_MYSQL_HOST", databaseConfig.host)
@@ -129,7 +126,7 @@ object Environment {
                 ExposedDatabase.connect({ DriverManager.getConnection("jdbc:mysql://${host}:${port}/${database}", user, password) })
             }
             "sqlite" -> {
-                val version = SQLITE_DRIVER_VERSION
+                val version = "3.36.0.3"
                 val url = "https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/$version/sqlite-jdbc-$version.jar"
                 setupDatabaseDriver(url, "org.sqlite.JDBC", "sqlite.jar")
                 val file = env.stringValue("KME_SQLITE_FILE", databaseConfig.file)
@@ -137,7 +134,18 @@ object Environment {
                 if (parentDir.notExists()) parentDir.createDirectories()
                 ExposedDatabase.connect({ DriverManager.getConnection("jdbc:sqlite:$file") })
             }
-            else -> Logger.fatal("Unknwon database type: $databaseType (expected mysql or sqlite)")
+            "postgres" -> {
+                val version = "42.4.0"
+                val url = "https://repo1.maven.org/maven2/org/postgresql/postgresql/$version/postgresql-$version.jar"
+                setupDatabaseDriver(url, "org.postgresql.Driver", "postgres.jar")
+                val host = env.stringValue("KME_MYSQL_HOST", databaseConfig.host)
+                val port = env.intValue("KME_MYSQL_PORT", databaseConfig.port)
+                val user = env.stringValue("KME_MYSQL_USER", databaseConfig.user)
+                val password = env.stringValue("KME_MYSQL_PASSWORD", databaseConfig.password)
+                val database = env.stringValue("KME_MYSQL_DATABASE", databaseConfig.database)
+                ExposedDatabase.connect({ DriverManager.getConnection("jdbc:postgresql://${host}:${port}/${database}", user, password) })
+            }
+            else -> Logger.fatal("Unknwon database type: $databaseType (expected mysql, postgres, or sqlite)")
         }
         createDatabaseTables()
         System.gc() // Clean up all the created objects
