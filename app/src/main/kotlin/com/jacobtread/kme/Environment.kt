@@ -1,15 +1,23 @@
 package com.jacobtread.kme
 
-import com.jacobtread.kme.database.setupMySQLDatabase
-import com.jacobtread.kme.database.setupSQLiteDatabase
+import com.jacobtread.kme.database.RuntimeDriver
+import com.jacobtread.kme.database.createDatabaseTables
 import com.jacobtread.kme.utils.logging.Logger
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlin.io.path.Path
-import kotlin.io.path.notExists
-import kotlin.io.path.readText
-import kotlin.io.path.writeText
+import java.io.InputStream
+import java.io.OutputStream
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLClassLoader
+import java.nio.file.Paths
+import java.nio.file.StandardOpenOption
+import java.sql.Driver
+import java.sql.DriverManager
+import kotlin.io.path.*
+import org.jetbrains.exposed.sql.Database as ExposedDatabase
+
 
 /**
  * Environment This object stores the names of different system
@@ -22,6 +30,9 @@ object Environment {
 
     // The version of KME
     const val KME_VERSION = "1.0.0"
+
+    const val MYSQL_DRIVER_VERSION = "8.0.29"
+    const val SQLITE_DRIVER_VERSION = "3.36.0.3"
 
     val externalAddress: String
 
@@ -52,7 +63,6 @@ object Environment {
      * used.
      */
     init {
-        Logger.info("Environment Initialized")
         Logger.info("Starting ME3 Server")
 
         val env = System.getenv() // Wrapper over the environment variables
@@ -64,6 +74,15 @@ object Environment {
             loadConfigFile() // Load the existing config file
         }
 
+        val loggingConfig = config.logging
+
+        // Initialize the logger with its configuration
+        Logger.init(
+            env.stringValue("KME_LOGGER_LEVEL", loggingConfig.level),
+            env.booleanValue("KME_LOGGER_SAVE", loggingConfig.save),
+            env.booleanValue("KME_LOGGER_PACKETS", loggingConfig.packets)
+        )
+
         // External address string
         externalAddress = env.stringValue("KME_EXTERNAL_ADDRESS", config.externalAddress)
 
@@ -74,15 +93,6 @@ object Environment {
         mainPort = env.intValue("KME_MAIN_PORT", portsConfig.main)
         discardPort = env.intValue("KME_DISCARD_PORT", portsConfig.discard)
         httpPort = env.intValue("KME_HTTP_PORT", portsConfig.http)
-
-        val loggingConfig = config.logging
-
-        // Initialize the logger with its configuration
-        Logger.init(
-            env.stringValue("KME_LOGGER_LEVEL", loggingConfig.level),
-            env.booleanValue("KME_LOGGER_SAVE", loggingConfig.save),
-            env.booleanValue("KME_LOGGER_PACKETS", loggingConfig.packets)
-        )
 
         // Main menu message string
         menuMessage = env.stringValue("KME_MENU_MESSAGE", config.menuMessage)
@@ -110,16 +120,29 @@ object Environment {
         val databaseType = env.stringValue("KME_DATABASE_TYPE", databaseConfig.type)
             .lowercase();
         when (databaseType) {
-            "mysql" -> setupMySQLDatabase(
-                env.stringValue("KME_MYSQL_HOST", databaseConfig.host),
-                env.intValue("KME_MYSQL_PORT", databaseConfig.port),
-                env.stringValue("KME_MYSQL_USER", databaseConfig.user),
-                env.stringValue("KME_MYSQL_PASSWORD", databaseConfig.password),
-                env.stringValue("KME_MYSQL_DATABASE", databaseConfig.database)
-            )
-            "sqlite" -> setupSQLiteDatabase(env.stringValue("KME_SQLITE_FILE", databaseConfig.file))
+            "mysql" -> {
+                val version = MYSQL_DRIVER_VERSION
+                val url = "https://repo1.maven.org/maven2/mysql/mysql-connector-java/$version/mysql-connector-java-$version.jar"
+                setupDatabaseDriver(url, "com.mysql.cj.jdbc.Driver", "mysql.jar")
+                val host = env.stringValue("KME_MYSQL_HOST", databaseConfig.host)
+                val port = env.intValue("KME_MYSQL_PORT", databaseConfig.port)
+                val user = env.stringValue("KME_MYSQL_USER", databaseConfig.user)
+                val password = env.stringValue("KME_MYSQL_PASSWORD", databaseConfig.password)
+                val database = env.stringValue("KME_MYSQL_DATABASE", databaseConfig.database)
+                ExposedDatabase.connect({ DriverManager.getConnection("jdbc:mysql://${host}:${port}/${database}", user, password) })
+            }
+            "sqlite" -> {
+                val version = SQLITE_DRIVER_VERSION
+                val url = "https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/$version/sqlite-jdbc-$version.jar"
+                setupDatabaseDriver(url, "org.sqlite.JDBC", "sqlite.jar")
+                val file = env.stringValue("KME_SQLITE_FILE", databaseConfig.file)
+                val parentDir = Paths.get(file).absolute().parent
+                if (parentDir.notExists()) parentDir.createDirectories()
+                ExposedDatabase.connect({ DriverManager.getConnection("jdbc:sqlite:$file") })
+            }
+            else -> Logger.fatal("Unknwon database type: $databaseType (expected mysql or sqlite)")
         }
-
+        createDatabaseTables()
         System.gc() // Clean up all the created objects
     }
 
@@ -155,5 +178,49 @@ object Environment {
         }
         val contents = configFile.readText()
         return json.decodeFromString(contents)
+    }
+
+    /**
+     * Setup database driver Downloads the jar file from the provided url if It's
+     * not already downloaded then loads the jar file and registers the driver inside
+     *
+     * @param url The url where the driver can be downloaded from
+     * @param clazz The java class for the driver
+     * @param fileName The file name for the downloaded jar file
+     */
+    private fun setupDatabaseDriver(
+        url: String,
+        clazz: String,
+        fileName: String,
+    ) {
+        val driversPath = Path("drivers")
+        val path = driversPath.resolve(fileName)
+        if (path.notExists()) {
+            Logger.info("Database driver not installed. Downloading $fileName...")
+            var inputStream: InputStream? = null
+            var outputStream: OutputStream? = null
+            try {
+                val connection = URL(url).openConnection() as HttpURLConnection
+                connection.doInput = true
+                connection.connect()
+                if (!driversPath.exists()) driversPath.createDirectories()
+                inputStream = connection.inputStream
+                outputStream = path.outputStream(StandardOpenOption.CREATE_NEW)
+                inputStream.copyTo(outputStream)
+                Logger.info("Download Completed.")
+            } catch (e: Exception) {
+                Logger.fatal("Failed to downlaod database driver", e)
+            } finally {
+                inputStream?.close()
+                outputStream?.close()
+            }
+        }
+        // Load the jar file and create the wrapped runtime driver
+        val classLoader = URLClassLoader.newInstance(arrayOf(path.toUri().toURL()))
+        classLoader.loadClass(clazz)
+        val driver: Driver = Class.forName(clazz, true, classLoader)
+            .getDeclaredConstructor()
+            .newInstance() as Driver
+        DriverManager.registerDriver(RuntimeDriver(driver))
     }
 }

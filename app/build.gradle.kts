@@ -13,7 +13,6 @@ dependencies {
     // Core dependency groupings
     serializationDependencies()
     nettyDependencies()
-    databaseDrivers()
     exposedDatabaseDependencies()
     localDependencies()
 
@@ -67,17 +66,6 @@ fun DependencyHandlerScope.nettyDependencies() {
     implementation("io.netty:netty-handler:$nettyVersion")
     implementation("io.netty:netty-buffer:$nettyVersion")
     implementation("io.netty:netty-codec-http:$nettyVersion")
-}
-
-/**
- * databaseDrivers Adds the database drivers used by this project
- * currently this is only the MySQL and SQLite drivers
- */
-fun DependencyHandlerScope.databaseDrivers() {
-    val mysqlDriverVersion: String by project
-    val sqliteDriverVersion: String by project
-    implementation("mysql:mysql-connector-java:$mysqlDriverVersion")
-    implementation("org.xerial:sqlite-jdbc:$sqliteDriverVersion")
 }
 
 /**

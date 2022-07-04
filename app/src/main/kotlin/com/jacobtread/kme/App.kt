@@ -9,8 +9,7 @@ import com.jacobtread.kme.servers.startRedirector
 import io.netty.channel.nio.NioEventLoopGroup
 
 fun main() {
-    // Makes use of environment
-    Environment
+    Environment // Make sure environment is initialized
 
     val bossGroup = NioEventLoopGroup()
     val workerGroup = NioEventLoopGroup()

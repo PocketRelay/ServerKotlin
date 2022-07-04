@@ -12,12 +12,10 @@ import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
-import java.nio.file.Paths
+import java.sql.Connection
+import java.sql.DriverManager
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import kotlin.io.path.absolute
-import kotlin.io.path.createDirectories
-import kotlin.io.path.notExists
 import kotlin.math.max
 import org.jetbrains.exposed.sql.Database as ExposedDatabase
 
@@ -41,29 +39,7 @@ data class DatabaseConfig(
     val file: String = "data/app.db",
 )
 
-fun setupSQLiteDatabase(file: String) {
-    val parentDir = Paths.get(file).absolute().parent
-    if (parentDir.notExists()) parentDir.createDirectories()
-    ExposedDatabase.connect("jdbc:sqlite:$file")
-    createTables()
-}
-
-fun setupMySQLDatabase(
-    host: String,
-    port: Int,
-    user: String,
-    password: String,
-    database: String,
-) {
-    ExposedDatabase.connect(
-        url = "jdbc:mysql://${host}:${port}/${database}",
-        user = user,
-        password = password
-    )
-    createTables()
-}
-
-private fun createTables() {
+internal fun createDatabaseTables() {
     transaction {
         SchemaUtils.create(
             Players,
