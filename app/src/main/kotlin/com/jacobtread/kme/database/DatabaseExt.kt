@@ -59,11 +59,13 @@ fun <V : EntityClass<*, T>, T> V.firstOrNull(op: BooleanOperation): T? {
  * @return The entity that was updated or the newly created entity
  */
 fun <V : EntityClass<*, T>, T> V.updateOrCreate(findOp: BooleanOperation, update: T.() -> Unit): T {
-    val value = firstOrNull(findOp)
-    return if (value != null) {
-        value.apply(update)
-        value
-    } else {
-        new(update)
+    return transaction {
+        val value = firstOrNull(findOp)
+        if (value != null) {
+            value.apply(update)
+            value
+        } else {
+            new(update)
+        }
     }
 }
