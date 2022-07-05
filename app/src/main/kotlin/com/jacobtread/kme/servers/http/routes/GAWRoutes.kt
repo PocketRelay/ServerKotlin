@@ -85,7 +85,7 @@ private fun RoutingGroup.routeIncreaseRatings() {
         val playerId = paramInt("id", 16)
         val playerEntity = PlayerEntity.byId(playerId) ?: return@get response(BAD_REQUEST)
         val rating = playerEntity.galaxyAtWar
-        rating.increase(
+        rating.add(
             queryInt("rinc|0", default = 0),
             queryInt("rinc|1", default = 0),
             queryInt("rinc|2", default = 0),
