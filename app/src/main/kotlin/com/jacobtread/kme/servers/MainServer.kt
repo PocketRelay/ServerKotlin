@@ -330,8 +330,8 @@ class MainProcessor(
      */
     @PacketHandler(Components.AUTHENTICATION, Commands.SILENT_LOGIN)
     fun handleSilentLogin(packet: Packet) {
-        val pid: ULong = packet.number("PID")
-        val auth: String = packet.text("AUTH")
+        val pid = packet.numberInt("PID")
+        val auth = packet.text("AUTH")
         // Find the player with a matching ID or send an INVALID_ACCOUNT error
         val playerEntity = PlayerEntity.byId(pid) ?: return push(LoginError.INVALID_SESSION(packet))
         // If the session token's don't match send INVALID_ACCOUNT error

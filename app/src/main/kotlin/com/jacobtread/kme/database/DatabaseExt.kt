@@ -6,12 +6,19 @@ import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
 import org.jetbrains.exposed.sql.transactions.transaction
 
+/**
+ * byId function for safely retrieving an entity that's
+ * identified by an iteger by first wrapping a call to
+ * findById with a transaction block
+ *
+ * @param V The entity class type
+ * @param T The entity type
+ * @param id The id of the entity
+ * @return The found entity or null
+ */
 fun <V : IntEntityClass<T>, T> V.byId(id: Int): T? {
     return transaction { findById(id) }
 }
-
-fun <V : IntEntityClass<T>, T> V.byId(id: Long): T? = byId(id.toInt())
-fun <V : IntEntityClass<T>, T> V.byId(id: ULong): T? = byId(id.toInt())
 
 /**
  * Represents a function which when provided an expression builder
