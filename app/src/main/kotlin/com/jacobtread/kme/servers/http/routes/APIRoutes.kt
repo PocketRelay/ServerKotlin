@@ -61,7 +61,7 @@ private fun RoutingGroup.routeUpdatePlayer() {
     post("updatePlayer") {
         val serial = contentJson<PlayerEntity.Serial>()
         val existing = PlayerEntity.byId(serial.id) ?: throw BadRequestException()
-        existing.applySerialUpdate(serial)
+        serial.apply(existing)
         response(OK)
     }
 }

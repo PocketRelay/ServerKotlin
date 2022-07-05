@@ -10,7 +10,6 @@ import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.transactions.transaction
 
-
 class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<PlayerEntity>(PlayersTable) {
 
@@ -48,7 +47,11 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
     val playerId: Int get() = id.value
 
     var email by PlayersTable.email
+        private set
+
     var displayName by PlayersTable.displayName
+        private set
+
     var password by PlayersTable.password
 
     private var _sessionToken by PlayersTable.sessionToken
@@ -73,14 +76,15 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
             return PlayerGalaxyAtWarEntity.create(this)
         }
 
-    private val settingsBase: String get() =
-        StringBuilder("20;4")
-            .append(credits).append(";-1;0;")
-            .append(creditsSpent).append(";0;")
-            .append(gamesPlayed).append(';')
-            .append(secondsPlayed).append(";0;")
-            .append(inventory)
-            .toString()
+    private val settingsBase: String
+        get() =
+            StringBuilder("20;4")
+                .append(credits).append(";-1;0;")
+                .append(creditsSpent).append(";0;")
+                .append(gamesPlayed).append(';')
+                .append(secondsPlayed).append(";0;")
+                .append(inventory)
+                .toString()
 
 
     /**
@@ -103,15 +107,12 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
     val sessionToken: String
         get() {
             var sessionToken = _sessionToken
-            if (sessionToken == null) sessionToken = createNewSessionToken()
+            if (sessionToken == null) { // If there is no session token create one
+                sessionToken = createSessionToken()
+                transaction { _sessionToken = sessionToken }
+            }
             return sessionToken
         }
-
-    fun createNewSessionToken(): String {
-        val sessionToken = createSessionToken()
-        transaction { _sessionToken = sessionToken }
-        return sessionToken
-    }
 
     /**
      * isSessionToken Checks if the provided token is the
@@ -210,6 +211,21 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
         return transaction { classes.sumOf { it.promotions } }
     }
 
+    /**
+     * Serial a serializable representation of a player entity object
+     * this contains the fields which should be serialized
+     *
+     * @see createSerial For creating this object from a player entity
+     * @property id The id of the player entity
+     * @property email The email of the player entity
+     * @property displayName The display name of the player entity
+     * @property credits The number of credits the player entity has
+     * @property creditsSpend The number of credits the player entity has spent
+     * @property gamesPlayed The number of games played by the player
+     * @property secondsPlayed The number of seconds played by the player
+     * @property inventory The encoded inventory string of the player
+     * @constructor Create empty Serial
+     */
     @Serializable
     data class Serial(
         val id: Int,
@@ -220,20 +236,34 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
         val gamesPlayed: Int,
         val secondsPlayed: Long,
         val inventory: String,
-    )
-
-    fun applySerialUpdate(serial: Serial) {
-        transaction {
-            displayName = serial.displayName
-            email = serial.email
-            credits = serial.credits
-            creditsSpent = serial.creditsSpend
-            gamesPlayed = serial.gamesPlayed
-            secondsPlayed = serial.secondsPlayed
-            inventory = serial.inventory
+    ) {
+        /**
+         * Sets all the properties from the serializable
+         * player on the provided player entity. Runs in a
+         * transaction so changes are present on the database
+         *
+         * @param playerEntity The player entity to apply to
+         */
+        fun apply(playerEntity: PlayerEntity) {
+            transaction {
+                playerEntity.displayName = displayName
+                playerEntity.email = email
+                playerEntity.credits = credits
+                playerEntity.creditsSpent = creditsSpend
+                playerEntity.gamesPlayed = gamesPlayed
+                playerEntity.secondsPlayed = secondsPlayed
+                playerEntity.inventory = inventory
+            }
         }
     }
 
+    /**
+     * Creates a serializable player object for this
+     * player entity so that it can be encoded into
+     * a JSON format. This serial object only contains
+     * properties that should be shared to other sources
+     *
+     * @return The created serial object
+     */
     fun createSerial(): Serial = Serial(playerId, email, displayName, credits, creditsSpent, gamesPlayed, secondsPlayed, inventory)
-
 }
