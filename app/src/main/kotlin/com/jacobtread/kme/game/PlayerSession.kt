@@ -193,7 +193,7 @@ class PlayerSession : PacketPushable {
         text("PCTK", player.sessionToken)
         list("PLST", listOf(createPersonaList()))
         text("PRIV", "")
-        text("SKEY", Data.SKEY2)
+        text("SKEY", "11229301_9b171d92cc562b293e602ee8325612e7")
         number("SPAM", 0)
         text("THST", "")
         text("TSUI", "")
@@ -331,7 +331,7 @@ class PlayerSession : PacketPushable {
         builder.apply {
             number("BUID", player.playerId)
             number("FRST", 0)
-            text("KEY", Data.SKEY2)
+            text("KEY", "11229301_9b171d92cc562b293e602ee8325612e7")
             number("LLOG", 0)
             text("MAIL", player.email)
             +createPersonaList()
