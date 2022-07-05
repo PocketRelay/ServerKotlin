@@ -3,7 +3,6 @@ package com.jacobtread.kme.database.entities
 import com.jacobtread.kme.database.*
 import com.jacobtread.kme.database.tables.PlayersTable
 import com.jacobtread.kme.tools.hashPassword
-import com.jacobtread.kme.tools.unixTimeSeconds
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
@@ -42,7 +41,7 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
             }
         }
 
-        fun createSerializableList(offset: Int, limit: Int): List<Serial> {
+        fun createSerialList(offset: Int, limit: Int): List<Serial> {
             return transaction {
                 all()
                     .limit(limit, (offset * limit).toLong())
@@ -72,14 +71,15 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
     private val characters by PlayerCharacter referrersOn PlayerCharacters.player
     private val settings by PlayerSetting referrersOn PlayerSettings.player
 
-    val galaxyAtWar: PlayerGalaxyAtWar get() {
-        val existing = PlayerGalaxyAtWar.firstOrNullSafe { PlayerGalaxyAtWars.player eq this@PlayerEntity.id }
-        if (existing != null) {
-            existing.applyDecay()
-            return existing
+    val galaxyAtWar: PlayerGalaxyAtWar
+        get() {
+            val existing = PlayerGalaxyAtWar.firstOrNullSafe { PlayerGalaxyAtWars.player eq this@PlayerEntity.id }
+            if (existing != null) {
+                existing.applyDecay()
+                return existing
+            }
+            return PlayerGalaxyAtWar.create(this)
         }
-        return PlayerGalaxyAtWar.create(this)
-    }
 
 
     /**
@@ -208,4 +208,30 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
         val displayName: String,
         val settings: PlayerSettingsBase,
     )
+
+    fun applySerialUpdate(serial: Serial) {
+        transaction {
+            displayName = serial.displayName
+            email = serial.email
+
+            if (settingsBase != null) {
+                val serialSettings = serial.settings
+                val existingSettings = getSettingsBase()
+                val newSettings = PlayerSettingsBase(
+                    serialSettings.credits,
+                    existingSettings.c,
+                    existingSettings.d,
+                    serialSettings.creditsSpent,
+                    existingSettings.e,
+                    serialSettings.gamesPlayed,
+                    serialSettings.secondsPlayed,
+                    existingSettings.f,
+                    serialSettings.inventory
+                )
+                settingsBase = newSettings.toEncodedValue()
+
+
+            }
+        }
+    }
 }

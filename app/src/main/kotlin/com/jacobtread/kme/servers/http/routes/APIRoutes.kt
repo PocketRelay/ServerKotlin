@@ -6,7 +6,6 @@ import com.jacobtread.kme.database.entities.PlayerEntity
 import com.jacobtread.kme.servers.http.router.*
 import io.netty.handler.codec.http.HttpResponseStatus.OK
 import kotlinx.serialization.Serializable
-import org.jetbrains.exposed.sql.transactions.transaction
 
 /**
  * routeGroupApi Adds the routing for the API routes
@@ -22,24 +21,6 @@ fun RoutingGroup.routeGroupApi() {
 }
 
 /**
- * PlayerSerial Serialization object for serializing/deserializing
- * players as JSON objects to be sent/received over HTTP
- *
- * @property id The id of the player
- * @property email The email of the player
- * @property displayName The display name of the player
- * @property settings The settings of the player
- * @constructor Create empty PlayerSerial
- */
-@Serializable
-data class PlayerSerial(
-    val id: Int,
-    val email: String,
-    val displayName: String,
-    val settings: PlayerSettingsBase,
-)
-
-/**
  * routePlayersList Adds the routing for the players list endpoint
  * GET (/api/players) which responds with a list of players based on the
  * provided limit and offset query parameters
@@ -48,7 +29,7 @@ private fun RoutingGroup.routePlayersList() {
     get("players") {
         val limit = queryInt("limit", default = 10)
         val offset = queryInt("offset", default = 0)
-        val playerList = PlayerEntity.createSerializableList(offset, limit)
+        val playerList = PlayerEntity.createSerialList(offset, limit)
         responseJson(playerList)
     }
 }
@@ -80,27 +61,9 @@ private fun RoutingGroup.routePlayerSettings() {
  */
 private fun RoutingGroup.routeUpdatePlayer() {
     post("updatePlayer") {
-        val player = contentJson<PlayerEntity.Serial>()
-        val existing = PlayerEntity.byId(player.id) ?: throw BadRequestException()
-        transaction {
-            existing.displayName = player.displayName
-            existing.email = player.email
-            if (existing.settingsBase != null) {
-                val existingBase = existing.getSettingsBase()
-                val clone = PlayerSettingsBase(
-                    player.settings.credits,
-                    existingBase.c,
-                    existingBase.d,
-                    player.settings.creditsSpent,
-                    existingBase.e,
-                    player.settings.gamesPlayed,
-                    player.settings.secondsPlayed,
-                    existingBase.f,
-                    player.settings.inventory
-                )
-                existing.settingsBase = clone.mapValue()
-            }
-        }
+        val serial = contentJson<PlayerEntity.Serial>()
+        val existing = PlayerEntity.byId(serial.id) ?: throw BadRequestException()
+        existing.applySerialUpdate(serial)
         response(OK)
     }
 }

@@ -104,7 +104,7 @@ data class PlayerSettingsBase(
         }
     }
 
-    fun mapValue(): String = StringBuilder()
+    fun toEncodedValue(): String = StringBuilder()
         .append("20;4;")
         .append(credits).append(';')
         .append(c).append(';')
