@@ -30,12 +30,9 @@ dependencies {
 // Adding sources for generated code
 idea {
     module {
-        val mainSources = file("build/generated/ksp/main/kotlin")
-        val testSources = file("build/generated/ksp/test/kotlin")
-
-        sourceDirs = sourceDirs + mainSources
-        testSourceDirs = testSourceDirs + testSources
-        generatedSourceDirs = generatedSourceDirs + mainSources + testSources
+        sourceDirs = sourceDirs + file("build/generated/ksp/main/kotlin")
+        testSourceDirs = testSourceDirs + file("build/generated/ksp/test/kotlin")
+        generatedSourceDirs = generatedSourceDirs + file("build/generated/ksp/main/kotlin") + file("build/generated/ksp/test/kotlin")
     }
 }
 

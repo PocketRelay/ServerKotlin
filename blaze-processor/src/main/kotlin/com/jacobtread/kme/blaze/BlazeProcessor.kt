@@ -36,12 +36,14 @@ class BlazeProcessor(
      */
     @OptIn(KspExperimental::class)
     override fun process(resolver: Resolver): List<KSAnnotated> {
+        logger.info("Processing with BlazeProccessor")
         val classes = resolver.getSymbolsWithAnnotation(PacketProcessor::class.qualifiedName!!)
             .filterIsInstance<KSClassDeclaration>()
         classes.forEach { clazz ->
             // Class type and name
             val classType = clazz.asType(emptyList()).toTypeName()
             val className = clazz.simpleName.asString()
+            logger.info("Processing $className")
             // Using tree maps to order the components and commands
             val functionMappings = TreeMap<Int, TreeMap<Int, String>> { o1, o2 -> o1.compareTo(o2) }
             for (function in clazz.getAllFunctions()) {
@@ -68,6 +70,7 @@ class BlazeProcessor(
                     .appendLine(" -> when (msg.command) {") // Start next when statement for commands
 
                 fmap.forEach { (command, functionName) ->
+                    logger.info("Processing $className -> ($component, $command) -> $functionName")
                     // Append function call for the command
                     codeBuilder.append("    ")
                         .append(command)
@@ -98,6 +101,7 @@ class BlazeProcessor(
                 .addParameter("msg", Packet::class)
                 .addCode(CodeBlock.of(codeBuilder.toString()))
                 .build()
+            logger.info("Writing output for $className")
 
             // File specification
             val file = FileSpec
