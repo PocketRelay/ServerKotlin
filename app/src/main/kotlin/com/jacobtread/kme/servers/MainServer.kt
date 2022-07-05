@@ -734,10 +734,8 @@ class MainProcessor(
      */
     @PacketHandler(Components.STATS, Commands.GET_LEADERBOARD_ENTITY_COUNT)
     fun handleLeaderboardEntityCount(packet: Packet) {
-        val playerCount = transaction { Player.count() }
-        packet.pushResponse {
-            number("CNT", playerCount)
-        }
+        val entityCount = 1 // The number of leaderboard entities
+        packet.pushResponse { number("CNT", entityCount) }
     }
 
     /**
