@@ -1,11 +1,13 @@
 package com.jacobtread.kme
 
 import com.jacobtread.kme.database.RuntimeDriver
-import com.jacobtread.kme.database.createDatabaseTables
+import com.jacobtread.kme.database.tables.*
 import com.jacobtread.kme.utils.logging.Logger
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.transactions.transaction
 import java.net.URL
 import java.net.URLClassLoader
 import java.nio.file.Paths
@@ -112,7 +114,7 @@ object Environment {
         // Database configuration
         val databaseConfig = config.database
         val databaseType = env.stringValue("KME_DATABASE_TYPE", databaseConfig.type)
-            .lowercase();
+            .lowercase()
         when (databaseType) {
             "mysql" -> {
                 val version = "8.0.29"
@@ -150,6 +152,20 @@ object Environment {
         createDatabaseTables()
         System.gc() // Clean up all the created objects
     }
+
+    private fun createDatabaseTables() {
+        transaction {
+            SchemaUtils.create(
+                PlayersTable,
+                PlayerClassesTable,
+                PlayerCharactersTable,
+                PlayerSettingsTable,
+                PlayerGalaxyAtWarsTable,
+                MessagesTable
+            )
+        }
+    }
+
 
     private fun Map<String, String>.stringValue(key: String, default: String): String = getOrDefault(key, default)
     private fun Map<String, String>.booleanValue(key: String, default: Boolean): Boolean = get(key)?.toBooleanStrictOrNull() ?: default

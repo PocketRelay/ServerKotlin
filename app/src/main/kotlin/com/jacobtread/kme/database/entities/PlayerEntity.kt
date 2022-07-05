@@ -1,7 +1,8 @@
 package com.jacobtread.kme.database.entities
 
-import com.jacobtread.kme.database.*
+import com.jacobtread.kme.database.firstOrNullSafe
 import com.jacobtread.kme.database.tables.*
+import com.jacobtread.kme.tools.MEStringParser
 import com.jacobtread.kme.tools.hashPassword
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.dao.IntEntity
@@ -45,14 +46,7 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
             return transaction {
                 all()
                     .limit(limit, (offset * limit).toLong())
-                    .map {
-                        Serial(
-                            it.playerId,
-                            it.email,
-                            it.displayName,
-                            it.getSettingsBase()
-                        )
-                    }
+                    .map { it.createSerial() }
             }
         }
 
@@ -65,7 +59,12 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
     var password by PlayersTable.password
 
     private var _sessionToken by PlayersTable.sessionToken
-    var settingsBase by PlayersTable.settingsBase
+
+    var credits by PlayersTable.credits
+    var creditsSpent by PlayersTable.creditsSpent
+    var gamesPlayed by PlayersTable.gamesPlayed
+    var secondsPlayed by PlayersTable.secondsPlayed
+    var inventory by PlayersTable.inventory
 
     private val classes by PlayerClassEntity referrersOn PlayerClassesTable.player
     private val characters by PlayerCharacterEntity referrersOn PlayerCharactersTable.player
@@ -80,6 +79,8 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
             }
             return PlayerGalaxyAtWarEntity.create(this)
         }
+
+    private val settingsBase: String get() = "20;4;$credits;-1;0;$creditsSpent;0;$gamesPlayed;$secondsPlayed;0;$inventory"
 
 
     /**
@@ -137,24 +138,33 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
             val index = key.substring(4).toInt()
             PlayerCharacterEntity.setCharacterFrom(this, index, value)
         } else if (key == "Base") { // Base Setting
-            transaction { settingsBase = value }
+            transaction { applySettingBase(value) }
         } else { // Other Setting
             PlayerSettingEntity.setSetting(this, key, value)
         }
     }
 
-
     /**
-     * getSettingsBase Parses the base settings field and returns
-     * it as a PlayerSettingsBase object if parsing fails then a
-     * default PlayerSettingsBase is returned instead
+     * applySettingBase Applys the settings from the settingsBase value
+     * this is enocded in the following format:
      *
-     * @return The player settings base
+     * 20;4;{CREDITS};-1;0;{CREDITS_SPENT};0;{GAMES_PLAYED};{SECONDS_PLAYED};0;{INVENTORY}
+     *
+     * @param value The encoded settings base value
      */
-    fun getSettingsBase(): PlayerSettingsBase {
-        val base = settingsBase
-        return if (base != null) PlayerSettingsBase.createFromValue(base) else PlayerSettingsBase()
+    private fun applySettingBase(value: String) {
+        val parser = MEStringParser(value, 11)
+        parser.skip(2) // Skip 20;4;
+        credits = parser.int()
+        parser.skip(2) // Skip -1;0
+        creditsSpent = parser.int()
+        parser.skip(1)
+        gamesPlayed = parser.int()
+        secondsPlayed = parser.long()
+        parser.skip(1)
+        inventory = parser.str()
     }
+
 
     /**
      * createSettingsMap Stores all the settings from this in a LinkedHashMap
@@ -174,7 +184,7 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
             for (setting in settings) {
                 out[setting.key] = setting.value
             }
-            settingsBase?.let { out["Base"] = it }
+            out["Base"] = settingsBase
         }
         return out
     }
@@ -206,32 +216,25 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
         val id: Int,
         val email: String,
         val displayName: String,
-        val settings: PlayerSettingsBase,
+        val credits: Int,
+        val creditsSpend: Int,
+        val gamesPlayed: Int,
+        val secondsPlayed: Long,
+        val inventory: String,
     )
 
     fun applySerialUpdate(serial: Serial) {
         transaction {
             displayName = serial.displayName
             email = serial.email
-
-            if (settingsBase != null) {
-                val serialSettings = serial.settings
-                val existingSettings = getSettingsBase()
-                val newSettings = PlayerSettingsBase(
-                    serialSettings.credits,
-                    existingSettings.c,
-                    existingSettings.d,
-                    serialSettings.creditsSpent,
-                    existingSettings.e,
-                    serialSettings.gamesPlayed,
-                    serialSettings.secondsPlayed,
-                    existingSettings.f,
-                    serialSettings.inventory
-                )
-                settingsBase = newSettings.toEncodedValue()
-
-
-            }
+            credits = serial.credits
+            creditsSpent = serial.creditsSpend
+            gamesPlayed = serial.gamesPlayed
+            secondsPlayed = serial.secondsPlayed
+            inventory = serial.inventory
         }
     }
+
+    fun createSerial(): Serial = Serial(playerId, email, displayName, credits, creditsSpent, gamesPlayed, secondsPlayed, inventory)
+
 }

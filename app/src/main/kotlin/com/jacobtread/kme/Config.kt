@@ -1,6 +1,5 @@
 package com.jacobtread.kme
 
-import com.jacobtread.kme.database.DatabaseConfig
 import kotlinx.serialization.Serializable
 
 /**
@@ -28,6 +27,26 @@ data class Config(
     val gaw: GalaxyAtWarConfig = GalaxyAtWarConfig(),
     val mitm: MITM = MITM(),
 ) {
+
+
+    /**
+     * DatabaseConfig Stores configuration information about the database
+     *
+     * @property type Defines which database connection type to use
+     * @property mysql The config for a MySQL database connection
+     * @property sqlite The config for a SQLite database connection
+     * @constructor Create empty DatabaseConfig
+     */
+    @Serializable
+    data class DatabaseConfig(
+        val type: String = "sqlite",
+        val host: String = "127.0.0.1",
+        val port: Int = 3306,
+        val user: String = "root",
+        val password: String = "password",
+        val database: String = "kme",
+        val file: String = "data/app.db",
+    )
 
     @Serializable
     data class LoggingConfig(

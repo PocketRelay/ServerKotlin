@@ -1,11 +1,9 @@
 package com.jacobtread.kme.servers.http.routes
 
-import com.jacobtread.kme.database.PlayerSettingsBase
 import com.jacobtread.kme.database.byId
 import com.jacobtread.kme.database.entities.PlayerEntity
 import com.jacobtread.kme.servers.http.router.*
 import io.netty.handler.codec.http.HttpResponseStatus.OK
-import kotlinx.serialization.Serializable
 
 /**
  * routeGroupApi Adds the routing for the API routes
