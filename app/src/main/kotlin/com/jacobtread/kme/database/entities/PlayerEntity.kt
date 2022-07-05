@@ -66,15 +66,14 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
     private val characters by PlayerCharacterEntity referrersOn PlayerCharactersTable.player
     private val settings by PlayerSettingEntity referrersOn PlayerSettingsTable.player
 
-    val galaxyAtWar: PlayerGalaxyAtWarEntity
-        get() {
-            val existing = PlayerGalaxyAtWarEntity.firstOrNullSafe { PlayerGalaxyAtWarsTable.player eq this@PlayerEntity.id }
-            if (existing != null) {
-                existing.applyDecay()
-                return existing
-            }
-            return PlayerGalaxyAtWarEntity.create(this)
-        }
+    val galaxyAtWar: GalaxyAtWarEntity get() = GalaxyAtWarEntity.forPlayer(this)
+
+    /**
+     * Property which represents the total number of promotions that this player
+     * entity has for each of its player classes. This is executed in a transaction
+     */
+    val totalPromotions: Int get() = transaction { classes.sumOf { it.promotions } }
+
 
     private val settingsBase: String
         get() =
@@ -205,10 +204,6 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
             }
             level + promotions * 30
         }
-    }
-
-    fun getTotalPromotions(): Int {
-        return transaction { classes.sumOf { it.promotions } }
     }
 
     /**

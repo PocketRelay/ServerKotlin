@@ -160,7 +160,7 @@ object Environment {
                 PlayerClassesTable,
                 PlayerCharactersTable,
                 PlayerSettingsTable,
-                PlayerGalaxyAtWarsTable,
+                GalaxyAtWarTable,
                 MessagesTable
             )
         }
