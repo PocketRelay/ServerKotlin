@@ -24,6 +24,11 @@ import java.io.IOException
  */
 fun startMITMServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
     try {
+        if (Logger.logPackets && Logger.debugEnabled) {
+            Logger.warn("WARNNIG: You have packet logging enabled while MITM is enabled.")
+            Logger.warn("this will flood your logs with lots of repeated packets and")
+            Logger.warn("I recommend you disable packet logging while using MITM")
+        }
         ServerBootstrap()
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
@@ -37,7 +42,7 @@ fun startMITMServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
     }
 }
 
-class MITMHandler(val eventLoopGroup: NioEventLoopGroup) : SimpleChannelInboundHandler<Packet>() {
+class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : SimpleChannelInboundHandler<Packet>() {
 
     var clientChannel: Channel? = null
     var officialChanel: Channel? = null
