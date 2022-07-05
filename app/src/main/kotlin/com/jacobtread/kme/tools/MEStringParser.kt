@@ -14,11 +14,11 @@ package com.jacobtread.kme.tools
 class MEStringParser(value: String, size: Int) {
 
     private val parts = value.split(';', limit = size)
-    private var index: Int = 0
+    private var index: Int = 2 // Starts at 2 skipping the padding
 
     init {
         // Ensure that we have the size of data required
-        require(parts.size == size) { "Failed to parse me3 contents"}
+        require(parts.size == size && parts.size > 2) { "Failed to parse me3 contents"}
     }
 
     /**

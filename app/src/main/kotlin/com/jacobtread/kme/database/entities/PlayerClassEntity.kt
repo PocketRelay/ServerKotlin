@@ -22,21 +22,15 @@ class PlayerClassEntity(id: EntityID<Int>) : IntEntity(id) {
         fun setClassFrom(playerEntity: PlayerEntity, index: Int, value: String) {
             PlayerClassEntity.updateOrCreate({ (PlayerClassesTable.player eq playerEntity.id) and (PlayerClassesTable.index eq index) }) {
                 this.player = playerEntity.id
-                parse(index, value, this)
-            }
-        }
-
-        private fun parse(index: Int, value: String, out: PlayerClassEntity) {
-            val parser = MEStringParser(value, 6)
-            parser.skip(2)
-            out.apply {
                 this.index = index
-                name = parser.str()
+                val parser = MEStringParser(value, 6)
+                name =parser.str()
                 level = parser.int(1)
                 exp = parser.float(0f)
                 promotions = parser.int(0)
             }
         }
+
     }
 
     var player by PlayerClassesTable.player

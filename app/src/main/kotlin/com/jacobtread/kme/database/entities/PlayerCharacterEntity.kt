@@ -36,7 +36,6 @@ class PlayerCharacterEntity(id: EntityID<Int>) : IntEntity(id) {
          */
         private fun parse(index: Int, value: String, out: PlayerCharacterEntity) {
             val parser = MEStringParser(value, 22)
-            parser.skip(2)
             out.apply {
                 this.index = index
                 kitName = parser.str()

@@ -161,7 +161,6 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
      */
     private fun applySettingBase(value: String) {
         val parser = MEStringParser(value, 11)
-        parser.skip(2) // Skip 20;4;
         credits = parser.int()
         parser.skip(2) // Skip -1;0
         creditsSpent = parser.int()
