@@ -7,17 +7,17 @@ import com.jacobtread.kme.blaze.annotations.PacketProcessor
 import com.jacobtread.kme.blaze.tdf.GroupTdf
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.Message
-import com.jacobtread.kme.database.Player
+import com.jacobtread.kme.database.byId
+import com.jacobtread.kme.database.entities.PlayerEntity
 import com.jacobtread.kme.game.GameManager
 import com.jacobtread.kme.game.PlayerSession
 import com.jacobtread.kme.game.PlayerSession.NetData
 import com.jacobtread.kme.game.match.MatchRuleSet
 import com.jacobtread.kme.game.match.Matchmaking
 import com.jacobtread.kme.tools.comparePasswordHash
-import com.jacobtread.kme.tools.hashPassword
+import com.jacobtread.kme.tools.unixTimeSeconds
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.logging.Logger.info
-import com.jacobtread.kme.tools.unixTimeSeconds
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandler.Sharable
@@ -26,10 +26,8 @@ import io.netty.channel.ChannelInitializer
 import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
-import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.IOException
 import java.net.InetSocketAddress
-import java.time.LocalDate
 
 /**
  * startMainServer Starts the main server
@@ -250,7 +248,7 @@ class MainProcessor(
      */
     @PacketHandler(Components.AUTHENTICATION, Commands.LOGOUT)
     fun handleLogout(packet: Packet) {
-        val player = session.player
+        val player = session.playerEntity
         info("Logged out player ${player.displayName}")
         session.setAuthenticated(null)
         packet.pushEmptyResponse()
@@ -309,14 +307,14 @@ class MainProcessor(
         }
 
         // Retrieve the player with this email or send an email not found error
-        val player = Player.getByEmail(email) ?: return push(LoginError.EMAIL_NOT_FOUND(packet))
+        val playerEntity = PlayerEntity.getByEmail(email) ?: return push(LoginError.EMAIL_NOT_FOUND(packet))
 
         // Compare the provided password with the hashed password of the player
-        if (!comparePasswordHash(password, player.password)) { // If it's not the same password
+        if (!comparePasswordHash(password, playerEntity.password)) { // If it's not the same password
             return push(LoginError.WRONG_PASSWORD(packet))
         }
 
-        session.setAuthenticated(player) // Set the authenticated session
+        session.setAuthenticated(playerEntity) // Set the authenticated session
         push(session.authResponse(packet))
     }
 
@@ -335,11 +333,11 @@ class MainProcessor(
         val pid: ULong = packet.number("PID")
         val auth: String = packet.text("AUTH")
         // Find the player with a matching ID or send an INVALID_ACCOUNT error
-        val player = Player.getById(pid) ?: return push(LoginError.INVALID_SESSION(packet))
+        val playerEntity = PlayerEntity.byId(pid) ?: return push(LoginError.INVALID_SESSION(packet))
         // If the session token's don't match send INVALID_ACCOUNT error
-        if (!player.isSessionToken(auth)) return push(LoginError.INVALID_SESSION(packet))
-        val sessionToken = player.sessionToken // Session token grabbed after auth as to not generate new one
-        session.setAuthenticated(player)
+        if (!playerEntity.isSessionToken(auth)) return push(LoginError.INVALID_SESSION(packet))
+        val sessionToken = playerEntity.sessionToken // Session token grabbed after auth as to not generate new one
+        session.setAuthenticated(playerEntity)
         // We don't store last login time so this is just computed here
         packet.pushResponse {
             number("AGUP", 0)
@@ -367,19 +365,12 @@ class MainProcessor(
     fun handleCreateAccount(packet: Packet) {
         val email: String = packet.text("MAIL")
         val password: String = packet.text("PASS")
-        if (Player.isEmailTaken(email)) { // Check if the email is already in use
+        if (PlayerEntity.isEmailTaken(email)) { // Check if the email is already in use
             return push(LoginError.EMAIL_ALREADY_IN_USE(packet))
         }
-        val hashedPassword = hashPassword(password) // Hash the password
-        // Create the new player account
-        val player = transaction {
-            Player.new {
-                this.email = email
-                this.displayName = email
-                this.password = hashedPassword
-            }
-        }
-        session.setAuthenticated(player) // Link the player to this session
+        // Create a new player entity
+        val playerEntity = PlayerEntity.create(email, password)
+        session.setAuthenticated(playerEntity) // Link the player to this session
         push(session.authResponse(packet))
     }
 
@@ -507,7 +498,7 @@ class MainProcessor(
      */
     @PacketHandler(Components.GAME_MANAGER, Commands.START_MATCHMAKING)
     fun handleStartMatchmaking(packet: Packet) {
-        val player = session.player
+        val player = session.playerEntity
         info("Player ${player.displayName} started match making")
 
         val ruleSet = MatchRuleSet(packet)
@@ -535,7 +526,7 @@ class MainProcessor(
      */
     @PacketHandler(Components.GAME_MANAGER, Commands.CANCEL_MATCHMAKING)
     fun handleCancelMatchmaking(packet: Packet) {
-        val player = session.player
+        val player = session.playerEntity
         info("Player ${player.displayName} cancelled match making")
         Matchmaking.removeFromQueue(session)
         session.leaveGame()
@@ -555,7 +546,7 @@ class MainProcessor(
         packet.pushEmptyResponse()
         if (game == null) return
 
-        val player = session.player
+        val player = session.playerEntity
         val host = game.host
         val a = unique(Components.GAME_MANAGER, Commands.NOTIFY_GAME_PLAYER_STATE_CHANGE) {
             number("GID", gameId)
@@ -685,7 +676,7 @@ class MainProcessor(
     @PacketHandler(Components.STATS, Commands.GET_FILTERED_LEADERBOARD)
     fun handleFilteredLeaderboard(packet: Packet) {
         val name: String = packet.text("NAME")
-        val player = session.player
+        val player = session.playerEntity
         when (name) {
             "N7RatingGlobal" -> {
                 val rating = player.getN7Rating().toString()
@@ -766,7 +757,7 @@ class MainProcessor(
     fun handleFetchMessages(packet: Packet) {
         packet.pushResponse { number("MCNT", 0x1) } // Number of messages
         val ip = channel.remoteAddress().toString()
-        val player = session.player
+        val player = session.playerEntity
         val menuMessage = Environment.menuMessage
             .replace("{v}", Environment.KME_VERSION)
             .replace("{n}", player.displayName)
@@ -857,9 +848,9 @@ class MainProcessor(
      */
     @PacketHandler(Components.USER_SESSIONS, Commands.RESUME_SESSION)
     fun handleResumeSession(packet: Packet) {
-        val sessionKey = packet.text("SKEY")
-        val player = Player.getBySessionKey(sessionKey) ?: return push(LoginError.INVALID_INFORMATION(packet))
-        session.setAuthenticated(player) // Set the authenticated session
+        val sessionToken = packet.text("SKEY")
+        val playerEntity = PlayerEntity.bySessionToken(sessionToken) ?: return push(LoginError.INVALID_INFORMATION(packet))
+        session.setAuthenticated(playerEntity) // Set the authenticated session
         packet.pushEmptyResponse()
     }
 
@@ -880,7 +871,7 @@ class MainProcessor(
     @OptIn(ExperimentalUnsignedTypes::class)
     @PacketHandler(Components.USER_SESSIONS, Commands.UPDATE_NETWORK_INFO)
     fun updateSessionNetworkInfo(packet: Packet) {
-        val displayName = session.player.displayName
+        val displayName = session.playerEntity.displayName
         val addr: GroupTdf? = packet.unionValueOrNull("ADDR") as GroupTdf?
         if (addr != null) {
             val inip: GroupTdf = addr.group("INIP")
@@ -958,7 +949,7 @@ class MainProcessor(
             // Matching different configs
             conf = when (type) {
                 "ME3_DATA" -> Data.createDataConfig() // Configurations for GAW, images and others
-                "ME3_MSG" -> getServerMessages() // Custom multiplayer messages
+                "ME3_MSG" -> Message.createMessageMap() // Custom multiplayer messages
                 "ME3_ENT" -> Data.createEntitlementMap() // Entitlements
                 "ME3_DIME" -> Data.createDimeResponse() // Shop contents?
                 "ME3_BINI_VERSION" -> mapOf(
@@ -970,31 +961,6 @@ class MainProcessor(
             }
         }
         packet.pushResponse { map("CONF", conf) }
-    }
-
-    private fun getServerMessages(): LinkedHashMap<String, String> {
-        return transaction {
-            val out = LinkedHashMap<String, String>()
-            val messages = Message.all()
-            val locales = arrayOf("de", "es", "fr", "it", "ja", "pl", "ru")
-            messages.forEachIndexed { i, message ->
-                val index = i + 1
-                out["MSG_${index}_endDate"] = Message.DATE_FORMAT.format(LocalDate.ofEpochDay(message.endDate))
-                out["MSG_${index}_image"] = message.image
-                out["MSG_${index}_message"] = message.message
-                locales.forEach { locale ->
-                    out["MSG_${index}_message_$locale"] = message.message
-                }
-                out["MSG_${index}_priority"] = message.priority.toString()
-                out["MSG_${index}_title"] = message.title
-                locales.forEach { locale ->
-                    out["MSG_${index}_title_$locale"] = message.title
-                }
-                out["MSG_${index}_trackingId"] = message.id.value.toString()
-                out["MSG_${index}_type"] = message.type.toString()
-            }
-            out
-        }
     }
 
     /**
@@ -1133,7 +1099,7 @@ class MainProcessor(
         val value = packet.textOrNull("DATA")
         val key = packet.textOrNull("KEY")
         if (value != null && key != null) {
-            session.player.setSetting(key, value)
+            session.playerEntity.setSetting(key, value)
         }
         packet.pushEmptyResponse()
     }
@@ -1147,7 +1113,7 @@ class MainProcessor(
     @PacketHandler(Components.UTIL, Commands.USER_SETTINGS_LOAD_ALL)
     fun handleUserSettingsLoadAll(packet: Packet) {
         packet.pushResponse {
-            map("SMAP", session.player.createSettingsMap())
+            map("SMAP", session.playerEntity.createSettingsMap())
         }
     }
 

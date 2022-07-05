@@ -1,14 +1,13 @@
 package com.jacobtread.kme.servers.http.routes
 
 import com.jacobtread.kme.Environment
-import com.jacobtread.kme.database.Player
 import com.jacobtread.kme.database.PlayerGalaxyAtWar
+import com.jacobtread.kme.database.byId
+import com.jacobtread.kme.database.entities.PlayerEntity
 import com.jacobtread.kme.servers.http.router.*
-import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.tools.unixTimeSeconds
+import com.jacobtread.kme.utils.logging.Logger
 import io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
-import org.jetbrains.exposed.sql.transactions.transaction
-import kotlin.math.min
 
 /**
  * routeGroupGAW Adds routing for the galaxy at war
@@ -30,30 +29,30 @@ fun RoutingGroup.routeGroupGAW() {
 private fun RoutingGroup.routeAuthentication() {
     get("authentication/sharedTokenLogin") {
         val playerId = queryInt("auth", 16)
-        val player = Player.getById(playerId) ?: return@get response(BAD_REQUEST)
-        Logger.debug("Authenticated GAW User ${player.displayName}")
+        val playerEntity = PlayerEntity.byId(playerId) ?: return@get response(BAD_REQUEST)
+        Logger.debug("Authenticated GAW User ${playerEntity.displayName}")
         val time = unixTimeSeconds()
         responseXml("fulllogin") {
             element("canageup", 0)
             element("legaldochost")
             element("needslegaldoc", 0)
-            element("pclogintoken", player.sessionToken)
+            element("pclogintoken", playerEntity.sessionToken)
             element("privacypolicyuri")
             element("sessioninfo") {
-                element("blazeuserid", player.playerId)
+                element("blazeuserid", playerEntity.playerId)
                 element("isfirstlogin", "0")
-                element("sessionkey", player.playerId.toString(16))
+                element("sessionkey", playerEntity.playerId.toString(16))
                 element("lastlogindatetime", time)
-                element("email", player.email)
+                element("email", playerEntity.email)
                 element("personadetails") {
-                    element("displayname", player.displayName)
+                    element("displayname", playerEntity.displayName)
                     element("lastauthenticated", time)
-                    element("personaid", player.playerId)
+                    element("personaid", playerEntity.playerId)
                     element("status", "UNKNOWN")
                     element("extid", "0")
                     element("exttype", "BLAZE_EXTERNAL_REF_TYPE_UNKNOWN")
                 }
-                element("userid", player.playerId)
+                element("userid", playerEntity.playerId)
             }
             element("isoflegalcontactage", 0)
             element("toshost")
@@ -70,10 +69,10 @@ private fun RoutingGroup.routeAuthentication() {
 private fun RoutingGroup.routeRatings() {
     get("galaxyatwar/getRatings/:id") {
         val playerId = paramInt("id", 16)
-        val player = Player.getById(playerId)
+        val playerEntity = PlayerEntity.byId(playerId)
             ?: return@get response(BAD_REQUEST)
-        val rating = player.getOrCreateGAW()
-        respondRatings(player, rating)
+        val rating = playerEntity.galaxyAtWar
+        respondRatings(playerEntity, rating)
     }
 }
 
@@ -83,21 +82,17 @@ private fun RoutingGroup.routeRatings() {
  */
 private fun RoutingGroup.routeIncreaseRatings() {
     get("galaxyatwar/increaseRatings/:id") {
-        transaction {
-            val playerId = paramInt("id", 16)
-            val player = Player.getById(playerId) ?: return@transaction response(BAD_REQUEST)
-            val rating = player.getOrCreateGAW()
-            val maxValue = 10099
-            rating.apply {
-                timestamp = unixTimeSeconds()
-                a = min(maxValue, a + queryInt("rinc|0", default = 0))
-                b = min(maxValue, b + queryInt("rinc|1", default = 0))
-                c = min(maxValue, c + queryInt("rinc|2", default = 0))
-                d = min(maxValue, d + queryInt("rinc|3", default = 0))
-                e = min(maxValue, e + queryInt("rinc|4", default = 0))
-            }
-            respondRatings(player, rating)
-        }
+        val playerId = paramInt("id", 16)
+        val playerEntity = PlayerEntity.byId(playerId) ?: return@get response(BAD_REQUEST)
+        val rating = playerEntity.galaxyAtWar
+        rating.increase(
+            queryInt("rinc|0", default = 0),
+            queryInt("rinc|1", default = 0),
+            queryInt("rinc|2", default = 0),
+            queryInt("rinc|3", default = 0),
+            queryInt("rinc|4", default = 0)
+        )
+        respondRatings(playerEntity, rating)
     }
 }
 
@@ -105,13 +100,13 @@ private fun RoutingGroup.routeIncreaseRatings() {
  * respondRatings Responds to the provided request with the galaxy at war
  * ratings for the provided player
  *
- * @param player The player to use the data from
+ * @param playerEntity The player to use the data from
  * @param rating The player galaxy at war rating data
  * @return The created ratings response
  */
-private fun respondRatings(player: Player, rating: PlayerGalaxyAtWar): HttpResponse {
+private fun respondRatings(playerEntity: PlayerEntity, rating: PlayerGalaxyAtWar): HttpResponse {
     val level = rating.average()
-    val promotions = if (Environment.gawEnabledPromotions) player.getTotalPromotions() else 0
+    val promotions = if (Environment.gawEnabledPromotions) playerEntity.getTotalPromotions() else 0
     return responseXml("galaxyatwargetratings") {
         element("ratings") {
             element("ratings", rating.a)

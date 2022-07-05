@@ -5,7 +5,7 @@ import com.jacobtread.kme.blaze.tdf.GroupTdf
 import com.jacobtread.kme.blaze.tdf.OptionalTdf
 import com.jacobtread.kme.blaze.tdf.VarIntTdf
 import com.jacobtread.kme.data.Data
-import com.jacobtread.kme.database.Player
+import com.jacobtread.kme.database.entities.PlayerEntity
 import com.jacobtread.kme.blaze.NotAuthenticatedException
 import com.jacobtread.kme.game.match.Matchmaking
 import com.jacobtread.kme.blaze.data.VarTripple
@@ -88,11 +88,11 @@ class PlayerSession : PacketPushable {
     var otherNetData = SHARED_OTHER_NET_DATA
 
     // The authenticated player for this session null if the player isn't authenticated
-    private var _player: Player? = null
-    val player: Player get() = _player ?: throw throw NotAuthenticatedException()
-    val playerId: Int get() = player.playerId
+    private var _playerEntity: PlayerEntity? = null
+    val playerEntity: PlayerEntity get() = _playerEntity ?: throw throw NotAuthenticatedException()
+    val playerId: Int get() = playerEntity.playerId
 
-    val displayName: String get() = player.displayName
+    val displayName: String get() = playerEntity.displayName
 
     var hardwareFlag: Int = 0
 
@@ -114,7 +114,7 @@ class PlayerSession : PacketPushable {
      */
     fun release() {
         isActive = false
-        _player = null
+        _playerEntity = null
         channel = null
         game?.removePlayer(this)
         game = null
@@ -144,14 +144,14 @@ class PlayerSession : PacketPushable {
     /**
      * setAuthenticated Sets the currently authenticated player
      *
-     * @param player The authenticated player
+     * @param playerEntity The authenticated player
      */
-    fun setAuthenticated(player: Player?) {
-        val existing = _player
-        if (player == null && existing != null) {
+    fun setAuthenticated(playerEntity: PlayerEntity?) {
+        val existing = _playerEntity
+        if (playerEntity == null && existing != null) {
             game?.removePlayer(this)
         }
-        this._player = player
+        this._playerEntity = playerEntity
     }
 
     /**
@@ -187,7 +187,7 @@ class PlayerSession : PacketPushable {
     }
 
     fun authResponse(packet: Packet) = packet.respond {
-        val player = player
+        val player = playerEntity
         text("LDHT", "")
         number("NTOS", 0)
         text("PCTK", player.sessionToken)
@@ -257,7 +257,7 @@ class PlayerSession : PacketPushable {
      * @return A USER_SESSIONS SESSION_DETAILS packet describing this session
      */
     fun createSessionDetails(): Packet {
-        val player = player
+        val player = playerEntity
         val game = game
         return unique(
             Components.USER_SESSIONS,
@@ -308,7 +308,7 @@ class PlayerSession : PacketPushable {
      * @return The persona list
      */
     fun createPersonaList(): GroupTdf {
-        val player = player
+        val player = playerEntity
         return group("PDTL" /* Persona Details? */) {
             val lastLoginTime = unixTimeSeconds()
             text("DSNM", player.displayName)
@@ -327,7 +327,7 @@ class PlayerSession : PacketPushable {
      * @param builder The builder to append to
      */
     fun appendPlayerSession(builder: TdfBuilder) {
-        val player = player
+        val player = playerEntity
         builder.apply {
             number("BUID", player.playerId)
             number("FRST", 0)

@@ -1,11 +1,9 @@
 package com.jacobtread.kme.game
 
 import com.jacobtread.kme.blaze.*
-import com.jacobtread.kme.data.Data
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
-import kotlin.math.max
 
 class Game(
     val id: ULong,
@@ -50,7 +48,7 @@ class Game(
     }
 
     private fun sendHostPlayerJoin(session: PlayerSession) {
-        val player = session.player
+        val player = session.playerEntity
         val sessionDetails = session.createSessionDetails()
         host.push(sessionDetails)
         host.pushUnique(Components.GAME_MANAGER, Commands.JOIN_GAME_BY_GROUP){
@@ -150,7 +148,7 @@ class Game(
         ) {
             val playerIds = ArrayList<Long>()
             val pros = players.mapIndexed { index, playerSession ->
-                val player = playerSession.player
+                val player = playerSession.playerEntity
                 playerIds.add(player.playerId.toLong())
                 group {
                     blob("BLOB")
@@ -170,7 +168,7 @@ class Game(
                 }
             }
 
-            val hostPlayer = host.player
+            val hostPlayer = host.playerEntity
             +group("GAME") {
                 // Game Admins
                 list("ADMN", playerIds)
