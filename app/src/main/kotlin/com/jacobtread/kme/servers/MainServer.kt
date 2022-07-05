@@ -679,7 +679,7 @@ class MainProcessor(
         val player = session.playerEntity
         when (name) {
             "N7RatingGlobal" -> {
-                val rating = player.getN7Rating().toString()
+                val rating = player.n7Rating.toString()
                 packet.pushResponse {
                     list("LDLS", listOf(
                         group {

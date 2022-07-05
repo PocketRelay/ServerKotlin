@@ -3,9 +3,9 @@ package com.jacobtread.kme.database.tables
 import org.jetbrains.exposed.dao.id.IntIdTable
 
 /**
- * PlayerSettings
- *
- * @constructor Create empty PlayerSettings
+ * Represents the table which stores the settings for each player.
+ * This will contain the settings which are un-documented or just
+ * unknown in function so they key a unique column to identify them
  */
 object PlayerSettingsTable : IntIdTable("player_settings") {
     val player = reference("player_id", PlayersTable)

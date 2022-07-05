@@ -19,7 +19,7 @@ class PlayerClassEntity(id: EntityID<Int>) : IntEntity(id) {
          * @param index The index/id of this player class
          * @param value The encoded class data
          */
-        fun setClassFrom(playerEntity: PlayerEntity, index: Int, value: String) {
+        fun updateOrCreate(playerEntity: PlayerEntity, index: Int, value: String) {
             PlayerClassEntity.updateOrCreate({ (PlayerClassesTable.player eq playerEntity.id) and (PlayerClassesTable.index eq index) }) {
                 this.player = playerEntity.id
                 this.index = index
@@ -30,7 +30,6 @@ class PlayerClassEntity(id: EntityID<Int>) : IntEntity(id) {
                 promotions = parser.int(0)
             }
         }
-
     }
 
     var player by PlayerClassesTable.player

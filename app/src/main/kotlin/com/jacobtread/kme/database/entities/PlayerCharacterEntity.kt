@@ -19,7 +19,7 @@ class PlayerCharacterEntity(id: EntityID<Int>) : IntEntity(id) {
          * @param index The index/id of this character
          * @param value The encoded value of this character data
          */
-        fun setCharacterFrom(playerEntity: PlayerEntity, index: Int, value: String) {
+        fun updateOrCreate(playerEntity: PlayerEntity, index: Int, value: String) {
             PlayerCharacterEntity.updateOrCreate({ (PlayerCharactersTable.player eq playerEntity.id) and (PlayerCharactersTable.index eq index) }) {
                 this.player = playerEntity.id
                 parse(index, value, this)

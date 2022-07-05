@@ -1,7 +1,10 @@
 package com.jacobtread.kme.database.entities
 
 import com.jacobtread.kme.database.firstOrNullSafe
-import com.jacobtread.kme.database.tables.*
+import com.jacobtread.kme.database.tables.PlayerCharactersTable
+import com.jacobtread.kme.database.tables.PlayerClassesTable
+import com.jacobtread.kme.database.tables.PlayerSettingsTable
+import com.jacobtread.kme.database.tables.PlayersTable
 import com.jacobtread.kme.tools.MEStringParser
 import com.jacobtread.kme.tools.hashPassword
 import kotlinx.serialization.Serializable
@@ -51,7 +54,6 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
 
     var displayName by PlayersTable.displayName
         private set
-
     var password by PlayersTable.password
 
     private var _sessionToken by PlayersTable.sessionToken
@@ -74,16 +76,25 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
      */
     val totalPromotions: Int get() = transaction { classes.sumOf { it.promotions } }
 
+    val n7Rating: Int
+        get() = transaction {
+            var level = 0
+            var promotions = 0
+            classes.forEach {
+                level += it.level
+                promotions += it.promotions
+            }
+            level + promotions * 30
+        }
 
     private val settingsBase: String
-        get() =
-            StringBuilder("20;4")
-                .append(credits).append(";-1;0;")
-                .append(creditsSpent).append(";0;")
-                .append(gamesPlayed).append(';')
-                .append(secondsPlayed).append(";0;")
-                .append(inventory)
-                .toString()
+        get() = StringBuilder("20;4;")
+            .append(credits).append(";-1;0;")
+            .append(creditsSpent).append(";0;")
+            .append(gamesPlayed).append(';')
+            .append(secondsPlayed).append(";0;")
+            .append(inventory)
+            .toString()
 
 
     /**
@@ -133,35 +144,25 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
     fun setSetting(key: String, value: String) {
         if (key.startsWith("class")) { // Class Setting
             val index = key.substring(5).toInt()
-            PlayerClassEntity.setClassFrom(this, index, value)
+            PlayerClassEntity.updateOrCreate(this, index, value)
         } else if (key.startsWith("char")) { // Character Setting
             val index = key.substring(4).toInt()
-            PlayerCharacterEntity.setCharacterFrom(this, index, value)
+            PlayerCharacterEntity.updateOrCreate(this, index, value)
         } else if (key == "Base") { // Base Setting
-            transaction { applySettingBase(value) }
+            transaction {
+                val parser = MEStringParser(value, 11)
+                credits = parser.int()
+                parser.skip(2) // Skip -1;0
+                creditsSpent = parser.int()
+                parser.skip(1)
+                gamesPlayed = parser.int()
+                secondsPlayed = parser.long()
+                parser.skip(1)
+                inventory = parser.str()
+            }
         } else { // Other Setting
-            PlayerSettingEntity.setSetting(this, key, value)
+            PlayerSettingEntity.updateOrCreate(this, key, value)
         }
-    }
-
-    /**
-     * applySettingBase Applys the settings from the settingsBase value
-     * this is enocded in the following format:
-     *
-     * 20;4;{CREDITS};-1;0;{CREDITS_SPENT};0;{GAMES_PLAYED};{SECONDS_PLAYED};0;{INVENTORY}
-     *
-     * @param value The encoded settings base value
-     */
-    private fun applySettingBase(value: String) {
-        val parser = MEStringParser(value, 11)
-        credits = parser.int()
-        parser.skip(2) // Skip -1;0
-        creditsSpent = parser.int()
-        parser.skip(1)
-        gamesPlayed = parser.int()
-        secondsPlayed = parser.long()
-        parser.skip(1)
-        inventory = parser.str()
     }
 
 
@@ -189,25 +190,7 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
     }
 
     /**
-     * getN7Rating Produces a rating value based on the total
-     * level and number of promotions this player has.
-     *
-     * @return The calculated N7 rating
-     */
-    fun getN7Rating(): Int {
-        return transaction {
-            var level = 0
-            var promotions = 0
-            for (playerClass in classes) {
-                level += playerClass.level
-                promotions += playerClass.promotions
-            }
-            level + promotions * 30
-        }
-    }
-
-    /**
-     * Serial a serializable representation of a player entity object
+     * Serializable representation of a player entity object
      * this contains the fields which should be serialized
      *
      * @see createSerial For creating this object from a player entity

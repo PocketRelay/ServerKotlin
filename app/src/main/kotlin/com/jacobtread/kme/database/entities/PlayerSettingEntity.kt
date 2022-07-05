@@ -9,16 +9,16 @@ import org.jetbrains.exposed.sql.and
 
 class PlayerSettingEntity(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<PlayerSettingEntity>(PlayerSettingsTable) {
+
         /**
-         * setSettingUnknown Stores setting key values pairs for settings
-         * that are not parsed. Will update existing values if there are
-         * any otherwise will create new row
+         * Updates the existing setting with the provided key to the
+         * provided value or creates a new setting with that value
          *
-         * @param playerEntity The player to set the setting for
-         * @param key The setting key
-         * @param value The setting value
+         * @param playerEntity The player entity this setting is for
+         * @param key The key that identifies this setting
+         * @param value
          */
-        fun setSetting(playerEntity: PlayerEntity, key: String, value: String) {
+        fun updateOrCreate(playerEntity: PlayerEntity, key: String, value: String) {
             val playerId = playerEntity.id
             PlayerSettingEntity.updateOrCreate({ (PlayerSettingsTable.player eq playerId) and (PlayerSettingsTable.key eq key) }) {
                 this.player = playerId
@@ -28,7 +28,7 @@ class PlayerSettingEntity(id: EntityID<Int>) : IntEntity(id) {
         }
     }
 
-    var player by PlayerSettingsTable.player
+    private var player by PlayerSettingsTable.player
     var key by PlayerSettingsTable.key
     var value by PlayerSettingsTable.value
 }

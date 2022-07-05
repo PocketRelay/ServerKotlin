@@ -3,10 +3,9 @@ package com.jacobtread.kme.database.tables
 import org.jetbrains.exposed.dao.id.IntIdTable
 
 /**
- * Players table This table contains the data for each player account.
- * This table is referenced by other data relating to this player
- *
- * @constructor Create empty Players table
+ * Represents the table which contains the data for each player
+ * account. This table is references by other tables in order
+ * to store data relating to each player.
  */
 object PlayersTable : IntIdTable("players") {
 
