@@ -1,7 +1,7 @@
 package com.jacobtread.kme.servers.http.routes
 
 import com.jacobtread.kme.Environment
-import com.jacobtread.kme.database.PlayerGalaxyAtWar
+import com.jacobtread.kme.database.entities.PlayerGalaxyAtWarEntity
 import com.jacobtread.kme.database.byId
 import com.jacobtread.kme.database.entities.PlayerEntity
 import com.jacobtread.kme.servers.http.router.*
@@ -104,7 +104,7 @@ private fun RoutingGroup.routeIncreaseRatings() {
  * @param rating The player galaxy at war rating data
  * @return The created ratings response
  */
-private fun respondRatings(playerEntity: PlayerEntity, rating: PlayerGalaxyAtWar): HttpResponse {
+private fun respondRatings(playerEntity: PlayerEntity, rating: PlayerGalaxyAtWarEntity): HttpResponse {
     val level = rating.average()
     val promotions = if (Environment.gawEnabledPromotions) playerEntity.getTotalPromotions() else 0
     return responseXml("galaxyatwargetratings") {

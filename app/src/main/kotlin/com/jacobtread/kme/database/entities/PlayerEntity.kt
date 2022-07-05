@@ -1,7 +1,7 @@
 package com.jacobtread.kme.database.entities
 
 import com.jacobtread.kme.database.*
-import com.jacobtread.kme.database.tables.PlayersTable
+import com.jacobtread.kme.database.tables.*
 import com.jacobtread.kme.tools.hashPassword
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.dao.IntEntity
@@ -67,18 +67,18 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
     private var _sessionToken by PlayersTable.sessionToken
     var settingsBase by PlayersTable.settingsBase
 
-    private val classes by PlayerClass referrersOn PlayerClasses.player
-    private val characters by PlayerCharacter referrersOn PlayerCharacters.player
-    private val settings by PlayerSetting referrersOn PlayerSettings.player
+    private val classes by PlayerClassEntity referrersOn PlayerClassesTable.player
+    private val characters by PlayerCharacterEntity referrersOn PlayerCharactersTable.player
+    private val settings by PlayerSettingEntity referrersOn PlayerSettingsTable.player
 
-    val galaxyAtWar: PlayerGalaxyAtWar
+    val galaxyAtWar: PlayerGalaxyAtWarEntity
         get() {
-            val existing = PlayerGalaxyAtWar.firstOrNullSafe { PlayerGalaxyAtWars.player eq this@PlayerEntity.id }
+            val existing = PlayerGalaxyAtWarEntity.firstOrNullSafe { PlayerGalaxyAtWarsTable.player eq this@PlayerEntity.id }
             if (existing != null) {
                 existing.applyDecay()
                 return existing
             }
-            return PlayerGalaxyAtWar.create(this)
+            return PlayerGalaxyAtWarEntity.create(this)
         }
 
 
@@ -132,14 +132,14 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
     fun setSetting(key: String, value: String) {
         if (key.startsWith("class")) { // Class Setting
             val index = key.substring(5).toInt()
-            PlayerClass.setClassFrom(this, index, value)
+            PlayerClassEntity.setClassFrom(this, index, value)
         } else if (key.startsWith("char")) { // Character Setting
             val index = key.substring(4).toInt()
-            PlayerCharacter.setCharacterFrom(this, index, value)
+            PlayerCharacterEntity.setCharacterFrom(this, index, value)
         } else if (key == "Base") { // Base Setting
             transaction { settingsBase = value }
         } else { // Other Setting
-            PlayerSetting.setSetting(this, key, value)
+            PlayerSettingEntity.setSetting(this, key, value)
         }
     }
 

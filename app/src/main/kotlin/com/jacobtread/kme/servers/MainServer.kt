@@ -6,7 +6,7 @@ import com.jacobtread.kme.blaze.annotations.PacketHandler
 import com.jacobtread.kme.blaze.annotations.PacketProcessor
 import com.jacobtread.kme.blaze.tdf.GroupTdf
 import com.jacobtread.kme.data.Data
-import com.jacobtread.kme.database.Message
+import com.jacobtread.kme.database.entities.MessageEntity
 import com.jacobtread.kme.database.byId
 import com.jacobtread.kme.database.entities.PlayerEntity
 import com.jacobtread.kme.game.GameManager
@@ -949,7 +949,7 @@ class MainProcessor(
             // Matching different configs
             conf = when (type) {
                 "ME3_DATA" -> Data.createDataConfig() // Configurations for GAW, images and others
-                "ME3_MSG" -> Message.createMessageMap() // Custom multiplayer messages
+                "ME3_MSG" -> MessageEntity.createMessageMap() // Custom multiplayer messages
                 "ME3_ENT" -> Data.createEntitlementMap() // Entitlements
                 "ME3_DIME" -> Data.createDimeResponse() // Shop contents?
                 "ME3_BINI_VERSION" -> mapOf(
