@@ -307,7 +307,7 @@ class MainProcessor(
         }
 
         // Retrieve the player with this email or send an email not found error
-        val playerEntity = PlayerEntity.getByEmail(email) ?: return push(LoginError.EMAIL_NOT_FOUND(packet))
+        val playerEntity = PlayerEntity.byEmail(email) ?: return push(LoginError.EMAIL_NOT_FOUND(packet))
 
         // Compare the provided password with the hashed password of the player
         if (!comparePasswordHash(password, playerEntity.password)) { // If it's not the same password

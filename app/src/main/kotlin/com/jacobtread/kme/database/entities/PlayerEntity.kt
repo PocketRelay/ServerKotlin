@@ -16,19 +16,12 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
 
         fun isEmailTaken(email: String): Boolean = transaction { !(find { PlayersTable.email eq email }.limit(1).empty()) }
 
-        fun getByEmail(email: String): PlayerEntity? = transaction {
-            find { PlayersTable.email eq email }
-                .limit(1)
-                .firstOrNull()
-        }
-
         fun byEmail(email: String): PlayerEntity? {
             return firstOrNullSafe { PlayersTable.email eq email }
         }
 
         fun bySessionToken(sessionToken: String): PlayerEntity? {
             return firstOrNullSafe { PlayersTable.sessionToken eq sessionToken }
-
         }
 
         fun create(email: String, password: String): PlayerEntity {
