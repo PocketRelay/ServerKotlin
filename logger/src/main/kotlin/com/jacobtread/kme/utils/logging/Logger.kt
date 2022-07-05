@@ -6,6 +6,7 @@ import java.io.PrintWriter
 import java.io.StringWriter
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.system.exitProcess
 
 /**
@@ -184,6 +185,15 @@ object Logger {
             }
             builder.append(arg?.toString() ?: "null")
             last = index + 2
+        }
+        i++
+        while (i < args.size) {
+            val arg = args[i]
+            if (arg is Throwable) {
+                if (exceptions == null) exceptions = ArrayList()
+                exceptions.add(arg)
+            }
+            i++
         }
         if (last < message.length) {
             builder.append(message.substring(last))
