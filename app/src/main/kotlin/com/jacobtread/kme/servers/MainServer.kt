@@ -944,7 +944,11 @@ class MainProcessor(
         val conf: Map<String, String>
         if (type.startsWith("ME3_LIVE_TLK_PC_")) { // Filter TLK files
             val lang = type.substring(16)
-            conf = Data.loadTLK(lang) // Load the tlk file
+            conf = try {
+                Data.loadChunkedFile("data/tlk/$lang.tlk.chunked")
+            } catch (e: IOException) {
+                Data.loadChunkedFile("data/tlk/default.tlk.chunked")
+            }
         } else {
             // Matching different configs
             conf = when (type) {

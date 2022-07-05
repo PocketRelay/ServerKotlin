@@ -3,7 +3,6 @@ package com.jacobtread.kme.data
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.blaze.TdfBuilder
 import com.jacobtread.kme.blaze.group
-import java.io.BufferedReader
 import java.io.IOException
 
 /**
@@ -35,6 +34,7 @@ object Data {
     }
 
     //region ME3 Data
+
     /**
      * createUserEntitlements Creates a List of user entitlements
      * this is the same for all players
@@ -235,11 +235,7 @@ object Data {
     fun createDataConfig(): Map<String, String> {
         val address = Environment.externalAddress
         val port = Environment.httpPort
-        val host = if (port != 80) {
-            "$address:$port"
-        } else {
-            address
-        }
+        val host = if (port != 80) "$address:$port" else address
         return mapOf(
             "GAW_SERVER_BASE_URL" to "http://$host/gaw",
             "IMG_MNGR_BASE_URL" to "http://$host/content/",
@@ -609,12 +605,6 @@ object Data {
 
     //endregion
 
-    fun getResource(name: String): ByteArray {
-        val stream = Data::class.java.getResourceAsStream("/$name")
-            ?: throw IOException("Missing internal resource: $name")
-        return stream.readAllBytes()
-    }
-
     fun getResourceOrNull(name: String): ByteArray? {
         try {
             val stream = Data::class.java.getResourceAsStream("/$name")
@@ -625,22 +615,17 @@ object Data {
         }
     }
 
-    private fun getResourceReader(name: String): BufferedReader {
-        val stream = Data::class.java.getResourceAsStream("/$name")
-            ?: throw IllegalStateException("Missing internal resource: $name")
-        return stream.bufferedReader()
-    }
-
     fun createDimeResponse(): Map<String, String> {
-        val dime = getResource("data/dime.xml")
-            .toString(Charsets.UTF_8);
+        val dime = getResourceOrNull("data/dime.xml")?.toString(Charsets.UTF_8)
+            ?: throw IOException("Missing internal resource: data/dime.xml");
         return mapOf("Config" to dime)
     }
 
     fun loadBiniCompressed(): Map<String, String> = loadChunkedFile("data/bini.bin.chunked")
 
-    private fun loadChunkedFile(path: String): Map<String, String> {
-        val reader = getResourceReader(path)
+    fun loadChunkedFile(path: String): Map<String, String> {
+        val inputStream = Data::class.java.getResourceAsStream("/$path") ?: throw IOException("Missing internal resource: $path")
+        val reader = inputStream.bufferedReader()
         val lines = reader.readLines()
         val out = LinkedHashMap<String, String>(lines.size + 1)
         lines.forEach {
@@ -649,13 +634,5 @@ object Data {
             out[parts[0]] = parts[1]
         }
         return out
-    }
-
-    fun loadTLK(name: String = "default"): Map<String, String> {
-        return try {
-            loadChunkedFile("data/tlk/$name.tlk.chunked")
-        } catch (e: IOException) {
-            loadChunkedFile("data/tlk/default.tlk.chunked")
-        }
     }
 }
