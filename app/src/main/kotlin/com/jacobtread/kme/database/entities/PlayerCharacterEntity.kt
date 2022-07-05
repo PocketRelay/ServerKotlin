@@ -86,9 +86,8 @@ class PlayerCharacterEntity(id: EntityID<Int>) : IntEntity(id) {
     var deployed by PlayerCharactersTable.deployed
     var leveledUp by PlayerCharactersTable.leveledUp
 
-    fun mapKey(): String = "char$index"
-    fun mapValue(): String = StringBuilder()
-        .append("20;4;")
+    val key: String get() = "char$index"
+    fun toEncoded(): String = StringBuilder("20;4;")
         .append(kitName).append(';')
         .append(name).append(';')
         .append(tint1).append(';')

@@ -80,7 +80,14 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
             return PlayerGalaxyAtWarEntity.create(this)
         }
 
-    private val settingsBase: String get() = "20;4;$credits;-1;0;$creditsSpent;0;$gamesPlayed;$secondsPlayed;0;$inventory"
+    private val settingsBase: String get() =
+        StringBuilder("20;4")
+            .append(credits).append(";-1;0;")
+            .append(creditsSpent).append(";0;")
+            .append(gamesPlayed).append(';')
+            .append(secondsPlayed).append(";0;")
+            .append(inventory)
+            .toString()
 
 
     /**
@@ -176,10 +183,10 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
         val out = LinkedHashMap<String, String>()
         transaction {
             for (playerClass in classes) {
-                out[playerClass.mapKey()] = playerClass.mapValue()
+                out[playerClass.key] = playerClass.toEncoded()
             }
             for (character in characters) {
-                out[character.mapKey()] = character.mapValue()
+                out[character.key] = character.toEncoded()
             }
             for (setting in settings) {
                 out[setting.key] = setting.value

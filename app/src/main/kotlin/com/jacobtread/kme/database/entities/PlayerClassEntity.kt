@@ -46,9 +46,8 @@ class PlayerClassEntity(id: EntityID<Int>) : IntEntity(id) {
     var exp by PlayerClassesTable.exp
     var promotions by PlayerClassesTable.promotions
 
-    fun mapKey(): String = "class$index"
-    fun mapValue(): String = StringBuilder()
-        .append("20;4;")
+    val key: String get() = "class$index"
+    fun toEncoded(): String = StringBuilder("20;4;")
         .append(name).append(';')
         .append(level).append(';')
         .append(exp).append(';')
