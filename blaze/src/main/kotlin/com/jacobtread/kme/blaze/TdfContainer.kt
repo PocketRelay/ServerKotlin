@@ -2,9 +2,9 @@
 
 package com.jacobtread.kme.blaze
 
-import com.jacobtread.kme.blaze.tdf.*
 import com.jacobtread.kme.blaze.data.VarPair
 import com.jacobtread.kme.blaze.data.VarTripple
+import com.jacobtread.kme.blaze.tdf.*
 
 /**
  * TdfContainer Structure representing a collection of TDFs that can be queried for
@@ -105,16 +105,16 @@ inline fun TdfContainer.optionalOrNull(label: String): OptionalTdf? = getTdfOrNu
 
 // Non-nullable Helpers
 
-inline fun TdfContainer.text(label: String): String = getTdf(StringTdf::class.java, label).value
-inline fun TdfContainer.number(label: String): ULong = getTdf(VarIntTdf::class.java, label).value
+inline fun TdfContainer.text(label: String): String = getValue(StringTdf::class.java, label)
+inline fun TdfContainer.number(label: String): ULong = getValue(VarIntTdf::class.java, label)
 inline fun TdfContainer.numberLong(label: String): Long = number(label).toLong()
 inline fun TdfContainer.numberInt(label: String): Int = number(label).toInt()
-inline fun TdfContainer.float(label: String): Float = getTdf(FloatTdf::class.java, label).value
-inline fun TdfContainer.blob(label: String): ByteArray = getTdf(BlobTdf::class.java, label).value
-inline fun TdfContainer.unionValue(label: String): Tdf<*>? = getTdf(OptionalTdf::class.java, label).value
-inline fun TdfContainer.tripple(label: String): VarTripple = getTdf(TrippleTdf::class.java, label).value
-inline fun TdfContainer.pair(label: String): VarPair = getTdf(PairTdf::class.java, label).value
-inline fun TdfContainer.varIntList(label: String): List<ULong> = getTdf(VarIntList::class.java, label).value
+inline fun TdfContainer.float(label: String): Float = getValue(FloatTdf::class.java, label)
+inline fun TdfContainer.blob(label: String): ByteArray = getValue(BlobTdf::class.java, label)
+inline fun TdfContainer.unionValue(label: String): Tdf<*>? = getValue(OptionalTdf::class.java, label)
+inline fun TdfContainer.tripple(label: String): VarTripple = getValue(TrippleTdf::class.java, label)
+inline fun TdfContainer.pair(label: String): VarPair = getValue(PairTdf::class.java, label)
+inline fun TdfContainer.varIntList(label: String): List<ULong> = getValue(VarIntList::class.java, label)
 
 @Suppress("UNCHECKED_CAST")
 inline fun <V : Any> TdfContainer.list(label: String): List<V> = getValue(ListTdf::class.java, label) as List<V>
