@@ -150,7 +150,6 @@ object Environment {
             else -> Logger.fatal("Unknwon database type: $databaseType (expected mysql, postgres, or sqlite)")
         }
         createDatabaseTables()
-        System.gc() // Clean up all the created objects
     }
 
     private fun createDatabaseTables() {

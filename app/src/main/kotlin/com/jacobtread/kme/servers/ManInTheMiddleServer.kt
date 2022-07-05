@@ -66,7 +66,7 @@ class MITMHandler(val eventLoopGroup: NioEventLoopGroup) : SimpleChannelInboundH
         }
     }
 
-    fun createOfficialConnection(): Channel {
+    private fun createOfficialConnection(): Channel {
         val channelFuture = Bootstrap()
             .group(eventLoopGroup)
             .channel(NioSocketChannel::class.java)

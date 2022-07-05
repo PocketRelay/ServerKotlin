@@ -18,5 +18,7 @@ fun main() {
     startMainServer(bossGroup, workerGroup)
     startHttpServer(bossGroup, workerGroup)
     startDiscardServer(bossGroup, workerGroup)
+
+    System.gc() // Cleanup after initialization
 }
 

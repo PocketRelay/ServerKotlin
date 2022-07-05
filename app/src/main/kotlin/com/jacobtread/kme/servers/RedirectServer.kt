@@ -14,8 +14,6 @@ import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.ssl.SslContext
 import io.netty.handler.ssl.SslContextBuilder
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory
-import io.netty.util.concurrent.Future
-import io.netty.util.concurrent.FutureListener
 import java.io.IOException
 import java.net.UnknownHostException
 import java.security.KeyStore
@@ -37,7 +35,11 @@ fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
             .channel(NioServerSocketChannel::class.java)
             .childHandler(handler)
             .bind(listenPort)
-            .addListener(handler)
+            .addListener {
+                info("Started Redirector on port ${Environment.redirectorPort} redirecting to:")
+                info("Host: ${Environment.externalAddress}")
+                info("Port: ${Environment.mainPort}")
+            }
     } catch (e: UnknownHostException) {
         Logger.fatal("Unable to lookup server address \"${Environment.externalAddress}\"", e)
     } catch (e: IOException) {
@@ -54,7 +56,33 @@ fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
  *
  */
 @Sharable
-class RedirectorHandler : ChannelInboundHandlerAdapter(), FutureListener<Void> {
+class RedirectorHandler : ChannelInboundHandlerAdapter() {
+
+    private val context = createSslContext()
+
+    private val targetAddress: ULong
+    private val isHostname: Boolean
+
+    init {
+        val externalAddress = Environment.externalAddress
+        // Regex pattern for matching IPv4 addresses
+        val ipv4Regex = Regex("^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)(\\.(?!\$)|\$)){4}\$")
+        if (externalAddress.matches(ipv4Regex)) { // Check if the address is an IPv4 Address
+            val ipParts = externalAddress.split('.', limit = 4) // Split the address into 4 parts
+            require(ipParts.size == 4) { "Invalid IPv4 Address" } // Ensure that the address is 4 parts
+            // Encoding the address as an unsigned long value
+            val ipEncoded: ULong = (ipParts[0].toULong() shl 24)
+                .or(ipParts[1].toULong() shl 16)
+                .or(ipParts[2].toULong() shl 8)
+                .or(ipParts[3].toULong())
+
+            targetAddress = ipEncoded
+            isHostname = false
+        } else {
+            targetAddress = 0u
+            isHostname = true
+        }
+    }
 
     /**
      * handlerAdded Handles initialization of the channel when the
@@ -91,14 +119,16 @@ class RedirectorHandler : ChannelInboundHandlerAdapter(), FutureListener<Void> {
         val packet = msg.respond {
             if (msg.component == Components.REDIRECTOR && msg.command == Commands.GET_SERVER_INSTANCE) {
                 optional("ADDR", group("VALU") {
-                    if (target.isHostname) {
-                        text("HOST", target.host)
+                    if (isHostname) {
+                        text("HOST", Environment.externalAddress)
                     } else {
-                        number("IP", target.address)
+                        number("IP", targetAddress)
                     }
                     number("PORT", Environment.mainPort)
                 })
-                bool("SECU", false)
+                // Determines if SSLv3 should be used when connecting to the main server
+                // only ever used if MITM is enabled and using secure
+                bool("SECU", Environment.mitmEnabled && Environment.mitmSecure)
                 bool("XDNS", false)
                 val remoteAddress = channel.remoteAddress()
                 info("Sent redirection to client at $remoteAddress. Closing Connection.")
@@ -107,9 +137,6 @@ class RedirectorHandler : ChannelInboundHandlerAdapter(), FutureListener<Void> {
         channel.writeAndFlush(packet)
         channel.close()
     }
-
-    private val target = getRedirectTarget()
-    private val context = createSslContext()
 
     /**
      * createSslContext Creates an SSLv3 capable context for the
@@ -135,68 +162,5 @@ class RedirectorHandler : ChannelInboundHandlerAdapter(), FutureListener<Void> {
             .startTls(true)
             .trustManager(InsecureTrustManagerFactory.INSTANCE)
             .build() ?: throw IllegalStateException("Unable to create SSL Context")
-    }
-
-    /**
-     * operationComplete For listening to the future of the
-     * redirector server bind completion
-     *
-     * @param future Ignored
-     */
-    override fun operationComplete(future: Future<Void>) {
-        val listenPort = Environment.redirectorPort
-        info("Started Redirector on port $listenPort redirecting to:")
-        if (target.isHostname) {
-            info("Host: ${target.host}")
-        } else {
-            info("Address: ${target.address}")
-        }
-        info("Port: ${Environment.mainPort}")
-    }
-
-    /**
-     * RedirectTarget Represents the target at which the redirector
-     * should redirect clients to
-     *
-     * @property host The hostname to redirect to (this will be the ip in the case of non host redirects)
-     * @property address The encoded IP address for ip redirects or zero if it's a hostname
-     * @property port The port to redirect to
-     * @property isHostname Whether to use hostname redirection
-     * @constructor Create empty RedirectTarget
-     */
-    data class RedirectTarget(
-        val host: String,
-        val address: ULong,
-        val isHostname: Boolean,
-    )
-
-    /**
-     * getRedirectTarget Creates a redirect target based on the
-     * external address provided via the config.
-     *
-     * @return The created redirect target
-     */
-    private fun getRedirectTarget(): RedirectTarget {
-        val externalAddress = Environment.externalAddress
-        // Regex pattern for matching IPv4 addresses
-        val ipv4Regex = Regex("^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)(\\.(?!\$)|\$)){4}\$")
-        return if (externalAddress.matches(ipv4Regex)) {
-
-            val ipParts = externalAddress.split('.', limit = 4)
-            require(ipParts.size == 4) { "Invalid IPv4 Address" }
-
-            val ipEncoded: ULong = (ipParts[0].toULong() shl 24)
-                .or(ipParts[1].toULong() shl 16)
-                .or(ipParts[2].toULong() shl 8)
-                .or(ipParts[3].toULong())
-
-            RedirectTarget(
-                externalAddress,
-                ipEncoded,
-                false
-            )
-        } else {
-            RedirectTarget(externalAddress, 0u, true)
-        }
     }
 }
