@@ -30,6 +30,7 @@ dependencies {
 // Adding sources for generated code
 idea {
     module {
+        // NOTE: Don't make these into variables it will break the build step
         sourceDirs = sourceDirs + file("build/generated/ksp/main/kotlin")
         testSourceDirs = testSourceDirs + file("build/generated/ksp/test/kotlin")
         generatedSourceDirs = generatedSourceDirs + file("build/generated/ksp/main/kotlin") + file("build/generated/ksp/test/kotlin")
