@@ -1,7 +1,9 @@
 package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.Environment
-import com.jacobtread.kme.blaze.*
+import com.jacobtread.kme.blaze.Packet
+import com.jacobtread.kme.blaze.logPacketException
+import com.jacobtread.kme.blaze.packetToBuilder
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.logging.Logger.info
 import io.netty.bootstrap.Bootstrap
@@ -9,7 +11,7 @@ import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
-import io.netty.channel.SimpleChannelInboundHandler
+import io.netty.channel.ChannelInitializer
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.channel.socket.nio.NioSocketChannel
@@ -33,7 +35,11 @@ fun startMITMServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
         ServerBootstrap()
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
-            .childHandler(MITMHandler(workerGroup))
+            .childHandler(object : ChannelInitializer<Channel>() {
+                override fun initChannel(ch: Channel) {
+                    ch.pipeline().addFirst(MITMHandler(workerGroup))
+                }
+            })
             // Bind the server to the host and port
             .bind(Environment.mainPort)
             // Wait for the channel to bind
@@ -92,7 +98,7 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboun
     }
 
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-        if(msg !is Packet) return
+        if (msg !is Packet) return
         try {
             Logger.debug("RECEIVED PACKET FROM CLIENT =======\n" + packetToBuilder(msg) + "\n======================")
         } catch (e: Throwable) {
