@@ -9,6 +9,7 @@ import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
+import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.ssl.SslContext
@@ -94,16 +95,13 @@ class RedirectorHandler : ChannelInboundHandlerAdapter() {
     override fun handlerAdded(ctx: ChannelHandlerContext) {
         val channel = ctx.channel()
         channel.pipeline()
-            // Add handler for decoding packets
             .addFirst(PacketDecoder())
-            // Add handler for decoding SSLv3
             .addFirst(context.newHandler(channel.alloc()))
-            // Add handler for encoding packets
-            .addLast(PacketEncoder())
+            .addLast(PacketEncoder)
     }
 
     /**
-     * channelRead Handles interacting with the result of a read if the
+     * Handles interacting with the result of a read if the
      * read value is a packet then it is handled and if it's a GET_SERVER_INSTANCE
      * REDIRECTOR packet it is responded to with the redirect details
      *
@@ -111,12 +109,9 @@ class RedirectorHandler : ChannelInboundHandlerAdapter() {
      * @param msg The message that was read
      */
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-        if (msg !is Packet) {
-            ctx.fireChannelRead(msg)
-            return
-        }
+        if (msg !is Packet) return
         val channel = ctx.channel()
-        val packet = msg.respond {
+        channel.writeAndFlush(msg.respond {
             if (msg.component == Components.REDIRECTOR && msg.command == Commands.GET_SERVER_INSTANCE) {
                 optional("ADDR", group("VALU") {
                     if (isHostname) {
@@ -133,8 +128,7 @@ class RedirectorHandler : ChannelInboundHandlerAdapter() {
                 val remoteAddress = channel.remoteAddress()
                 info("Sent redirection to client at $remoteAddress. Closing Connection.")
             }
-        }
-        channel.writeAndFlush(packet)
+        })
         channel.close()
     }
 

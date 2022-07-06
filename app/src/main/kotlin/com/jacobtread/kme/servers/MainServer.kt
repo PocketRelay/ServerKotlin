@@ -22,6 +22,7 @@ import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.ChannelHandlerContext
+import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.channel.ChannelInitializer
 import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.channel.nio.NioEventLoopGroup
@@ -73,7 +74,7 @@ class MainInitializer : ChannelInitializer<Channel>() {
             .addLast(PacketDecoder())
             // Add handler for processing packets
             .addLast(MainProcessor(session))
-            .addLast(PacketEncoder())
+            .addLast(PacketEncoder)
     }
 }
 
@@ -87,7 +88,7 @@ class MainInitializer : ChannelInitializer<Channel>() {
 @PacketProcessor
 class MainProcessor(
     private val session: PlayerSession,
-) : SimpleChannelInboundHandler<Packet>(), PacketPushable {
+) : ChannelInboundHandlerAdapter(), PacketPushable {
 
     private inline fun Packet.pushResponse(init: ContentInitializer) = push(respond(init))
     private fun Packet.pushEmptyResponse() = push(respond())
@@ -123,14 +124,8 @@ class MainProcessor(
         super.channelInactive(ctx)
     }
 
-    /**
-     * Channel read0 Handles routing and exception handling
-     * for packets that have been decoded
-     *
-     * @param ctx The channel context
-     * @param msg The packet that was decoded
-     */
-    override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
+    override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
+        if (msg !is Packet) return
         try { // Automatic routing to the desired function
             routeMainProcessor(this, channel, msg)
         } catch (e: NotAuthenticatedException) { // Handle player access with no player
@@ -147,7 +142,6 @@ class MainProcessor(
         ctx.flush()
         msg.release()
     }
-
 
     //region Authentication Component Region
 

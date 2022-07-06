@@ -2,50 +2,166 @@ package com.jacobtread.kme.blaze
 
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.buffer.ByteBuf
+import io.netty.buffer.ByteBufAllocator
 import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelHandlerContext
-import io.netty.handler.codec.ByteToMessageDecoder
+import io.netty.channel.ChannelInboundHandlerAdapter
+import io.netty.handler.codec.DecoderException
 
-class PacketDecoder : ByteToMessageDecoder() {
+class PacketDecoder : ChannelInboundHandlerAdapter() {
 
-    override fun decode(ctx: ChannelHandlerContext, input: ByteBuf, out: MutableList<Any>) {
+    private var cumulation: ByteBuf? = null
+    private var first = false
+    private var numReads = 0
+    private var firedChannelRead = false
+    private var selfFiredChannelRead = false
+
+
+    override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
+        if (msg !is ByteBuf) {
+            ctx.fireChannelRead(msg)
+            return
+        }
+        selfFiredChannelRead = true
         try {
-            while (input.readableBytes() > 0) {
-                val cursorStart = input.readerIndex() // The buffer position before reading
-                val length = input.readUnsignedShort(); // Read the length of the packet
-                // If we don't have enough buffer data loaded yet
-                if (input.readableBytes() < (length + 10)) {
-                    input.readerIndex(cursorStart) // Return the reading index and wait for more data
-                    return
-                }
-                val component = input.readUnsignedShort() // Packet component id
-                val command = input.readUnsignedShort() // Packet command id
-                val error = input.readUnsignedShort() // Packet error
-                val qtype = input.readUnsignedShort() // Packet qtype (should always be
-                val id = input.readUnsignedShort()
-                val extLength = if ((qtype and 0x10) != 0) input.readUnsignedShort() else 0
-                val contentLength = length + (extLength shl 16)
+            first = cumulation == null
+            val cumulation = mergeCumulate(ctx.alloc(), if (first) Unpooled.EMPTY_BUFFER else cumulation!!, msg)
+            this.cumulation = cumulation
+            if (decode(ctx, cumulation)) {
+                firedChannelRead = true
+            }
+        } catch (e: DecoderException) {
+            throw e
+        } catch (e: Exception) {
+            throw DecoderException(e)
+        } finally {
+            val cumulation = cumulation
+            if (cumulation != null && !cumulation.isReadable) {
+                numReads = 0
+                cumulation.release()
+                this.cumulation = null
+            } else if (++numReads >= 16) {
+                numReads = 0
+                discardSomeReadBytes()
+            }
+        }
+    }
 
-                // If the current input has enough bytes to read the full content
-                if (input.readableBytes() >= contentLength) { // If we have enough readable for the content
-                    val content = Unpooled.buffer(contentLength, contentLength)
-                    input.readBytes(content, contentLength)// Read the bytes into a new buffer and use that as content
-                    val packet = Packet(component, command, error, qtype, id, content)
-                    if (Logger.logPackets) {
-                        try {
-                            Logger.debug("RECEIVED PACKET =======\n" + packetToBuilder(packet) + "\n======================")
-                        } catch (e: Throwable) {
-                            logPacketException("Failed to decode incoming packet contents for debugging:", packet, e)
-                        }
-                    }
-                    out.add(packet) // Add the packet to the output
-                } else {
-                    input.readerIndex(cursorStart)
-                    return
+    /**
+     * Decode
+     *
+     * @param ctx
+     * @param input
+     * @return Returns false if the packet was not fully read yet
+     */
+    private fun decode(ctx: ChannelHandlerContext, input: ByteBuf): Boolean {
+        var read = false
+        while (input.readableBytes() >= 2) {
+            val startIndex = input.readerIndex()
+
+            // ushort = 2 indexes
+
+            val length = input.readUnsignedShort() // 2
+            // Ensure we have 10 bytes for the heading information
+            if (input.readableBytes() < 10) {
+                input.readerIndex(startIndex)
+                break
+            }
+
+            val component = input.readUnsignedShort() // 4
+            val command = input.readUnsignedShort() // 6
+            val error = input.readUnsignedShort() // 8
+            val qtype = input.readUnsignedShort() // 10
+            val id = input.readUnsignedShort() // 12
+
+
+            val extLength: Int = if ((qtype and 0x10) != 0) {
+                if (input.readableBytes() < 2) {
+                    input.readerIndex(startIndex)
+                    break
+                }
+                input.readUnsignedShort()
+            } else {
+                0
+            }
+
+            val contentLength = length + (extLength shl 16)
+            if (input.readableBytes() < contentLength) {
+                input.readerIndex(startIndex)
+                break
+            }
+            val content = Unpooled.buffer(contentLength, contentLength)
+            input.readBytes(content, contentLength)// Read the bytes into a new buffer and use that as content
+            val packet = Packet(component, command, error, qtype, id, content)
+            logRecievedPacket(packet)
+
+            ctx.fireChannelRead(packet)
+            read = true
+        }
+        return read
+    }
+
+
+    private fun mergeCumulate(alloc: ByteBufAllocator, cumulation: ByteBuf, input: ByteBuf): ByteBuf {
+        if (!cumulation.isReadable && input.isContiguous) {
+            cumulation.release()
+            return input
+        }
+        try {
+            val required = input.readableBytes()
+            if (required > cumulation.maxWritableBytes()
+                || required > cumulation.maxFastWritableBytes() && cumulation.refCnt() > 1
+                || cumulation.isReadOnly
+            ) {
+                val oldBytes = cumulation.readableBytes()
+                val newBytes = input.readableBytes()
+                val totalBytes = oldBytes + newBytes
+                val newCumulation = alloc.buffer(alloc.calculateNewCapacity(totalBytes, Int.MAX_VALUE))
+                var toRelease = newCumulation
+                try {
+                    newCumulation.setBytes(0, cumulation, cumulation.readerIndex(), oldBytes)
+                        .setBytes(oldBytes, input, input.readerIndex(), newBytes)
+                        .writerIndex(totalBytes)
+                    input.readerIndex(input.writerIndex())
+                    toRelease = cumulation
+                    return newCumulation
+                } finally {
+                    toRelease.release()
                 }
             }
-        } catch (e: Throwable) {
-            e.printStackTrace()
+            cumulation.writeBytes(input, input.readerIndex(), required)
+            input.readerIndex(input.writerIndex())
+            return cumulation
+        } finally {
+            input.release()
+        }
+    }
+
+
+    override fun channelReadComplete(ctx: ChannelHandlerContext) {
+        numReads = 0
+        discardSomeReadBytes()
+        if (selfFiredChannelRead && !firedChannelRead && !ctx.channel().config().isAutoRead) {
+            ctx.read()
+        }
+        firedChannelRead = false
+        ctx.fireChannelReadComplete()
+    }
+
+    private fun discardSomeReadBytes() {
+        val cumulation = cumulation
+        if (cumulation != null && !first && cumulation.refCnt() == 1) {
+            cumulation.discardSomeReadBytes()
+        }
+    }
+
+    private fun logRecievedPacket(packet: Packet) {
+        if (Logger.logPackets) {
+            try {
+                Logger.debug("RECEIVED PACKET =======\n" + packetToBuilder(packet) + "\n======================")
+            } catch (e: Throwable) {
+                logPacketException("Failed to decode incoming packet contents for debugging:", packet, e)
+            }
         }
     }
 }

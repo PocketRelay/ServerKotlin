@@ -8,6 +8,7 @@ import io.netty.bootstrap.Bootstrap
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
+import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
@@ -42,19 +43,10 @@ fun startMITMServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
     }
 }
 
-class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : SimpleChannelInboundHandler<Packet>() {
+class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboundHandlerAdapter() {
 
     var clientChannel: Channel? = null
     var officialChanel: Channel? = null
-
-    override fun handlerAdded(ctx: ChannelHandlerContext) {
-        val channel = ctx.channel()
-        channel.pipeline()
-            // Add handler for decoding packets
-            .addFirst(PacketDecoder())
-            // Add handler for encoding packets
-            .addLast(PacketEncoder())
-    }
 
     override fun channelActive(ctx: ChannelHandlerContext) {
         super.channelActive(ctx)
@@ -75,9 +67,11 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : SimpleChannel
         val channelFuture = Bootstrap()
             .group(eventLoopGroup)
             .channel(NioSocketChannel::class.java)
-            .handler(object : SimpleChannelInboundHandler<Packet>() {
-                override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
-                    channelReadOffical(msg)
+            .handler(object : ChannelInboundHandlerAdapter() {
+                override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
+                    if (msg is Packet) {
+                        channelReadOffical(msg)
+                    }
                 }
             })
             .connect(Environment.mitmHost, Environment.mitmPort)
@@ -85,8 +79,6 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : SimpleChannel
                 info("Created new MITM connection")
             }.sync()
         val channel = channelFuture.channel()
-        val pipeline = channel.pipeline()
-        pipeline.addFirst(PacketDecoder())
         if (Environment.mitmSecure) {
             val context = SslContextBuilder.forClient()
                 .ciphers(listOf("TLS_RSA_WITH_RC4_128_SHA", "TLS_RSA_WITH_RC4_128_MD5"))
@@ -94,13 +86,13 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : SimpleChannel
                 .startTls(true)
                 .trustManager(InsecureTrustManagerFactory.INSTANCE)
                 .build()
-            pipeline.addFirst(context.newHandler(channel.alloc()))
+            channel.pipeline().addFirst(context.newHandler(channel.alloc()))
         }
-        pipeline.addLast(PacketEncoder())
         return channel
     }
 
-    override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
+    override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
+        if(msg !is Packet) return
         try {
             Logger.debug("RECEIVED PACKET FROM CLIENT =======\n" + packetToBuilder(msg) + "\n======================")
         } catch (e: Throwable) {

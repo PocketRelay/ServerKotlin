@@ -3,7 +3,6 @@ package com.jacobtread.kme.blaze
 import com.jacobtread.kme.blaze.tdf.Tdf
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.buffer.ByteBuf
-import io.netty.util.ReferenceCounted
 
 /**
  * Packet Represents a Blaze packet
@@ -66,6 +65,10 @@ open class Packet(
         values
     }
 
+    fun getEncodedLength(): Int {
+        val readable = contentBuffer.readableBytes()
+        return 12 + readable + (if (readable > 0xFFFF) 2 else 0)
+    }
 
     override fun getTdfByLabel(label: String): Tdf<*>? = content.find { it.label == label }
 

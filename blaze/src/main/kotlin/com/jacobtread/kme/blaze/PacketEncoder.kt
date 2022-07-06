@@ -5,7 +5,9 @@ import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.MessageToByteEncoder
 
-class PacketEncoder : MessageToByteEncoder<Packet>() {
+object PacketEncoder : MessageToByteEncoder<Packet>() {
+    override fun isSharable(): Boolean = true
+
     override fun encode(ctx: ChannelHandlerContext, msg: Packet, out: ByteBuf) {
         if (Logger.logPackets) {
             try {
