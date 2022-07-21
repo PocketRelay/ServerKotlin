@@ -227,7 +227,7 @@ class Game(
                     number("DCTX", 0x0)
                 })
             } else {
-                optional("REAS", 0x3, group("VALU") {
+                optional("REAS", 0x3u, group("VALU") {
                     number("FIT", 0x3f7a)
                     number("MAXF", 0x5460)
                     number("MSID", mid)

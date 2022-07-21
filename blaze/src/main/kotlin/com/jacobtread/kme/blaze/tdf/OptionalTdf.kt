@@ -2,27 +2,31 @@ package com.jacobtread.kme.blaze.tdf
 
 import io.netty.buffer.ByteBuf
 
-class OptionalTdf(label: String, val type: Int = 0x7F, override val value: Tdf<*>? = null) : Tdf<Tdf<*>?>(label, OPTIONAL) {
+class OptionalTdf(label: String, val type: UByte = NO_VALUE_TYPE, override val value: Tdf<*>? = null) : Tdf<Tdf<*>?>(label, OPTIONAL) {
     companion object {
+        const val NO_VALUE_TYPE: UByte = 0x7Fu
+
         fun read(label: String, input: ByteBuf): OptionalTdf {
-            val type = input.readUnsignedByte().toInt()
-            val value = if (type != 0x7F) {
+            val type = readUnsignedByte(input)
+            val value = if (type != NO_VALUE_TYPE) {
                 read(input)
             } else null
             return OptionalTdf(label, type, value)
         }
     }
 
+    fun hasValue(): Boolean = type != NO_VALUE_TYPE && value != null
+
     override fun write(out: ByteBuf) {
-        out.writeByte(type)
-        if (type != 0x7F) {
+        out.writeByte(type.toInt())
+        if (hasValue()) {
             value?.writeFully(out)
         }
     }
 
     override fun computeSize(): Int {
-        return if (type != 0x7F && value != null) {
-            value.computeFullSize() + 1
+        return if (hasValue()) {
+            value!!.computeFullSize() + 1
         } else {
             1
         }
@@ -41,7 +45,7 @@ class OptionalTdf(label: String, val type: Int = 0x7F, override val value: Tdf<*
 
     override fun hashCode(): Int {
         var result = super.hashCode()
-        result = 31 * result + type
+        result = 31 * result + type.toInt()
         result = 31 * result + (value?.hashCode() ?: 0)
         return result
     }

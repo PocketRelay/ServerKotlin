@@ -6,21 +6,21 @@ import com.jacobtread.kme.blaze.data.VarTripple
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.buffer.ByteBuf
 
-abstract class Tdf<V>(val label: String, private val tagType: Int) {
+abstract class Tdf<V>(val label: String, private val tagType: UByte) {
     companion object {
-        const val VARINT = 0x0
-        const val STRING = 0x1
-        const val BLOB = 0x02
-        const val GROUP = 0x3
-        const val LIST = 0x4
-        const val MAP = 0x5
-        const val OPTIONAL = 0x6
-        const val INT_LIST = 0x7
-        const val PAIR = 0x8
-        const val TRIPPLE = 0x9
-        const val FLOAT = 0xA
+        const val VARINT: UByte = 0x0u
+        const val STRING: UByte = 0x1u
+        const val BLOB: UByte = 0x02u
+        const val GROUP: UByte = 0x3u
+        const val LIST: UByte = 0x4u
+        const val MAP: UByte = 0x5u
+        const val OPTIONAL: UByte = 0x6u
+        const val INT_LIST: UByte = 0x7u
+        const val PAIR: UByte = 0x8u
+        const val TRIPPLE: UByte = 0x9u
+        const val FLOAT: UByte = 0xAu
 
-        fun getTypeFromClass(valueType: Class<*>): Int {
+        fun getTypeFromClass(valueType: Class<*>): UByte {
             return when (valueType) {
                 java.lang.Long::class.java,
                 java.lang.Integer::class.java,
@@ -98,7 +98,7 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
             val head = input.readUnsignedInt()
             val tag = (head and 0xFFFFFF00)
             val label = createLabel(tag)
-            val type = (head and 0xFF).toInt()
+            val type: UByte = (head and 0xFF).toUByte()
             try {
                 return when (type) {
                     VARINT -> VarIntTdf.read(label, input)
@@ -215,6 +215,10 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
             buffer.writeBytes(bytes)
         }
 
+        fun readUnsignedByte(buffer: ByteBuf): UByte {
+            return buffer.readUnsignedByte().toUByte()
+        }
+
         fun readVarInt(buffer: ByteBuf): ULong {
             val firstByte = buffer.readUnsignedByte().toUByte()
             var result: ULong = (firstByte and 63u).toULong()
@@ -269,7 +273,7 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
         out.writeByte(tag.shr(24).and(0xFF).toInt())
         out.writeByte(tag.shr(16).and(0xFF).toInt())
         out.writeByte(tag.shr(8).and(0xFF).toInt())
-        out.writeByte(tagType)
+        out.writeByte(tagType.toInt())
         write(out)
     }
 
@@ -283,7 +287,7 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
 
     override fun hashCode(): Int {
         var result = label.hashCode()
-        result = 31 * result + tagType
+        result = 31 * result + tagType.toInt()
         result = 31 * result + (value?.hashCode() ?: 0)
         return result
     }

@@ -96,7 +96,7 @@ internal class TdfTest {
             val values = Random.nextInt(minValues..maxValues)
             val valueType = Random.nextInt(0..100)
             val listContents = ArrayList<Any>(values)
-            val listType: Int = when (valueType) {
+            val listType: UByte = when (valueType) {
                 1 -> {
                     repeat(values) { listContents.add(StringGen()) }
                     Tdf.STRING
@@ -154,7 +154,7 @@ internal class TdfTest {
         }
 
         private val OptionalTdfGen: Generator<OptionalTdf> = {
-            val type = Random.nextInt(0 until 100)
+            val type = Random.nextInt(0 until 100).toUByte()
             val value = createRandomTdf()
             OptionalTdf(LabelGen(), type, value)
         }

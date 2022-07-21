@@ -3,11 +3,11 @@ package com.jacobtread.kme.blaze.tdf
 import com.jacobtread.kme.blaze.data.VarTripple
 import io.netty.buffer.ByteBuf
 
-class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf<List<Any>>(label, LIST) {
+class ListTdf(label: String, val type: UByte, override val value: List<Any>) : Tdf<List<Any>>(label, LIST) {
 
     companion object : TdfReadable<ListTdf> {
         override fun read(label: String, input: ByteBuf): ListTdf {
-            val subType = input.readUnsignedByte().toInt()
+            val subType = readUnsignedByte(input)
             val count = readVarInt(input).toInt()
             return when (subType) {
                 VARINT -> {
@@ -36,7 +36,7 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
     }
 
     override fun write(out: ByteBuf) {
-        out.writeByte(this.type)
+        out.writeByte(this.type.toInt())
         writeVarInt(out, value.size.toULong())
         when (this.type) {
             VARINT -> value.forEach { writeVarIntFuzzy(out, it) }
@@ -70,7 +70,7 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
 
     override fun hashCode(): Int {
         var result = super.hashCode()
-        result = 31 * result + type
+        result = 31 * result + type.toInt()
         result = 31 * result + value.hashCode()
         return result
     }

@@ -4,15 +4,15 @@ import io.netty.buffer.ByteBuf
 
 class MapTdf(
     label: String,
-    private val keyType: Int,
-    private val valueType: Int,
+    private val keyType: UByte,
+    private val valueType: UByte,
     override val value: Map<*, *>,
 ) : Tdf<Map<*, *>>(label, MAP) {
 
     companion object : TdfReadable<MapTdf> {
         override fun read(label: String, input: ByteBuf): MapTdf {
-            val keyType = input.readUnsignedByte().toInt()
-            val valueType = input.readUnsignedByte().toInt()
+            val keyType = readUnsignedByte(input)
+            val valueType = readUnsignedByte(input)
             val count = readVarInt(input).toInt()
             val out = LinkedHashMap<Any, Any>()
             repeat(count) {
@@ -35,8 +35,8 @@ class MapTdf(
     }
 
     override fun write(out: ByteBuf) {
-        out.writeByte(keyType)
-        out.writeByte(valueType)
+        out.writeByte(keyType.toInt())
+        out.writeByte(valueType.toInt())
         val entries = value.entries
         writeVarInt(out, entries.size.toULong())
         for ((key, value) in entries) {
@@ -45,7 +45,7 @@ class MapTdf(
         }
     }
 
-    private fun writeType(out: ByteBuf, type: Int, value: Any?) {
+    private fun writeType(out: ByteBuf, type: UByte, value: Any?) {
         when (type) {
             VARINT -> writeVarIntFuzzy(out, value)
             STRING -> writeString(out, value as String)
@@ -63,7 +63,7 @@ class MapTdf(
         return size
     }
 
-    private fun computeTypeSize(type: Int, value: Any?): Int {
+    private fun computeTypeSize(type: UByte, value: Any?): Int {
         return when (type) {
             VARINT -> computeVarIntSizeFuzzy(value)
             STRING -> computeStringSize(value as String)
@@ -87,8 +87,8 @@ class MapTdf(
 
     override fun hashCode(): Int {
         var result = super.hashCode()
-        result = 31 * result + keyType
-        result = 31 * result + valueType
+        result = 31 * result + keyType.toInt()
+        result = 31 * result + valueType.toInt()
         result = 31 * result + value.hashCode()
         return result
     }

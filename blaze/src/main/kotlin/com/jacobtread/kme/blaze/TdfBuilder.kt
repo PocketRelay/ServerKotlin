@@ -166,7 +166,7 @@ class TdfBuilder {
         list(label, Tdf.getTypeFromClass(A::class.java), value)
     }
 
-    fun list(label: String, type: Int, value: List<Any>) {
+    fun list(label: String, type: UByte, value: List<Any>) {
         values.add(ListTdf(label, type, value))
     }
 
@@ -194,7 +194,7 @@ class TdfBuilder {
         map(label, Tdf.getTypeFromClass(A::class.java), Tdf.getTypeFromClass(B::class.java), value)
     }
 
-    fun map(label: String, keyType: Int, valueType: Int, value: Map<*, *>) {
+    fun map(label: String, keyType: UByte, valueType: UByte, value: Map<*, *>) {
         values.add(MapTdf(label, keyType, valueType, value))
     }
 
@@ -218,7 +218,7 @@ class TdfBuilder {
      * @param type The type of union
      * @param value The value of the union
      */
-    fun optional(label: String, type: Int = 0x7F, value: Tdf<*>? = null) {
+    fun optional(label: String, type: UByte = OptionalTdf.NO_VALUE_TYPE, value: Tdf<*>? = null) {
         values.add(OptionalTdf(label, type, value))
     }
 
@@ -230,7 +230,7 @@ class TdfBuilder {
      * @param value The value of the union
      * @param type The type of union
      */
-    fun optional(label: String, value: Tdf<*>, type: Int = 0x0) {
+    fun optional(label: String, value: Tdf<*>, type: UByte = 0x0u) {
         values.add(OptionalTdf(label, type, value))
     }
 
