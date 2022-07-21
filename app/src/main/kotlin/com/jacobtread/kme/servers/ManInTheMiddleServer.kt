@@ -28,7 +28,7 @@ import java.io.IOException
 fun startMITMServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
     try {
         if (Logger.logPackets && Logger.debugEnabled) {
-            Logger.warn("WARNNIG: You have packet logging enabled while MITM is enabled.")
+            Logger.warn("WARNING: You have packet logging enabled while MITM is enabled.")
             Logger.warn("this will flood your logs with lots of repeated packets and")
             Logger.warn("I recommend you disable packet logging while using MITM")
         }
@@ -47,6 +47,11 @@ fun startMITMServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
     } catch (e: IOException) {
         Logger.error("Exception in redirector server", e)
     }
+}
+
+private fun obtainAddressAutomatic(eventLoopGroup: NioEventLoopGroup) {
+    info("Connecting to official redirector server for connection information")
+    TODO("NOT YET IMPLEMENTED")
 }
 
 class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboundHandlerAdapter() {
