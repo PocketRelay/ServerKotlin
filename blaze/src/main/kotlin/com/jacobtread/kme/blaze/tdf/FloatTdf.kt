@@ -3,8 +3,8 @@ package com.jacobtread.kme.blaze.tdf
 import io.netty.buffer.ByteBuf
 
 class FloatTdf(label: String, override val value: Float) : Tdf<Float>(label, FLOAT) {
-    companion object {
-        fun read(label: String, input: ByteBuf): FloatTdf {
+    companion object : TdfReadable<FloatTdf> {
+        override fun read(label: String, input: ByteBuf): FloatTdf {
             val value = input.readFloat()
             return FloatTdf(label, value)
         }
@@ -14,10 +14,7 @@ class FloatTdf(label: String, override val value: Float) : Tdf<Float>(label, FLO
         out.writeFloat(value)
     }
 
-    override fun computeSize(): Int {
-        return 4
-    }
-
+    override fun computeSize(): Int = 4
     override fun toString(): String = "Float($label: $value)"
 
     override fun equals(other: Any?): Boolean {

@@ -3,18 +3,12 @@ package com.jacobtread.kme.blaze.tdf
 import io.netty.buffer.ByteBuf
 
 class VarIntTdf(label: String, override val value: ULong) : Tdf<ULong>(label, VARINT) {
-    companion object {
-        fun read(label: String, input: ByteBuf): VarIntTdf = VarIntTdf(label, readVarInt(input))
+    companion object : TdfReadable<VarIntTdf> {
+        override fun read(label: String, input: ByteBuf): VarIntTdf = VarIntTdf(label, readVarInt(input))
     }
 
-    override fun write(out: ByteBuf) {
-        writeVarInt(out, value)
-    }
-
-    override fun computeSize(): Int {
-        return computeVarIntSize(value)
-    }
-
+    override fun write(out: ByteBuf) = writeVarInt(out, value)
+    override fun computeSize(): Int = computeVarIntSize(value)
     override fun toString(): String = "VarInt($label: $value)"
 
     override fun equals(other: Any?): Boolean {

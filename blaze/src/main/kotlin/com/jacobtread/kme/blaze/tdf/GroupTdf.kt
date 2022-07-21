@@ -6,8 +6,8 @@ import com.jacobtread.kme.utils.logging.Logger
 import io.netty.buffer.ByteBuf
 
 class GroupTdf(label: String, val start2: Boolean, override val value: List<Tdf<*>>) : Tdf<List<Tdf<*>>>(label, GROUP), TdfContainer {
-    companion object {
-        fun read(label: String, input: ByteBuf): GroupTdf {
+    companion object : TdfReadable<GroupTdf> {
+        override fun read(label: String, input: ByteBuf): GroupTdf {
             val out = ArrayList<Tdf<*>>()
             var start2 = false
             try {
@@ -43,9 +43,7 @@ class GroupTdf(label: String, val start2: Boolean, override val value: List<Tdf<
 
     override fun write(out: ByteBuf) {
         if (start2) out.writeByte(2)
-        value.forEach {
-            it.writeFully(out)
-        }
+        value.forEach { it.writeFully(out) }
         out.writeByte(0)
     }
 
@@ -57,7 +55,7 @@ class GroupTdf(label: String, val start2: Boolean, override val value: List<Tdf<
     }
 
     override fun getTdfByLabel(label: String): Tdf<*>? = value.find { it.label == label }
-    override fun toString(): String = "Struct($label: $value)"
+    override fun toString(): String = "Group($label: $value)"
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

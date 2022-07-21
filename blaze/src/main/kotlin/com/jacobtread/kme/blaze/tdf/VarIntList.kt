@@ -3,8 +3,8 @@ package com.jacobtread.kme.blaze.tdf
 import io.netty.buffer.ByteBuf
 
 class VarIntList(label: String, override val value: List<ULong>) : Tdf<List<ULong>>(label, INT_LIST) {
-    companion object {
-        fun read(label: String, input: ByteBuf): VarIntList {
+    companion object : TdfReadable<VarIntList> {
+        override fun read(label: String, input: ByteBuf): VarIntList {
             val count = readVarInt(input).toInt()
             val values = ArrayList<ULong>(count)
             repeat(count) { values.add(readVarInt(input)) }

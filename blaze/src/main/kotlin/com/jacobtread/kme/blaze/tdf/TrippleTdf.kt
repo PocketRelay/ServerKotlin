@@ -4,20 +4,12 @@ import com.jacobtread.kme.blaze.data.VarTripple
 import io.netty.buffer.ByteBuf
 
 class TrippleTdf(label: String, override val value: VarTripple) : Tdf<VarTripple>(label, TRIPPLE) {
-    companion object {
-        fun read(label: String, input: ByteBuf): TrippleTdf {
-            return TrippleTdf(label, readVarTripple(input))
-        }
+    companion object : TdfReadable<TrippleTdf> {
+        override fun read(label: String, input: ByteBuf): TrippleTdf = TrippleTdf(label, readVarTripple(input))
     }
 
-    override fun write(out: ByteBuf) {
-        writeVarTripple(out, value)
-    }
-
-    override fun computeSize(): Int {
-        return computeVarIntSize(value.a) + computeVarIntSize(value.b) + computeVarIntSize(value.c)
-    }
-
+    override fun write(out: ByteBuf) = writeVarTripple(out, value)
+    override fun computeSize(): Int = computeVarTrippleSize(value)
     override fun toString(): String = "Tripple($label: $value)"
 
     override fun equals(other: Any?): Boolean {

@@ -1,6 +1,7 @@
 package com.jacobtread.kme.blaze.tdf
 
 import com.jacobtread.kme.blaze.TdfReadException
+import com.jacobtread.kme.blaze.data.VarPair
 import com.jacobtread.kme.blaze.data.VarTripple
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.buffer.ByteBuf
@@ -153,6 +154,14 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
             return computeVarIntSize(bytes.size.toULong()) + bytes.size
         }
 
+        fun computeVarTrippleSize(value: VarTripple): Int {
+            return computeVarIntSize(value.a) + computeVarIntSize(value.b) + computeVarIntSize(value.c)
+        }
+
+        fun computeVarPairSize(value: VarPair): Int {
+            return computeVarIntSize(value.a) + computeVarIntSize(value.b)
+        }
+
         fun writeVarIntFuzzy(buffer: ByteBuf, value: Any?) {
             if (value == null) {
                 buffer.writeByte(0)
@@ -194,6 +203,11 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
             writeVarInt(buffer, value.c)
         }
 
+        fun writeVarPair(buffer: ByteBuf, value: VarPair) {
+            writeVarInt(buffer, value.a)
+            writeVarInt(buffer, value.b)
+        }
+
         fun writeString(buffer: ByteBuf, value: String) {
             val v = if (value.endsWith(Char.MIN_VALUE)) value else (value + '\u0000')
             val bytes = v.toByteArray(Charsets.UTF_8)
@@ -218,6 +232,13 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
         fun readVarTripple(buffer: ByteBuf): VarTripple {
             return VarTripple(
                 readVarInt(buffer),
+                readVarInt(buffer),
+                readVarInt(buffer),
+            )
+        }
+
+        fun readVarPair(buffer: ByteBuf): VarPair {
+            return VarPair(
                 readVarInt(buffer),
                 readVarInt(buffer),
             )

@@ -28,7 +28,7 @@ class OptionalTdf(label: String, val type: Int = 0x7F, override val value: Tdf<*
         }
     }
 
-    override fun toString(): String = "Union($label: $type, $value)"
+    override fun toString(): String = "Optional($label: $type, $value)"
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

@@ -9,8 +9,8 @@ class MapTdf(
     override val value: Map<*, *>,
 ) : Tdf<Map<*, *>>(label, MAP) {
 
-    companion object {
-        fun read(label: String, input: ByteBuf): MapTdf {
+    companion object : TdfReadable<MapTdf> {
+        override fun read(label: String, input: ByteBuf): MapTdf {
             val keyType = input.readUnsignedByte().toInt()
             val valueType = input.readUnsignedByte().toInt()
             val count = readVarInt(input).toInt()

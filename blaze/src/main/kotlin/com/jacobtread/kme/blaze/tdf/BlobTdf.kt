@@ -3,8 +3,8 @@ package com.jacobtread.kme.blaze.tdf
 import io.netty.buffer.ByteBuf
 
 class BlobTdf(label: String, override val value: ByteArray) : Tdf<ByteArray>(label, BLOB) {
-    companion object {
-        fun read(label: String, input: ByteBuf): BlobTdf {
+    companion object : TdfReadable<BlobTdf> {
+        override fun read(label: String, input: ByteBuf): BlobTdf {
             val size = readVarInt(input).toInt()
             val byteArray = ByteArray(size)
             if (size > 0) input.readBytes(byteArray)

@@ -4,23 +4,12 @@ import com.jacobtread.kme.blaze.data.VarPair
 import io.netty.buffer.ByteBuf
 
 class PairTdf(label: String, override val value: VarPair) : Tdf<VarPair>(label, PAIR) {
-    companion object {
-        fun read(label: String, input: ByteBuf): PairTdf {
-            val a = readVarInt(input)
-            val b = readVarInt(input)
-            return PairTdf(label, VarPair(a, b))
-        }
+    companion object : TdfReadable<PairTdf> {
+        override fun read(label: String, input: ByteBuf): PairTdf = PairTdf(label, readVarPair(input))
     }
 
-    override fun write(out: ByteBuf) {
-        writeVarInt(out, value.a)
-        writeVarInt(out, value.b)
-    }
-
-    override fun computeSize(): Int {
-        return computeVarIntSize(value.a) + computeVarIntSize(value.b)
-    }
-
+    override fun write(out: ByteBuf) = writeVarPair(out, value)
+    override fun computeSize(): Int = computeVarPairSize(value)
     override fun toString(): String = "Pair($label: $value)"
 
     override fun equals(other: Any?): Boolean {

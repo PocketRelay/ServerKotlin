@@ -3,16 +3,12 @@ package com.jacobtread.kme.blaze.tdf
 import io.netty.buffer.ByteBuf
 
 class StringTdf(label: String, override val value: String) : Tdf<String>(label, STRING) {
-    companion object {
-        fun read(label: String, input: ByteBuf): StringTdf = StringTdf(label, readString(input))
+    companion object : TdfReadable<StringTdf> {
+        override fun read(label: String, input: ByteBuf): StringTdf = StringTdf(label, readString(input))
     }
 
     override fun write(out: ByteBuf) = writeString(out, value)
-
-    override fun computeSize(): Int {
-        return computeStringSize(value)
-    }
-
+    override fun computeSize(): Int = computeStringSize(value)
     override fun toString(): String = "String($label: $value)"
 
     override fun equals(other: Any?): Boolean {

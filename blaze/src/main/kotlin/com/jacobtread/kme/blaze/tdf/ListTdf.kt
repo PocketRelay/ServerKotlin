@@ -5,8 +5,8 @@ import io.netty.buffer.ByteBuf
 
 class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf<List<Any>>(label, LIST) {
 
-    companion object {
-        fun read(label: String, input: ByteBuf): ListTdf {
+    companion object : TdfReadable<ListTdf> {
+        override fun read(label: String, input: ByteBuf): ListTdf {
             val subType = input.readUnsignedByte().toInt()
             val count = readVarInt(input).toInt()
             return when (subType) {
@@ -27,9 +27,7 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
                 }
                 TRIPPLE -> {
                     val values = ArrayList<VarTripple>(count)
-                    repeat(count) {
-                        values.add(readVarTripple(input))
-                    }
+                    repeat(count) { values.add(readVarTripple(input)) }
                     ListTdf(label, subType, values)
                 }
                 else -> throw IllegalStateException("Unknown list subtype $subType")
@@ -41,14 +39,7 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
         out.writeByte(this.type)
         writeVarInt(out, value.size.toULong())
         when (this.type) {
-            VARINT -> value.forEach {
-                when (it) {
-                    is Int -> writeVarInt(out, it.toULong())
-                    is Long -> writeVarInt(out, it.toULong())
-                    is ULong -> writeVarInt(out, it)
-                    is UInt -> writeVarInt(out, it.toULong())
-                }
-            }
+            VARINT -> value.forEach { writeVarIntFuzzy(out, it) }
             STRING -> value.forEach { writeString(out, it as String) }
             GROUP -> value.forEach { (it as GroupTdf).write(out) }
             TRIPPLE -> value.forEach { writeVarTripple(out, it as VarTripple) }
@@ -58,21 +49,10 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
     override fun computeSize(): Int {
         var size = 1 + computeVarIntSize(value.size.toULong())
         when (this.type) {
-            VARINT -> value.forEach() {
-                when (it) {
-                    is Int -> size += computeVarIntSize(it.toULong())
-                    is Long -> size += computeVarIntSize(it.toULong())
-                    is ULong -> size += computeVarIntSize(it)
-                    is UInt -> size += computeVarIntSize(it.toULong())
-                }
-            }
-
+            VARINT -> value.forEach { size += computeVarIntSizeFuzzy(it) }
             STRING -> value.forEach { size += computeStringSize(it as String) }
             GROUP -> value.forEach { size += (it as GroupTdf).computeSize() }
-            TRIPPLE -> value.forEach {
-                val tripple = it as VarTripple
-                size += computeVarIntSize(tripple.a) + computeVarIntSize(tripple.b) + computeVarIntSize(tripple.c)
-            }
+            TRIPPLE -> value.forEach { size += computeVarTrippleSize(it as VarTripple) }
         }
         return size
     }
