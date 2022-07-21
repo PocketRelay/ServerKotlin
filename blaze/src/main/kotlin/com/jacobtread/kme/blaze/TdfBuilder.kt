@@ -1,8 +1,8 @@
 package com.jacobtread.kme.blaze
 
-import com.jacobtread.kme.blaze.tdf.*
 import com.jacobtread.kme.blaze.data.VarPair
 import com.jacobtread.kme.blaze.data.VarTripple
+import com.jacobtread.kme.blaze.tdf.*
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 
@@ -258,15 +258,6 @@ class TdfBuilder {
         return buffer
     }
 
-    /**
-     * writeToBuffer Writes the contents of this
-     * builder to the provided buffer
-     *
-     * @param buf The buffer to write to
-     */
-    fun writeToBuffer(buf: ByteBuf) {
-        values.forEach { it.writeFully(buf) }
-    }
 }
 
 /**

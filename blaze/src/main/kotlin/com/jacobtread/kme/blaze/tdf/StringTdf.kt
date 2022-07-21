@@ -1,16 +1,13 @@
 package com.jacobtread.kme.blaze.tdf
 
-import com.jacobtread.kme.blaze.tdf.computeStringSize
-import com.jacobtread.kme.blaze.utils.readString
-import com.jacobtread.kme.blaze.utils.writeString
 import io.netty.buffer.ByteBuf
 
 class StringTdf(label: String, override val value: String) : Tdf<String>(label, STRING) {
     companion object {
-        fun read(label: String, input: ByteBuf): StringTdf = StringTdf(label, input.readString())
+        fun read(label: String, input: ByteBuf): StringTdf = StringTdf(label, readString(input))
     }
 
-    override fun write(out: ByteBuf) = out.writeString(value)
+    override fun write(out: ByteBuf) = writeString(out, value)
 
     override fun computeSize(): Int {
         return computeStringSize(value)

@@ -1,6 +1,5 @@
 package com.jacobtread.kme.blaze.tdf
 
-import com.jacobtread.kme.blaze.utils.*
 import io.netty.buffer.ByteBuf
 
 class MapTdf(
@@ -14,17 +13,17 @@ class MapTdf(
         fun read(label: String, input: ByteBuf): MapTdf {
             val keyType = input.readUnsignedByte().toInt()
             val valueType = input.readUnsignedByte().toInt()
-            val count = input.readVarInt().toInt()
+            val count = readVarInt(input).toInt()
             val out = LinkedHashMap<Any, Any>()
             repeat(count) {
                 val key: Any = when (keyType) {
-                    VARINT -> input.readVarInt()
-                    STRING -> input.readString()
+                    VARINT -> readVarInt(input)
+                    STRING -> readString(input)
                     else -> throw IllegalStateException("Unknown list subtype $keyType")
                 }
                 val value: Any = when (valueType) {
-                    VARINT -> input.readVarInt()
-                    STRING -> input.readString()
+                    VARINT -> readVarInt(input)
+                    STRING -> readString(input)
                     GROUP -> GroupTdf.read("", input)
                     FLOAT -> input.readFloat()
                     else -> throw IllegalStateException("Unknown list subtype $keyType")
@@ -39,30 +38,16 @@ class MapTdf(
         out.writeByte(keyType)
         out.writeByte(valueType)
         val entries = value.entries
-        out.writeVarInt(entries.size.toULong())
+        writeVarInt(out, entries.size.toULong())
         for ((key, value) in entries) {
             when (keyType) {
-                VARINT -> {
-                    when (key) {
-                        is Int -> out.writeVarInt(key.toULong())
-                        is Long -> out.writeVarInt(key.toULong())
-                        is ULong -> out.writeVarInt(key)
-                        is UInt -> out.writeVarInt(key.toULong())
-                    }
-                }
-                STRING -> out.writeString(key as String)
+                VARINT -> writeVarIntFuzzy(out, key)
+                STRING -> writeString(out, key as String)
                 FLOAT -> out.writeFloat(key as Float)
             }
             when (valueType) {
-                VARINT -> {
-                    when (value) {
-                        is Int -> out.writeVarInt(value.toULong())
-                        is Long -> out.writeVarInt(value.toULong())
-                        is ULong -> out.writeVarInt(value)
-                        is UInt -> out.writeVarInt(value.toULong())
-                    }
-                }
-                STRING -> out.writeString(value as String)
+                VARINT -> writeVarIntFuzzy(out, key)
+                STRING -> writeString(out, value as String)
                 GROUP -> (value as GroupTdf).write(out)
                 FLOAT -> out.writeFloat(value as Float)
             }

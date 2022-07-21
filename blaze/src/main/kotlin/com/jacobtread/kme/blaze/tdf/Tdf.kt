@@ -2,6 +2,7 @@ package com.jacobtread.kme.blaze.tdf
 
 import com.jacobtread.kme.blaze.TdfReadException
 import com.jacobtread.kme.blaze.data.VarTripple
+import com.jacobtread.kme.utils.logging.Logger
 import io.netty.buffer.ByteBuf
 
 abstract class Tdf<V>(val label: String, private val tagType: Int) {
@@ -135,6 +136,84 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
             val v = if (value.endsWith(Char.MIN_VALUE)) value else (value + '\u0000')
             val bytes = v.toByteArray(Charsets.UTF_8)
             return computeVarIntSize(bytes.size.toULong()) + bytes.size
+        }
+
+        fun writeVarIntFuzzy(buffer: ByteBuf, value: Any?) {
+            if (value == null) {
+                buffer.writeByte(0)
+                return
+            }
+
+            when (value) {
+                is ULong -> writeVarInt(buffer, value)
+                is Long -> writeVarInt(buffer, value.toULong())
+                is Int -> writeVarInt(buffer, value.toULong())
+                is UInt -> writeVarInt(buffer, value.toULong())
+                is Number -> writeVarInt(buffer, value.toLong().toULong())
+                else -> {
+                    Logger.warn("Tried to write varint of unknown type: \"$value\" (${value.javaClass.simpleName}) Writing zero")
+                    buffer.writeByte(0)
+                }
+            }
+        }
+
+        fun writeVarInt(buffer: ByteBuf, value: ULong) {
+            if (value < 64u) {
+                buffer.writeByte((value and 255u).toInt())
+            } else {
+                var curByte = (value and 63u).toUByte() or 0x80u
+                buffer.writeByte(curByte.toInt())
+                var curShift = value shr 6
+                while (curShift >= 128u) {
+                    curByte = ((curShift and 127u) or 128u).toUByte()
+                    curShift = curShift shr 7
+                    buffer.writeByte(curByte.toInt())
+                }
+                buffer.writeByte(curShift.toInt())
+            }
+        }
+
+        fun writeVarTripple(buffer: ByteBuf, value: VarTripple) {
+            writeVarInt(buffer, value.a)
+            writeVarInt(buffer, value.b)
+            writeVarInt(buffer, value.c)
+        }
+
+        fun writeString(buffer: ByteBuf, value: String) {
+            val v = if (value.endsWith(Char.MIN_VALUE)) value else (value + '\u0000')
+            val bytes = v.toByteArray(Charsets.UTF_8)
+            writeVarInt(buffer, bytes.size.toULong())
+            buffer.writeBytes(bytes)
+        }
+
+        fun readVarInt(buffer: ByteBuf): ULong {
+            val firstByte = buffer.readUnsignedByte().toUByte()
+            var result: ULong = (firstByte and 63u).toULong()
+            if (firstByte < 128u) return result
+            var shift = 6
+            var byte: UByte
+            do {
+                byte = buffer.readUnsignedByte().toUByte()
+                result = result or ((byte and 127u).toULong() shl shift)
+                shift += 7
+            } while (byte >= 128u)
+            return result
+        }
+
+        fun readVarTripple(buffer: ByteBuf): VarTripple {
+            return VarTripple(
+                readVarInt(buffer),
+                readVarInt(buffer),
+                readVarInt(buffer),
+            )
+        }
+
+        fun readString(buffer: ByteBuf): String {
+            val length = readVarInt(buffer)
+            val bytes = ByteArray(length.toInt() - 1)
+            buffer.readBytes(bytes)
+            buffer.readUnsignedByte()
+            return String(bytes, Charsets.UTF_8)
         }
     }
 

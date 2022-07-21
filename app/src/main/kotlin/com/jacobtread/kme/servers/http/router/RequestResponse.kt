@@ -1,6 +1,5 @@
 package com.jacobtread.kme.servers.http.router
 
-import com.jacobtread.kme.blaze.utils.copiedBuffer
 import com.jacobtread.kme.data.Data
 import com.jacobtread.xml.Node
 import com.jacobtread.xml.XmlVersion
@@ -71,7 +70,7 @@ inline fun responseXml(rootName: String, init: Node.() -> Unit): HttpResponse {
     rootNode.encoding = "UTF-8"
     rootNode.version = XmlVersion.V10
     rootNode.init()
-    return response(HttpResponseStatus.OK, rootNode.toString(false).copiedBuffer(), XML_CONTENT_TYPE)
+    return response(HttpResponseStatus.OK, Unpooled.copiedBuffer(rootNode.toString(false), Charsets.UTF_8), XML_CONTENT_TYPE)
 }
 
 /**
@@ -94,7 +93,7 @@ fun responseBytes(bytes: ByteArray, contentType: String? = null): HttpResponse =
  * @return The created HttpResponse from the text
  */
 fun responseText(content: String, contentType: String = PLAIN_TEXT_CONTENT_TYPE): HttpResponse =
-    response(HttpResponseStatus.OK, content.copiedBuffer(), contentType)
+    response(HttpResponseStatus.OK, Unpooled.copiedBuffer(content, Charsets.UTF_8), contentType)
 
 /**
  * responseHtml Creates a html response with the content
@@ -104,7 +103,7 @@ fun responseText(content: String, contentType: String = PLAIN_TEXT_CONTENT_TYPE)
  * @return The created HttpResponse from the html
  */
 fun responseHtml(content: String): HttpResponse =
-    response(HttpResponseStatus.OK, content.copiedBuffer(), HTML_CONTENT_TYPE)
+    response(HttpResponseStatus.OK, Unpooled.copiedBuffer(content, Charsets.UTF_8), HTML_CONTENT_TYPE)
 
 /**
  * responseStatic Creates a response from a static file stored inside the
@@ -151,7 +150,7 @@ fun responseStatic(
  * @return The created HttpResponse
  */
 inline fun <reified V> responseJson(value: V): HttpResponse {
-    val content = Json.encodeToString(value).copiedBuffer()
+    val content = Unpooled.copiedBuffer(Json.encodeToString(value), Charsets.UTF_8)
     return response(HttpResponseStatus.OK, content, JSON_CONTENT_TYPE)
 }
 

@@ -1,23 +1,21 @@
 package com.jacobtread.kme.blaze.tdf
 
-import com.jacobtread.kme.blaze.utils.readVarInt
-import com.jacobtread.kme.blaze.utils.writeVarInt
 import io.netty.buffer.ByteBuf
 
 class VarIntList(label: String, override val value: List<ULong>) : Tdf<List<ULong>>(label, INT_LIST) {
     companion object {
         fun read(label: String, input: ByteBuf): VarIntList {
-            val count = input.readVarInt().toInt()
+            val count = readVarInt(input).toInt()
             val values = ArrayList<ULong>(count)
-            repeat(count) { values.add(input.readVarInt()) }
+            repeat(count) { values.add(readVarInt(input)) }
             return VarIntList(label, values)
         }
     }
 
     override fun write(out: ByteBuf) {
-        out.writeVarInt(value.size.toULong())
+        writeVarInt(out, value.size.toULong())
         if (value.isNotEmpty()) {
-            value.forEach { out.writeVarInt(it) }
+            value.forEach { writeVarInt(out, it) }
         }
     }
 

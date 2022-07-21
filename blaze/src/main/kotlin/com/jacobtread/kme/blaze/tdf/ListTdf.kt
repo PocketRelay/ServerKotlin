@@ -1,7 +1,6 @@
 package com.jacobtread.kme.blaze.tdf
 
 import com.jacobtread.kme.blaze.data.VarTripple
-import com.jacobtread.kme.blaze.utils.*
 import io.netty.buffer.ByteBuf
 
 class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf<List<Any>>(label, LIST) {
@@ -9,16 +8,16 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
     companion object {
         fun read(label: String, input: ByteBuf): ListTdf {
             val subType = input.readUnsignedByte().toInt()
-            val count = input.readVarInt().toInt()
+            val count = readVarInt(input).toInt()
             return when (subType) {
                 VARINT -> {
                     val values = ArrayList<ULong>(count)
-                    repeat(count) { values.add(input.readVarInt()) }
+                    repeat(count) { values.add(readVarInt(input)) }
                     ListTdf(label, subType, values)
                 }
                 STRING -> {
                     val values = ArrayList<String>(count)
-                    repeat(count) { values.add(input.readString()) }
+                    repeat(count) { values.add(readString(input)) }
                     ListTdf(label, subType, values)
                 }
                 GROUP -> {
@@ -29,13 +28,7 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
                 TRIPPLE -> {
                     val values = ArrayList<VarTripple>(count)
                     repeat(count) {
-                        values.add(
-                            VarTripple(
-                                input.readVarInt(),
-                                input.readVarInt(),
-                                input.readVarInt(),
-                            )
-                        )
+                        values.add(readVarTripple(input))
                     }
                     ListTdf(label, subType, values)
                 }
@@ -46,24 +39,19 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
 
     override fun write(out: ByteBuf) {
         out.writeByte(this.type)
-        out.writeVarInt(value.size.toULong())
+        writeVarInt(out, value.size.toULong())
         when (this.type) {
             VARINT -> value.forEach {
                 when (it) {
-                    is Int -> out.writeVarInt(it.toULong())
-                    is Long -> out.writeVarInt(it.toULong())
-                    is ULong -> out.writeVarInt(it)
-                    is UInt -> out.writeVarInt(it.toULong())
+                    is Int -> writeVarInt(out, it.toULong())
+                    is Long -> writeVarInt(out, it.toULong())
+                    is ULong -> writeVarInt(out, it)
+                    is UInt -> writeVarInt(out, it.toULong())
                 }
             }
-            STRING -> value.forEach { out.writeString(it as String) }
+            STRING -> value.forEach { writeString(out, it as String) }
             GROUP -> value.forEach { (it as GroupTdf).write(out) }
-            TRIPPLE -> value.forEach {
-                val tripple = it as VarTripple
-                out.writeVarInt(tripple.a)
-                out.writeVarInt(tripple.b)
-                out.writeVarInt(tripple.c)
-            }
+            TRIPPLE -> value.forEach { writeVarTripple(out, it as VarTripple) }
         }
     }
 
