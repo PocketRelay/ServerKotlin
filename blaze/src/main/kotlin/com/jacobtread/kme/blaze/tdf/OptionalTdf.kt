@@ -20,6 +20,14 @@ class OptionalTdf(label: String, val type: Int = 0x7F, override val value: Tdf<*
         }
     }
 
+    override fun computeSize(): Int {
+        return if (type != 0x7F && value != null) {
+            value.computeFullSize() + 1
+        } else {
+            1
+        }
+    }
+
     override fun toString(): String = "Union($label: $type, $value)"
 
     override fun equals(other: Any?): Boolean {

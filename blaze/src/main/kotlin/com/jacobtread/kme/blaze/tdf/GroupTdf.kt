@@ -49,6 +49,13 @@ class GroupTdf(label: String, val start2: Boolean, override val value: List<Tdf<
         out.writeByte(0)
     }
 
+    override fun computeSize(): Int {
+        var size = 1 // Initial size is 1 for the ending byte
+        if (start2) size++
+        value.forEach { size += it.computeFullSize() }
+        return size
+    }
+
     override fun getTdfByLabel(label: String): Tdf<*>? = value.find { it.label == label }
     override fun toString(): String = "Struct($label: $value)"
 

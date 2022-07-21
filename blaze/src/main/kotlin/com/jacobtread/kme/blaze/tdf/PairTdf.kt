@@ -1,8 +1,9 @@
 package com.jacobtread.kme.blaze.tdf
 
+import com.jacobtread.kme.blaze.data.VarPair
+import com.jacobtread.kme.blaze.utils.computeVarIntSize
 import com.jacobtread.kme.blaze.utils.readVarInt
 import com.jacobtread.kme.blaze.utils.writeVarInt
-import com.jacobtread.kme.blaze.data.VarPair
 import io.netty.buffer.ByteBuf
 
 class PairTdf(label: String, override val value: VarPair) : Tdf<VarPair>(label, PAIR) {
@@ -17,6 +18,10 @@ class PairTdf(label: String, override val value: VarPair) : Tdf<VarPair>(label, 
     override fun write(out: ByteBuf) {
         out.writeVarInt(value.a)
         out.writeVarInt(value.b)
+    }
+
+    override fun computeSize(): Int {
+        return computeVarIntSize(value.a) + computeVarIntSize(value.b)
     }
 
     override fun toString(): String = "Pair($label: $value)"

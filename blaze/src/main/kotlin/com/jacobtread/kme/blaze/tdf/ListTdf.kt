@@ -1,7 +1,7 @@
 package com.jacobtread.kme.blaze.tdf
 
-import com.jacobtread.kme.blaze.utils.*
 import com.jacobtread.kme.blaze.data.VarTripple
+import com.jacobtread.kme.blaze.utils.*
 import io.netty.buffer.ByteBuf
 
 class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf<List<Any>>(label, LIST) {
@@ -46,14 +46,14 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
 
     override fun write(out: ByteBuf) {
         out.writeByte(this.type)
-        out.writeVarInt(value.size)
+        out.writeVarInt(value.size.toULong())
         when (this.type) {
             VARINT -> value.forEach {
                 when (it) {
-                    is Int -> out.writeVarInt(it)
-                    is Long -> out.writeVarInt(it)
+                    is Int -> out.writeVarInt(it.toULong())
+                    is Long -> out.writeVarInt(it.toULong())
                     is ULong -> out.writeVarInt(it)
-                    is UInt -> out.writeVarInt(it)
+                    is UInt -> out.writeVarInt(it.toULong())
                 }
             }
             STRING -> value.forEach { out.writeString(it as String) }
@@ -65,6 +65,28 @@ class ListTdf(label: String, val type: Int, override val value: List<Any>) : Tdf
                 out.writeVarInt(tripple.c)
             }
         }
+    }
+
+    override fun computeSize(): Int {
+        var size = 1 + computeVarIntSize(value.size.toULong())
+        when (this.type) {
+            VARINT -> value.forEach() {
+                when (it) {
+                    is Int -> size += computeVarIntSize(it.toULong())
+                    is Long -> size += computeVarIntSize(it.toULong())
+                    is ULong -> size += computeVarIntSize(it)
+                    is UInt -> size += computeVarIntSize(it.toULong())
+                }
+            }
+
+            STRING -> value.forEach { size += computeStringSize(it as String) }
+            GROUP -> value.forEach { size += (it as GroupTdf).computeSize() }
+            TRIPPLE -> value.forEach {
+                val tripple = it as VarTripple
+                size += computeVarIntSize(tripple.a) + computeVarIntSize(tripple.b) + computeVarIntSize(tripple.c)
+            }
+        }
+        return size
     }
 
     override fun toString(): String = "List($label: $value)"

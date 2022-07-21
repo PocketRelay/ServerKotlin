@@ -1,8 +1,9 @@
 package com.jacobtread.kme.blaze.tdf
 
+import com.jacobtread.kme.blaze.data.VarTripple
+import com.jacobtread.kme.blaze.utils.computeVarIntSize
 import com.jacobtread.kme.blaze.utils.readVarInt
 import com.jacobtread.kme.blaze.utils.writeVarInt
-import com.jacobtread.kme.blaze.data.VarTripple
 import io.netty.buffer.ByteBuf
 
 class TrippleTdf(label: String, override val value: VarTripple) : Tdf<VarTripple>(label, TRIPPLE) {
@@ -19,6 +20,10 @@ class TrippleTdf(label: String, override val value: VarTripple) : Tdf<VarTripple
         out.writeVarInt(value.a)
         out.writeVarInt(value.b)
         out.writeVarInt(value.c)
+    }
+
+    override fun computeSize(): Int {
+        return computeVarIntSize(value.a) + computeVarIntSize(value.b) + computeVarIntSize(value.c)
     }
 
     override fun toString(): String = "Tripple($label: $value)"

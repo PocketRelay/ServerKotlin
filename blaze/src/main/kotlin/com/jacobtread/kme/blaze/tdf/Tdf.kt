@@ -122,6 +122,12 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
 
     abstract fun write(out: ByteBuf)
 
+    abstract fun computeSize(): Int
+
+    fun computeFullSize(): Int {
+        return 4 + computeSize()
+    }
+
     fun writeFully(out: ByteBuf) {
         val tag = createTag(label)
         out.writeByte(tag.shr(24).and(0xFF).toInt())

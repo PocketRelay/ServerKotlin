@@ -1,9 +1,6 @@
 package com.jacobtread.kme.blaze.tdf
 
-import com.jacobtread.kme.blaze.utils.readString
-import com.jacobtread.kme.blaze.utils.readVarInt
-import com.jacobtread.kme.blaze.utils.writeString
-import com.jacobtread.kme.blaze.utils.writeVarInt
+import com.jacobtread.kme.blaze.utils.*
 import io.netty.buffer.ByteBuf
 
 class MapTdf(
@@ -34,7 +31,7 @@ class MapTdf(
                 }
                 out[key] = value
             }
-            return MapTdf(label, keyType, valueType, out);
+            return MapTdf(label, keyType, valueType, out)
         }
     }
 
@@ -42,15 +39,15 @@ class MapTdf(
         out.writeByte(keyType)
         out.writeByte(valueType)
         val entries = value.entries
-        out.writeVarInt(entries.size)
+        out.writeVarInt(entries.size.toULong())
         for ((key, value) in entries) {
             when (keyType) {
                 VARINT -> {
                     when (key) {
-                        is Int -> out.writeVarInt(key)
-                        is Long -> out.writeVarInt(key)
+                        is Int -> out.writeVarInt(key.toULong())
+                        is Long -> out.writeVarInt(key.toULong())
                         is ULong -> out.writeVarInt(key)
-                        is UInt -> out.writeVarInt(key)
+                        is UInt -> out.writeVarInt(key.toULong())
                     }
                 }
                 STRING -> out.writeString(key as String)
@@ -59,10 +56,10 @@ class MapTdf(
             when (valueType) {
                 VARINT -> {
                     when (value) {
-                        is Int -> out.writeVarInt(value)
-                        is Long -> out.writeVarInt(value)
+                        is Int -> out.writeVarInt(value.toULong())
+                        is Long -> out.writeVarInt(value.toULong())
                         is ULong -> out.writeVarInt(value)
-                        is UInt -> out.writeVarInt(value)
+                        is UInt -> out.writeVarInt(value.toULong())
                     }
                 }
                 STRING -> out.writeString(value as String)
@@ -70,6 +67,39 @@ class MapTdf(
                 FLOAT -> out.writeFloat(value as Float)
             }
         }
+    }
+
+    override fun computeSize(): Int {
+        val entries = value.entries
+        var size = 2 + computeVarIntSize(entries.size.toULong())
+        for ((key, value) in entries) {
+            when (keyType) {
+                VARINT -> {
+                    when (key) {
+                        is Int -> size += computeVarIntSize(key.toULong())
+                        is Long -> size += computeVarIntSize(key.toULong())
+                        is ULong -> size += computeVarIntSize(key)
+                        is UInt -> size += computeVarIntSize(key.toULong())
+                    }
+                }
+                STRING -> size += computeStringSize(key as String)
+                FLOAT -> size += 4
+            }
+            when (valueType) {
+                VARINT -> {
+                    when (value) {
+                        is Int -> size += computeVarIntSize(value.toULong())
+                        is Long -> size += computeVarIntSize(value.toULong())
+                        is ULong -> size += computeVarIntSize(value)
+                        is UInt -> size += computeVarIntSize(value.toULong())
+                    }
+                }
+                STRING -> size += computeStringSize(value as String)
+                GROUP -> size += (value as GroupTdf).computeSize()
+                FLOAT -> size += 4
+            }
+        }
+        return size
     }
 
     override fun toString(): String = "Map($label: $value)"

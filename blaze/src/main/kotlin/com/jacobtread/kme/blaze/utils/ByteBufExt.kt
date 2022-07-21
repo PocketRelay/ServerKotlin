@@ -3,10 +3,6 @@ package com.jacobtread.kme.blaze.utils
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 
-fun ByteBuf.writeVarInt(value: Long) = writeVarInt(value.toULong())
-fun ByteBuf.writeVarInt(value: UInt) = writeVarInt(value.toULong())
-fun ByteBuf.writeVarInt(value: Int) = writeVarInt(value.toULong())
-
 fun ByteBuf.writeVarInt(value: ULong) {
     if (value < 64u) {
         writeByte((value and 255u).toInt())
@@ -22,6 +18,8 @@ fun ByteBuf.writeVarInt(value: ULong) {
         writeByte(curShift.toInt())
     }
 }
+
+
 
 fun ByteBuf.readVarInt(): ULong {
     val firstByte = readUnsignedByte().toUByte()
@@ -48,7 +46,7 @@ fun ByteBuf.readString(): String {
 fun ByteBuf.writeString(value: String) {
     val v = if (value.endsWith(Char.MIN_VALUE)) value else (value + '\u0000')
     val bytes = v.toByteArray(Charsets.UTF_8)
-    writeVarInt(bytes.size)
+    writeVarInt(bytes.size.toULong())
     writeBytes(bytes)
 }
 

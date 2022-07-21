@@ -14,6 +14,10 @@ class FloatTdf(label: String, override val value: Float) : Tdf<Float>(label, FLO
         out.writeFloat(value)
     }
 
+    override fun computeSize(): Int {
+        return 4
+    }
+
     override fun toString(): String = "Float($label: $value)"
 
     override fun equals(other: Any?): Boolean {

@@ -1,5 +1,6 @@
 package com.jacobtread.kme.blaze.tdf
 
+import com.jacobtread.kme.blaze.utils.computeVarIntSize
 import com.jacobtread.kme.blaze.utils.readVarInt
 import com.jacobtread.kme.blaze.utils.writeVarInt
 import io.netty.buffer.ByteBuf
@@ -15,9 +16,18 @@ class BlobTdf(label: String, override val value: ByteArray) : Tdf<ByteArray>(lab
     }
 
     override fun write(out: ByteBuf) {
-        out.writeVarInt(value.size)
+        out.writeVarInt(value.size.toULong())
         if (value.isNotEmpty()) {
             out.writeBytes(value)
+        }
+    }
+
+    override fun computeSize(): Int {
+        val size = computeVarIntSize(value.size.toULong())
+        return if (value.isNotEmpty()) {
+            size + value.size
+        } else {
+            size
         }
     }
 

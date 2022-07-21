@@ -1,5 +1,6 @@
 package com.jacobtread.kme.blaze.tdf
 
+import com.jacobtread.kme.blaze.utils.computeVarIntSize
 import com.jacobtread.kme.blaze.utils.readVarInt
 import com.jacobtread.kme.blaze.utils.writeVarInt
 import io.netty.buffer.ByteBuf
@@ -15,10 +16,18 @@ class VarIntList(label: String, override val value: List<ULong>) : Tdf<List<ULon
     }
 
     override fun write(out: ByteBuf) {
-        out.writeVarInt(value.size)
+        out.writeVarInt(value.size.toULong())
         if (value.isNotEmpty()) {
             value.forEach { out.writeVarInt(it) }
         }
+    }
+
+    override fun computeSize(): Int {
+        var size = computeVarIntSize(value.size.toULong())
+        if (value.isNotEmpty()) {
+            value.forEach { size += computeVarIntSize(it) }
+        }
+        return size
     }
 
     override fun toString(): String = "VarIntList($label: $value)"
