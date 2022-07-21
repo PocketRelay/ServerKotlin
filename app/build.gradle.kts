@@ -83,7 +83,8 @@ fun DependencyHandlerScope.exposedDatabaseDependencies() {
  */
 tasks.withType(KotlinCompile::class) {
     kotlinOptions {
-        jvmTarget = "17"
+        val javaCompileVersion: String by project
+        jvmTarget = javaCompileVersion
         freeCompilerArgs = freeCompilerArgs + "-Xjvm-default=all"
     }
 }
@@ -93,7 +94,8 @@ tasks.withType(KotlinCompile::class) {
  * manifest contents
  */
 tasks.withType(Jar::class) {
-    archiveFileName.set("server.jar") // Set the output jar name to server.jar
+    val outputJarFile: String by project
+    archiveFileName.set(outputJarFile) // Set the output jar name to server.jar
     manifest {
         // Set the main class of the jar in the manifest
         attributes["Main-Class"] = "com.jacobtread.kme.App"
