@@ -123,7 +123,7 @@ class RedirectorHandler : ChannelInboundHandlerAdapter() {
                 })
                 // Determines if SSLv3 should be used when connecting to the main server
                 // only ever used if MITM is enabled and using secure
-                bool("SECU", Environment.mitmEnabled && Environment.mitmSecure)
+                bool("SECU", false)
                 bool("XDNS", false)
                 val remoteAddress = channel.remoteAddress()
                 info("Sent redirection to client at $remoteAddress. Closing Connection.")

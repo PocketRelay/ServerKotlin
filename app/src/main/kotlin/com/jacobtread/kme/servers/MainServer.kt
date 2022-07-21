@@ -127,6 +127,7 @@ class MainProcessor(
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
         if (msg !is Packet) return
         try { // Automatic routing to the desired function
+
             routeMainProcessor(this, channel, msg)
         } catch (e: NotAuthenticatedException) { // Handle player access with no player
             push(LoginError.INVALID_ACCOUNT(msg))

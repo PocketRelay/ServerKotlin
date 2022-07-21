@@ -1,9 +1,8 @@
 package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.Environment
-import com.jacobtread.kme.blaze.Packet
-import com.jacobtread.kme.blaze.logPacketException
-import com.jacobtread.kme.blaze.packetToBuilder
+import com.jacobtread.kme.blaze.*
+import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.logging.Logger.info
 import io.netty.bootstrap.Bootstrap
@@ -37,8 +36,9 @@ fun startMITMServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
             .channel(NioServerSocketChannel::class.java)
             .childHandler(object : ChannelInitializer<Channel>() {
                 override fun initChannel(ch: Channel) {
-                    ch.pipeline().addFirst(MITMHandler(workerGroup))
+                    ch.pipeline().addLast(MITMHandler(workerGroup))
                 }
+
             })
             // Bind the server to the host and port
             .bind(Environment.mainPort)
@@ -58,6 +58,14 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboun
 
     var clientChannel: Channel? = null
     var officialChanel: Channel? = null
+
+    override fun handlerAdded(ctx: ChannelHandlerContext) {
+        super.handlerAdded(ctx)
+        val channel = ctx.channel()
+        channel.pipeline()
+            .addFirst(PacketDecoder())
+            .addLast(PacketEncoder)
+    }
 
     override fun channelActive(ctx: ChannelHandlerContext) {
         super.channelActive(ctx)
@@ -80,16 +88,15 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboun
             .channel(NioSocketChannel::class.java)
             .handler(object : ChannelInboundHandlerAdapter() {
                 override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-                    if (msg is Packet) {
-                        channelReadOffical(msg)
-                    }
+                    channelReadOffical(msg)
                 }
             })
             .connect(Environment.mitmHost, Environment.mitmPort)
-            .addListener {
-                info("Created new MITM connection")
-            }.sync()
+            .sync()
+        info("Created new MITM connection")
         val channel = channelFuture.channel()
+        val pipeline = channel.pipeline();
+        pipeline.addFirst(PacketDecoder())
         if (Environment.mitmSecure) {
             val context = SslContextBuilder.forClient()
                 .ciphers(listOf("TLS_RSA_WITH_RC4_128_SHA", "TLS_RSA_WITH_RC4_128_MD5"))
@@ -97,8 +104,9 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboun
                 .startTls(true)
                 .trustManager(InsecureTrustManagerFactory.INSTANCE)
                 .build()
-            channel.pipeline().addFirst(context.newHandler(channel.alloc()))
+            pipeline.addFirst(context.newHandler(channel.alloc()))
         }
+        pipeline.addLast(PacketEncoder)
         return channel
     }
 
@@ -109,15 +117,62 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboun
         } catch (e: Throwable) {
             logPacketException("Failed to decode incoming packet contents for debugging:", msg, e)
         }
+        if (msg.component == Components.UTIL && msg.command == Commands.USER_SETTINGS_LOAD_ALL) {
+            // Unlock everything cheat
+//            createUnlockPackets()
+        }
+//          Forward HTTP traffic to local
+//        if (msg.component == Components.UTIL && msg.command == Commands.FETCH_CLIENT_CONFIG) {
+//            msg.contentBuffer.retain()
+//            val type = msg.text("CFID")
+//            if (type == "ME3_DATA") {
+//                clientChannel?.apply {
+//                    write(msg.respond  {
+//                        map("CONF", Data.createDataConfig())
+//                    })
+//                    flush()
+//                }
+//                return
+//            }
+//
+//        }
+
         officialChanel?.apply {
             write(msg)
             flush()
         }
     }
 
-    fun channelReadOffical(msg: Packet) {
+    private fun createUnlockPackets() {
+        info("UNLOCKING EVERYTHING")
+        var id = 999
+        officialChanel?.apply {
+            write(clientPacket(Components.UTIL, Commands.USER_SETTINGS_SAVE, id++) {
+                val out = "20;4;${Int.MAX_VALUE};-1;0;0;0;50;180000;0;${"f".repeat(1342)}"
+                text("DATA", out)
+                text("KEY", "Base")
+                number("UID", 0x0)
+            })
+            flush()
+            val names = arrayOf("Adept", "Soldier", "Engineer", "Sentinel", "Infiltrator", "Vanguard")
+            for (i in 1..6) {
+                val name = names[i - 1]
+                val out = "20;4;$name;20;0;${Integer.MAX_VALUE}"
+                write(clientPacket(Components.UTIL, Commands.USER_SETTINGS_SAVE, id++) {
+                    text("DATA", out)
+                    text("KEY", "class$i")
+                    number("UID", 0x0)
+                })
+                flush()
+            }
+        }
+    }
+
+
+    fun channelReadOffical(msg: Any) {
+        if (msg !is Packet) return
         try {
-            Logger.debug("RECIEVED PACKET FROM EA =======\n" + packetToBuilder(msg) + "\n======================")
+            Logger.logIfDebug { "RECIEVED PACKET FROM EA =======\n" + packetToBuilder(msg) + "\n======================" }
         } catch (e: Throwable) {
             logPacketException("Failed to decode incoming packet contents for debugging:", msg, e)
         }
