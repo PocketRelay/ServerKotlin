@@ -292,7 +292,7 @@ class PlayerSession : PacketPushable {
         return if (extNetData.isDefault() && intNetData.isDefault()) {
             OptionalTdf(label)
         } else {
-            OptionalTdf(label, 0x02, group("VALU") {
+            OptionalTdf(label, 0x02u, group("VALU") {
                 +extNetData.createGroup("EXIP")
                 +intNetData.createGroup("INIP")
             })
