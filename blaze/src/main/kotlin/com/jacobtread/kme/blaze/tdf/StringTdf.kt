@@ -1,6 +1,6 @@
 package com.jacobtread.kme.blaze.tdf
 
-import com.jacobtread.kme.blaze.utils.computeStringSize
+import com.jacobtread.kme.blaze.tdf.computeStringSize
 import com.jacobtread.kme.blaze.utils.readString
 import com.jacobtread.kme.blaze.utils.writeString
 import io.netty.buffer.ByteBuf

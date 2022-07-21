@@ -62,11 +62,5 @@ fun ByteBuf.asString(): String {
     return output.toString()
 }
 
-fun ByteBuf.asByteArray(): ByteArray {
-    val bytes = ByteArray(readableBytes())
-    readBytes(bytes)
-    return bytes
-}
-
 @Suppress("NOTHING_TO_INLINE")
 inline fun String.copiedBuffer(): ByteBuf = Unpooled.copiedBuffer(this, Charsets.UTF_8)

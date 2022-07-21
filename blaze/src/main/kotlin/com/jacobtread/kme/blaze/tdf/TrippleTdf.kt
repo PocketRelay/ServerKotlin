@@ -1,7 +1,6 @@
 package com.jacobtread.kme.blaze.tdf
 
 import com.jacobtread.kme.blaze.data.VarTripple
-import com.jacobtread.kme.blaze.utils.computeVarIntSize
 import com.jacobtread.kme.blaze.utils.readVarInt
 import com.jacobtread.kme.blaze.utils.writeVarInt
 import io.netty.buffer.ByteBuf
