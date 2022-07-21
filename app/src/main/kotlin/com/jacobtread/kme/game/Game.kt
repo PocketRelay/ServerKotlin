@@ -51,7 +51,7 @@ class Game(
         val player = session.playerEntity
         val sessionDetails = session.createSessionDetails()
         host.push(sessionDetails)
-        host.pushUnique(Components.GAME_MANAGER, Commands.JOIN_GAME_BY_GROUP){
+        host.pushUnique(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOINING){
             number("GID", id)
             +group("PDAT") {
                 blob("BLOB")

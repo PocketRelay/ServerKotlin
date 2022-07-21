@@ -1,16 +1,14 @@
 package com.jacobtread.kme.game
 
 import com.jacobtread.kme.blaze.*
+import com.jacobtread.kme.blaze.data.VarTripple
 import com.jacobtread.kme.blaze.tdf.GroupTdf
 import com.jacobtread.kme.blaze.tdf.OptionalTdf
 import com.jacobtread.kme.blaze.tdf.VarIntTdf
-import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.entities.PlayerEntity
-import com.jacobtread.kme.blaze.NotAuthenticatedException
 import com.jacobtread.kme.game.match.Matchmaking
-import com.jacobtread.kme.blaze.data.VarTripple
-import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.tools.unixTimeSeconds
+import com.jacobtread.kme.utils.logging.Logger
 import io.netty.channel.Channel
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -91,6 +89,8 @@ class PlayerSession : PacketPushable {
     private var _playerEntity: PlayerEntity? = null
     val playerEntity: PlayerEntity get() = _playerEntity ?: throw throw NotAuthenticatedException()
     val playerId: Int get() = playerEntity.playerId
+
+    var pslm = listOf<ULong>(0xfff0fffu, 0xfff0fffu, 0xfff0fffu)
 
     val displayName: String get() = playerEntity.displayName
 
@@ -231,13 +231,9 @@ class PlayerSession : PacketPushable {
             text("BPS", "ea-sjc")
             text("CTY")
             varList("CVAR")
-            map("DMAP", mapOf(0x70001 to dmapValue))
+            map("DMAP", mapOf(0x70001 to 0x409a))
             number("HWFG", hardwareFlag)
-            if (details) {
-                list("PSLM", listOf(if (matchmaking) 0x4e else 0x2f, 0xfff0fff, 0xfff0fff))
-            } else {
-                list("PSLM", listOf(0x9c, 0xfff0fff, 0xfff0fff))
-            }
+            list("PSLM", pslm)
             +group("QDAT") {
                 number("DBPS", otherNetData.dbps)
                 number("NATT", otherNetData.natt)
@@ -272,7 +268,7 @@ class PlayerSession : PacketPushable {
             // Player Data
             +group("USER") {
                 number("AID", player.playerId)
-                number("ALOC", 0x64654445)
+                number("ALOC", 0x656e4359)
                 blob("EXBB")
                 number("EXID", 0)
                 number("ID", player.playerId)

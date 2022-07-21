@@ -24,7 +24,6 @@ import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.channel.ChannelInitializer
-import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import java.io.IOException
@@ -552,6 +551,7 @@ class MainProcessor(
             number("GID", gameId)
             number("PID", player.playerId)
         }
+
         val c = unique(Components.GAME_MANAGER, Commands.NOTIFY_ADMIN_LIST_CHANGE) {
             number("ALST", player.playerId)
             number("GID", gameId)
@@ -867,31 +867,35 @@ class MainProcessor(
     @PacketHandler(Components.USER_SESSIONS, Commands.UPDATE_NETWORK_INFO)
     fun updateSessionNetworkInfo(packet: Packet) {
         val displayName = session.playerEntity.displayName
-        val addr: GroupTdf? = packet.unionValueOrNull("ADDR") as GroupTdf?
-        if (addr != null) {
-            val inip: GroupTdf = addr.group("INIP")
-            val port: ULong = inip.number("PORT")
-            val remoteAddress = channel.remoteAddress()
+        val addr: GroupTdf = packet.unionValue("ADDR") as GroupTdf
+        val inip: GroupTdf = addr.group("INIP")
+        val port: ULong = inip.number("PORT")
+        val remoteAddress = channel.remoteAddress()
 
-            require(remoteAddress is InetSocketAddress) { "Remote address was not a socket address" }
-            val addressBytes = remoteAddress.address.address.toUByteArray()
-            val addressEncoded = (addressBytes[0].toULong() shl 24)
-                .or(addressBytes[1].toULong() shl 16)
-                .or(addressBytes[2].toULong() shl 8)
-                .or(addressBytes[3].toULong())
+        require(remoteAddress is InetSocketAddress) { "Remote address was not a socket address" }
+        val addressBytes = remoteAddress.address.address.toUByteArray()
+        val addressEncoded = (addressBytes[0].toULong() shl 24)
+            .or(addressBytes[1].toULong() shl 16)
+            .or(addressBytes[2].toULong() shl 8)
+            .or(addressBytes[3].toULong())
 
-            info("Updated player network info ($remoteAddress) for $displayName")
-            session.intNetData = NetData(addressEncoded, port)
-            session.extNetData = NetData(addressEncoded, port)
-        }
-        val nqos: GroupTdf? = packet.unionValueOrNull("NQOS") as GroupTdf?
-        if (nqos != null) {
-            val dbps = nqos.number("DBPS")
-            val natt = nqos.number("NATT")
-            val ubps = nqos.number("UBPS")
-            info("Updated player other network info ($dbps, $natt, $ubps) for $displayName")
-            session.otherNetData = PlayerSession.OtherNetData(dbps, natt, ubps)
-        }
+        info("Updated player network info ($remoteAddress) for $displayName")
+        session.intNetData = NetData(addressEncoded, port)
+        session.extNetData = NetData(addressEncoded, port)
+
+        val nqos: GroupTdf = packet.unionValue("NQOS") as GroupTdf
+        val dbps = nqos.number("DBPS")
+        val natt = nqos.number("NATT")
+        val ubps = nqos.number("UBPS")
+        info("Updated player other network info ($dbps, $natt, $ubps) for $displayName")
+        session.otherNetData = PlayerSession.OtherNetData(dbps, natt, ubps)
+
+        val nlmp: Map<String, ULong> = packet.map("NLMP")
+        val a = nlmp.getOrDefault("ea-sjc", 0xfff0fffu)
+        val b = nlmp.getOrDefault("rs-iad", 0xfff0fffu)
+        val c = nlmp.getOrDefault("rs-lhr", 0xfff0fffu)
+        session.pslm = listOf(a, b, c)
+
         packet.pushEmptyResponse()
         push(session.createSetSession()) // Send the user session
     }
