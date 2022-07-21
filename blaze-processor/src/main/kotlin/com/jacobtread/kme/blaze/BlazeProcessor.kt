@@ -111,7 +111,7 @@ class BlazeProcessor(
                 .addFunction(routeFunc)
                 .build()
             // Write the created file
-            file.writeTo(codeGenerator, false)
+            file.writeTo(codeGenerator, true)
         }
         return emptyList()
     }
