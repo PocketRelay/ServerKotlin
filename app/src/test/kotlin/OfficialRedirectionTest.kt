@@ -80,7 +80,7 @@ class ClientHandler : ChannelInboundHandlerAdapter() {
         channel.pipeline()
             .addFirst(PacketDecoder())
             .addFirst(context.newHandler(channel.alloc()))
-            .addLast(PacketEncoder())
+            .addLast(PacketEncoder)
     }
 
     @Suppress("DeprecatedCallableAddReplaceWith")
