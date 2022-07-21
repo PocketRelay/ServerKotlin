@@ -118,6 +118,21 @@ abstract class Tdf<V>(val label: String, private val tagType: Int) {
             }
         }
 
+        fun computeVarIntSizeFuzzy(value: Any?): Int {
+            if (value == null) {
+                return 1
+            }
+
+            return when (value) {
+                is ULong -> computeVarIntSize(value)
+                is Long -> computeVarIntSize(value.toULong())
+                is Int -> computeVarIntSize(value.toULong())
+                is UInt -> computeVarIntSize(value.toULong())
+                is Number -> computeVarIntSize(value.toLong().toULong())
+                else -> 1
+            }
+        }
+
         fun computeVarIntSize(value: ULong): Int {
             return if (value < 64u) {
                 1

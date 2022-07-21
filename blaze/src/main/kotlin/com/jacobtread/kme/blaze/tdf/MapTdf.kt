@@ -40,17 +40,17 @@ class MapTdf(
         val entries = value.entries
         writeVarInt(out, entries.size.toULong())
         for ((key, value) in entries) {
-            when (keyType) {
-                VARINT -> writeVarIntFuzzy(out, key)
-                STRING -> writeString(out, key as String)
-                FLOAT -> out.writeFloat(key as Float)
-            }
-            when (valueType) {
-                VARINT -> writeVarIntFuzzy(out, key)
-                STRING -> writeString(out, value as String)
-                GROUP -> (value as GroupTdf).write(out)
-                FLOAT -> out.writeFloat(value as Float)
-            }
+            writeType(out, keyType, key)
+            writeType(out, valueType, value)
+        }
+    }
+
+    private fun writeType(out: ByteBuf, type: Int, value: Any?) {
+        when (type) {
+            VARINT -> writeVarIntFuzzy(out, value)
+            STRING -> writeString(out, value as String)
+            GROUP -> (value as GroupTdf).write(out)
+            FLOAT -> out.writeFloat(value as Float)
         }
     }
 
@@ -58,33 +58,19 @@ class MapTdf(
         val entries = value.entries
         var size = 2 + computeVarIntSize(entries.size.toULong())
         for ((key, value) in entries) {
-            when (keyType) {
-                VARINT -> {
-                    when (key) {
-                        is Int -> size += computeVarIntSize(key.toULong())
-                        is Long -> size += computeVarIntSize(key.toULong())
-                        is ULong -> size += computeVarIntSize(key)
-                        is UInt -> size += computeVarIntSize(key.toULong())
-                    }
-                }
-                STRING -> size += computeStringSize(key as String)
-                FLOAT -> size += 4
-            }
-            when (valueType) {
-                VARINT -> {
-                    when (value) {
-                        is Int -> size += computeVarIntSize(value.toULong())
-                        is Long -> size += computeVarIntSize(value.toULong())
-                        is ULong -> size += computeVarIntSize(value)
-                        is UInt -> size += computeVarIntSize(value.toULong())
-                    }
-                }
-                STRING -> size += computeStringSize(value as String)
-                GROUP -> size += (value as GroupTdf).computeSize()
-                FLOAT -> size += 4
-            }
+            size += computeTypeSize(keyType, key) + computeTypeSize(valueType, value)
         }
         return size
+    }
+
+    private fun computeTypeSize(type: Int, value: Any?): Int {
+        return when (type) {
+            VARINT -> computeVarIntSizeFuzzy(value)
+            STRING -> computeStringSize(value as String)
+            GROUP -> (value as GroupTdf).computeSize()
+            FLOAT -> 4
+            else -> throw IllegalStateException("Unknown list subtype $keyType")
+        }
     }
 
     override fun toString(): String = "Map($label: $value)"
