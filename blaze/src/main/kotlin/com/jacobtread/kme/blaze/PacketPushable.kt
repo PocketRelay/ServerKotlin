@@ -2,6 +2,8 @@
 
 package com.jacobtread.kme.blaze
 
+import com.jacobtread.kme.blaze.packet.Packet
+
 /**
  * PacketPushable Represents a class that can have packets
  * sent to it. This is implemented on sessions as well as

@@ -246,18 +246,6 @@ class TdfBuilder {
         values.add(this)
     }
 
-    /**
-     * createBuffer Writes the contents of this builder
-     * to a ByteBuf and returns the created buffer
-     *
-     * @return The ByteArray of contents
-     */
-    fun createBuffer(): ByteBuf {
-        val buffer = Unpooled.buffer()
-        values.forEach { it.writeFully(buffer) }
-        return buffer
-    }
-
 }
 
 /**

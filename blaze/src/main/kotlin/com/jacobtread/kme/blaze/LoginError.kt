@@ -1,7 +1,7 @@
 package com.jacobtread.kme.blaze
 
-import com.jacobtread.kme.blaze.Packet
 import com.jacobtread.kme.blaze.error
+import com.jacobtread.kme.blaze.packet.Packet
 
 /**
  * LoginError Enum for representing the different login error

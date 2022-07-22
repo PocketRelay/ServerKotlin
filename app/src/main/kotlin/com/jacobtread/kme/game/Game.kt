@@ -1,9 +1,13 @@
 package com.jacobtread.kme.game
 
-import com.jacobtread.kme.blaze.*
+import com.jacobtread.kme.blaze.Commands
+import com.jacobtread.kme.blaze.Components
+import com.jacobtread.kme.blaze.group
+import com.jacobtread.kme.blaze.packet.Packet
 import com.jacobtread.kme.blaze.tdf.GroupTdf
 import com.jacobtread.kme.blaze.tdf.ListTdf
 import com.jacobtread.kme.blaze.tdf.Tdf
+import com.jacobtread.kme.blaze.unique
 import com.jacobtread.kme.utils.logging.Logger
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
@@ -102,8 +106,6 @@ class Game(
                 }
             }
             val hostPacket = unique(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", host.playerId) }
-            val hostContent = hostPacket.contentBuffer
-            if (players.size > 1) hostContent.retain(players.size - 1)
             players.forEach {
                 if (it != host) {
                     val userPacket = unique(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", it.playerId) }
@@ -129,7 +131,6 @@ class Game(
     fun broadcastAttributeUpdate() {
         playersLock.read {
             val packet = createNotifyPacket()
-            if (players.size > 1) packet.contentBuffer.retain(players.size - 1)
             players.forEach { it.push(packet) }
         }
     }

@@ -2,6 +2,7 @@ package com.jacobtread.kme.game
 
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.data.VarTripple
+import com.jacobtread.kme.blaze.packet.Packet
 import com.jacobtread.kme.blaze.tdf.GroupTdf
 import com.jacobtread.kme.blaze.tdf.OptionalTdf
 import com.jacobtread.kme.blaze.tdf.VarIntTdf
@@ -226,8 +227,6 @@ class PlayerSession : PacketPushable {
      * this session such as the current game ID and networking information
      * (as far as im able to decern from it)
      *
-     * @param dmapValue Unknown But Nessicary
-     * @param pslm Unknown But Nessicary
      * @return The created group
      */
     private fun createSessionDataGroup(): GroupTdf {

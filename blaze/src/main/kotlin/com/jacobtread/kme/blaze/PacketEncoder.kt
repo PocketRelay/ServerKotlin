@@ -1,37 +1,54 @@
 package com.jacobtread.kme.blaze
 
+import com.jacobtread.kme.blaze.packet.Packet
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.buffer.ByteBuf
+import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelHandlerContext
-import io.netty.handler.codec.MessageToByteEncoder
+import io.netty.channel.ChannelOutboundHandlerAdapter
+import io.netty.channel.ChannelPromise
+import io.netty.handler.codec.EncoderException
+import io.netty.util.ReferenceCountUtil
 
-object PacketEncoder : MessageToByteEncoder<Packet>() {
+object PacketEncoder : ChannelOutboundHandlerAdapter() {
+
     override fun isSharable(): Boolean = true
 
-    override fun encode(ctx: ChannelHandlerContext, msg: Packet, out: ByteBuf) {
-        if (Logger.logPackets) {
-            try {
-                Logger.debug("SENT PACKET ===========\n" + packetToBuilder(msg) + "\n======================")
-            } catch (e: Throwable) {
-                logPacketException("Failed to decode sent packet contents for debugging: ", msg, e)
+    override fun write(ctx: ChannelHandlerContext, msg: Any, promise: ChannelPromise) {
+        var buffer: ByteBuf? = null
+        try {
+            if (msg is Packet) {
+                buffer = Packet.allocateBuffer(ctx.alloc(), msg)
+                try {
+                    if (Logger.logPackets) {
+                        try {
+                            Logger.debug("SENT PACKET ===========\n" + packetToBuilder(msg) + "\n======================")
+                        } catch (e: Throwable) {
+                            logPacketException("Failed to decode sent packet contents for debugging: ", msg, e)
+                        }
+                    }
+                    msg.writeTo(buffer)
+                    ctx.flush()
+                } finally {
+                    ReferenceCountUtil.release(msg)
+                }
+                if (buffer.isReadable) {
+                    ctx.write(buffer, promise)
+                } else {
+                    buffer.release()
+                    ctx.write(Unpooled.EMPTY_BUFFER, promise)
+                }
+                buffer = null
+            } else {
+                ctx.write(msg, promise)
             }
+        } catch (e: EncoderException) {
+            throw e
+        } catch (e: Throwable) {
+            throw EncoderException(e)
+        } finally {
+            buffer?.release()
         }
-        val content = msg.contentBuffer
-        val length = content.readableBytes()
-        out.writeByte((length and 0xFFFF) shr 8)
-        out.writeByte((length and 0xFF))
-        out.writeShort(msg.component)
-        out.writeShort(msg.command)
-        out.writeShort(msg.error)
-        out.writeByte(msg.type shr 8)
-        out.writeByte(if (length > 0xFFFF) 0x10 else 0x00)
-        out.writeShort(msg.id)
-        if (length > 0xFFFF) {
-            out.writeByte(((length.toLong() and 0xFF000000) shr 24).toInt())
-            out.writeByte((length and 0x00FF0000) shr 16)
-        }
-        out.writeBytes(content)
-        content.release()
-        ctx.flush()
     }
+
 }

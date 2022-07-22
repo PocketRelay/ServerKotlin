@@ -2,12 +2,13 @@
 
 package com.jacobtread.kme.blaze
 
-import com.jacobtread.kme.blaze.Packet.Companion.ERROR_TYPE
-import com.jacobtread.kme.blaze.Packet.Companion.INCOMING_TYPE
-import com.jacobtread.kme.blaze.Packet.Companion.NO_ERROR
-import com.jacobtread.kme.blaze.Packet.Companion.RESPONSE_TYPE
-import com.jacobtread.kme.blaze.Packet.Companion.UNIQUE_TYPE
-import io.netty.buffer.Unpooled
+import com.jacobtread.kme.blaze.packet.ComposedPacket
+import com.jacobtread.kme.blaze.packet.Packet
+import com.jacobtread.kme.blaze.packet.Packet.Companion.ERROR_TYPE
+import com.jacobtread.kme.blaze.packet.Packet.Companion.INCOMING_TYPE
+import com.jacobtread.kme.blaze.packet.Packet.Companion.NO_ERROR
+import com.jacobtread.kme.blaze.packet.Packet.Companion.RESPONSE_TYPE
+import com.jacobtread.kme.blaze.packet.Packet.Companion.UNIQUE_TYPE
 
 /**
  * Alias for a function that initializes the contents of a TdfBuilder
@@ -105,7 +106,7 @@ inline fun initializePacket(
 ): Packet {
     val builder = TdfBuilder()
     builder.init()
-    return Packet(component, command, error, type, id, builder.createBuffer())
+    return ComposedPacket(component, command, error, type, id, builder.values)
 }
 
 /**
@@ -125,4 +126,4 @@ inline fun initializeEmptyPacket(
     error: Int,
     type: Int,
     id: Int,
-): Packet = Packet(component, command, error, type, id, Unpooled.EMPTY_BUFFER)
+): Packet = ComposedPacket(component, command, error, type, id, emptyList())

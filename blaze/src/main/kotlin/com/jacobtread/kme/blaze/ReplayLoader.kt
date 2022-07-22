@@ -1,5 +1,6 @@
 package com.jacobtread.kme.blaze
 
+import com.jacobtread.kme.blaze.packet.LazyBufferPacket
 import io.netty.buffer.Unpooled
 import kotlin.io.path.*
 
@@ -34,7 +35,7 @@ fun main() {
                     val contentLength = length + (extLength shl 16)
                     val content = buffer.readBytes(contentLength)
                     content.markReaderIndex()
-                    val packet = Packet(component, command, error, qtype, id, content)
+                    val packet = LazyBufferPacket(component, command, error, qtype, id, content)
                     outBuilder.append(packetToBuilder(packet))
                     outBuilder.append('\n')
                     content.resetReaderIndex()

@@ -2,6 +2,7 @@ package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.blaze.*
+import com.jacobtread.kme.blaze.packet.Packet
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.logging.Logger.info
@@ -113,7 +114,7 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboun
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
         if (msg !is Packet) return
         try {
-            Logger.debug("RECEIVED PACKET FROM CLIENT =======\n" + packetToBuilder(msg) + "\n======================")
+            Logger.logIfDebug { "RECEIVED PACKET FROM CLIENT =======\n" + packetToBuilder(msg) + "\n======================" }
         } catch (e: Throwable) {
             logPacketException("Failed to decode incoming packet contents for debugging:", msg, e)
         }
@@ -141,6 +142,7 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboun
             write(msg)
             flush()
         }
+        Packet.release(msg)
     }
 
     private fun createUnlockPackets() {
@@ -180,5 +182,6 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboun
             write(msg)
             flush()
         }
+        Packet.release(msg)
     }
 }

@@ -4,6 +4,7 @@ import com.jacobtread.kme.Environment
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.annotations.PacketHandler
 import com.jacobtread.kme.blaze.annotations.PacketProcessor
+import com.jacobtread.kme.blaze.packet.Packet
 import com.jacobtread.kme.blaze.tdf.GroupTdf
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.byId
@@ -26,8 +27,11 @@ import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.channel.ChannelInitializer
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
+import io.netty.util.ReferenceCountUtil
+import io.netty.util.internal.ReferenceCountUpdater
 import java.io.IOException
 import java.net.InetSocketAddress
+import kotlin.time.measureTime
 
 /**
  * startMainServer Starts the main server
@@ -140,7 +144,7 @@ class MainProcessor(
             msg.pushEmptyResponse()
         }
         ctx.flush()
-        msg.release()
+        Packet.release(msg)
     }
 
     //region Authentication Component Region
@@ -556,11 +560,6 @@ class MainProcessor(
             number("OPER", 0)
             number("UID", host.playerId)
         }
-
-        // Retain all the content buffers, so they can be sent to the host aswell
-        a.contentBuffer.retain()
-        b.contentBuffer.retain()
-        c.contentBuffer.retain()
 
         pushAll(a, b, c)
         host.pushAll(a, b, c)

@@ -2,6 +2,8 @@ package com.jacobtread.kme.blaze
 
 import com.jacobtread.kme.blaze.tdf.*
 import com.jacobtread.kme.blaze.data.VarTripple
+import com.jacobtread.kme.blaze.packet.LazyBufferPacket
+import com.jacobtread.kme.blaze.packet.Packet
 import com.jacobtread.kme.utils.logging.Logger
 
 
@@ -32,17 +34,12 @@ fun packetToBuilder(rawPacket: Packet): String {
     }
 
     out.append(") {\n")
-    val contentBuffer = rawPacket.contentBuffer
-
-    contentBuffer.retain()
-    contentBuffer.markReaderIndex()
 
     rawPacket.content.forEach {
         appendTdfToBuffer(out, 1, it, false)
         out.append('\n')
     }
 
-    contentBuffer.resetReaderIndex()
     out.append("}")
     return out.toString()
 }
@@ -95,24 +92,27 @@ fun logPacketException(text: String, packet: Packet, e: Throwable) {
             .append("Content Dump:")
             .appendLine()
 
-        val content = packet.contentBuffer
-        try {
-            content.readerIndex(0)
-            var count = 0
-            while (content.readableBytes() > 0) {
-                val byte = content.readUnsignedByte()
-                buffer
-                    .append(byte.toUByte().toString())
-                    .append(", ")
-                count++
-                if (count == 12) {
-                    buffer.append('\n')
-                    count = 0
+        if (packet is LazyBufferPacket) {
+
+            val content = packet.contentBuffer
+            try {
+                content.readerIndex(0)
+                var count = 0
+                while (content.readableBytes() > 0) {
+                    val byte = content.readUnsignedByte()
+                    buffer
+                        .append(byte.toUByte().toString())
+                        .append(", ")
+                    count++
+                    if (count == 12) {
+                        buffer.append('\n')
+                        count = 0
+                    }
                 }
+            } catch (e: Throwable) {
+                buffer.append("Failed to encode packet raw contents:")
+                    .append(e.stackTraceToString())
             }
-        } catch (e: Throwable) {
-            buffer.append("Failed to encode packet raw contents:")
-                .append(e.stackTraceToString())
         }
         buffer.appendLine()
         buffer.appendLine("=====================================================")

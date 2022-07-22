@@ -2,6 +2,7 @@ package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.blaze.*
+import com.jacobtread.kme.blaze.packet.Packet
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.logging.Logger.error
 import com.jacobtread.kme.utils.logging.Logger.info
@@ -9,12 +10,12 @@ import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
-import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.ssl.SslContext
 import io.netty.handler.ssl.SslContextBuilder
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory
+import io.netty.util.ReferenceCountUtil
 import java.io.IOException
 import java.net.UnknownHostException
 import java.security.KeyStore
@@ -109,7 +110,11 @@ class RedirectorHandler : ChannelInboundHandlerAdapter() {
      * @param msg The message that was read
      */
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-        if (msg !is Packet) return
+        println(msg::class.java.simpleName)
+        if (msg !is Packet) {
+            ctx.fireChannelRead(msg)
+            return
+        }
         val channel = ctx.channel()
         channel.writeAndFlush(msg.respond {
             if (msg.component == Components.REDIRECTOR && msg.command == Commands.GET_SERVER_INSTANCE) {
@@ -125,11 +130,13 @@ class RedirectorHandler : ChannelInboundHandlerAdapter() {
                 // only ever used if MITM is enabled and using secure
                 bool("SECU", false)
                 bool("XDNS", false)
-                val remoteAddress = channel.remoteAddress()
-                info("Sent redirection to client at $remoteAddress. Closing Connection.")
             }
-        })
+        }).addListener {
+            val remoteAddress = channel.remoteAddress()
+            info("Sent redirection to client at $remoteAddress. Closing Connection.")
+        }
         channel.close()
+        Packet.release(msg)
     }
 
     /**

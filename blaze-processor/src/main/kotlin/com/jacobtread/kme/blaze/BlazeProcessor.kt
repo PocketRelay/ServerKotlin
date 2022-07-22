@@ -10,6 +10,7 @@ import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.jacobtread.kme.blaze.annotations.PacketHandler
 import com.jacobtread.kme.blaze.annotations.PacketProcessor
+import com.jacobtread.kme.blaze.packet.Packet
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
