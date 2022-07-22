@@ -1,9 +1,9 @@
 package com.jacobtread.kme.blaze
 
-import com.jacobtread.kme.blaze.tdf.*
 import com.jacobtread.kme.blaze.data.VarTripple
 import com.jacobtread.kme.blaze.packet.LazyBufferPacket
 import com.jacobtread.kme.blaze.packet.Packet
+import com.jacobtread.kme.blaze.tdf.*
 import com.jacobtread.kme.utils.logging.Logger
 
 
@@ -118,10 +118,11 @@ fun logPacketException(text: String, packet: Packet, e: Throwable) {
         buffer.appendLine("=====================================================")
         Logger.warn(buffer.toString())
     } catch (e: Throwable) {
-        Logger.warn("Exception when handling packet dump exception",e)
+        Logger.warn("Exception when handling packet dump exception", e)
     }
 }
- fun appendTdfToBuffer(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Boolean) {
+
+fun appendTdfToBuffer(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Boolean) {
     when (value) {
         is VarIntTdf -> {
             out.append("  ".repeat(indent))
@@ -194,10 +195,15 @@ fun logPacketException(text: String, packet: Packet, e: Throwable) {
             val length = content.size
 
             when (content[0]) {
-                is ULong -> {
+                is Number -> {
                     for (i in content.indices) {
                         out.append("0x")
-                            .append((content[i] as ULong).toString(16))
+                        when (val value = content[i]) {
+                            is ULong -> out.append(value.toString(16))
+                            is Long -> out.append(value.toString(16))
+                            is Int -> out.append(value.toString(16))
+                            is UInt -> out.append(value.toString(16))
+                        }
                         if (i != length - 1) {
                             out.append(", ")
                         }

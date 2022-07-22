@@ -219,7 +219,7 @@ class Game(
         })
     }
 
-    fun createPoolPacket(forSession: PlayerSession): Packet =
+    private fun createPoolPacket(forSession: PlayerSession): Packet =
         unique(
             Components.GAME_MANAGER,
             Commands.RETURN_DEDICATED_SERVER_TO_POOL
