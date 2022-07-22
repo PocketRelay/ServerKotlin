@@ -110,7 +110,7 @@ data class Config(
      */
     @Serializable
     data class PanelConfig(
-        val enabled: Boolean = true,
+        val enabled: Boolean = false,
         val username: String = "admin",
         val password: String = "admin",
     )
