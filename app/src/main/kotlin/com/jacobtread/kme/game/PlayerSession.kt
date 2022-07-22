@@ -125,6 +125,120 @@ class PlayerSession : PacketPushable {
         )
     }
 
+    fun pushMatchmakingStatus() {
+        push(
+            unique(
+                Components.GAME_MANAGER,
+                Commands.NOTIFY_MATCHMAKING_ASYNC_STATUS
+            ) {
+                list("ASIL", listOf(
+                    group {
+                        +group("CGS") {
+                            number("EVST", 0x0)
+                            number("MMSN", 0x1)
+                            number("NOMP", 0x0)
+                        }
+                        +group("CUST") {
+                        }
+                        +group("DNFS") {
+                            number("MDNF", 0x0)
+                            number("XDNF", 0x0)
+                        }
+                        +group("FGS") {
+                            number("GNUM", 0x0)
+                        }
+                        +group("GEOS") {
+                            number("DIST", 0x0)
+                        }
+                        map(
+                            "GRDA", mapOf(
+                                "ME3_gameDifficultyRule" to group {
+                                    text("NAME", "ME3_gameDifficultyRule")
+                                    list("VALU", listOf("difficulty3"))
+                                },
+                                "ME3_gameEnemyTypeRule" to group {
+                                    text("NAME", "ME3_gameEnemyTypeRule")
+                                    list("VALU", listOf("enemy4"))
+                                },
+                                "ME3_gameMapMatchRule" to group {
+                                    text("NAME", "ME3_gameMapMatchRule")
+                                    list(
+                                        "VALU",
+                                        listOf(
+                                            "map0", "map1", "map2", "map3", "map4", "map5", "map6",
+                                            "map7", "map8", "map9", "map10", "map11", "map12", "map13",
+                                            "map14", "map15", "map16", "map17", "map18", "map19", "map20",
+                                            "map21", "map22", "map23", "map24", "map25", "map26", "map27",
+                                            "map28", "map29", "random", "abstain"
+                                        )
+                                    )
+                                },
+                                "ME3_gameStateMatchRule" to group {
+                                    text("NAME", "ME3_gameStateMatchRule")
+                                    list("VALU", listOf("IN_LOBBY", "IN_LOBBY_LONGTIME", "IN_GAME_STARTING", "abstain"))
+                                },
+                                "ME3_rule_dlc2300" to group {
+                                    text("NAME", "ME3_rule_dlc2300")
+                                    list("VALU", listOf("required", "preferred"))
+                                },
+                                "ME3_rule_dlc2500" to group {
+                                    text("NAME", "ME3_rule_dlc2500")
+                                    list("VALU", listOf("required", "preferred"))
+                                },
+                                "ME3_rule_dlc2700" to group {
+                                    text("NAME", "ME3_rule_dlc2700")
+                                    list("VALU", listOf("required", "preferred"))
+                                },
+                                "ME3_rule_dlc3050" to group {
+                                    text("NAME", "ME3_rule_dlc3050")
+                                    list("VALU", listOf("required", "preferred"))
+                                },
+                                "ME3_rule_dlc3225" to group {
+                                    text("NAME", "ME3_rule_dlc3225")
+                                    list("VALU", listOf("required", "preferred"))
+                                },
+                            )
+                        )
+                        +group("GSRD") {
+                            number("PMAX", 0x4)
+                            number("PMIN", 0x2)
+                        }
+                        +group("HBRD") {
+                            number("BVAL", 0x1)
+                        }
+                        +group("HVRD") {
+                            number("VVAL", 0x0)
+                        }
+                        +group("PSRS") {
+                        }
+                        +group("RRDA") {
+                            number("RVAL", 0x0)
+                        }
+                        +group("TSRS") {
+                            number("TMAX", 0x0)
+                            number("TMIN", 0x0)
+                        }
+                        map(
+                            "UEDS", mapOf(
+                                "ME3_characterSkill_Rule" to group {
+                                    number("AMAX", 0x1f4)
+                                    number("AMIN", 0x0)
+                                    number("MUED", 0x1f4)
+                                    text("NAME", "ME3_characterSkill_Rule")
+                                },
+                            )
+                        )
+                        +group("VGRS") {
+                            number("VVAL", 0x0)
+                        }
+                    }
+                ))
+                number("MSID", matchmakingId)
+                number("USID", playerId)
+            }
+        )
+    }
+
     /**
      * release Handles cleaning up of this session after the session is
      * closed and no longer needed unsets the channel and player and

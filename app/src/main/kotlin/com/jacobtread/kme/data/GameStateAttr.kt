@@ -5,5 +5,9 @@ enum class GameStateAttr(val value: String) {
     IN_LOBBY_LONGTIME("IN_LOBBY_LONGTIME"),
     IN_GAME_STARTING("IN_GAME_STARTING"),
     IN_GAME_MIDGAME("IN_GAME_MIDGAME"),
-    IN_GAME_FINISHING("IN_GAME_FINISHING")
+    IN_GAME_FINISHING("IN_GAME_FINISHING");
+
+    companion object {
+        const val GAME_STATE_ATTR = "ME3gameState"
+    }
 }

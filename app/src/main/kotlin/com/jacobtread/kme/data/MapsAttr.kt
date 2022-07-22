@@ -1,6 +1,6 @@
 package com.jacobtread.kme.data
 
-enum class Maps(
+enum class MapsAttr(
     val mapName: String,
     val location: String,
     val key: String,
@@ -49,5 +49,9 @@ enum class Maps(
     MAP_26("Map 26", "?", "map26"),
     MAP_27("Map 27", "?", "map27"),
     MAP_28("Map 28", "?", "map28"),
-    MAP_29("Map 29", "?", "map29"),
+    MAP_29("Map 29", "?", "map29");
+
+    companion object {
+        const val MAP_ATTR = "ME3map"
+    }
 }

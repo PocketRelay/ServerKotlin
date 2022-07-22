@@ -30,7 +30,7 @@ class Game(
     private val attributesLock = ReentrantReadWriteLock()
     private val attributes = HashMap<String, String>()
 
-    fun isGameState(stateAttr: GameStateAttr): Boolean = isAttribute("ME3gameState", stateAttr.value)
+    fun isGameState(stateAttr: GameStateAttr): Boolean = isAttribute(GameStateAttr.GAME_STATE_ATTR, stateAttr.value)
 
     var isActive = true
 
