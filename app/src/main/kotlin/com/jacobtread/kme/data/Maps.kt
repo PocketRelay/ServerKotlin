@@ -5,17 +5,9 @@ enum class Maps(
     val location: String,
     val key: String,
 ) {
-    // Unknown Maps
-    MAP_1("Map 1", "?", "map1"),
-    MAP_6("Map 6", "?", "map6"),
-    MAP_12("Map 12", "?", "map12"),
-    MAP_23("Map 23", "?", "map23"),
-    MAP_24("Map 24", "?", "map24"),
-    MAP_25("Map 25", "?", "map25"),
-    MAP_26("Map 26", "?", "map26"),
-    MAP_27("Map 27", "?", "map27"),
-    MAP_28("Map 28", "?", "map28"),
-    MAP_29("Map 29", "?", "map29"),
+    // Random Map
+    UNKNOWN("Unknown Location", "?", "map0"),
+    RANDOM("Unknown Location", "?", "random"),
 
     // Standard Maps
     FIREBASE_DAGGER("Firebase Dagger", "Ontarom", "map2"),
@@ -46,9 +38,16 @@ enum class Maps(
     FIREBASE_GIANT_HAZARD("☣ Firebase Giant ☣", "Tuchanka", "map21"),
     FIREBASE_WHITE_HAZARD("☣ Firebase White ☣", "Noveria", "map22"),
 
-    // Random Map
-    UNKNOWN("Unknown Location", "?", "map0"),
 
-    // Random Map
-    RANDOM("Unknown Location", "?", "random")
+    // Unknown Maps
+    MAP_1("Map 1", "?", "map1"),
+    MAP_6("Map 6", "?", "map6"),
+    MAP_12("Map 12", "?", "map12"),
+    MAP_23("Map 23", "?", "map23"),
+    MAP_24("Map 24", "?", "map24"),
+    MAP_25("Map 25", "?", "map25"),
+    MAP_26("Map 26", "?", "map26"),
+    MAP_27("Map 27", "?", "map27"),
+    MAP_28("Map 28", "?", "map28"),
+    MAP_29("Map 29", "?", "map29"),
 }
