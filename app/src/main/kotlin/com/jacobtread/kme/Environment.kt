@@ -31,7 +31,7 @@ import org.jetbrains.exposed.sql.Database as ExposedDatabase
 object Environment {
 
     // The version of KME
-    const val KME_VERSION = "1.0.0"
+    const val KME_VERSION = "1.0.1"
 
     val externalAddress: String
 
