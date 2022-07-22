@@ -114,7 +114,7 @@ inline fun TdfContainer.blob(label: String): ByteArray = getValue(BlobTdf::class
 inline fun TdfContainer.unionValue(label: String): Tdf<*>? = getValue(OptionalTdf::class.java, label)
 inline fun TdfContainer.tripple(label: String): VarTripple = getValue(TrippleTdf::class.java, label)
 inline fun TdfContainer.pair(label: String): VarPair = getValue(PairTdf::class.java, label)
-inline fun TdfContainer.varIntList(label: String): List<ULong> = getValue(VarIntList::class.java, label)
+inline fun TdfContainer.varIntList(label: String): List<ULong> = getValue(VarIntListTdf::class.java, label)
 
 @Suppress("UNCHECKED_CAST")
 inline fun <V : Any> TdfContainer.list(label: String): List<V> = getValue(ListTdf::class.java, label) as List<V>
@@ -133,7 +133,7 @@ inline fun TdfContainer.blobOrNull(label: String): ByteArray? = getValueOrNull(B
 inline fun TdfContainer.unionValueOrNull(label: String): Tdf<*>? = getValueOrNull(OptionalTdf::class.java, label)
 inline fun TdfContainer.trippleOrNull(label: String): VarTripple? = getValueOrNull(TrippleTdf::class.java, label)
 inline fun TdfContainer.pairOrNull(label: String): VarPair? = getValueOrNull(PairTdf::class.java, label)
-inline fun TdfContainer.varIntListOrNull(label: String): List<ULong>? = getValueOrNull(VarIntList::class.java, label)
+inline fun TdfContainer.varIntListOrNull(label: String): List<ULong>? = getValueOrNull(VarIntListTdf::class.java, label)
 
 
 @Suppress("UNCHECKED_CAST")

@@ -2,13 +2,13 @@ package com.jacobtread.kme.blaze.tdf
 
 import io.netty.buffer.ByteBuf
 
-class VarIntList(label: String, override val value: List<ULong>) : Tdf<List<ULong>>(label, INT_LIST) {
-    companion object : TdfReadable<VarIntList> {
-        override fun read(label: String, input: ByteBuf): VarIntList {
+class VarIntListTdf(label: String, override val value: List<ULong>) : Tdf<List<ULong>>(label, INT_LIST) {
+    companion object : TdfReadable<VarIntListTdf> {
+        override fun read(label: String, input: ByteBuf): VarIntListTdf {
             val count = readVarInt(input).toInt()
             val values = ArrayList<ULong>(count)
             repeat(count) { values.add(readVarInt(input)) }
-            return VarIntList(label, values)
+            return VarIntListTdf(label, values)
         }
     }
 
@@ -31,7 +31,7 @@ class VarIntList(label: String, override val value: List<ULong>) : Tdf<List<ULon
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is VarIntList) return false
+        if (other !is VarIntListTdf) return false
         if (!super.equals(other)) return false
         if (value != other.value) return false
         return true

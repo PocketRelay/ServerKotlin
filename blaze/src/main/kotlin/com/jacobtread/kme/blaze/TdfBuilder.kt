@@ -207,7 +207,7 @@ class TdfBuilder {
      * @param value The list value
      */
     fun varList(label: String, value: List<ULong> = emptyList()) {
-        values.add(VarIntList(label, value))
+        values.add(VarIntListTdf(label, value))
     }
 
     /**

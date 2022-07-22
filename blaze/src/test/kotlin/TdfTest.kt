@@ -159,13 +159,13 @@ internal class TdfTest {
             OptionalTdf(LabelGen(), type, value)
         }
 
-        private val VarIntListTdfGen: Generator<VarIntList> = {
+        private val VarIntListTdfTdfGen: Generator<VarIntListTdf> = {
             val minValues = 0
             val maxValues = 20
             val values = Random.nextInt(minValues..maxValues)
             val valuesList = ArrayList<ULong>(values)
             repeat(values) { valuesList.add(ULongGen()) }
-            VarIntList(LabelGen(), valuesList)
+            VarIntListTdf(LabelGen(), valuesList)
         }
 
         private val PairTdfGen: Generator<PairTdf> = { PairTdf(LabelGen(), PairGen()) }
@@ -180,7 +180,7 @@ internal class TdfTest {
                 4 -> ListTdfGen
                 5 -> MapTdfGen
                 6 -> OptionalTdfGen
-                7 -> VarIntListTdfGen
+                7 -> VarIntListTdfTdfGen
                 8 -> PairTdfGen
                 9 -> TrippleTdfGen
                 10 -> FloatTdfGen
@@ -239,7 +239,7 @@ internal class TdfTest {
     fun `test optional`() = testTdfIterations(OptionalTdfGen)
 
     @Test
-    fun `test var int list`() = testTdfIterations(VarIntListTdfGen)
+    fun `test var int list`() = testTdfIterations(VarIntListTdfTdfGen)
 
     @Test
     fun `test pair`() = testTdfIterations(PairTdfGen)

@@ -110,7 +110,7 @@ abstract class Tdf<V>(val label: String, private val tagType: UByte) {
                     LIST -> ListTdf.read(label, input)
                     MAP -> MapTdf.read(label, input)
                     OPTIONAL -> OptionalTdf.read(label, input)
-                    INT_LIST -> VarIntList.read(label, input)
+                    INT_LIST -> VarIntListTdf.read(label, input)
                     PAIR -> PairTdf.read(label, input)
                     TRIPPLE -> TrippleTdf.read(label, input)
                     FLOAT -> FloatTdf.read(label, input)

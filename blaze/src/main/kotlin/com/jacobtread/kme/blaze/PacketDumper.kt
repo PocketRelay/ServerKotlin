@@ -308,7 +308,7 @@ fun appendTdfToBuffer(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Bo
             out.append("  ".repeat(indent))
                 .append("))")
         }
-        is VarIntList -> {
+        is VarIntListTdf -> {
             out.append("  ".repeat(indent))
                 .append("varList(\"")
                 .append(value.label)
