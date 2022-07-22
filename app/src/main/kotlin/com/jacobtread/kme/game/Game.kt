@@ -71,7 +71,6 @@ class Game(
 
     private fun sendHostPlayerJoin(session: PlayerSession) {
         host.pushPlayerUpdate(session)
-        Logger.info("Pushing host JOIN_GAME_BY_GROUP")
         host.push(unique(Components.GAME_MANAGER, Commands.JOIN_GAME_BY_GROUP) {
             number("GID", id)
             +session.createPlayerDataGroup(getSlotIndex(session))
