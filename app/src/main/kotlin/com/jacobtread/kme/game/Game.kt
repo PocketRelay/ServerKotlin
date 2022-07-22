@@ -8,6 +8,7 @@ import com.jacobtread.kme.blaze.tdf.GroupTdf
 import com.jacobtread.kme.blaze.tdf.ListTdf
 import com.jacobtread.kme.blaze.tdf.Tdf
 import com.jacobtread.kme.blaze.unique
+import com.jacobtread.kme.data.GameStateAttr
 import com.jacobtread.kme.exceptions.GameStoppedException
 import com.jacobtread.kme.utils.logging.Logger
 import java.util.concurrent.locks.ReentrantReadWriteLock
@@ -24,8 +25,6 @@ class Game(
         const val MAX_PLAYERS = 4
         const val MIN_ID = 0x5DC695uL
         const val MIN_MID = 0x1129DA20uL
-
-        const val GAME_STATE_ATTRIBUTE = "ME3gameState"
     }
 
     var gameState: Int = 0x1
@@ -34,9 +33,7 @@ class Game(
     private val attributesLock = ReentrantReadWriteLock()
     private val attributes = HashMap<String, String>()
 
-    val isLobby: Boolean get() = isAttribute(GAME_STATE_ATTRIBUTE, "IN_LOBBY")
-    val isInGameStarting: Boolean get() = isAttribute(GAME_STATE_ATTRIBUTE, "IN_GAME_STARTING")
-
+    fun isGameState(stateAttr: GameStateAttr): Boolean = isAttribute("ME3gameState", stateAttr.value)
 
     var isActive = true
 
