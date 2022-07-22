@@ -1,23 +1,22 @@
 # KME3
 
+Kotlin Mass Effect 3
+
 ![License](https://img.shields.io/github/license/jacobtread/KME3?style=for-the-badge)
 [![Gradle Build](https://img.shields.io/github/workflow/status/jacobtread/KME3/gradle-build?style=for-the-badge)](https://github.com/jacobtread/KME3/actions/workflows/gradle.yml)
 ![Total Lines](https://img.shields.io/tokei/lines/github/jacobtread/KME3?style=for-the-badge)
 
-Mass Effect 3 Server Emulator
+KME3 is a custom private server for Mass Effect 3 emulating the functionatlity of the official EA servers
+but allowing you to host your own closed off private server or ever a server for playing together over lan
 
-Written in Kotlin this aims to be a production capable version of the [https://github.com/PrivateServerEmulator/ME3PSE](https://github.com/PrivateServerEmulator/ME3PSE) server
-with the aim to improve it and take it to the level of a server that can be used to host public matches with a proper backend that stores account information in a database etc
+So far this project has become a very well performing server and is constantly being improved and optimized in my free time.
+There are some bugs which need to be ironed out but at the moment its a perfectly usable server
 
-## Setup
-
-**Client Setup** You can find the setup guide for connecting to KME servers [Here](docs/SETUP_CLIENT.md)
-
-**Hosting Setup**: You can find the setup guide for running your own KME servers [Here](docs/SETUP_HOSTER.md)
-
-## Configuration Reference
-
-For information about the configuration file and what each setting in the file means see [Here](docs/CONFIG_REFERENCE.md)
+## Links
+- [**Latest Release** - The latest server jar release](https://github.com/jacobtread/KME3/releases/latest) 
+- [**Client Setup** - Setting up yourself to connect to KME3 servers](docs/SETUP_CLIENT.md)
+- [**Hosting Setup** - Setting up yourself to host a KME3 servers](docs/SETUP_HOSTER.md)
+- [**Configuration Reference** - Configuration file info and what each setting in it does](docs/CONFIG_REFERENCE.md)
 
 ## Connection requirements
 
@@ -27,26 +26,6 @@ I plan on making a tool for doing this automatically
 
 > Note: if you play other EA games such as Battlefield this may affect your ability to connect
 > to the servers for those games, so you will need to remove this redirect before playing them
-
-## Working so far
-
-- [x] Working Server & Client Connections
-- [x] Parsing and reading packets
-- [x] Clean and easy builders for creating packets
-    - (similar to compose uses a DSL making it super easy to use)
-- [x] Initial database structure
-- [x] Create Account with server
-    - [x] Store user in database
-- [x] Login
-    - [x] Access users in database and retrieve them
-    - [x] Silent login / Token based login
-- [x] Main menu message
-- [x] Character storage and selection
-- [x] Galaxy at war
-- [x] Matchmaking
-    - NOTE: Some match settings are respected but not all currently private matches are not respected
-- [x] Playing games!
-- [x] In game store
 
 ## Planned
 
