@@ -1,4 +1,5 @@
 import com.jacobtread.kme.blaze.*
+import com.jacobtread.kme.blaze.packet.Packet
 import com.jacobtread.kme.blaze.tdf.GroupTdf
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.bootstrap.Bootstrap

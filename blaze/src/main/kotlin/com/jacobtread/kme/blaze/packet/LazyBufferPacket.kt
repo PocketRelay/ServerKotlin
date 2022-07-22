@@ -55,11 +55,6 @@ class LazyBufferPacket(
             values
         }
     }
-
-    override fun toString(): String {
-        return "LazyBufferPacket (Component: $component, Command: $command, Error; $error, QType: $type, Id: $id, Content: ${contentBuffer.readableBytes()}byte(s))"
-    }
-
     override fun writeContent(out: ByteBuf) {
         out.writeBytes(contentBuffer, contentBuffer.readerIndex(), contentBuffer.readableBytes())
     }
@@ -71,4 +66,10 @@ class LazyBufferPacket(
             contentBuffer.release()
         }
     }
+
+
+    override fun toString(): String {
+        return "LazyBufferPacket (Component: $component, Command: $command, Error; $error, QType: $type, Id: $id, Content: ${contentBuffer.readableBytes()}byte(s))"
+    }
+
 }
