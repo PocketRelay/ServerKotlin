@@ -1,7 +1,7 @@
 package com.jacobtread.kme.blaze.tdf
 
+import com.jacobtread.kme.blaze.PacketLogger
 import com.jacobtread.kme.blaze.TdfContainer
-import com.jacobtread.kme.blaze.appendTdfToBuffer
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.buffer.ByteBuf
 
@@ -31,7 +31,7 @@ class GroupTdf(label: String, val start2: Boolean, override val value: List<Tdf<
                 }
                 val output = StringBuilder("\n")
                 out.forEach {
-                    appendTdfToBuffer(output, 0, it, false)
+                    PacketLogger.createTdfSource(output, 0, it, false)
                     output.append('\n')
                 }
                 Logger.error(output.toString())

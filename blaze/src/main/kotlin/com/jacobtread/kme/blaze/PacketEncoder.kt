@@ -22,9 +22,9 @@ object PacketEncoder : ChannelOutboundHandlerAdapter() {
                 try {
                     if (Logger.logPackets) {
                         try {
-                            Logger.debug("SENT PACKET ===========\n" + packetToBuilder(msg) + "\n======================")
+                            Logger.debug("SENT PACKET ===========\n" + PacketLogger.createPacketSource(msg) + "\n======================")
                         } catch (e: Throwable) {
-                            logPacketException("Failed to decode sent packet contents for debugging: ", msg, e)
+                            PacketLogger.dumpPacketException("Failed to decode sent packet contents for debugging: ", msg, e)
                         }
                     }
                     msg.writeTo(buffer)

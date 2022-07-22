@@ -160,9 +160,9 @@ class PacketDecoder : ChannelInboundHandlerAdapter() {
     private fun logRecievedPacket(packet: Packet) {
         if (Logger.logPackets) {
             try {
-                Logger.debug("RECEIVED PACKET =======\n" + packetToBuilder(packet) + "\n======================")
+                Logger.debug("RECEIVED PACKET =======\n" + PacketLogger.createPacketSource(packet) + "\n======================")
             } catch (e: Throwable) {
-                logPacketException("Failed to decode incoming packet contents for debugging:", packet, e)
+                PacketLogger.dumpPacketException("Failed to decode incoming packet contents for debugging:", packet, e)
             }
         }
     }

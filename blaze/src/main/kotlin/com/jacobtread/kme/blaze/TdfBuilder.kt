@@ -3,8 +3,6 @@ package com.jacobtread.kme.blaze
 import com.jacobtread.kme.blaze.data.VarPair
 import com.jacobtread.kme.blaze.data.VarTripple
 import com.jacobtread.kme.blaze.tdf.*
-import io.netty.buffer.ByteBuf
-import io.netty.buffer.Unpooled
 
 /**
  * TdfBuilder Builder class used to create Tdf structures easily

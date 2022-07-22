@@ -3,7 +3,6 @@ package com.jacobtread.kme.servers
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.packet.Packet
-import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.logging.Logger.info
 import io.netty.bootstrap.Bootstrap
@@ -114,9 +113,9 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboun
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
         if (msg !is Packet) return
         try {
-            Logger.logIfDebug { "RECEIVED PACKET FROM CLIENT =======\n" + packetToBuilder(msg) + "\n======================" }
+            Logger.logIfDebug { "RECEIVED PACKET FROM CLIENT =======\n" + PacketLogger.createPacketSource(msg) + "\n======================" }
         } catch (e: Throwable) {
-            logPacketException("Failed to decode incoming packet contents for debugging:", msg, e)
+            PacketLogger.dumpPacketException("Failed to decode incoming packet contents for debugging:", msg, e)
         }
         if (msg.component == Components.UTIL && msg.command == Commands.USER_SETTINGS_LOAD_ALL) {
             // Unlock everything cheat
@@ -174,9 +173,9 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboun
     fun channelReadOffical(msg: Any) {
         if (msg !is Packet) return
         try {
-            Logger.logIfDebug { "RECIEVED PACKET FROM EA =======\n" + packetToBuilder(msg) + "\n======================" }
+            Logger.logIfDebug { "RECIEVED PACKET FROM EA =======\n" + PacketLogger.createPacketSource(msg) + "\n======================" }
         } catch (e: Throwable) {
-            logPacketException("Failed to decode incoming packet contents for debugging:", msg, e)
+            PacketLogger.dumpPacketException("Failed to decode incoming packet contents for debugging:", msg, e)
         }
         clientChannel?.apply {
             write(msg)

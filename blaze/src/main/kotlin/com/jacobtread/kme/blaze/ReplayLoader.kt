@@ -36,7 +36,7 @@ fun main() {
                     val content = buffer.readBytes(contentLength)
                     content.markReaderIndex()
                     val packet = LazyBufferPacket(component, command, error, qtype, id, content)
-                    outBuilder.append(packetToBuilder(packet))
+                    outBuilder.append(PacketLogger.createPacketSource(packet))
                     outBuilder.append('\n')
                     content.resetReaderIndex()
                     var count = 0

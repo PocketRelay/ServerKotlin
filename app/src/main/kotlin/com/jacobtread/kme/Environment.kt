@@ -1,5 +1,8 @@
 package com.jacobtread.kme
 
+import com.jacobtread.kme.blaze.Commands
+import com.jacobtread.kme.blaze.Components
+import com.jacobtread.kme.blaze.PacketLogger
 import com.jacobtread.kme.database.RuntimeDriver
 import com.jacobtread.kme.database.tables.*
 import com.jacobtread.kme.utils.logging.Logger
@@ -78,6 +81,10 @@ object Environment {
             env.booleanValue("KME_LOGGER_SAVE", loggingConfig.save),
             env.booleanValue("KME_LOGGER_PACKETS", loggingConfig.packets)
         )
+
+        if (Logger.logPackets) { // Load command and component names for debugging
+            PacketLogger.init(Components, Commands)
+        }
 
         // External address string
         externalAddress = env.stringValue("KME_EXTERNAL_ADDRESS", config.externalAddress)
