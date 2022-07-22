@@ -110,7 +110,6 @@ class RedirectorHandler : ChannelInboundHandlerAdapter() {
      * @param msg The message that was read
      */
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-        println(msg::class.java.simpleName)
         if (msg !is Packet) {
             ctx.fireChannelRead(msg)
             return
