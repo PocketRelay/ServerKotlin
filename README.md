@@ -1,5 +1,9 @@
 # KME3
 
+![License](https://img.shields.io/github/license/jacobtread/KME3?style=for-the-badge)
+[![Gradle Build](https://img.shields.io/github/workflow/status/jacobtread/KME3/gradle-build?style=for-the-badge)](https://github.com/jacobtread/KME3/actions/workflows/gradle.yml)
+![Total Lines](https://img.shields.io/tokei/lines/github/jacobtread/KME3?style=for-the-badge)
+
 Mass Effect 3 Server Emulator
 
 Written in Kotlin this aims to be a production capable version of the [https://github.com/PrivateServerEmulator/ME3PSE](https://github.com/PrivateServerEmulator/ME3PSE) server
@@ -12,6 +16,7 @@ with the aim to improve it and take it to the level of a server that can be used
 **Hosting Setup**: You can find the setup guide for running your own KME servers [Here](docs/SETUP_HOSTER.md)
 
 ## Configuration Reference
+
 For information about the configuration file and what each setting in the file means see [Here](docs/CONFIG_REFERENCE.md)
 
 ## Connection requirements
@@ -39,7 +44,7 @@ I plan on making a tool for doing this automatically
 - [x] Character storage and selection
 - [x] Galaxy at war
 - [x] Matchmaking
-    - NOTE: Doesn't actually take user preferences into account just joins first not full server
+    - NOTE: Some match settings are respected but not all currently private matches are not respected
 - [x] Playing games!
 - [x] In game store
 
@@ -51,5 +56,5 @@ I plan on making a tool for doing this automatically
 
 ## Credits
 
-1. [https://github.com/PrivateServerEmulator/ME3PSE](https://github.com/PrivateServerEmulator/ME3PSE) Sourced certificate and many game assets from this project 
+1. [https://github.com/PrivateServerEmulator/ME3PSE](https://github.com/PrivateServerEmulator/ME3PSE) Sourced certificate and many game assets from this project
 2. [https://github.com/Erik-JS/masseffect-binkw32](https://github.com/Erik-JS/masseffect-binkw32) Game patcher
