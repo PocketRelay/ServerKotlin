@@ -64,6 +64,10 @@ class Game(
     fun join(player: PlayerSession) = playersLock.write {
         // TODO: Unsafe could overflow if too many players. implement limit
 
+        if (player.matchmaking) {
+            player.resetMatchmakingState()
+        }
+
         player.gameSlot = playersCount++
         players[player.gameSlot] = player
         player.game = this
@@ -75,7 +79,7 @@ class Game(
             }
         }
 
-        player.push(createPoolPacket(player))
+        player.push(createMatchmakingResult(player))
         player.push(player.createSetSession())
     }
 
@@ -343,13 +347,14 @@ class Game(
         return ListTdf("PROS", Tdf.GROUP, playersList)
     }
 
-    private fun createPoolPacket(forSession: PlayerSession): Packet =
+    private fun createMatchmakingResult(forSession: PlayerSession): Packet =
         unique(
             Components.GAME_MANAGER,
-            Commands.RETURN_DEDICATED_SERVER_TO_POOL
+            Commands.NOTIFY_GAME_SETUP
         ) {
             +createGameGroup()
             +createPlayersList()
+            // Matchmaking result
             optional("REAS", 0x3u, group("VALU") {
                 number("FIT", 0x3f7a)
                 number("MAXF", 0x5460)

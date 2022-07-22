@@ -34,10 +34,10 @@ object Matchmaking {
      */
     private val waitingLock = ReentrantReadWriteLock()
 
-    private var matchmakingId: ULong = 1uL
+    private var matchmakingId: ULong = 2uL
 
     init {
-        scheduledExecutorService.schedule(this::updateMatchmakingQueue, 1, TimeUnit.MINUTES)
+        scheduledExecutorService.scheduleWithFixedDelay(this::updateMatchmakingQueue, 0, 30, TimeUnit.SECONDS)
     }
 
     /**
@@ -56,7 +56,6 @@ object Matchmaking {
                 if (ruleSet.validate(attributes) && game.isJoinable) {
                     game.join(session)
                     waitingLock.write {
-                        session.matchmaking = false
                         iterator.remove()
                     }
                 }
@@ -74,12 +73,12 @@ object Matchmaking {
      * @return The game or null if they were added to the waiting list
      */
     fun getMatchOrQueue(session: PlayerSession, ruleSet: MatchRuleSet): Game? {
-        val game = GameManager.tryFindGame { ruleSet.validate(it.getAttributes()) }
-        if (game != null) return game
-        session.matchmaking = true
         if (session.matchmakingId == 1uL) {
             session.matchmakingId = matchmakingId++
         }
+        val game = GameManager.tryFindGame { ruleSet.validate(it.getAttributes()) }
+        if (game != null) return game
+        session.matchmaking = true
         session.startedMatchmaking = System.currentTimeMillis()
         waitingLock.write { waitingPlayers[session] = ruleSet }
         return null
@@ -101,7 +100,7 @@ object Matchmaking {
         val currentTime = System.currentTimeMillis()
         waitingLock.read {
             if (waitingPlayers.isEmpty()) {
-                matchmakingId = 1uL
+                matchmakingId = 2uL
             } else {
                 val iterator = waitingPlayers.iterator()
                 while (iterator.hasNext()) {
@@ -113,6 +112,8 @@ object Matchmaking {
                         waitingLock.write {
                             iterator.remove()
                         }
+                    } else {
+                        session.pushMatchmakingStatus()
                     }
                 }
             }

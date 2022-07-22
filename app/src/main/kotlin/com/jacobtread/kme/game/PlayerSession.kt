@@ -110,11 +110,13 @@ class PlayerSession : PacketPushable {
     var matchmakingId: ULong = 1uL
     var startedMatchmaking: Long = -1L
 
-    fun notifyMatchmakingFailed() {
+    fun resetMatchmakingState() {
         matchmaking = false
-        matchmakingId = 1uL
         startedMatchmaking = -1L
+    }
 
+    fun notifyMatchmakingFailed() {
+        resetMatchmakingState()
         push(
             unique(Components.GAME_MANAGER, Commands.NOTIFY_MATCHMAKING_FAILED) {
                 number("MAXF", 0x5460)
@@ -134,7 +136,7 @@ class PlayerSession : PacketPushable {
                 list("ASIL", listOf(
                     group {
                         +group("CGS") {
-                            number("EVST", 0x0)
+                            number("EVST", if (matchmaking) 0x6 else 0x0)
                             number("MMSN", 0x1)
                             number("NOMP", 0x0)
                         }
