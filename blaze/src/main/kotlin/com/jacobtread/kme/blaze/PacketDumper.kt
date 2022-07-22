@@ -198,11 +198,11 @@ fun appendTdfToBuffer(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Bo
                 is Number -> {
                     for (i in content.indices) {
                         out.append("0x")
-                        when (val value = content[i]) {
-                            is ULong -> out.append(value.toString(16))
-                            is Long -> out.append(value.toString(16))
-                            is Int -> out.append(value.toString(16))
-                            is UInt -> out.append(value.toString(16))
+                        when (val v = content[i]) {
+                            is ULong -> out.append(v.toString(16))
+                            is Long -> out.append(v.toString(16))
+                            is Int -> out.append(v.toString(16))
+                            is UInt -> out.append(v.toString(16))
                         }
                         if (i != length - 1) {
                             out.append(", ")
