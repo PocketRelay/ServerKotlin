@@ -42,7 +42,6 @@ interface Packet : TdfContainer {
         val contentSize = computeContentSize()
         val isExtended = contentSize > 0xFFFF
         with(out) {
-            ensureWritable(12) // Packet heading is 12 bytes long
             writeShort(contentSize)
             writeShort(component)
             writeShort(command)
