@@ -95,8 +95,10 @@ class PacketDecoder : ChannelInboundHandlerAdapter() {
             val content = Unpooled.buffer(contentLength, contentLength)
             input.readBytes(content, contentLength)// Read the bytes into a new buffer and use that as content
             val packet = LazyBufferPacket(component, command, error, qtype, id, content)
-            logRecievedPacket(packet)
 
+            if (Logger.logPackets) {
+                PacketLogger.logDebug("DECODED PACKET", ctx.channel(), packet)
+            }
             ctx.fireChannelRead(packet)
             read = true
         }
@@ -154,16 +156,6 @@ class PacketDecoder : ChannelInboundHandlerAdapter() {
         val cumulation = cumulation
         if (cumulation != null && !first && cumulation.refCnt() == 1) {
             cumulation.discardSomeReadBytes()
-        }
-    }
-
-    private fun logRecievedPacket(packet: Packet) {
-        if (Logger.logPackets) {
-            try {
-                Logger.debug("RECEIVED PACKET =======\n" + PacketLogger.createPacketSource(packet) + "\n======================")
-            } catch (e: Throwable) {
-                PacketLogger.dumpPacketException("Failed to decode incoming packet contents for debugging:", packet, e)
-            }
         }
     }
 }

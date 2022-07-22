@@ -8,9 +8,12 @@ import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelOutboundHandlerAdapter
 import io.netty.channel.ChannelPromise
 import io.netty.handler.codec.EncoderException
+import io.netty.util.AttributeKey
 import io.netty.util.ReferenceCountUtil
 
 object PacketEncoder : ChannelOutboundHandlerAdapter() {
+
+    val ENCODER_CONTEXT_KEY: AttributeKey<String> = AttributeKey.newInstance("EncoderContext")
 
     override fun isSharable(): Boolean = true
 
@@ -21,11 +24,7 @@ object PacketEncoder : ChannelOutboundHandlerAdapter() {
                 buffer = Packet.allocateBuffer(ctx.alloc(), msg)
                 try {
                     if (Logger.logPackets) {
-                        try {
-                            Logger.debug("SENT PACKET ===========\n" + PacketLogger.createPacketSource(msg) + "\n======================")
-                        } catch (e: Throwable) {
-                            PacketLogger.dumpPacketException("Failed to decode sent packet contents for debugging: ", msg, e)
-                        }
+                        PacketLogger.logDebug("ENCODED PACKET", ctx.channel(), msg)
                     }
                     msg.writeTo(buffer)
                     ctx.flush()

@@ -91,6 +91,8 @@ class PlayerSession : PacketPushable {
     val playerEntity: PlayerEntity get() = _playerEntity ?: throw throw NotAuthenticatedException()
     val playerId: Int get() = playerEntity.playerId
 
+    val isAuthenticated: Boolean get() = _playerEntity != null
+
     var pslm = listOf<ULong>(0xfff0fffu, 0xfff0fffu, 0xfff0fffu)
 
     val displayName: String get() = playerEntity.displayName
@@ -155,6 +157,7 @@ class PlayerSession : PacketPushable {
             game?.removePlayer(this)
         }
         this._playerEntity = playerEntity
+        updateContext()
     }
 
     /**
@@ -164,6 +167,7 @@ class PlayerSession : PacketPushable {
      */
     fun setChannel(channel: Channel) {
         this.channel = channel
+        updateContext()
     }
 
     fun setNetworkingFromHNet(group: GroupTdf) {
@@ -355,6 +359,31 @@ class PlayerSession : PacketPushable {
             +createPersonaList()
             number("UID", player.playerId)
         }
+    }
+
+    private fun updateContext() {
+        val channel = channel ?: return
+        channel.attr(PacketEncoder.ENCODER_CONTEXT_KEY)
+            .set(createEncoderContext(channel))
+    }
+
+    private fun createEncoderContext(channel: Channel): String {
+        val builder = StringBuilder()
+        val remoteAddress = channel.remoteAddress()
+        builder.append("Session: ")
+            .append(sessionId)
+            .append(" (")
+            .append(remoteAddress.toString())
+            .appendLine(')')
+        if (isAuthenticated) {
+            val player = playerEntity
+            builder.append("Player: ")
+                .append(player.displayName)
+                .append(" (")
+                .append(player.playerId)
+                .appendLine(')')
+        }
+        return builder.toString()
     }
 
     /**

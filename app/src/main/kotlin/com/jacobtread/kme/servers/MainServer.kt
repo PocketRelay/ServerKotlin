@@ -113,6 +113,25 @@ class MainProcessor(
         session.setChannel(channel)
     }
 
+    private fun createEncoderContext(): String {
+        val builder = StringBuilder()
+        val remoteAddress = channel.remoteAddress()
+        builder.append("Session: ")
+            .append(session.sessionId)
+            .append(" (")
+            .append(remoteAddress.toString())
+            .appendLine(')')
+        if (session.isAuthenticated) {
+            val player = session.playerEntity
+            builder.append("Player: ")
+                .append(player.displayName)
+                .append(" (")
+                .append(player.playerId)
+                .appendLine(')')
+        }
+        return builder.toString()
+    }
+
     /**
      * channelInactive Handles when the channel becomes inactive. Used
      * to release and cleanup the session so that it can be released

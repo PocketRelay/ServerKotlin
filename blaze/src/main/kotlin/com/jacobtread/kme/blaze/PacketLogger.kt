@@ -6,6 +6,7 @@ import com.jacobtread.kme.blaze.packet.LazyBufferPacket
 import com.jacobtread.kme.blaze.packet.Packet
 import com.jacobtread.kme.blaze.tdf.*
 import com.jacobtread.kme.utils.logging.Logger
+import io.netty.channel.Channel
 
 object PacketLogger {
 
@@ -17,7 +18,37 @@ object PacketLogger {
         debugCommandNames = commandNames.getDebugNameMap()
     }
 
-    fun dumpPacketException(text: String, packet: Packet, cause: Throwable) {
+    fun logDebug(title: String, channel: Channel, packet: Packet) {
+        if (Logger.debugEnabled) {
+            try {
+                val lineWidth = 30
+                val out = StringBuilder()
+                out.append(title)
+                    .append(' ')
+                    .appendLine("=".repeat(lineWidth - (title.length + 1)))
+
+                val contextAttr: String? = channel.attr(PacketEncoder.ENCODER_CONTEXT_KEY)
+                    .get()
+
+                if (contextAttr != null) {
+                    out.appendLine(contextAttr)
+                }
+
+
+                createPacketSource(out, packet)
+
+                out.appendLine()
+                    .appendLine("=".repeat(lineWidth))
+
+                Logger.debug(out.toString())
+            } catch (e: Throwable) {
+                dumpPacketException("Failed to decode sent packet contents for debugging: ", packet, e)
+            }
+        }
+    }
+
+
+    private fun dumpPacketException(text: String, packet: Packet, cause: Throwable) {
         try {
             val out = StringBuilder(text)
                 .appendLine()
@@ -93,10 +124,7 @@ object PacketLogger {
         }
     }
 
-    fun createPacketSource(packet: Packet): String {
-        val out = StringBuilder()
-
-
+    fun createPacketSource(out: StringBuilder, packet: Packet): String {
         out.append("packet(") // Initial opening packet tag
 
         val componentName = debugComponentNames?.get(packet.component)
@@ -111,7 +139,7 @@ object PacketLogger {
 
         out.append(", ")
 
-        val commandName = debugComponentNames?.get((packet.component shl 16) + packet.command)
+        val commandName = debugCommandNames?.get((packet.component shl 16) + packet.command)
 
         if (commandName != null) {
             out.append("Commands.")
@@ -310,8 +338,10 @@ object PacketLogger {
                     .append('"')
                 if (value.value.isNotEmpty()) {
                     out.append(", \"")
-                        .append(value.value
-                            .replace("\n", "\\n"))
+                        .append(
+                            value.value
+                                .replace("\n", "\\n")
+                        )
                         .append('"')
                 }
                 out.append(')')
