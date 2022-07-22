@@ -526,12 +526,13 @@ class MainProcessor(
     fun handleStartMatchmaking(packet: Packet) {
         val player = session.playerEntity
         info("Player ${player.displayName} started match making")
-
         val ruleSet = MatchRuleSet(packet)
-        val game = Matchmaking.getMatchOrQueue(session, ruleSet) ?: return packet.pushEmptyResponse()
-        info("Found matching game for player ${player.displayName}")
-        packet.pushResponse { number("MSID", game.mid) }
-        game.join(session)
+        val game = Matchmaking.getMatchOrQueue(session, ruleSet)
+        packet.pushResponse { number("MSID", session.matchmakingId) }
+        if (game != null) {
+            info("Found matching game for player ${player.displayName}")
+            game.join(session)
+        }
     }
 
     /**

@@ -107,6 +107,23 @@ class PlayerSession : PacketPushable {
 
     // Whether the player is waiting in a matchmaking queue
     var matchmaking = false
+    var matchmakingId: ULong = 1uL
+    var startedMatchmaking: Long = -1L
+
+    fun notifyMatchmakingFailed() {
+        matchmaking = false
+        matchmakingId = 1uL
+        startedMatchmaking = -1L
+
+        push(
+            unique(Components.GAME_MANAGER, Commands.NOTIFY_MATCHMAKING_FAILED) {
+                number("MAXF", 0x5460)
+                number("MSID", matchmakingId)
+                number("RSLT", 0x4)
+                number("USID", playerId)
+            }
+        )
+    }
 
     /**
      * release Handles cleaning up of this session after the session is

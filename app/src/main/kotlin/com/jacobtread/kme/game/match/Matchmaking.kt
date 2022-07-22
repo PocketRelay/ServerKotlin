@@ -3,6 +3,9 @@ package com.jacobtread.kme.game.match
 import com.jacobtread.kme.game.Game
 import com.jacobtread.kme.game.GameManager
 import com.jacobtread.kme.game.PlayerSession
+import com.jacobtread.kme.utils.logging.Logger
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
@@ -15,6 +18,10 @@ import kotlin.concurrent.write
  */
 object Matchmaking {
 
+    private const val MATCHMAKING_TIMEOUT = 1000 * 60 // 1 Minute
+
+    private val scheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
+
     /**
      * waitingPlayers A map of the players who are waiting for a match
      * mapped to the rule set that the match must be valid for
@@ -26,6 +33,12 @@ object Matchmaking {
      * the netty worker threads
      */
     private val waitingLock = ReentrantReadWriteLock()
+
+    private var matchmakingId: ULong = 1uL
+
+    init {
+        scheduledExecutorService.schedule(this::updateMatchmakingQueue, 1, TimeUnit.MINUTES)
+    }
 
     /**
      * onGameCreated Invoked when the GameManager creates a new game. This is here
@@ -64,6 +77,10 @@ object Matchmaking {
         val game = GameManager.tryFindGame { ruleSet.validate(it.getAttributes()) }
         if (game != null) return game
         session.matchmaking = true
+        if (session.matchmakingId == 1uL) {
+            session.matchmakingId = matchmakingId++
+        }
+        session.startedMatchmaking = System.currentTimeMillis()
         waitingLock.write { waitingPlayers[session] = ruleSet }
         return null
     }
@@ -77,5 +94,28 @@ object Matchmaking {
     fun removeFromQueue(session: PlayerSession) {
         session.matchmaking = false
         waitingLock.write { waitingPlayers.remove(session) }
+    }
+
+    private fun updateMatchmakingQueue() {
+        Logger.logIfDebug { "Running scheduled matchmaking queue update..." }
+        val currentTime = System.currentTimeMillis()
+        waitingLock.read {
+            if (waitingPlayers.isEmpty()) {
+                matchmakingId = 1uL
+            } else {
+                val iterator = waitingPlayers.iterator()
+                while (iterator.hasNext()) {
+                    val (session, _) = iterator.next()
+                    val timeElapsed = currentTime - session.startedMatchmaking
+                    if (timeElapsed >= MATCHMAKING_TIMEOUT) {
+                        Logger.info("Player matchmaking timed out ${session.displayName} (${session.playerId})")
+                        session.notifyMatchmakingFailed()
+                        waitingLock.write {
+                            iterator.remove()
+                        }
+                    }
+                }
+            }
+        }
     }
 }

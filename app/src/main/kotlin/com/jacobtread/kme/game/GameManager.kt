@@ -13,8 +13,8 @@ object GameManager {
 
     fun createGame(host: PlayerSession): Game = gamesLock.write {
         removeInactive()
-        val game = Game(gameId, gameId, host)
-        Logger.info("Created new game (${game.id}, ${game.mid}) hosted by ${host.playerEntity.displayName}")
+        val game = Game(gameId, host)
+        Logger.info("Created new game (${game.id}) hosted by ${host.playerEntity.displayName}")
         games[game.id] = game
         gameId++
         game
@@ -22,8 +22,8 @@ object GameManager {
 
     fun createGameWithID(host: PlayerSession, id: ULong): Game = gamesLock.write {
         removeInactive()
-        val game = Game(id, id, host)
-        Logger.info("Created new game (${game.id}, ${game.mid}) hosted by ${host.playerEntity.displayName}")
+        val game = Game(id, host)
+        Logger.info("Created new game (${game.id}) hosted by ${host.playerEntity.displayName}")
         games[id] = game
         game
     }
@@ -41,7 +41,7 @@ object GameManager {
 
     fun getGameById(id: ULong): Game? = gamesLock.read { games.values.firstOrNull { it.id == id } }
     fun releaseGame(game: Game) = gamesLock.write {
-        Logger.info("Releasing game back to pool (${game.id}, ${game.mid})")
+        Logger.info("Releasing game back to pool (${game.id})")
         games.remove(game.id)
     }
 }

@@ -17,7 +17,6 @@ import kotlin.concurrent.write
 
 class Game(
     val id: ULong,
-    val mid: ULong,
     host: PlayerSession,
 ) {
 
@@ -354,7 +353,7 @@ class Game(
             optional("REAS", 0x3u, group("VALU") {
                 number("FIT", 0x3f7a)
                 number("MAXF", 0x5460)
-                number("MSID", mid)
+                number("MSID", forSession.matchmakingId)
                 number("RSLT", 0x2)
                 number("USID", forSession.playerId)
             })
