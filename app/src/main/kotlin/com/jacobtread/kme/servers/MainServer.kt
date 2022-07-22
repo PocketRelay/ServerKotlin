@@ -476,7 +476,7 @@ class MainProcessor(
             info("Recreating game with ID $gameId")
             game = GameManager.createGameWithID(session, gameId) // Create a new game
             game.setAttributes(attributes) // If the attributes are missing use empty
-            // TODO: Connect to game
+            game.join(session)
         }
         packet.pushEmptyResponse()
     }
@@ -558,7 +558,7 @@ class MainProcessor(
         val c = unique(Components.GAME_MANAGER, Commands.NOTIFY_ADMIN_LIST_CHANGE) {
             number("ALST", player.playerId)
             number("GID", gameId)
-            number("OPER", 0)
+            number("OPER", 0) // 0 = add 1 = remove
             number("UID", host.playerId)
         }
 

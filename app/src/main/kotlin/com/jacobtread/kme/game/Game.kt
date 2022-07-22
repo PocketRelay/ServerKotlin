@@ -9,6 +9,7 @@ import com.jacobtread.kme.blaze.tdf.ListTdf
 import com.jacobtread.kme.blaze.tdf.Tdf
 import com.jacobtread.kme.blaze.unique
 import com.jacobtread.kme.exceptions.GameStoppedException
+import com.jacobtread.kme.utils.logging.Logger
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
@@ -140,6 +141,7 @@ class Game(
 
     private fun removeAtIndex(index: Int) {
         playersLock.read {
+            Logger.logIfDebug { "Removing player at id $index" }
             val removedPlayer = players[index]
             if (removedPlayer != null) {
                 playersLock.write { players[index] = null }
@@ -148,6 +150,9 @@ class Game(
                 removedPlayer.gameSlot = 0
 
                 players.forEach { it?.push(createRemoveNotification(removedPlayer)) }
+                Logger.logIfDebug { "Removed player in slot $index ${removedPlayer.displayName} (${removedPlayer.playerId})" }
+            } else {
+                Logger.logIfDebug { "Tried to remove player that doesn't exist" }
             }
         }
         updatePlayerSlots()
@@ -158,8 +163,9 @@ class Game(
                 // TODO: Host migration working state unknown
                 val host = getHostOrNull()
                 if (host != null) {
+                    Logger.logIfDebug { "Migrating host for $id to ${host.displayName} (${host.playerId})" }
                     val packet = createHostMigration(host)
-                    pushAllExcludingHost(packet)
+                    pushAll(packet)
                 }
             }
         }
