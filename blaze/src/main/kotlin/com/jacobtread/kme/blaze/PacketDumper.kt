@@ -195,6 +195,8 @@ fun appendTdfToBuffer(out: StringBuilder, indent: Int, value: Tdf<*>, inline: Bo
             val length = content.size
 
             when (content[0]) {
+                is ULong,
+                is UInt,
                 is Number -> {
                     for (i in content.indices) {
                         out.append("0x")
