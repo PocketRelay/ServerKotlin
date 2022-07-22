@@ -182,7 +182,7 @@ class PlayerSession : PacketPushable {
      * @return A USER_SESSIONS SET_SESSION packet
      */
     fun createSetSession(): Packet = unique(Components.USER_SESSIONS, Commands.SET_SESSION) {
-        +createSessionDataGroup(0x2e, false)
+        +createSessionDataGroup()
         number("USID", playerId)
     }
 
@@ -225,7 +225,7 @@ class PlayerSession : PacketPushable {
      * @param pslm Unknown But Nessicary
      * @return The created group
      */
-    private fun createSessionDataGroup(dmapValue: Int, details: Boolean): GroupTdf {
+    private fun createSessionDataGroup(): GroupTdf {
         return group("DATA") {
             +createAddrOptional("ADDR")
             text("BPS", "ea-sjc")
@@ -261,9 +261,9 @@ class PlayerSession : PacketPushable {
         ) {
             // Session Data
             if (game != null) {
-                +createSessionDataGroup(0x291, true)
+                +createSessionDataGroup()
             } else {
-                +createSessionDataGroup(0x22, true)
+                +createSessionDataGroup()
             }
             // Player Data
             +group("USER") {
@@ -313,6 +313,27 @@ class PlayerSession : PacketPushable {
             number("STAS", 0)
             number("XREF", 0)
             number("XTYP", 0)
+        }
+    }
+
+    fun createPlayerDataGroup(slotIndex: Int): GroupTdf {
+        return group("PDAT") {
+            val player = playerEntity
+            val playerId = player.playerId
+            blob("BLOB")
+            number("EXID", 0x0)
+            number("GID", game?.id ?: 0u)
+            number("LOC", 0x64654445)
+            text("NAME", player.displayName)
+            number("PID", playerId)
+            +createAddrOptional("PNET")
+            number("SID", slotIndex)
+            number("SLOT", 0x0)
+            number("STAT", 0x2)
+            number("TIDX", 0xffff)
+            number("TIME", 0x0)
+            tripple("UGID", 0x0, 0x0, 0x0)
+            number("UID", playerId)
         }
     }
 

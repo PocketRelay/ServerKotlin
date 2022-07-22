@@ -20,6 +20,14 @@ object GameManager {
         game
     }
 
+    fun createGameWithID(host: PlayerSession, id: ULong): Game = gamesLock.write {
+        removeInactive()
+        val game = Game(id, id + Game.MIN_MID, host)
+        Logger.info("Created new game (${game.id}, ${game.mid}) hosted by ${host.playerEntity.displayName}")
+        games[id] = game
+        game
+    }
+
 
     fun tryFindGame(test: (Game) -> Boolean): Game? = gamesLock.read { games.values.firstOrNull(test) }
 
@@ -31,10 +39,9 @@ object GameManager {
         removeKeys.forEach { games.remove(it) }
     }
 
-    fun getGameById(id: ULong): Game? = gamesLock.read { games.values.find { it.id == id } }
+    fun getGameById(id: ULong): Game? = gamesLock.read { games.values.firstOrNull { it.id == id } }
     fun releaseGame(game: Game) = gamesLock.write {
         Logger.info("Releasing game back to pool (${game.id}, ${game.mid})")
         games.remove(game.id)
     }
-
 }

@@ -404,7 +404,11 @@ class MainProcessor(
 
         game.setAttributes(attributes ?: emptyMap()) // If the attributes are missing use empty
         packet.pushResponse { number("GID", game.id) }
-        push(game.createPoolPacket(true, session)) // Send the game pool details
+
+        push(game.createNotifySetup())
+
+
+//        push(game.createPoolPacket(true, session)) // Send the game pool details
         push(session.createSetSession()) // Send the user session
         channel.flush()
         Matchmaking.onGameCreated(game)
@@ -460,10 +464,15 @@ class MainProcessor(
     fun handleSetGameAttributes(packet: Packet) {
         val gameId = packet.number("GID")
         val attributes = packet.mapOrNull<String, String>("ATTR") ?: return packet.pushEmptyResponse()
-        val game = GameManager.getGameById(gameId)
+        var game = GameManager.getGameById(gameId)
         if (game != null) {
             game.setAttributes(attributes)
             game.broadcastAttributeUpdate()
+        } else {
+            info("Recreating game with ID $gameId")
+            game = GameManager.createGameWithID(session, gameId) // Create a new game
+            game.setAttributes(attributes) // If the attributes are missing use empty
+            // TODO: Connect to game
         }
         packet.pushEmptyResponse()
     }
@@ -508,7 +517,7 @@ class MainProcessor(
                 push(it.createIdentityUpdate())
             }
         }
-        push(game.createPoolPacket(false, session))
+        push(game.createPoolPacket(session))
         push(session.createSetSession())
     }
 
@@ -883,7 +892,7 @@ class MainProcessor(
         session.intNetData = NetData(addressEncoded, port)
         session.extNetData = NetData(addressEncoded, port)
 
-        val nqos: GroupTdf = packet.unionValue("NQOS") as GroupTdf
+        val nqos: GroupTdf = packet.group("NQOS")
         val dbps = nqos.number("DBPS")
         val natt = nqos.number("NATT")
         val ubps = nqos.number("UBPS")

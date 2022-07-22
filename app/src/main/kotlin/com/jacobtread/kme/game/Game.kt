@@ -1,6 +1,9 @@
 package com.jacobtread.kme.game
 
 import com.jacobtread.kme.blaze.*
+import com.jacobtread.kme.blaze.tdf.GroupTdf
+import com.jacobtread.kme.blaze.tdf.ListTdf
+import com.jacobtread.kme.blaze.tdf.Tdf
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
@@ -47,28 +50,14 @@ class Game(
         sendHostPlayerJoin(player)
     }
 
+    fun getSlotIndex(player: PlayerSession): Int = playersLock.read { players.indexOf(player) }
+
     private fun sendHostPlayerJoin(session: PlayerSession) {
-        val player = session.playerEntity
-        val sessionDetails = session.createSessionDetails()
-        host.push(sessionDetails)
-        host.pushUnique(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOINING){
+        host.push(session.createSessionDetails())
+        host.push(session.createIdentityUpdate())
+        host.pushUnique(Components.GAME_MANAGER, Commands.JOIN_GAME_BY_GROUP) {
             number("GID", id)
-            +group("PDAT") {
-                blob("BLOB")
-                number("EXID", 0x0)
-                number("GID", id)
-                number("LOC", 0x64654445)
-                text("NAME", player.displayName)
-                number("PID", player.playerId)
-                +session.createAddrOptional("PNET")
-                number("SID", players.size - 1)
-                number("SLOT", 0x0)
-                number("STAT", 0x2)
-                number("TIDX", 0xffff)
-                number("TIME", 0x0)
-                tripple("UGID", 0x0, 0x0, 0x0)
-                number("UID", player.playerId)
-            }
+            +session.createPlayerDataGroup(getSlotIndex(session))
         }
         host.push(session.createSetSession())
     }
@@ -132,7 +121,19 @@ class Game(
         }
     }
 
-    fun createNotifyPacket(): Packet =
+    fun createNotifySetup(): Packet =
+        unique(
+            Components.GAME_MANAGER,
+            Commands.NOTIFY_GAME_SETUP
+        ) {
+            +createGameGroup()
+            +createPlayersList()
+            optional("REAS", group("VALU") {
+                number("DCTX", 0x0)
+            })
+        }
+
+    private fun createNotifyPacket(): Packet =
         unique(
             Components.GAME_MANAGER,
             Commands.NOTIFY_GAME_UPDATED
@@ -141,100 +142,84 @@ class Game(
             number("GID", id)
         }
 
-    fun createPoolPacket(init: Boolean, forSession: PlayerSession): Packet =
+    private fun createGameGroup(): GroupTdf {
+        return group("GAME") {
+            val hostPlayer = host.playerEntity
+            val hostId = hostPlayer.playerId
+            val playerIds = players.map { it.playerId.toULong() }
+
+            // Game Admins
+            list("ADMN", playerIds)
+            map("ATTR", getAttributes())
+            list("CAP", listOf(0x4, 0x0))
+            number("GID", id)
+            text("GNAM", hostPlayer.displayName)
+            number("GPVH", 0x5a4f2b378b715c6)
+            number("GSET", gameSetting)
+            number("GSID", 0x4000000a76b645)
+            number("GSTA", gameState)
+            text("GTYP", "")
+            // Host network information
+            list("HNET", listOf(
+                group(start2 = true) {
+                    +host.extNetData.createGroup("EXIP")
+                    +host.intNetData.createGroup("INIP")
+                }
+            ))
+            number("HSES", host.playerId)
+            number("IGNO", 0x0)
+            number("MCAP", 0x4)
+            +group("NQOS") {
+                val otherNetData = host.otherNetData
+                number("DBPS", otherNetData.dbps)
+                number("NATT", otherNetData.natt)
+                number("UBPS", otherNetData.ubps)
+            }
+            number("NRES", 0x0)
+            number("NTOP", 0x0)
+            text("PGID", "")
+            blob("PGSR")
+            +group("PHST") {
+                number("HPID", hostId)
+                number("HSLT", 0x0)
+            }
+            number("PRES", 0x1)
+            text("PSAS", "")
+            number("QCAP", 0x0)
+            number("SEED", 0x4cbc8585) // Seed? Could be used for game randomness?
+            number("TCAP", 0x0)
+            +group("THST") {
+                number("HPID", hostId)
+                number("HSLT", 0x0)
+            }
+            text("UUID", "286a2373-3e6e-46b9-8294-3ef05e479503")
+            number("VOIP", 0x2)
+            text("VSTR", "ME3-295976325-179181965240128") // Mass effect version string
+            blob("XNNC")
+            blob("XSES")
+        }
+    }
+
+    private fun createPlayersList(): ListTdf {
+        return ListTdf("PROS", Tdf.GROUP, players.mapIndexed { index, playerSession ->
+            playerSession.createPlayerDataGroup(index)
+        })
+    }
+
+    fun createPoolPacket(forSession: PlayerSession): Packet =
         unique(
             Components.GAME_MANAGER,
             Commands.RETURN_DEDICATED_SERVER_TO_POOL
         ) {
-            val playerIds = ArrayList<Long>()
-            val pros = players.mapIndexed { index, playerSession ->
-                val player = playerSession.playerEntity
-                playerIds.add(player.playerId.toLong())
-                group {
-                    blob("BLOB")
-                    number("EXID", 0x0)
-                    number("GID", this@Game.id) // Game ID
-                    number("LOC", 0x64654445) // Location
-                    text("NAME", player.displayName) // Player name
-                    number("PID", player.playerId) // Player id
-                    +playerSession.createAddrOptional("PNET") // Player net info
-                    number("SID", index) // Slot ID
-                    number("SLOT", 0x0)
-                    number("STAT", if (host.playerId == player.playerId) 0x4 else 0x2)
-                    number("TIDX", 0xffff)
-                    number("TIME", 0x0)
-                    tripple("UGID", 0x0, 0x0, 0x0)
-                    number("UID", player.playerId)
-                }
-            }
-
-            val hostPlayer = host.playerEntity
-            +group("GAME") {
-                // Game Admins
-                list("ADMN", playerIds)
-                map("ATTR", getAttributes())
-                list("CAP", listOf(0x4, 0x0))
-                number("GID", id)
-                text("GNAM", hostPlayer.displayName)
-                number("GPVH", 0x5a4f2b378b715c6)
-                number("GSET", gameSetting)
-                number("GSID", 0x4000000a71dc21)
-                number("GSTA", gameState)
-                text("GTYP", "")
-                // Host network information
-                list("HNET", listOf(
-                    group(start2 = true) {
-                        +host.extNetData.createGroup("EXIP")
-                        +host.intNetData.createGroup("INIP")
-                    }
-                ))
-                number("HSES", 0x10f3e7f2)
-                number("IGNO", 0x0)
-                number("MCAP", 0x4)
-                +group("NQOS") {
-                    val otherNetData= host.otherNetData
-                    number("DBPS", otherNetData.dbps)
-                    number("NATT", otherNetData.natt)
-                    number("UBPS", otherNetData.ubps)
-                }
-                number("NRES", 0x0)
-                number("NTOP", 0x0)
-                text("PGID", "")
-                blob("PGSR")
-                +group("PHST") {
-                    number("HPID", hostPlayer.playerId)
-                    number("HSLT", 0x0)
-                }
-                number("PRES", 0x1)
-                text("PSAS", "")
-                number("QCAP", 0x0)
-                number("SEED", 0x4cbc8585) // Seed? Could be used for game randomness?
-                number("TCAP", 0x0)
-                +group("THST") {
-                    number("HPID", hostPlayer.playerId)
-                    number("HSLT", 0x0)
-                }
-                text("UUID", "286a2373-3e6e-46b9-8294-3ef05e479503")
-                number("VOIP", 0x2)
-                text("VSTR", "ME3-295976325-179181965240128") // Mass effect version string
-                blob("XNNC")
-                blob("XSES")
-            }
-
-            list("PROS", pros)
-            if (init) {
-                optional("REAS", group("VALU") {
-                    number("DCTX", 0x0)
-                })
-            } else {
-                optional("REAS", 0x3u, group("VALU") {
-                    number("FIT", 0x3f7a)
-                    number("MAXF", 0x5460)
-                    number("MSID", mid)
-                    number("RSLT", 0x2)
-                    number("USID", forSession.playerId)
-                })
-            }
+            +createGameGroup()
+            +createPlayersList()
+            optional("REAS", 0x3u, group("VALU") {
+                number("FIT", 0x3f7a)
+                number("MAXF", 0x5460)
+                number("MSID", mid)
+                number("RSLT", 0x2)
+                number("USID", forSession.playerId)
+            })
         }
 
     fun getAttributes(): Map<String, String> = attributesLock.read { attributes }
