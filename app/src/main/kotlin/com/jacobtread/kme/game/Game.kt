@@ -23,8 +23,6 @@ class Game(
 
     companion object {
         const val MAX_PLAYERS = 4
-        const val MIN_ID = 0x5DC695uL
-        const val MIN_MID = 0x1129DA20uL
     }
 
     var gameState: Int = 0x1

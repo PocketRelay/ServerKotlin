@@ -245,7 +245,7 @@ class PlayerSession : PacketPushable {
                 number("UBPS", otherNetData.ubps)
             }
             number("UATT", 0)
-            list("ULST", listOf(VarTripple(4u, 1u, (game?.id ?: Game.MIN_ID))))
+            list("ULST", listOf(VarTripple(4u, 1u, (game?.id ?: 1uL))))
         }
 
     }

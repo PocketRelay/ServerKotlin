@@ -9,11 +9,11 @@ object GameManager {
 
     private val gamesLock = ReentrantReadWriteLock()
     private val games = HashMap<ULong, Game>()
-    private var gameId: UInt = 0u
+    private var gameId: ULong = 1uL
 
     fun createGame(host: PlayerSession): Game = gamesLock.write {
         removeInactive()
-        val game = Game(gameId + Game.MIN_ID, gameId + Game.MIN_MID, host)
+        val game = Game(gameId, gameId, host)
         Logger.info("Created new game (${game.id}, ${game.mid}) hosted by ${host.playerEntity.displayName}")
         games[game.id] = game
         gameId++
@@ -22,7 +22,7 @@ object GameManager {
 
     fun createGameWithID(host: PlayerSession, id: ULong): Game = gamesLock.write {
         removeInactive()
-        val game = Game(id, id + Game.MIN_MID, host)
+        val game = Game(id, id, host)
         Logger.info("Created new game (${game.id}, ${game.mid}) hosted by ${host.playerEntity.displayName}")
         games[id] = game
         game
