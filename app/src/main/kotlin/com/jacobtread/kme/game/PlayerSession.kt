@@ -100,10 +100,8 @@ class PlayerSession : PacketPushable {
     // The time in milliseconds of when the last ping was received from the client
     var lastPingTime = -1L
 
-    // Whether the session is still active or needs to be discarded
-    var isActive = true
-
     var game: Game? = null
+    var gameSlot: Int = 0
 
     // Whether the player is waiting in a matchmaking queue
     var matchmaking = false
@@ -114,7 +112,6 @@ class PlayerSession : PacketPushable {
      * removes the player from any games to prevent memory leaks
      */
     fun release() {
-        isActive = false
         _playerEntity = null
         channel = null
         game?.removePlayer(this)
@@ -320,7 +317,7 @@ class PlayerSession : PacketPushable {
         }
     }
 
-    fun createPlayerDataGroup(slotIndex: Int): GroupTdf {
+    fun createPlayerDataGroup(): GroupTdf {
         return group("PDAT") {
             val player = playerEntity
             val playerId = player.playerId
@@ -331,7 +328,7 @@ class PlayerSession : PacketPushable {
             text("NAME", player.displayName)
             number("PID", playerId)
             +createAddrOptional("PNET")
-            number("SID", slotIndex)
+            number("SID", gameSlot)
             number("SLOT", 0x0)
             number("STAT", 0x2)
             number("TIDX", 0xffff)

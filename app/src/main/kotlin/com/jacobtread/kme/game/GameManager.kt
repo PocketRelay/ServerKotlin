@@ -34,7 +34,7 @@ object GameManager {
     private fun removeInactive() {
         val removeKeys = ArrayList<ULong>()
         games.forEach { (key, game) ->
-            if (game.isInActive()) removeKeys.add(key)
+            if (!game.isActive) removeKeys.add(key)
         }
         removeKeys.forEach { games.remove(it) }
     }

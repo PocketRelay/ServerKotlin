@@ -10,6 +10,7 @@ import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.byId
 import com.jacobtread.kme.database.entities.MessageEntity
 import com.jacobtread.kme.database.entities.PlayerEntity
+import com.jacobtread.kme.exceptions.GameException
 import com.jacobtread.kme.game.GameManager
 import com.jacobtread.kme.game.PlayerSession
 import com.jacobtread.kme.game.PlayerSession.NetData
@@ -27,11 +28,8 @@ import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.channel.ChannelInitializer
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
-import io.netty.util.ReferenceCountUtil
-import io.netty.util.internal.ReferenceCountUpdater
 import java.io.IOException
 import java.net.InetSocketAddress
-import kotlin.time.measureTime
 
 /**
  * startMainServer Starts the main server
@@ -141,6 +139,9 @@ class MainProcessor(
             )
         } catch (e: Exception) {
             Logger.warn("Failed to handle packet: {}", msg, e)
+            msg.pushEmptyResponse()
+        } catch (e: GameException) {
+            Logger.warn("Client caused game exception", e)
             msg.pushEmptyResponse()
         }
         ctx.flush()
@@ -491,7 +492,7 @@ class MainProcessor(
         val playerId = packet.number("PID").toInt()
         val gameId = packet.number("GID")
         val game = GameManager.getGameById(gameId)
-        game?.removePlayer(playerId)
+        game?.removePlayerById(playerId)
         packet.pushEmptyResponse()
     }
 
@@ -538,12 +539,12 @@ class MainProcessor(
     @PacketHandler(Components.GAME_MANAGER, Commands.UPDATE_MESH_CONNECTION)
     fun handleUpdateMeshConnection(packet: Packet) {
         val gameId = packet.number("GID")
-        val game = GameManager.getGameById(gameId)
         packet.pushEmptyResponse()
-        if (game == null) return
 
+        val game = GameManager.getGameById(gameId) ?: return
         val player = session.playerEntity
-        val host = game.host
+        val host = game.getHost()
+
         val a = unique(Components.GAME_MANAGER, Commands.NOTIFY_GAME_PLAYER_STATE_CHANGE) {
             number("GID", gameId)
             number("PID", player.playerId)
