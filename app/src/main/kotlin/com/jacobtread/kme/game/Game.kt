@@ -164,15 +164,14 @@ class Game(
                 val host = getHostOrNull()
                 if (host != null) {
                     Logger.logIfDebug { "Migrating host for $id to ${host.displayName} (${host.playerId})" }
-                    val packet = createHostMigration(host)
-                    pushAll(packet)
+                    migrateHost(host)
                 }
             }
         }
     }
 
-    private fun createHostMigration(newHost: PlayerSession): Packet {
-        return unique(
+    private fun migrateHost(newHost: PlayerSession) {
+        val startPacket = unique(
             Components.GAME_MANAGER,
             Commands.NOTIFY_HOST_MIGRATION_START
         ) {
@@ -181,6 +180,19 @@ class Game(
             number("PMIG", 0x2)
             number("SLOT", newHost.gameSlot)
         }
+        pushAll(startPacket)
+
+        pushAll(createNotifySetup())
+
+        val finishPacket = unique(
+            Components.GAME_MANAGER,
+            Commands.NOTIFY_HOST_MIGRATION_FINISHED
+        ) {
+            number("GID", id)
+        }
+        pushAll(finishPacket)
+
+
     }
 
 
