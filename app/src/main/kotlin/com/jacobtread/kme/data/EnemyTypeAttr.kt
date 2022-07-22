@@ -9,5 +9,6 @@ enum class EnemyTypeAttr(val enemyName: String, val key: String) {
 
     companion object {
         const val ENEMY_TYPE_ATTR = "ME3gameEnemyType"
+        const val ENEMY_TYPE_RULE = "ME3_gameEnemyTypeRule"
     }
 }

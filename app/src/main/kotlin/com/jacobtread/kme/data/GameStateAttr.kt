@@ -9,5 +9,6 @@ enum class GameStateAttr(val value: String) {
 
     companion object {
         const val GAME_STATE_ATTR = "ME3gameState"
+        const val GAME_STATE_RULE = "ME3_gameStateMatchRule"
     }
 }

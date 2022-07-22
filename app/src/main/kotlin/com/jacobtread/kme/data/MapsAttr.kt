@@ -53,5 +53,6 @@ enum class MapsAttr(
 
     companion object {
         const val MAP_ATTR = "ME3map"
+        const val MAP_RULE = "ME3_gameMapMatchRule"
     }
 }

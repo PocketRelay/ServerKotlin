@@ -8,5 +8,6 @@ enum class DifficultyAttr(val difficultyName: String, val key: String) {
 
     companion object {
         const val DIFFICULTY_ATTR = "ME3gameDifficulty"
+        const val DIFFICULTY_RULE = "ME3_gameDifficultyRule"
     }
 }
