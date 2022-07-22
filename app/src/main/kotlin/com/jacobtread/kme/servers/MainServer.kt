@@ -345,8 +345,7 @@ class MainProcessor(
             text("TSUI", "")
             text("TURI", "")
         }
-        push(session.createSessionDetails())
-        push(session.createIdentityUpdate())
+        session.pushPlayerUpdate(session)
     }
 
     /**
@@ -447,10 +446,10 @@ class MainProcessor(
             game.gameSetting = setting
         }
         packet.pushEmptyResponse()
-        pushUnique(Components.GAME_MANAGER, Commands.MIGRATE_ADMIN_PLAYER) {
+        push(unique(Components.GAME_MANAGER, Commands.MIGRATE_ADMIN_PLAYER) {
             number("ATTR", setting)
             number("GID", gameId)
-        }
+        })
     }
 
     /**
@@ -507,18 +506,8 @@ class MainProcessor(
         val ruleSet = MatchRuleSet(packet)
         val game = Matchmaking.getMatchOrQueue(session, ruleSet) ?: return packet.pushEmptyResponse()
         info("Found matching game for player ${player.displayName}")
-        packet.pushResponse {
-            number("MSID", game.mid)
-        }
+        packet.pushResponse { number("MSID", game.mid) }
         game.join(session)
-        game.getActivePlayers().forEach {
-            if (it.sessionId != session.sessionId) {
-                push(it.createSessionDetails())
-                push(it.createIdentityUpdate())
-            }
-        }
-        push(game.createPoolPacket(session))
-        push(session.createSetSession())
     }
 
     /**
@@ -766,7 +755,7 @@ class MainProcessor(
             .replace("{v}", Environment.KME_VERSION)
             .replace("{n}", player.displayName)
             .replace("{ip}", ip) + 0xA.toChar()
-        pushUnique(Components.MESSAGING, Commands.SEND_MESSAGE) {
+        push(unique(Components.MESSAGING, Commands.SEND_MESSAGE) {
             number("FLAG", 0x01)
             number("MGID", 0x01)
             text("NAME", menuMessage)
@@ -780,7 +769,7 @@ class MainProcessor(
             }
             tripple("SRCE", 0x7802, 0x01, player.playerId.toLong())
             number("TIME", unixTimeSeconds())
-        }
+        })
     }
 
 
@@ -829,13 +818,13 @@ class MainProcessor(
     @PacketHandler(Components.GAME_REPORTING, Commands.SUBMIT_OFFLINE_GAME_REPORT)
     fun handleSubmitOfflineReport(packet: Packet) {
         packet.pushEmptyResponse()
-        pushUnique(Components.GAME_REPORTING, Commands.GAME_REPORT_RESULT_72) {
+        push(unique(Components.GAME_REPORTING, Commands.GAME_REPORT_RESULT_72) {
             varList("DATA")
             number("EROR", 0)
             number("FNL", 0)
             number("GHID", 0)
             number("GRID", 0)
-        }
+        })
     }
 
     //endregion

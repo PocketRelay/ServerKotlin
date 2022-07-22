@@ -141,6 +141,11 @@ class PlayerSession : PacketPushable {
         channel.flush()
     }
 
+    fun pushPlayerUpdate(session: PlayerSession) {
+        push(session.createSessionDetails())
+        push(session.createIdentityUpdate())
+    }
+
     /**
      * setAuthenticated Sets the currently authenticated player
      *

@@ -4,6 +4,7 @@ import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.tdf.GroupTdf
 import com.jacobtread.kme.blaze.tdf.ListTdf
 import com.jacobtread.kme.blaze.tdf.Tdf
+import com.jacobtread.kme.utils.logging.Logger
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
@@ -31,6 +32,12 @@ class Game(
     private val players = ArrayList<PlayerSession>(MAX_PLAYERS)
     private val playersLock = ReentrantReadWriteLock()
 
+    private val activePlayers: List<PlayerSession>
+        get() = playersLock.read {
+            players.filter { it.isActive }
+                .toList()
+        }
+
     init {
         players.add(host)
     }
@@ -39,26 +46,32 @@ class Game(
 
     fun isFull(): Boolean = playersLock.read { players.size >= MAX_PLAYERS }
     fun isJoinable(): Boolean = isActive && !isFull()
-    fun getActivePlayers(): List<PlayerSession> = playersLock.read {
-        players.filter { it.isActive }
-            .toMutableList()
-    }
+
 
     fun join(player: PlayerSession) = playersLock.write {
         players.add(player)
         player.game = this
         sendHostPlayerJoin(player)
+
+        activePlayers.forEach {
+            if (it.sessionId != player.sessionId) {
+                player.pushPlayerUpdate(it)
+            }
+        }
+
+        player.push(createPoolPacket(player))
+        player.push(player.createSetSession())
     }
 
     fun getSlotIndex(player: PlayerSession): Int = playersLock.read { players.indexOf(player) }
 
     private fun sendHostPlayerJoin(session: PlayerSession) {
-        host.push(session.createSessionDetails())
-        host.push(session.createIdentityUpdate())
-        host.pushUnique(Components.GAME_MANAGER, Commands.JOIN_GAME_BY_GROUP) {
+        host.pushPlayerUpdate(session)
+        Logger.info("Pushing host JOIN_GAME_BY_GROUP")
+        host.push(unique(Components.GAME_MANAGER, Commands.JOIN_GAME_BY_GROUP) {
             number("GID", id)
             +session.createPlayerDataGroup(getSlotIndex(session))
-        }
+        })
         host.push(session.createSetSession())
     }
 

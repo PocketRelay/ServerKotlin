@@ -22,26 +22,3 @@ interface PacketPushable {
         packets.forEach { push(it) }
     }
 }
-
-inline fun PacketPushable.pushResponse(packet: Packet, init: ContentInitializer) = push(packet.respond(init))
-inline fun PacketPushable.pushEmptyResponse(packet: Packet) = push(packet.respond())
-
-inline fun PacketPushable.pushUnique(
-    component: Int,
-    command: Int,
-    init: ContentInitializer,
-) = push(unique(component, command, init))
-
-inline fun PacketPushable.pushEmptyUnique(
-    component: Int,
-    command: Int,
-) = push(unique(component, command))
-
-inline fun PacketPushable.pushError(
-    packet: Packet, error: Int, init: ContentInitializer,
-) = push(packet.error(error, init))
-
-inline fun PacketPushable.pushEmptyError(
-    packet: Packet, error: Int,
-) = push(packet.error(error))
-
