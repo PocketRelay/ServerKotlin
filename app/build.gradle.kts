@@ -41,12 +41,24 @@ tasks.register("generateConstants") {
     outputs.file(output)
 
     doFirst {
-        val kme3Version: String by project
         var templateFile = input.readText(Charsets.UTF_8)
-        templateFile = templateFile.replace("%KME_VERSION%", kme3Version)
+        templateFile = replaceConstants(templateFile)
         output.writeText(templateFile, Charsets.UTF_8)
     }
 }
+
+/**
+ * This function handles replacing the individual different
+ * constant variables within the template string
+ *
+ * @param value The template string
+ * @return The replaced template string
+ */
+fun replaceConstants(value: String): String {
+    val kme3Version: String by project
+    return value.replace("%KME_VERSION%", kme3Version)
+}
+
 
 /**
  * localDependencies Adds the local dependencies stores in the ../libs
