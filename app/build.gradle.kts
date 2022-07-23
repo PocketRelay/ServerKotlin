@@ -13,8 +13,8 @@ dependencies {
     serializationDependencies()
     nettyDependencies()
     exposedDatabaseDependencies()
-    localDependencies()
     blazeDependencies()
+    xmlDependency()
 
     // NO-OP dependency to disable SLF4J logging that is used by the exposed library
     implementation("org.slf4j:slf4j-nop:1.7.36")
@@ -56,13 +56,9 @@ fun replaceConstants(value: String): String {
     return value.replace("%KME_VERSION%", kme3Version)
 }
 
-
-/**
- * localDependencies Adds the local dependencies stores in the ../libs
- * directory this will include any files ending in .jar
- */
-fun DependencyHandlerScope.localDependencies() {
-    implementation(fileTree("../libs") { include("*.jar") })
+fun DependencyHandlerScope.xmlDependency() {
+    val xmlVersion: String by project
+    implementation("com.jacobtread.xml:xml-builder-kt:$xmlVersion")
 }
 
 fun DependencyHandlerScope.blazeDependencies() {

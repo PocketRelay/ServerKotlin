@@ -1,8 +1,8 @@
 package com.jacobtread.kme.servers.http.routes
 
 import com.jacobtread.kme.Environment
-import com.jacobtread.kme.database.entities.GalaxyAtWarEntity
 import com.jacobtread.kme.database.byId
+import com.jacobtread.kme.database.entities.GalaxyAtWarEntity
 import com.jacobtread.kme.database.entities.PlayerEntity
 import com.jacobtread.kme.servers.http.router.*
 import com.jacobtread.kme.tools.unixTimeSeconds
@@ -33,31 +33,31 @@ private fun RoutingGroup.routeAuthentication() {
         Logger.debug("Authenticated GAW User ${playerEntity.displayName}")
         val time = unixTimeSeconds()
         responseXml("fulllogin") {
-            element("canageup", 0)
-            element("legaldochost")
-            element("needslegaldoc", 0)
-            element("pclogintoken", playerEntity.sessionToken)
-            element("privacypolicyuri")
-            element("sessioninfo") {
-                element("blazeuserid", playerEntity.playerId)
-                element("isfirstlogin", "0")
-                element("sessionkey", playerEntity.playerId.toString(16))
-                element("lastlogindatetime", time)
-                element("email", playerEntity.email)
-                element("personadetails") {
-                    element("displayname", playerEntity.displayName)
-                    element("lastauthenticated", time)
-                    element("personaid", playerEntity.playerId)
-                    element("status", "UNKNOWN")
-                    element("extid", "0")
-                    element("exttype", "BLAZE_EXTERNAL_REF_TYPE_UNKNOWN")
+            textNode("canageup", 0)
+            node("legaldochost")
+            textNode("needslegaldoc", 0)
+            textNode("pclogintoken", playerEntity.sessionToken)
+            node("privacypolicyuri")
+            node("sessioninfo") {
+                textNode("blazeuserid", playerEntity.playerId)
+                textNode("isfirstlogin", "0")
+                textNode("sessionkey", playerEntity.playerId.toString(16))
+                textNode("lastlogindatetime", time)
+                textNode("email", playerEntity.email)
+                node("personadetails") {
+                    textNode("displayname", playerEntity.displayName)
+                    textNode("lastauthenticated", time)
+                    textNode("personaid", playerEntity.playerId)
+                    textNode("status", "UNKNOWN")
+                    textNode("extid", "0")
+                    textNode("exttype", "BLAZE_EXTERNAL_REF_TYPE_UNKNOWN")
                 }
-                element("userid", playerEntity.playerId)
+                textNode("userid", playerEntity.playerId)
             }
-            element("isoflegalcontactage", 0)
-            element("toshost")
-            element("termsofserviceuri")
-            element("tosuri")
+            textNode("isoflegalcontactage", 0)
+            node("toshost")
+            node("termsofserviceuri")
+            node("tosuri")
         }
     }
 }
@@ -108,17 +108,17 @@ private fun respondRatings(playerEntity: PlayerEntity, rating: GalaxyAtWarEntity
     val level = rating.average
     val promotions = if (Environment.gawEnabledPromotions) playerEntity.totalPromotions else 0
     return responseXml("galaxyatwargetratings") {
-        element("ratings") {
-            element("ratings", rating.groupA)
-            element("ratings", rating.groupB)
-            element("ratings", rating.groupC)
-            element("ratings", rating.groupD)
-            element("ratings", rating.groupE)
+        node("ratings") {
+            textNode("ratings", rating.groupA)
+            textNode("ratings", rating.groupB)
+            textNode("ratings", rating.groupC)
+            textNode("ratings", rating.groupD)
+            textNode("ratings", rating.groupE)
         }
-        element("level", level)
-        element("assets") {
-            element("assets", promotions)
-            repeat(9) { element("assets", 0) }
+        textNode("level", level)
+        node("assets") {
+            textNode("assets", promotions)
+            repeat(9) { textNode("assets", 0) }
         }
     }
 }
