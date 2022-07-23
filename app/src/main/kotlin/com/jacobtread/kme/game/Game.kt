@@ -1,7 +1,7 @@
 package com.jacobtread.kme.game
 
-import com.jacobtread.kme.blaze.Commands
-import com.jacobtread.kme.blaze.Components
+import com.jacobtread.kme.data.Commands
+import com.jacobtread.kme.data.Components
 import com.jacobtread.kme.blaze.group
 import com.jacobtread.kme.blaze.packet.Packet
 import com.jacobtread.kme.blaze.tdf.GroupTdf

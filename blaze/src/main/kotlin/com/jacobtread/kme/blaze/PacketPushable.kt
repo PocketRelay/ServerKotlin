@@ -1,5 +1,3 @@
-@file:Suppress("NOTHING_TO_INLINE")
-
 package com.jacobtread.kme.blaze
 
 import com.jacobtread.kme.blaze.packet.Packet

@@ -3,7 +3,6 @@ package com.jacobtread.kme.blaze.tdf
 import com.jacobtread.kme.blaze.TdfReadException
 import com.jacobtread.kme.blaze.data.VarPair
 import com.jacobtread.kme.blaze.data.VarTripple
-import com.jacobtread.kme.utils.logging.Logger
 import io.netty.buffer.ByteBuf
 
 abstract class Tdf<V>(val label: String, private val tagType: UByte) {
@@ -176,10 +175,7 @@ abstract class Tdf<V>(val label: String, private val tagType: UByte) {
                 is Int -> writeVarInt(buffer, value.toULong())
                 is UInt -> writeVarInt(buffer, value.toULong())
                 is Number -> writeVarInt(buffer, value.toLong().toULong())
-                else -> {
-                    Logger.warn("Tried to write varint of unknown type: \"$value\" (${value.javaClass.simpleName}) Writing zero")
-                    buffer.writeByte(0)
-                }
+                else -> throw RuntimeException("Tried to write varint of unknown type: \"$value\" (${value.javaClass.simpleName})")
             }
         }
 

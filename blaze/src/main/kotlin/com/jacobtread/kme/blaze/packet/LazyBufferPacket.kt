@@ -1,9 +1,8 @@
 package com.jacobtread.kme.blaze.packet
 
+import com.jacobtread.kme.blaze.PacketLogger
 import com.jacobtread.kme.blaze.tdf.Tdf
-import com.jacobtread.kme.utils.logging.Logger
 import io.netty.buffer.ByteBuf
-import io.netty.util.ReferenceCounted
 
 /**
  * Lazy implementation of packet which loads the contents from the
@@ -45,9 +44,9 @@ class LazyBufferPacket(
                     values.add(Tdf.read(contentBuffer))
                 }
             } catch (e: Throwable) {
-                Logger.error("Failed to read packet contents at index ${contentBuffer.readerIndex()}", e)
+                PacketLogger.error("Failed to read packet contents at index ${contentBuffer.readerIndex()}", e)
                 if (values.isNotEmpty()) {
-                    Logger.error("Last tdf in contents was: " + values.last())
+                    PacketLogger.error("Last tdf in contents was: " + values.last())
                 }
                 throw e
             }
@@ -55,6 +54,7 @@ class LazyBufferPacket(
             values
         }
     }
+
     override fun writeContent(out: ByteBuf) {
         out.writeBytes(contentBuffer, contentBuffer.readerIndex(), contentBuffer.readableBytes())
     }

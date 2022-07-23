@@ -3,6 +3,8 @@ package com.jacobtread.kme.servers
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.blaze.*
 import com.jacobtread.kme.blaze.packet.Packet
+import com.jacobtread.kme.data.Commands
+import com.jacobtread.kme.data.Components
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.logging.Logger.info
@@ -27,7 +29,7 @@ import java.io.IOException
  */
 fun startMITMServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
     try {
-        if (Logger.logPackets && Logger.debugEnabled) {
+        if (PacketLogger.isEnabled && Logger.debugEnabled) {
             Logger.warn("WARNING: You have packet logging enabled while MITM is enabled.")
             Logger.warn("this will flood your logs with lots of repeated packets and")
             Logger.warn("I recommend you disable packet logging while using MITM")

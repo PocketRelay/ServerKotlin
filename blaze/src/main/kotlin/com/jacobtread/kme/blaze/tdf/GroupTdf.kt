@@ -2,7 +2,6 @@ package com.jacobtread.kme.blaze.tdf
 
 import com.jacobtread.kme.blaze.PacketLogger
 import com.jacobtread.kme.blaze.TdfContainer
-import com.jacobtread.kme.utils.logging.Logger
 import io.netty.buffer.ByteBuf
 
 class GroupTdf(label: String, val start2: Boolean, override val value: List<Tdf<*>>) : Tdf<List<Tdf<*>>>(label, GROUP), TdfContainer {
@@ -25,16 +24,16 @@ class GroupTdf(label: String, val start2: Boolean, override val value: List<Tdf<
                     }
                 }
             } catch (e: Throwable) {
-                Logger.error("Failed to read group tdf contents at index ${input.readerIndex()}", e)
+                PacketLogger.error("Failed to read group tdf contents at index ${input.readerIndex()}", e)
                 if (out.isNotEmpty()) {
-                    Logger.error("Last tdf in group was: " + out.last())
+                    PacketLogger.error("Last tdf in group was: " + out.last())
                 }
                 val output = StringBuilder("\n")
                 out.forEach {
                     PacketLogger.createTdfSource(output, 0, it, false)
                     output.append('\n')
                 }
-                Logger.error(output.toString())
+                PacketLogger.error(output.toString())
                 throw e
             }
             return GroupTdf(label, start2, out)

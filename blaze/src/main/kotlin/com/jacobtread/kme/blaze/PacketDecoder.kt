@@ -1,8 +1,6 @@
 package com.jacobtread.kme.blaze
 
 import com.jacobtread.kme.blaze.packet.LazyBufferPacket
-import com.jacobtread.kme.blaze.packet.Packet
-import com.jacobtread.kme.utils.logging.Logger
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.ByteBufAllocator
 import io.netty.buffer.Unpooled
@@ -96,7 +94,7 @@ class PacketDecoder : ChannelInboundHandlerAdapter() {
             input.readBytes(content, contentLength)// Read the bytes into a new buffer and use that as content
             val packet = LazyBufferPacket(component, command, error, qtype, id, content)
 
-            if (Logger.logPackets) {
+            if (PacketLogger.isEnabled) {
                 PacketLogger.logDebug("DECODED PACKET", ctx.channel(), packet)
             }
             ctx.fireChannelRead(packet)

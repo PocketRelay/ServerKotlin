@@ -1,56 +1,63 @@
 package com.jacobtread.kme.blaze
 
 import com.jacobtread.kme.blaze.data.VarTripple
+import com.jacobtread.kme.blaze.debug.BlazeLoggingOutput
 import com.jacobtread.kme.blaze.debug.DebugNaming
 import com.jacobtread.kme.blaze.packet.LazyBufferPacket
 import com.jacobtread.kme.blaze.packet.Packet
 import com.jacobtread.kme.blaze.tdf.*
-import com.jacobtread.kme.utils.logging.Logger
 import io.netty.channel.Channel
 
 object PacketLogger {
 
     private var debugComponentNames: Map<Int, String>? = null
     private var debugCommandNames: Map<Int, String>? = null
+    var output: BlazeLoggingOutput? = null
 
-    fun init(componentNames: DebugNaming, commandNames: DebugNaming) {
+    var isEnabled: Boolean = false
+
+    fun init(
+        componentNames: DebugNaming,
+        commandNames: DebugNaming,
+        output: BlazeLoggingOutput?,
+    ) {
         debugComponentNames = componentNames.getDebugNameMap()
         debugCommandNames = commandNames.getDebugNameMap()
+        this.output = output
+        isEnabled = true
     }
 
     fun logDebug(title: String, channel: Channel, packet: Packet) {
-        if (Logger.debugEnabled) {
-            try {
-                val lineWidth = 30
-                val out = StringBuilder()
-                out.append(title)
-                    .append(' ')
-                    .appendLine("=".repeat(lineWidth - (title.length + 1)))
+        try {
+            val lineWidth = 30
+            val out = StringBuilder()
+            out.append(title)
+                .append(' ')
+                .appendLine("=".repeat(lineWidth - (title.length + 1)))
 
-                val contextAttr: String? = channel.attr(PacketEncoder.ENCODER_CONTEXT_KEY)
-                    .get()
+            val contextAttr: String? = channel.attr(PacketEncoder.ENCODER_CONTEXT_KEY)
+                .get()
 
-                if (contextAttr != null) {
-                    out.appendLine(contextAttr)
-                }
-
-
-                createPacketSource(out, packet)
-
-                out.appendLine()
-                    .appendLine("=".repeat(lineWidth))
-
-                Logger.debug(out.toString())
-            } catch (e: Throwable) {
-                dumpPacketException("Failed to decode sent packet contents for debugging: ", packet, e)
+            if (contextAttr != null) {
+                out.appendLine(contextAttr)
             }
+
+
+            createPacketSource(out, packet)
+
+            out.appendLine()
+                .appendLine("=".repeat(lineWidth))
+
+            debug(out.toString())
+        } catch (e: Throwable) {
+            dumpPacketException(packet, e)
         }
     }
 
 
-    private fun dumpPacketException(text: String, packet: Packet, cause: Throwable) {
+    private fun dumpPacketException(packet: Packet, cause: Throwable) {
         try {
-            val out = StringBuilder(text)
+            val out = StringBuilder("Failed to decode packet contents for debugging: ")
                 .appendLine()
                 .appendLine("Packet Information ==================================")
                 .append("Component: 0x")
@@ -118,9 +125,9 @@ object PacketLogger {
 
             out.appendLine()
                 .appendLine("=====================================================")
-            Logger.warn(out.toString())
+            warn(out.toString())
         } catch (e: Throwable) {
-            Logger.warn("Exception when handling packet dump exception", e)
+            warn("Exception when handling packet dump exception", e)
         }
     }
 
@@ -377,5 +384,25 @@ object PacketLogger {
                     .append(')')
             }
         }
+    }
+
+    fun debug(text: String) {
+        output?.debug(text)
+    }
+
+    fun warn(text: String) {
+        output?.warn(text)
+    }
+
+    fun warn(text: String, cause: Throwable) {
+        output?.warn(text, cause)
+    }
+
+    fun error(text: String) {
+        output?.error(text)
+    }
+
+    fun error(text: String, cause: Throwable) {
+        output?.error(text, cause)
     }
 }

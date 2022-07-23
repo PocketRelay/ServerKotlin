@@ -1,4 +1,4 @@
-package com.jacobtread.kme.blaze
+package com.jacobtread.kme.data
 
 import com.jacobtread.kme.blaze.debug.DebugNaming
 

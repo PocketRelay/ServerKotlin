@@ -1,7 +1,6 @@
 package com.jacobtread.kme.blaze
 
 import com.jacobtread.kme.blaze.packet.Packet
-import com.jacobtread.kme.utils.logging.Logger
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelHandlerContext
@@ -23,7 +22,7 @@ object PacketEncoder : ChannelOutboundHandlerAdapter() {
             if (msg is Packet) {
                 buffer = Packet.allocateBuffer(ctx.alloc(), msg)
                 try {
-                    if (Logger.logPackets) {
+                    if (PacketLogger.isEnabled) {
                         PacketLogger.logDebug("ENCODED PACKET", ctx.channel(), msg)
                     }
                     msg.writeTo(buffer)

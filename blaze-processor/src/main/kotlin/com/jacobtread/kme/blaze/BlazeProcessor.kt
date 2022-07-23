@@ -10,8 +10,10 @@ import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.jacobtread.kme.blaze.annotations.PacketHandler
 import com.jacobtread.kme.blaze.annotations.PacketProcessor
-import com.jacobtread.kme.blaze.packet.Packet
-import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 import java.util.*
@@ -90,7 +92,6 @@ class BlazeProcessor(
             // Close when statement
             codeBuilder.appendLine("}")
 
-
             /**
              * routeFunc Creates a function that is used for routing this
              * is named route${TheProcesssorClassName} and takes the processor,
@@ -99,7 +100,7 @@ class BlazeProcessor(
             val routeFunc = FunSpec.builder("route${className}")
                 .addParameter("processor", classType)
                 .addParameter("channel", ClassName("io.netty.channel", "Channel"))
-                .addParameter("msg", Packet::class)
+                .addParameter("msg", ClassName("com.jacobtread.kme.blaze.packet", "Packet"))
                 .addCode(CodeBlock.of(codeBuilder.toString()))
                 .build()
             logger.info("Writing output for $className")
