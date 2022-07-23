@@ -5,7 +5,6 @@ plugins {
     kotlin("plugin.serialization")
     id("com.github.johnrengelman.shadow")
     id("com.google.devtools.ksp")
-    idea
 }
 
 dependencies {
@@ -27,15 +26,6 @@ dependencies {
     ksp(project(":blaze-processor"))
 }
 
-// Adding sources for generated code
-idea {
-    module {
-        // NOTE: Don't make these into variables it will break the build step
-        sourceDirs = sourceDirs + file("build/generated/ksp/main/kotlin")
-        testSourceDirs = testSourceDirs + file("build/generated/ksp/test/kotlin")
-        generatedSourceDirs = generatedSourceDirs + file("build/generated/ksp/main/kotlin") + file("build/generated/ksp/test/kotlin")
-    }
-}
 
 /**
  * This task generates a constants file at src/main/kotlin/com/jacobtread/kme/data/Constants.kt
