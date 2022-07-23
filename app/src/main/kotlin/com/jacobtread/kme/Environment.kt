@@ -1,8 +1,10 @@
 package com.jacobtread.kme
 
-import com.jacobtread.kme.blaze.Commands
-import com.jacobtread.kme.blaze.Components
-import com.jacobtread.kme.blaze.PacketLogger
+import com.jacobtread.blaze.PacketLogger
+import com.jacobtread.blaze.debug.BlazeLoggingOutput
+import com.jacobtread.kme.data.Commands
+import com.jacobtread.kme.data.Components
+import com.jacobtread.kme.data.Constants
 import com.jacobtread.kme.database.RuntimeDriver
 import com.jacobtread.kme.database.tables.*
 import com.jacobtread.kme.utils.logging.Logger
@@ -29,9 +31,6 @@ import org.jetbrains.exposed.sql.Database as ExposedDatabase
  * @constructor Create empty Environment
  */
 object Environment {
-
-    // The version of KME
-    const val KME_VERSION = "1.0.1"
 
     val externalAddress: String
 
@@ -62,7 +61,7 @@ object Environment {
      * used.
      */
     init {
-        Logger.info("Starting ME3 Server")
+        Logger.info("Starting KME3 server (version: ${Constants.KME_VERSION})")
 
         val env = System.getenv() // Wrapper over the environment variables
 
@@ -75,15 +74,16 @@ object Environment {
 
         val loggingConfig = config.logging
 
+
         // Initialize the logger with its configuration
         Logger.init(
             env.stringValue("KME_LOGGER_LEVEL", loggingConfig.level),
             env.booleanValue("KME_LOGGER_SAVE", loggingConfig.save),
-            env.booleanValue("KME_LOGGER_PACKETS", loggingConfig.packets)
         )
 
-        if (Logger.logPackets) { // Load command and component names for debugging
-            PacketLogger.init(Components, Commands)
+        val logPackets = env.booleanValue("KME_LOGGER_PACKETS", loggingConfig.packets)
+        if (logPackets && Logger.debugEnabled) { // Load command and component names for debugging
+            PacketLogger.init(Components, Commands, createBlazeLoggingOutput())
         }
 
         // External address string
@@ -172,6 +172,29 @@ object Environment {
         }
     }
 
+    private fun createBlazeLoggingOutput(): BlazeLoggingOutput {
+        return object : BlazeLoggingOutput {
+            override fun debug(text: String) {
+                Logger.debug(text)
+            }
+
+            override fun warn(text: String) {
+                Logger.warn(text)
+            }
+
+            override fun warn(text: String, cause: Throwable) {
+                Logger.warn(text, cause)
+            }
+
+            override fun error(text: String) {
+                Logger.error(text)
+            }
+
+            override fun error(text: String, cause: Throwable) {
+                Logger.error(text, cause)
+            }
+        }
+    }
 
     private fun Map<String, String>.stringValue(key: String, default: String): String = getOrDefault(key, default)
     private fun Map<String, String>.booleanValue(key: String, default: Boolean): Boolean = get(key)?.toBooleanStrictOrNull() ?: default

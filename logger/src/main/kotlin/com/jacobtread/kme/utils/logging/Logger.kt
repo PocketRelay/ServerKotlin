@@ -62,11 +62,9 @@ object Logger {
     fun init(
         levelName: String,
         file: Boolean,
-        packets: Boolean,
     ) {
         level = Level.fromName(levelName)
         saveFile = file
-        logPackets = packets
     }
 
     fun info(text: String) = append(Level.INFO, text)

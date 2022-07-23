@@ -1,8 +1,9 @@
 package com.jacobtread.kme.servers.http.router
 
 import com.jacobtread.kme.data.Data
-import com.jacobtread.xml.Node
+import com.jacobtread.xml.OutputOptions
 import com.jacobtread.xml.XmlVersion
+import com.jacobtread.xml.element.XmlRootNode
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import io.netty.handler.codec.http.DefaultFullHttpResponse
@@ -65,12 +66,15 @@ fun HttpResponse.setHeader(key: String, value: String): HttpResponse {
  * @receiver The newly created root node
  * @return The HttpResponse created from the encoded XML
  */
-inline fun responseXml(rootName: String, init: Node.() -> Unit): HttpResponse {
-    val rootNode = Node(rootName)
+inline fun responseXml(rootName: String, init: XmlRootNode.() -> Unit): HttpResponse {
+    val rootNode = XmlRootNode(rootName)
     rootNode.encoding = "UTF-8"
     rootNode.version = XmlVersion.V10
     rootNode.init()
-    return response(HttpResponseStatus.OK, Unpooled.copiedBuffer(rootNode.toString(false), Charsets.UTF_8), XML_CONTENT_TYPE)
+    val outputOptions = OutputOptions(
+        prettyPrint = false
+    )
+    return response(HttpResponseStatus.OK, Unpooled.copiedBuffer(rootNode.toString(outputOptions), Charsets.UTF_8), XML_CONTENT_TYPE)
 }
 
 /**

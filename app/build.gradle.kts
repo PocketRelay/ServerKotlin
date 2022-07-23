@@ -5,7 +5,6 @@ plugins {
     kotlin("plugin.serialization")
     id("com.github.johnrengelman.shadow")
     id("com.google.devtools.ksp")
-    idea
 }
 
 dependencies {
@@ -14,36 +13,62 @@ dependencies {
     serializationDependencies()
     nettyDependencies()
     exposedDatabaseDependencies()
-    localDependencies()
+    blazeDependencies()
+    xmlDependency()
 
     // NO-OP dependency to disable SLF4J logging that is used by the exposed library
     implementation("org.slf4j:slf4j-nop:1.7.36")
 
-    // Subprojects for blaze networking and utilities
-    implementation(project(":blaze"))
+    // Logging project
     implementation(project(":logger"))
-
-    // KSP annoatation processing for packet routing
-    ksp(project(":blaze-processor"))
-}
-
-// Adding sources for generated code
-idea {
-    module {
-        // NOTE: Don't make these into variables it will break the build step
-        sourceDirs = sourceDirs + file("build/generated/ksp/main/kotlin")
-        testSourceDirs = testSourceDirs + file("build/generated/ksp/test/kotlin")
-        generatedSourceDirs = generatedSourceDirs + file("build/generated/ksp/main/kotlin") + file("build/generated/ksp/test/kotlin")
-    }
 }
 
 
 /**
- * localDependencies Adds the local dependencies stores in the ../libs
- * directory this will include any files ending in .jar
+ * This task generates a constants file at src/main/kotlin/com/jacobtread/kme/data/Constants.kt
+ * using the template file at src/main/resources/templates/Constants.kt.template this task replaces
+ * placeholders in the template file with information from the project. This is run before compile
  */
-fun DependencyHandlerScope.localDependencies() {
-    implementation(fileTree("../libs") { include("*.jar") })
+tasks.register("generateConstants") {
+    val input = file("src/main/resources/templates/Constants.kt.template")
+    val propertiesFile = rootDir.absoluteFile.resolve("gradle.properties")
+    val output = file("src/main/kotlin/com/jacobtread/kme/data/Constants.kt")
+
+    inputs.files(input, propertiesFile)
+    outputs.file(output)
+
+    doFirst {
+        var templateFile = input.readText(Charsets.UTF_8)
+        templateFile = replaceConstants(templateFile)
+        output.writeText(templateFile, Charsets.UTF_8)
+    }
+}
+
+/**
+ * This function handles replacing the individual different
+ * constant variables within the template string
+ *
+ * @param value The template string
+ * @return The replaced template string
+ */
+fun replaceConstants(value: String): String {
+    val kme3Version: String by project
+    return value.replace("%KME_VERSION%", kme3Version)
+}
+
+fun DependencyHandlerScope.xmlDependency() {
+    val xmlVersion: String by project
+    implementation("com.jacobtread.xml:xml-builder-kt:$xmlVersion")
+}
+
+fun DependencyHandlerScope.blazeDependencies() {
+    val blazeVersion: String by project
+
+    implementation("com.jacobtread.blaze:blaze-core:$blazeVersion")
+    implementation("com.jacobtread.blaze:blaze-annotations:$blazeVersion")
+
+    // KSP annoatation processing for packet routing
+    ksp("com.jacobtread.blaze:blaze-processor:$blazeVersion")
 }
 
 /**
@@ -82,6 +107,8 @@ fun DependencyHandlerScope.exposedDatabaseDependencies() {
  * jvm target and add the defaults' compiler arg
  */
 tasks.withType(KotlinCompile::class) {
+    dependsOn("generateConstants")
+
     kotlinOptions {
         val javaCompileVersion: String by project
         jvmTarget = javaCompileVersion

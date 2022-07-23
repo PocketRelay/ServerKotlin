@@ -1,12 +1,12 @@
 package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.Environment
-import com.jacobtread.kme.blaze.*
-import com.jacobtread.kme.blaze.annotations.PacketHandler
-import com.jacobtread.kme.blaze.annotations.PacketProcessor
-import com.jacobtread.kme.blaze.packet.Packet
-import com.jacobtread.kme.blaze.tdf.GroupTdf
-import com.jacobtread.kme.data.Data
+import com.jacobtread.blaze.*
+import com.jacobtread.blaze.annotations.PacketHandler
+import com.jacobtread.blaze.annotations.PacketProcessor
+import com.jacobtread.blaze.packet.Packet
+import com.jacobtread.blaze.tdf.GroupTdf
+import com.jacobtread.kme.data.*
 import com.jacobtread.kme.database.byId
 import com.jacobtread.kme.database.entities.MessageEntity
 import com.jacobtread.kme.database.entities.PlayerEntity
@@ -771,7 +771,7 @@ class MainProcessor(
         val ip = channel.remoteAddress().toString()
         val player = session.playerEntity
         val menuMessage = Environment.menuMessage
-            .replace("{v}", Environment.KME_VERSION)
+            .replace("{v}", Constants.KME_VERSION)
             .replace("{n}", player.displayName)
             .replace("{ip}", ip) + 0xA.toChar()
         push(unique(Components.MESSAGING, Commands.SEND_MESSAGE) {
@@ -1083,14 +1083,14 @@ class MainProcessor(
             +group("TELE") {
                 text("ADRS", address) // Server Address
                 number("ANON", 0)
-                text("DISA", Data.getTeledisa())
+                text("DISA", "**")
                 text("FILT", "-UION/****") // Telemetry filter?
                 number("LOC", 1701725253)
                 text("NOOK", "US,CA,MX")
                 number("PORT", port)
                 number("SDLY", 15000)
                 text("SESS", "JMhnT9dXSED")
-                text("SKEY", Data.createSKey())
+                text("SKEY", "")
                 number("SPCT", 0x4B)
                 text("STIM", "")
             }

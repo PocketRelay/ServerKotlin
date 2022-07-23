@@ -1,6 +1,6 @@
-package com.jacobtread.kme.blaze
+package com.jacobtread.kme.data
 
-import com.jacobtread.kme.blaze.debug.DebugNaming
+import com.jacobtread.blaze.debug.DebugNaming
 
 @Suppress("unused")
 object Components : DebugNaming {

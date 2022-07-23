@@ -1,13 +1,13 @@
 package com.jacobtread.kme.game
 
-import com.jacobtread.kme.blaze.Commands
-import com.jacobtread.kme.blaze.Components
-import com.jacobtread.kme.blaze.group
-import com.jacobtread.kme.blaze.packet.Packet
-import com.jacobtread.kme.blaze.tdf.GroupTdf
-import com.jacobtread.kme.blaze.tdf.ListTdf
-import com.jacobtread.kme.blaze.tdf.Tdf
-import com.jacobtread.kme.blaze.unique
+import com.jacobtread.kme.data.Commands
+import com.jacobtread.kme.data.Components
+import com.jacobtread.blaze.group
+import com.jacobtread.blaze.packet.Packet
+import com.jacobtread.blaze.tdf.GroupTdf
+import com.jacobtread.blaze.tdf.ListTdf
+import com.jacobtread.blaze.tdf.Tdf
+import com.jacobtread.blaze.unique
 import com.jacobtread.kme.data.GameStateAttr
 import com.jacobtread.kme.exceptions.GameStoppedException
 import com.jacobtread.kme.utils.logging.Logger
@@ -201,7 +201,7 @@ class Game(
         ) {
             number("CNTX", 0x0)
             number("GID", id)
-            number("PID", player.playerId)
+            number("PID", player.playerIdUnsafe)
             number("REAS", 0x6) // Possible remove reason? Investigate further
         }
     }
