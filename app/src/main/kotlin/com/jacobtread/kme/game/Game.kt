@@ -201,7 +201,7 @@ class Game(
         ) {
             number("CNTX", 0x0)
             number("GID", id)
-            number("PID", player.playerId)
+            number("PID", player.playerIdUnsafe)
             number("REAS", 0x6) // Possible remove reason? Investigate further
         }
     }

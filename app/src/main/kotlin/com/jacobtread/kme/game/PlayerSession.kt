@@ -91,6 +91,8 @@ class PlayerSession : PacketPushable {
     val playerEntity: PlayerEntity get() = _playerEntity ?: throw throw NotAuthenticatedException()
     val playerId: Int get() = playerEntity.playerId
 
+    val playerIdUnsafe: Int get() = _playerEntity?.playerId ?: 1
+
     val isAuthenticated: Boolean get() = _playerEntity != null
 
     var pslm = listOf<ULong>(0xfff0fffu, 0xfff0fffu, 0xfff0fffu)
