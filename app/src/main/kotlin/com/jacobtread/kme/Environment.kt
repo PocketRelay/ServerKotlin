@@ -1,7 +1,7 @@
 package com.jacobtread.kme
 
-import com.jacobtread.kme.blaze.PacketLogger
-import com.jacobtread.kme.blaze.debug.BlazeLoggingOutput
+import com.jacobtread.blaze.PacketLogger
+import com.jacobtread.blaze.debug.BlazeLoggingOutput
 import com.jacobtread.kme.data.Commands
 import com.jacobtread.kme.data.Components
 import com.jacobtread.kme.data.Constants

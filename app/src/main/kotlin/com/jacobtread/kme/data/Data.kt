@@ -1,8 +1,8 @@
 package com.jacobtread.kme.data
 
 import com.jacobtread.kme.Environment
-import com.jacobtread.kme.blaze.TdfBuilder
-import com.jacobtread.kme.blaze.group
+import com.jacobtread.blaze.TdfBuilder
+import com.jacobtread.blaze.group
 import java.io.IOException
 
 /**

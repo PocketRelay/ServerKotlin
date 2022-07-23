@@ -15,4 +15,4 @@ pluginManagement {
 }
 
 rootProject.name = "kme"
-include("app", "blaze", "logger", "blaze-processor")
+include("app", "logger")

@@ -14,16 +14,13 @@ dependencies {
     nettyDependencies()
     exposedDatabaseDependencies()
     localDependencies()
+    blazeDependencies()
 
     // NO-OP dependency to disable SLF4J logging that is used by the exposed library
     implementation("org.slf4j:slf4j-nop:1.7.36")
 
-    // Subprojects for blaze networking and utilities
-    implementation(project(":blaze"))
+    // Logging project
     implementation(project(":logger"))
-
-    // KSP annoatation processing for packet routing
-    ksp(project(":blaze-processor"))
 }
 
 
@@ -66,6 +63,16 @@ fun replaceConstants(value: String): String {
  */
 fun DependencyHandlerScope.localDependencies() {
     implementation(fileTree("../libs") { include("*.jar") })
+}
+
+fun DependencyHandlerScope.blazeDependencies() {
+    val blazeVersion: String by project
+
+    implementation("com.jacobtread.blaze:blaze-core:$blazeVersion")
+    implementation("com.jacobtread.blaze:blaze-annotations:$blazeVersion")
+
+    // KSP annoatation processing for packet routing
+    ksp("com.jacobtread.blaze:blaze-processor:$blazeVersion")
 }
 
 /**

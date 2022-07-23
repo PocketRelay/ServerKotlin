@@ -1,11 +1,11 @@
 package com.jacobtread.kme.game
 
-import com.jacobtread.kme.blaze.*
-import com.jacobtread.kme.blaze.data.VarTripple
-import com.jacobtread.kme.blaze.packet.Packet
-import com.jacobtread.kme.blaze.tdf.GroupTdf
-import com.jacobtread.kme.blaze.tdf.OptionalTdf
-import com.jacobtread.kme.blaze.tdf.VarIntTdf
+import com.jacobtread.blaze.*
+import com.jacobtread.blaze.data.VarTripple
+import com.jacobtread.blaze.packet.Packet
+import com.jacobtread.blaze.tdf.GroupTdf
+import com.jacobtread.blaze.tdf.OptionalTdf
+import com.jacobtread.blaze.tdf.VarIntTdf
 import com.jacobtread.kme.data.Commands
 import com.jacobtread.kme.data.Components
 import com.jacobtread.kme.database.entities.PlayerEntity

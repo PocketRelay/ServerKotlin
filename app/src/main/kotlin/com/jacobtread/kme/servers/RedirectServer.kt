@@ -1,8 +1,8 @@
 package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.Environment
-import com.jacobtread.kme.blaze.*
-import com.jacobtread.kme.blaze.packet.Packet
+import com.jacobtread.blaze.*
+import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.kme.data.Commands
 import com.jacobtread.kme.data.Components
 import com.jacobtread.kme.utils.logging.Logger

@@ -1,11 +1,11 @@
 package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.Environment
-import com.jacobtread.kme.blaze.*
-import com.jacobtread.kme.blaze.annotations.PacketHandler
-import com.jacobtread.kme.blaze.annotations.PacketProcessor
-import com.jacobtread.kme.blaze.packet.Packet
-import com.jacobtread.kme.blaze.tdf.GroupTdf
+import com.jacobtread.blaze.*
+import com.jacobtread.blaze.annotations.PacketHandler
+import com.jacobtread.blaze.annotations.PacketProcessor
+import com.jacobtread.blaze.packet.Packet
+import com.jacobtread.blaze.tdf.GroupTdf
 import com.jacobtread.kme.data.*
 import com.jacobtread.kme.database.byId
 import com.jacobtread.kme.database.entities.MessageEntity
