@@ -37,6 +37,11 @@ idea {
     }
 }
 
+/**
+ * This task generates a constants file at src/main/kotlin/com/jacobtread/kme/data/Constants.kt
+ * using the template file at src/main/resources/templates/Constants.kt.template this task replaces
+ * placeholders in the template file with information from the project. This is run before compile
+ */
 tasks.register("generateConstants") {
     val input = file("src/main/resources/templates/Constants.kt.template")
     val propertiesFile = rootDir.absoluteFile.resolve("gradle.properties")
