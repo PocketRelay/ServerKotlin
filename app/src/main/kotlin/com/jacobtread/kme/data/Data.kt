@@ -13,26 +13,6 @@ import java.io.IOException
  */
 object Data {
 
-    fun getTeledisa(): String {
-        return "AD,AF,AG,AI,AL,AM,AN,AO,AQ,AR,AS,AW,AX,AZ,BA,BB,BD,BF,BH,BI,BJ,BM,BN,BO,BR,BS,BT,BV,BW,BY,BZ,CC,CD,CF,CG,CI,CK,CL,CM,CN,CO,CR,CU,CV,CX,DJ,DM,DO,DZ,EC,EG,EH,ER,ET,FJ,FK,FM,FO,GA,GD,GE,GF,GG,GH,GI,GL,GM,GN,GP,GQ,GS,GT,GU,GW,GY,HM,HN,HT,ID,IL,IM,IN,IO,IQ,IR,IS,JE,JM,JO,KE,KG,KH,KI,KM,KN,KP,KR,KW,KY,KZ,LA,LB,LC,LI,LK,LR,LS,LY,MA,MC,MD,ME,MG,MH,ML,MM,MN,MO,MP,MQ,MR,MS,MU,MV,MW,MY,MZ,NA,NC,NE,NF,NG,NI,NP,NR,NU,OM,PA,PE,PF,PG,PH,PK,PM,PN,PS,PW,PY,QA,RE,RS,RW,SA,SB,SC,SD,SG,SH,SJ,SL,SM,SN,SO,SR,ST,SV,SY,SZ,TC,TD,TF,TG,TH,TJ,TK,TL,TM,TN,TO,TT,TV,TZ,UA,UG,UM,UY,UZ,VA,VC,VE,VG,VN,VU,WF,WS,YE,YT,ZM,ZW,ZZ"
-    }
-
-    fun createSKey(): String {
-        return String(
-            byteArrayOf(
-                94, -118, -53, -35, -8, -20, -63, -107, -104, -103, -7, -108, -64, -83, -18,
-                -4, -50, -92, -121, -34, -118, -90, -50, -36, -80, -18, -24, -27, -77, -11,
-                -83, -102, -78, -27, -28, -79, -103, -122, -57, -114, -101, -80, -12, -64, -127,
-                -93, -89, -115, -100, -70, -62, -119, -45, -61, -84, -104, -106, -92, -32, -64,
-                -127, -125, -122, -116, -104, -80, -32, -52, -119, -109, -58, -52, -102, -28, -56,
-                -103, -29, -126, -18, -40, -105, -19, -62, -51, -101, -41, -52, -103, -77, -27,
-                -58, -47, -21, -78, -90, -117, -72, -29, -40, -60, -95, -125, -58, -116, -100,
-                -74, -16, -48, -63, -109, -121, -53, -78, -18, -120, -107, -46, -128, -128
-            ),
-            Charsets.UTF_8
-        )
-    }
-
     //region ME3 Data
 
     /**
@@ -246,7 +226,7 @@ object Data {
             "JOB_THROTTLE_2" to "0",
             "MATCH_MAKING_RULES_VERSION" to "5",
             "MULTIPLAYER_PROTOCOL_VERSION" to "3",
-            "TEL_DISABLE" to getTeledisa(),
+            "TEL_DISABLE" to "**",
             "TEL_DOMAIN" to "pc/masseffect-3-pc-anon",
             "TEL_FILTER" to "-UION/****",
             "TEL_PORT" to "9988",

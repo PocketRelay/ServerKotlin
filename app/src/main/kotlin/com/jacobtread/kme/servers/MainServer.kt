@@ -1084,14 +1084,14 @@ class MainProcessor(
             +group("TELE") {
                 text("ADRS", address) // Server Address
                 number("ANON", 0)
-                text("DISA", Data.getTeledisa())
+                text("DISA", "**")
                 text("FILT", "-UION/****") // Telemetry filter?
                 number("LOC", 1701725253)
                 text("NOOK", "US,CA,MX")
                 number("PORT", port)
                 number("SDLY", 15000)
                 text("SESS", "JMhnT9dXSED")
-                text("SKEY", Data.createSKey())
+                text("SKEY", "")
                 number("SPCT", 0x4B)
                 text("STIM", "")
             }
