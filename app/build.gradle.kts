@@ -37,6 +37,21 @@ idea {
     }
 }
 
+tasks.register("generateConstants") {
+    val input = file("src/main/resources/templates/Constants.kt.template")
+    val propertiesFile = rootDir.absoluteFile.resolve("gradle.properties")
+    val output = file("src/main/kotlin/com/jacobtread/kme/data/Constants.kt")
+
+    inputs.files(input, propertiesFile)
+    outputs.file(output)
+
+    doFirst {
+        val kme3Version: String by project
+        var templateFile = input.readText(Charsets.UTF_8)
+        templateFile = templateFile.replace("%KME_VERSION%", kme3Version)
+        output.writeText(templateFile, Charsets.UTF_8)
+    }
+}
 
 /**
  * localDependencies Adds the local dependencies stores in the ../libs
@@ -82,6 +97,8 @@ fun DependencyHandlerScope.exposedDatabaseDependencies() {
  * jvm target and add the defaults' compiler arg
  */
 tasks.withType(KotlinCompile::class) {
+    dependsOn("generateConstants")
+
     kotlinOptions {
         val javaCompileVersion: String by project
         jvmTarget = javaCompileVersion

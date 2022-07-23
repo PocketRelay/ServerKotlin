@@ -6,6 +6,7 @@ import com.jacobtread.kme.blaze.annotations.PacketHandler
 import com.jacobtread.kme.blaze.annotations.PacketProcessor
 import com.jacobtread.kme.blaze.packet.Packet
 import com.jacobtread.kme.blaze.tdf.GroupTdf
+import com.jacobtread.kme.data.Constants
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.database.byId
 import com.jacobtread.kme.database.entities.MessageEntity
@@ -771,7 +772,7 @@ class MainProcessor(
         val ip = channel.remoteAddress().toString()
         val player = session.playerEntity
         val menuMessage = Environment.menuMessage
-            .replace("{v}", Environment.KME_VERSION)
+            .replace("{v}", Constants.KME_VERSION)
             .replace("{n}", player.displayName)
             .replace("{ip}", ip) + 0xA.toChar()
         push(unique(Components.MESSAGING, Commands.SEND_MESSAGE) {

@@ -3,6 +3,7 @@ package com.jacobtread.kme
 import com.jacobtread.kme.blaze.Commands
 import com.jacobtread.kme.blaze.Components
 import com.jacobtread.kme.blaze.PacketLogger
+import com.jacobtread.kme.data.Constants
 import com.jacobtread.kme.database.RuntimeDriver
 import com.jacobtread.kme.database.tables.*
 import com.jacobtread.kme.utils.logging.Logger
@@ -29,9 +30,6 @@ import org.jetbrains.exposed.sql.Database as ExposedDatabase
  * @constructor Create empty Environment
  */
 object Environment {
-
-    // The version of KME
-    const val KME_VERSION = "1.0.1"
 
     val externalAddress: String
 
@@ -62,7 +60,7 @@ object Environment {
      * used.
      */
     init {
-        Logger.info("Starting ME3 Server")
+        Logger.info("Starting KME3 server (version: ${Constants.KME_VERSION})")
 
         val env = System.getenv() // Wrapper over the environment variables
 

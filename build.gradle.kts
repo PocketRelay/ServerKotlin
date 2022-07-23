@@ -1,5 +1,7 @@
+val kme3Version: String by project
+
 group = "com.jacobtread.kme"
-version = "1.0.1"
+version = kme3Version
 
 plugins {
     kotlin("jvm") apply false
