@@ -369,6 +369,7 @@ class MainProcessor(
         // Create a new player entity
         val playerEntity = PlayerEntity.create(email, password)
         session.setAuthenticated(playerEntity) // Link the player to this session
+
         push(session.authResponse(packet))
     }
 
@@ -381,8 +382,7 @@ class MainProcessor(
     @PacketHandler(Components.AUTHENTICATION, Commands.LOGIN_PERSONA)
     fun handleLoginPersona(packet: Packet) {
         packet.pushResponse { session.appendPlayerSession(this) }
-        push(session.createSessionDetails()) // Send session details
-        push(session.createIdentityUpdate()) // Ask for networking info
+        session.pushPlayerUpdate(session)
     }
 
     //endregion

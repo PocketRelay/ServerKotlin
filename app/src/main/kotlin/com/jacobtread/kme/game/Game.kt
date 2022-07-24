@@ -90,7 +90,10 @@ class Game(
         host.pushPlayerUpdate(session)
         host.push(unique(Components.GAME_MANAGER, Commands.JOIN_GAME_BY_GROUP) {
             number("GID", id)
-            +session.createPlayerDataGroup()
+            val playerDataGroup = session.createPlayerDataGroup()
+            if (playerDataGroup != null) {
+                +playerDataGroup
+            }
         })
         host.push(session.createSetSession())
     }
@@ -341,7 +344,10 @@ class Game(
         val playersList = ArrayList<GroupTdf>()
         players.forEach {
             if (it != null) {
-                playersList.add(it.createPlayerDataGroup())
+                val playerDataGroup = it.createPlayerDataGroup()
+                if (playerDataGroup != null) {
+                    playersList.add(playerDataGroup)
+                }
             }
         }
         return ListTdf("PROS", Tdf.GROUP, playersList)

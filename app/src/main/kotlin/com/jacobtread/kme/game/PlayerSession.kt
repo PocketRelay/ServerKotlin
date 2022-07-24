@@ -337,7 +337,7 @@ class PlayerSession : PacketPushable {
      *
      * @return The packet which updates the client ID
      */
-    fun createIdentityUpdate(): Packet =
+    private fun createIdentityUpdate(): Packet =
         unique(
             Components.USER_SESSIONS,
             Commands.UPDATE_EXTENDED_DATA_ATTRIBUTE
@@ -380,19 +380,14 @@ class PlayerSession : PacketPushable {
      *
      * @return A USER_SESSIONS SESSION_DETAILS packet describing this session
      */
-    fun createSessionDetails(): Packet {
+    private fun createSessionDetails(): Packet {
         val player = playerEntity
-        val game = game
         return unique(
             Components.USER_SESSIONS,
             Commands.SESSION_DETAILS,
         ) {
             // Session Data
-            if (game != null) {
-                +createSessionDataGroup()
-            } else {
-                +createSessionDataGroup()
-            }
+            +createSessionDataGroup()
             // Player Data
             +group("USER") {
                 number("AID", player.playerId)
@@ -444,6 +439,7 @@ class PlayerSession : PacketPushable {
             number("UID", playerId)
         }
     }
+
     fun authResponse(packet: Packet) = packet.respond {
         val player = playerEntity
         text("LDHT", "")
