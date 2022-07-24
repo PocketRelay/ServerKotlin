@@ -706,7 +706,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
                 sdsc = "Challenge Points"
                 gname = "ME3ChallengePoints"
             }
-            packet.respond {
+            push(packet.respond {
                 number("ACSD", 0x0)
                 text("BNAM", name)
                 text("DESC", desc)
@@ -734,9 +734,9 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
                 text("META", "RF=@W=150, HMC=tableColHeader1, REMC=tableRowEntry1@ UF=@W=670, HMC=tableColHeader2, REMC=tableRowEntry2@")
                 text("NAME", gname)
                 text("SNAM", sname)
-            }
+            })
         } else {
-            packet.respond()
+            push(packet.respond())
         }
     }
 
@@ -933,8 +933,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         pslm[1] = nlmp.getOrDefault("rs-iad", 0xfff0fffu)
         pslm[2] = nlmp.getOrDefault("rs-lhr", 0xfff0fffu)
 
-        push(packet.respond())
-        push(createSetSessionPacket())
+        pushAll(packet.respond(),createSetSessionPacket())
     }
 
     /**
