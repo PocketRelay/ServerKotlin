@@ -7,11 +7,17 @@ import com.jacobtread.blaze.data.VarTripple
 import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.blaze.tdf.GroupTdf
 import com.jacobtread.blaze.tdf.OptionalTdf
+import com.jacobtread.kme.Environment
 import com.jacobtread.kme.data.Commands
 import com.jacobtread.kme.data.Components
+import com.jacobtread.kme.data.Data
+import com.jacobtread.kme.data.LoginError
+import com.jacobtread.kme.database.entities.MessageEntity
 import com.jacobtread.kme.database.entities.PlayerEntity
 import com.jacobtread.kme.game.Game
+import com.jacobtread.kme.tools.unixTimeSeconds
 import io.netty.channel.Channel
+import java.io.IOException
 import java.util.concurrent.atomic.AtomicInteger
 
 @PacketProcessor
@@ -59,9 +65,11 @@ class Session(channel: Channel) : PacketPushable {
     private var ubps: ULong = 0uL
 
     private var hardwareFlag: Int = 0
-    private var pslm: List<ULong> = listOf(0xfff0fffu, 0xfff0fffu, 0xfff0fffu)
+    private var pslm: ArrayList<ULong> = arrayListOf(0xfff0fffu, 0xfff0fffu, 0xfff0fffu)
 
     private var location: ULong = 0x64654445uL // RETRIEVE FROM PREAUTH
+
+    private var lastPingTime: Long = -1L
 
     private var game: Game? = null
     private var gameSlot: Int = 0
@@ -166,10 +174,313 @@ class Session(channel: Channel) : PacketPushable {
 
     // region Packet Handlers
 
+    // region User Sessions Handlers
+
+    /**
+     * Handles resuming a session that was present on a previous run or
+     * that was logged out. This is done using the session key that was
+     * provided to that session upon authenticating. The session key
+     * provided by this packet is looked up in the database and if a
+     * player is found with a matching one they become authenticated
+     *
+     * @param packet The packet requesting the session resumption
+     */
+    @PacketHandler(Components.USER_SESSIONS, Commands.RESUME_SESSION)
+    fun handleResumeSession(packet: Packet) {
+        val sessionToken = packet.text("SKEY")
+        val playerEntity = PlayerEntity.bySessionToken(sessionToken)
+        if (playerEntity == null) {
+            push(LoginError.INVALID_INFORMATION(packet))
+            return
+        }
+        setPlayerEntity(playerEntity)
+        push(packet.respond())
+    }
+
+    /**
+     * The packet recieved from the client contains networking information
+     * including the external and internal ip addresses and ports along with
+     * the natt type. All of this information is stored. This handler responds
+     * with a set session packet to update the clients view of its session
+     *
+     * @param packet The packet containing the network update information
+     */
     @PacketHandler(Components.USER_SESSIONS, Commands.UPDATE_NETWORK_INFO)
     fun updateNetworkInfo(packet: Packet) {
+        val addr = packet.unionValue("ADDR") as GroupTdf
+        setNetworkingFromGroup(addr)
 
+        val nqos = packet.group("NQOS")
+        dbps = nqos.number("DBPS")
+        nattType = nqos.number("NATT")
+        ubps = nqos.number("UBPS")
+
+        val nlmp = packet.map<String, ULong>("NLMP")
+        pslm[0] = nlmp.getOrDefault("ea-sjc", 0xfff0fffu)
+        pslm[1] = nlmp.getOrDefault("rs-iad", 0xfff0fffu)
+        pslm[2] = nlmp.getOrDefault("rs-lhr", 0xfff0fffu)
+
+        push(packet.respond())
+        push(createSetSessionPacket())
     }
+
+    /**
+     * Handles updating the hardware flag using the value provided by the
+     * client using this packet. This handler responds with a set session
+     * packet to update the clients view of its session
+     *
+     * @param packet The packet containing the hardware flag
+     */
+    @PacketHandler(Components.USER_SESSIONS, Commands.UPDATE_HARDWARE_FLAGS)
+    fun updateHardwareFlag(packet: Packet) {
+        hardwareFlag = packet.number("HWFG").toInt()
+        push(packet.respond())
+        push(createSetSessionPacket())
+    }
+
+    // endregion
+
+    // region Util Handlers
+
+    /**
+     * Handles retrieving / creating of conf files and returning them
+     * to the client. This includes talk files as well as other data
+     * about the server
+     *
+     * - ME3_LIVE_TLK_PC_LANGUAGE: Talk files for the game
+     * - ME3_DATA: Configurations and http server locations
+     * - ME3_MSG: The current message this can be on the menu or in multiplayer
+     * - ME3_ENT: Map of user entitlements (includes online access entitlement)
+     * - ME3_DIME: Shop contents / Currency definition
+     * - ME3_BINI_VERSION: BINI version information
+     * - ME3_BINI_PC_COMPRESSED: ME3 BINI
+     *
+     * @param packet
+     */
+    @PacketHandler(Components.UTIL, Commands.FETCH_CLIENT_CONFIG)
+    fun handleFetchClientConfig(packet: Packet) {
+        val type = packet.text("CFID")
+        val conf: Map<String, String> = if (type.startsWith("ME3_LIVE_TLK_PC_")) {
+            val lang = type.substring(16)
+            try {
+                Data.loadChunkedFile("data/tlk/$lang.tlk.chunked")
+            } catch (e: IOException) {
+                Data.loadChunkedFile("data/tlk/default.tlk.chunked")
+            }
+        } else {
+            when (type) {
+                "ME3_DATA" -> Data.createDataConfig() // Configurations for GAW, images and others
+                "ME3_MSG" -> MessageEntity.createMessageMap() // Custom multiplayer messages
+                "ME3_ENT" -> Data.createEntitlementMap() // Entitlements
+                "ME3_DIME" -> Data.createDimeResponse() // Shop contents?
+                "ME3_BINI_VERSION" -> mapOf(
+                    "SECTION" to "BINI_PC_COMPRESSED",
+                    "VERSION" to "40128"
+                )
+                "ME3_BINI_PC_COMPRESSED" -> Data.loadBiniCompressed() // Loads the chunked + compressed bini
+                else -> emptyMap()
+            }
+        }
+        push(packet.respond {
+            map("CONF", conf)
+        })
+    }
+
+    /**
+     * Handles responding to pings from the client. Responsd with the
+     * server time in the response body.
+     *
+     * Currently this does nothing but update the last ping time
+     * variable
+     *
+     * TODO: Implement actual ping timeout
+     *
+     * @param packet The ping packet
+     */
+    @PacketHandler(Components.UTIL, Commands.PING)
+    fun handlePing(packet: Packet) {
+        lastPingTime = System.currentTimeMillis()
+        push(packet.respond {
+            number("STIM", unixTimeSeconds())
+        })
+    }
+
+    /**
+     * Handles the pre authentication packet this includes information about the
+     * client such as location, version, platform, etc. This response with information
+     * about the current server configuration. This function updates [location]
+     *
+     * Other CINF Fields:
+     *
+     * - PLAT: The platform the game is running on (e.g. Windows)
+     * - MAC: The mac address of the computer
+     * - BSDK: The Blaze SDK version used in the client
+     * - CVER: The mass effect client version
+     * - ENV: The client environment type
+     *
+     * @param packet
+     */
+    @PacketHandler(Components.UTIL, Commands.PRE_AUTH)
+    fun handlePreAuth(packet: Packet) {
+
+        val infoGroup = packet.group("CINF")
+        location = infoGroup.number("LOC")
+
+        push(packet.respond {
+            number("ANON", 0x0)
+            text("ASRC", "303107")
+            list("CIDS", listOf(1, 25, 4, 28, 7, 9, 63490, 30720, 15, 30721, 30722, 30723, 30725, 30726, 2000))
+            text("CNGN", "")
+            +group("CONF") {
+                map(
+                    "CONF", mapOf(
+                        "pingPeriod" to "15s", // The delay between each ping to the server
+                        "voipHeadsetUpdateRate" to "1000", // The rate at which headsets are updated
+                        "xlspConnectionIdleTimeout" to "300" // The xlsp connection idle timeout
+                    )
+                )
+            }
+            text("INST", "masseffect-3-pc") // The type of server?
+            number("MINR", 0x0)
+            text("NASP", "cem_ea_id")
+            text("PILD", "")
+            text("PLAT", "pc") // Platform
+            text("PTAG", "")
+            // The following addresses have all been redirected to localhost to be ignored
+            +group("QOSS") {
+                +group("BWPS") {
+                    text("PSA", "127.0.0.1")   // Server Address (formerly gossjcprod-qos01.ea.com)
+                    number("PSP", 17502)  // Server Port
+                    text("SNA", "prod-sjc")  // Server name?
+                }
+
+                number("LNP", 0xA)
+                map("LTPS", mapOf(
+                    "ea-sjc" to group {
+                        text("PSA", "127.0.0.1")  // Server Address (formerly gossjcprod-qos01.ea.com)
+                        number("PSP", 17502)  // Server Port
+                        text("SNA", "prod-sjc") // Server name?
+                    },
+                    "rs-iad" to group {
+                        text("PSA", "127.0.0.1") // Server Address (formerly gosiadprod-qos01.ea.com)
+                        number("PSP", 17502)  // Server Port
+                        text("SNA", "bio-iad-prod-shared") // Server name?
+                    },
+                    "rs-lhr" to group {
+                        text("PSA", "127.0.0.1") // Server Address (formerly gosgvaprod-qos01.ea.com)
+                        number("PSP", 17502) // Server Port
+                        text("SNA", "bio-dub-prod-shared") // Server name?
+                    }
+                ))
+                number("SVID", 0x45410805)
+            }
+            text("RSRC", "303107")
+            text("SVER", "Blaze 3.15.08.0 (CL# 1629389)") // Blaze Server Version
+        })
+    }
+
+    /**
+     * Handles the post authentication packet which responds with
+     * information about the ticker and telemetry servers
+     *
+     * @param packet The packet requesting the post auth information
+     */
+    @PacketHandler(Components.UTIL, Commands.POST_AUTH)
+    fun handlePostAuth(packet: Packet) {
+        push(packet.respond {
+            +group("PSS") { // Player Sync Service
+                text("ADRS", "playersyncservice.ea.com") // Host / Address
+                blob("CSIG")
+                text("PJID", "303107")
+                number("PORT", 443) // Port
+                number("RPRT", 0xF)
+                number("TIID", 0x0)
+            }
+
+            //  telemetryAddress = "reports.tools.gos.ea.com:9988"
+            //  tickerAddress = "waleu2.tools.gos.ea.com:8999"
+            val address = Environment.externalAddress
+            val port = Environment.discardPort
+
+            +group("TELE") {
+                text("ADRS", address) // Server Address
+                number("ANON", 0)
+                text("DISA", "**")
+                text("FILT", "-UION/****") // Telemetry filter?
+                number("LOC", 1701725253)
+                text("NOOK", "US,CA,MX")
+                number("PORT", port)
+                number("SDLY", 15000)
+                text("SESS", "JMhnT9dXSED")
+                text("SKEY", "")
+                number("SPCT", 0x4B)
+                text("STIM", "")
+            }
+
+            +group("TICK") {
+                text("ADRS", address)
+                number("port", port)
+                text("SKEY", "823287263,10.23.15.2:8999,masseffect-3-pc,10,50,50,50,50,0,12")
+            }
+
+            +group("UROP") {
+                number("TMOP", 0x1)
+                number("UID", sessionId)
+            }
+        })
+    }
+
+    /**
+     * Handles updating an individual setting provided by the client in the
+     * form of a key value pair named KEY and DATA. This is for updating any
+     * data stored on the player such as inventory, characters, classes etc
+     *
+     * @param packet The packet updating the setting
+     */
+    @PacketHandler(Components.UTIL, Commands.USER_SETTINGS_SAVE)
+    fun handleUserSettingsSave(packet: Packet) {
+        val playerEntity = playerEntity ?: throw NotAuthenticatedException()
+        val value = packet.textOrNull("DATA")
+        val key = packet.textOrNull("KEY")
+        if (value != null && key != null) {
+            playerEntity.setSetting(key, value)
+        }
+        push(packet.respond())
+    }
+
+    /**
+     * Handles loading all the user settings for the authenticated users. This
+     * loads all the player entity settings from the database and puts them
+     * as key value pairs into a map which is sent to the client.
+     *
+     * @param packet The packet requesting all the settings
+     */
+    @PacketHandler(Components.UTIL, Commands.USER_SETTINGS_LOAD_ALL)
+    fun handleUserSettingsLoadAll(packet: Packet) {
+        val playerEntity = playerEntity ?: throw NotAuthenticatedException()
+        push(packet.respond {
+            map("SMAP", playerEntity.createSettingsMap())
+        })
+    }
+
+    /**
+     * Handles suspend user pings. The purpose of this is not yet understood,
+     * and it requires further investigation before it can be documented
+     *
+     * @param packet The packet for suspend user ping
+     */
+    @PacketHandler(Components.UTIL, Commands.SUSPEND_USER_PING)
+    fun handleSuspendUserPing(packet: Packet) {
+        push(
+            when (packet.numberOrNull("TVAL")) {
+                0x1312D00uL -> packet.error(0x12D)
+                0x55D4A80uL -> packet.error(0x12E)
+                else -> packet.respond()
+            }
+        )
+    }
+
+    // endregion
 
     // endregion
 
