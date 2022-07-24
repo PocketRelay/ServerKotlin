@@ -330,20 +330,6 @@ class PlayerSession : PacketPushable {
         number("USID", playerId)
     }
 
-    fun authResponse(packet: Packet) = packet.respond {
-        val player = playerEntity
-        text("LDHT", "")
-        number("NTOS", 0)
-        text("PCTK", player.sessionToken)
-        list("PLST", listOf(createPersonaList()))
-        text("PRIV", "")
-        text("SKEY", "11229301_9b171d92cc562b293e602ee8325612e7")
-        number("SPAM", 0)
-        text("THST", "")
-        text("TSUI", "")
-        text("TURI", "")
-        number("UID", player.playerId)
-    }
 
     /**
      * createIdentityUpdate Creates a packet which updates the ID of the
@@ -438,26 +424,6 @@ class PlayerSession : PacketPushable {
     }
 
 
-    /**
-     * createPersonaList Creates a list of the account "personas" we don't
-     * implement this "persona" system so this only ever has one value which
-     * is the player account details
-     *
-     * @return The persona list
-     */
-    fun createPersonaList(): GroupTdf {
-        val player = playerEntity
-        return group("PDTL" /* Persona Details? */) {
-            val lastLoginTime = unixTimeSeconds()
-            text("DSNM", player.displayName)
-            number("LAST", lastLoginTime)
-            number("PID", player.playerId) // Persona ID?
-            number("STAS", 0)
-            number("XREF", 0)
-            number("XTYP", 0)
-        }
-    }
-
     fun createPlayerDataGroup(): GroupTdf {
         return group("PDAT") {
             val player = playerEntity
@@ -478,6 +444,20 @@ class PlayerSession : PacketPushable {
             number("UID", playerId)
         }
     }
+    fun authResponse(packet: Packet) = packet.respond {
+        val player = playerEntity
+        text("LDHT", "")
+        number("NTOS", 0)
+        text("PCTK", player.sessionToken)
+        list("PLST", listOf(createPersonaList()))
+        text("PRIV", "")
+        text("SKEY", "11229301_9b171d92cc562b293e602ee8325612e7")
+        number("SPAM", 0)
+        text("THST", "")
+        text("TSUI", "")
+        text("TURI", "")
+        number("UID", player.playerId)
+    }
 
     /**
      * appendSession Appends the player session details to the
@@ -497,6 +477,28 @@ class PlayerSession : PacketPushable {
             number("UID", player.playerId)
         }
     }
+
+
+    /**
+     * createPersonaList Creates a list of the account "personas" we don't
+     * implement this "persona" system so this only ever has one value which
+     * is the player account details
+     *
+     * @return The persona list
+     */
+    private fun createPersonaList(): GroupTdf {
+        val player = playerEntity
+        return group("PDTL" /* Persona Details? */) {
+            val lastLoginTime = unixTimeSeconds()
+            text("DSNM", player.displayName)
+            number("LAST", lastLoginTime)
+            number("PID", player.playerId) // Persona ID?
+            number("STAS", 0)
+            number("XREF", 0)
+            number("XTYP", 0)
+        }
+    }
+
 
     private fun updateContext() {
         val channel = channel ?: return

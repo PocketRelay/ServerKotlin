@@ -1,4 +1,4 @@
-package com.jacobtread.kme.servers
+package com.jacobtread.kme.servers.main
 
 import com.jacobtread.kme.Environment
 import com.jacobtread.blaze.*
@@ -16,6 +16,7 @@ import com.jacobtread.kme.game.PlayerSession
 import com.jacobtread.kme.game.PlayerSession.NetData
 import com.jacobtread.kme.game.match.MatchRuleSet
 import com.jacobtread.kme.game.match.Matchmaking
+import com.jacobtread.kme.servers.startMITMServer
 import com.jacobtread.kme.tools.comparePasswordHash
 import com.jacobtread.kme.tools.unixTimeSeconds
 import com.jacobtread.kme.utils.logging.Logger
