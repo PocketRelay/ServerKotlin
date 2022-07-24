@@ -1,15 +1,16 @@
 package com.jacobtread.kme.game
 
-import com.jacobtread.kme.data.Commands
-import com.jacobtread.kme.data.Components
 import com.jacobtread.blaze.group
 import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.blaze.tdf.GroupTdf
 import com.jacobtread.blaze.tdf.ListTdf
 import com.jacobtread.blaze.tdf.Tdf
 import com.jacobtread.blaze.unique
+import com.jacobtread.kme.data.Commands
+import com.jacobtread.kme.data.Components
 import com.jacobtread.kme.data.GameStateAttr
 import com.jacobtread.kme.exceptions.GameStoppedException
+import com.jacobtread.kme.servers.main.Session
 import com.jacobtread.kme.utils.logging.Logger
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
@@ -17,7 +18,7 @@ import kotlin.concurrent.write
 
 class Game(
     val id: ULong,
-    host: PlayerSession,
+    host: Session,
 ) {
 
     companion object {
@@ -37,9 +38,9 @@ class Game(
 
     private val playersLock = ReentrantReadWriteLock()
     private var playersCount = 1
-    private val players = arrayOfNulls<PlayerSession>(MAX_PLAYERS)
+    private val players = arrayOfNulls<Session>(MAX_PLAYERS)
 
-    private val activePlayers: List<PlayerSession>
+    private val activePlayers: List<Session>
         get() = playersLock.read { players.filterNotNull() }
 
     val isFull: Boolean get() = playersCount == MAX_PLAYERS
@@ -49,7 +50,7 @@ class Game(
         players[0] = host
     }
 
-    private fun getHostOrNull(): PlayerSession? {
+    private fun getHostOrNull(): Session? {
         var host = players[0]
         if (host == null) {
             updatePlayerSlots()
@@ -58,36 +59,36 @@ class Game(
         return host
     }
 
-    fun getHost(): PlayerSession = getHostOrNull() ?: throw GameStoppedException()
+    fun getHost(): Session = getHostOrNull() ?: throw GameStoppedException()
 
 
-    fun join(player: PlayerSession) = playersLock.write {
+    fun join(player: Session) = playersLock.write {
         // TODO: Unsafe could overflow if too many players. implement limit
 
-        if (player.matchmaking) {
-            player.resetMatchmakingState()
-        }
+        player.resetMatchmakingState()
 
-        player.gameSlot = playersCount++
-        players[player.gameSlot] = player
-        player.game = this
+        val gameSlot = playersCount++
+
+        player.setGame(this, gameSlot)
+
+        players[gameSlot] = player
         sendHostPlayerJoin(player)
 
         activePlayers.forEach {
             if (it.sessionId != player.sessionId) {
-                player.pushPlayerUpdate(it)
+                player.updateSessionFor(it)
             }
         }
 
         player.push(createMatchmakingResult(player))
-        player.push(player.createSetSession())
+        player.push(player.createSetSessionPacket())
     }
 
-    private fun sendHostPlayerJoin(session: PlayerSession) {
+    private fun sendHostPlayerJoin(session: Session) {
 
         val host = getHost()
 
-        host.pushPlayerUpdate(session)
+        host.updateSessionFor(session)
         host.push(unique(Components.GAME_MANAGER, Commands.JOIN_GAME_BY_GROUP) {
             number("GID", id)
             val playerDataGroup = session.createPlayerDataGroup()
@@ -95,7 +96,7 @@ class Game(
                 +playerDataGroup
             }
         })
-        host.push(session.createSetSession())
+        host.push(session.createSetSessionPacket())
     }
 
 
@@ -126,14 +127,18 @@ class Game(
     }
 
 
-    fun removePlayer(player: PlayerSession) {
+    fun removePlayer(player: Session) {
         removeAtIndex(player.gameSlot)
     }
 
 
     fun removePlayerById(playerId: Int) {
         val playerIndex: Int = playersLock.read {
-            players.indexOfFirst { it != null && it.playerId == playerId }
+            players.indexOfFirst {
+                if (it == null) return@indexOfFirst false
+                val playerEntity = it.playerEntity
+                playerEntity != null && playerEntity.playerId == playerId
+            }
         }
         if (playerIndex != -1) {
             removeAtIndex(playerIndex)
@@ -147,11 +152,13 @@ class Game(
             if (removedPlayer != null) {
                 playersLock.write { players[index] = null }
 
-                removedPlayer.game = null
-                removedPlayer.gameSlot = 0
+                removedPlayer.clearGame()
 
                 players.forEach { it?.push(createRemoveNotification(removedPlayer)) }
-                Logger.logIfDebug { "Removed player in slot $index ${removedPlayer.displayName} (${removedPlayer.playerId})" }
+                Logger.logIfDebug {
+                    val playerEntity = removedPlayer.playerEntity ?: return@logIfDebug ""
+                    "Removed player in slot $index ${playerEntity.displayName} (${playerEntity.playerId})"
+                }
             } else {
                 Logger.logIfDebug { "Tried to remove player that doesn't exist" }
             }
@@ -164,20 +171,23 @@ class Game(
                 // TODO: Host migration working state unknown
                 val host = getHostOrNull()
                 if (host != null) {
-                    Logger.logIfDebug { "Migrating host for $id to ${host.displayName} (${host.playerId})" }
+                    Logger.logIfDebug {
+                        val playerEntity = host.playerEntity ?: return@logIfDebug ""
+                        "Migrating host for $id to ${playerEntity.displayName} (${playerEntity.playerId})"
+                    }
                     migrateHost(host)
                 }
             }
         }
     }
 
-    private fun migrateHost(newHost: PlayerSession) {
+    private fun migrateHost(newHost: Session) {
         val startPacket = unique(
             Components.GAME_MANAGER,
             Commands.NOTIFY_HOST_MIGRATION_START
         ) {
             number("GID", id)
-            number("HOST", newHost.playerId)
+            number("HOST", newHost.playerIdSafe)
             number("PMIG", 0x2)
             number("SLOT", newHost.gameSlot)
         }
@@ -197,24 +207,24 @@ class Game(
     }
 
 
-    private fun createRemoveNotification(player: PlayerSession): Packet {
+    private fun createRemoveNotification(player: Session): Packet {
         return unique(
             Components.GAME_MANAGER,
             Commands.NOTIFY_PLAYER_REMOVED
         ) {
             number("CNTX", 0x0)
             number("GID", id)
-            number("PID", player.playerIdUnsafe)
+            number("PID", player.playerIdSafe)
             number("REAS", 0x6) // Possible remove reason? Investigate further
         }
     }
 
     private fun updatePlayersList() {
         val host = getHost()
-        val hostPacket = unique(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", host.playerId) }
+        val hostPacket = unique(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", host.playerIdSafe) }
         for (i in 1 until MAX_PLAYERS) {
             val player = players[i] ?: continue
-            val playerPacket = unique(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", player.playerId) }
+            val playerPacket = unique(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", player.playerIdSafe) }
 
             player.push(hostPacket)
             host.push(playerPacket)
@@ -227,8 +237,7 @@ class Game(
         playersLock.write {
             for (i in 0 until MAX_PLAYERS) {
                 val player = players[i] ?: continue
-                player.game = null
-                player.gameSlot = 0
+                player.clearGame()
                 players[i] = null
             }
         }
@@ -278,13 +287,14 @@ class Game(
     private fun createGameGroup(): GroupTdf {
         val host = getHost()
         val hostPlayer = host.playerEntity
+        check(hostPlayer != null) { "Host player was null couldn't create game group" }
         val hostId = hostPlayer.playerId
 
         return group("GAME") {
             val playerIds = ArrayList<ULong>()
             players.forEach {
                 if (it != null) {
-                    playerIds.add(it.playerId.toULong())
+                    playerIds.add(it.playerIdSafe.toULong())
                 }
             }
 
@@ -302,18 +312,17 @@ class Game(
             // Host network information
             list("HNET", listOf(
                 group(start2 = true) {
-                    +host.extNetData.createGroup("EXIP")
-                    +host.intNetData.createGroup("INIP")
+                    +host.createExternalNetGroup()
+                    +host.createInternalNetGroup()
                 }
             ))
-            number("HSES", host.playerId)
+            number("HSES", host.playerIdSafe)
             number("IGNO", 0x0)
             number("MCAP", 0x4)
             +group("NQOS") {
-                val otherNetData = host.otherNetData
-                number("DBPS", otherNetData.dbps)
-                number("NATT", otherNetData.natt)
-                number("UBPS", otherNetData.ubps)
+                number("DBPS", host.dbps)
+                number("NATT", host.nattType)
+                number("UBPS", host.ubps)
             }
             number("NRES", 0x0)
             number("NTOP", 0x0)
@@ -353,7 +362,7 @@ class Game(
         return ListTdf("PROS", Tdf.GROUP, playersList)
     }
 
-    private fun createMatchmakingResult(forSession: PlayerSession): Packet =
+    private fun createMatchmakingResult(forSession: Session): Packet =
         unique(
             Components.GAME_MANAGER,
             Commands.NOTIFY_GAME_SETUP
@@ -366,7 +375,7 @@ class Game(
                 number("MAXF", 0x5460)
                 number("MSID", forSession.matchmakingId)
                 number("RSLT", 0x2)
-                number("USID", forSession.playerId)
+                number("USID", forSession.playerIdSafe)
             })
         }
 

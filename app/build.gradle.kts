@@ -5,6 +5,7 @@ plugins {
     kotlin("plugin.serialization")
     id("com.github.johnrengelman.shadow")
     id("com.google.devtools.ksp")
+    idea
 }
 
 dependencies {
@@ -158,4 +159,15 @@ tasks.create("makeTLKs", JavaExec::class) {
     mainClass.set("com.jacobtread.kme.tools.MakeTLKs")
     classpath(sourceSets["main"].runtimeClasspath)
     workingDir(rootProject.projectDir)
+}
+
+
+// Adding sources for generated code
+idea {
+    module {
+        // NOTE: Don't make these into variables it will break the build step
+        sourceDirs = sourceDirs + file("app/build/generated/ksp/main/kotlin")
+        testSourceDirs = testSourceDirs + file("app/build/generated/ksp/test/kotlin")
+        generatedSourceDirs = generatedSourceDirs + file("app/build/generated/ksp/main/kotlin") + file("app/build/generated/ksp/test/kotlin")
+    }
 }
