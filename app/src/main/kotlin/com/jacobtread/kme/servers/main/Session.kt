@@ -467,10 +467,10 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     @PacketHandler(Components.AUTHENTICATION, Commands.LOGOUT)
     fun handleLogout(packet: Packet) {
+        push(packet.respond())
         val playerEntity = playerEntity ?: return
         Logger.info("Logged out player ${playerEntity.displayName}")
         setAuthenticatedPlayer(null)
-        push(packet.respond())
     }
 
 
@@ -550,7 +550,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         val pid = packet.numberInt("PID")
         val auth = packet.text("AUTH")
         // Find the player with a matching ID or send an INVALID_ACCOUNT error
-        val playerEntity = PlayerEntity.byId(pid) ?: return push(LoginError.INVALID_SESSION(packet))
+        val playerEntity = PlayerEntity.byId(pid) ?: return push(LoginError.INVALID_ACCOUNT(packet))
         // If the session token's don't match send INVALID_ACCOUNT error
         if (!playerEntity.isSessionToken(auth)) return push(LoginError.INVALID_SESSION(packet))
         val sessionToken = playerEntity.sessionToken // Session token grabbed after auth as to not generate new one
@@ -1736,8 +1736,11 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     override fun channelInactive(ctx: ChannelHandlerContext) {
         super.channelInactive(ctx)
-
         dispose()
+
+        val channel = ctx.channel()
+        channel.pipeline()
+            .remove(this)
     }
 
     /**
