@@ -74,7 +74,11 @@ object Environment {
 
         val loggingConfig = config.logging
 
-
+        val unpooledNetty = env.booleanValue("KME_NETTY_UNPOOLED", false)
+        if (unpooledNetty) {
+            System.setProperty("io.netty.allocator.type", "unpooled")
+        }
+        
         // Initialize the logger with its configuration
         Logger.init(
             env.stringValue("KME_LOGGER_LEVEL", loggingConfig.level),
