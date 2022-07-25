@@ -3,7 +3,6 @@ package com.jacobtread.kme.database.entities
 import com.jacobtread.kme.database.firstOrNullSafe
 import com.jacobtread.kme.database.tables.PlayerCharactersTable
 import com.jacobtread.kme.database.tables.PlayerClassesTable
-import com.jacobtread.kme.database.tables.PlayerSettingsTable
 import com.jacobtread.kme.database.tables.PlayersTable
 import com.jacobtread.kme.tools.MEStringParser
 import com.jacobtread.kme.tools.hashPassword
@@ -64,9 +63,19 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
     var secondsPlayed by PlayersTable.secondsPlayed
     var inventory by PlayersTable.inventory
 
+    var faceCodes by PlayersTable.faceCodes
+    var newItem by PlayersTable.newItem
+    var csReward by PlayersTable.challengeReward
+
+    var completion by PlayersTable.completion
+    var progress by PlayersTable.progress
+    var cscompletion by PlayersTable.challengeCompletion
+    var cstimestamps1 by PlayersTable.cstimestamps1
+    var cstimestamps2 by PlayersTable.cstimestamps2
+    var cstimestamps3 by PlayersTable.cstimestamps3
+
     private val classes by PlayerClassEntity referrersOn PlayerClassesTable.player
     private val characters by PlayerCharacterEntity referrersOn PlayerCharactersTable.player
-    private val settings by PlayerSettingEntity referrersOn PlayerSettingsTable.player
 
     val galaxyAtWar: GalaxyAtWarEntity get() = GalaxyAtWarEntity.forPlayer(this)
 
@@ -148,20 +157,32 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
         } else if (key.startsWith("char")) { // Character Setting
             val index = key.substring(4).toInt()
             PlayerCharacterEntity.updateOrCreate(this, index, value)
-        } else if (key == "Base") { // Base Setting
+        } else {
             transaction {
-                val parser = MEStringParser(value, 11)
-                credits = parser.int()
-                parser.skip(2) // Skip -1;0
-                creditsSpent = parser.int()
-                parser.skip(1)
-                gamesPlayed = parser.int()
-                secondsPlayed = parser.long()
-                parser.skip(1)
-                inventory = parser.str()
+                when (key) {
+                    "Base" -> {
+                        val parser = MEStringParser(value, 11)
+                        credits = parser.int()
+                        parser.skip(2) // Skip -1;0
+                        creditsSpent = parser.int()
+                        parser.skip(1)
+                        gamesPlayed = parser.int()
+                        secondsPlayed = parser.long()
+                        parser.skip(1)
+                        inventory = parser.str()
+                    }
+                    "FaceCodes" -> faceCodes = value
+                    "NewItem" -> newItem = value
+                    // (Possible name is Challenge Selected Reward)
+                    "csreward" -> csReward = value.toIntOrNull() ?: 0
+                    "Completion" -> completion = value
+                    "Progress" -> progress = value
+                    "cscompletion" -> cscompletion = value
+                    "cstimestamps" -> cstimestamps1 = value
+                    "cstimestamps2" -> cstimestamps2 = value
+                    "cstimestamps3" -> cstimestamps3 = value
+                }
             }
-        } else { // Other Setting
-            PlayerSettingEntity.updateOrCreate(this, key, value)
         }
     }
 
@@ -181,10 +202,19 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
             for (character in characters) {
                 out[character.key] = character.toEncoded()
             }
-            for (setting in settings) {
-                out[setting.key] = setting.value
-            }
+            faceCodes?.apply { out["FaceCodes"] = this }
+            newItem?.apply { out["NewItem"] = this }
+
+            out["csreward"] = csReward.toString()
+
+            completion?.apply { out["Completion"] = this }
+            progress?.apply { out["Progress"] = this }
+            cscompletion?.apply { out["cscompletion"] = this }
+            cstimestamps1?.apply { out["cstimestamps"] = this }
+            cstimestamps2?.apply { out["cstimestamps2"] = this }
+            cstimestamps3?.apply { out["cstimestamps3"] = this }
             out["Base"] = settingsBase
+
         }
         return out
     }

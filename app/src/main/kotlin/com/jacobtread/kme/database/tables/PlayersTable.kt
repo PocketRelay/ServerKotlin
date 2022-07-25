@@ -21,5 +21,45 @@ object PlayersTable : IntIdTable("players") {
     val gamesPlayed = integer("games_played").default(0)
     val secondsPlayed = long("seconds_played").default(0L)
     val inventory = text("inventory").default("")
+
+    /**
+     * Challenge reward banner
+     *
+     * 100: MEMstr.dds
+     *
+     */
+    val challengeReward = integer("csreward")
+        .default(0)
+    val faceCodes = text("faces_codes")
+        .nullable()
+        .default(null)
+
+    val newItem = text("new_item")
+        .nullable()
+        .default(null)
+
+    val completion = text("completion")
+        .nullable()
+        .default(null)
+
+    val progress = text("progress")
+        .nullable()
+        .default(null)
+
+    val challengeCompletion = text("cs_completion")
+        .nullable()
+        .default(null)
+
+    val cstimestamps1 = text("cs_timestamps_1")
+        .nullable()
+        .default(null)
+
+    val cstimestamps2 = text("cs_timestamps_2")
+        .nullable()
+        .default(null)
+
+    val cstimestamps3 = text("cs_timestamps_3")
+        .nullable()
+        .default(null)
 }
 
