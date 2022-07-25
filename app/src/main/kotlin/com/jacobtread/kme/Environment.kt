@@ -41,10 +41,7 @@ object Environment {
 
     val menuMessage: String
 
-    val mitmHost: String
-    val mitmPort: Int
     val mitmEnabled: Boolean
-    val mitmSecure: Boolean
 
     val gawReadinessDecay: Float
     val gawEnabledPromotions: Boolean
@@ -74,6 +71,11 @@ object Environment {
 
         val loggingConfig = config.logging
 
+        val unpooledNetty = env.booleanValue("KME_NETTY_UNPOOLED", false)
+        if (unpooledNetty) {
+            Logger.warn("Netty pooling disabled.")
+            System.setProperty("io.netty.allocator.type", "unpooled")
+        }
 
         // Initialize the logger with its configuration
         Logger.init(
@@ -101,11 +103,7 @@ object Environment {
         menuMessage = env.stringValue("KME_MENU_MESSAGE", config.menuMessage)
 
         // Man in the middle configuration
-        val mitmConfig = config.mitm
-        mitmEnabled = env.booleanValue("KME_MITM_ENABLED", mitmConfig.enabled)
-        mitmHost = env.stringValue("KME_MITM_HOST", mitmConfig.host)
-        mitmPort = env.intValue("KME_MITM_PORT", mitmConfig.port)
-        mitmSecure = env.booleanValue("KME_MITM_SECURE", mitmConfig.secure)
+        mitmEnabled = env.booleanValue("KME_MITM_ENABLED", config.mitm)
 
         // Galaxy at war configuration
         val gawConfig = config.gaw
@@ -165,7 +163,6 @@ object Environment {
                 PlayersTable,
                 PlayerClassesTable,
                 PlayerCharactersTable,
-                PlayerSettingsTable,
                 GalaxyAtWarTable,
                 MessagesTable
             )

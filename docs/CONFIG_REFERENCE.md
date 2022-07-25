@@ -94,9 +94,7 @@ This configuration contains the galaxy at war settings
 This configuration section contains the settings for the Man-in-the-middle mode which creates a connection
 to the official server and tunnels the connections throught itself decoding and logging all the traffic
 
-| Key     | What                                                                       |
-|---------|----------------------------------------------------------------------------|
-| enabled | Whether the Man-in-the-middle mode should be used                          |
-| host    | The host address of the official mass effect game server                   |
-| port    | The port of the official mass effect game server                           |
-| secure  | Whether the connection to the official game server needs to use SSL or not |
+| Key     | What                                                                                                                                                |
+|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
+| enabled | Whether the Man-in-the-middle mode should be used                                                                                                   |
+| address | The ip address that gosredirector.ea.com points to. If the server doesn't have a hosts file redirect for gosredirector.ea.com then you can use that |

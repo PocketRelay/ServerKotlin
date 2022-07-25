@@ -11,11 +11,12 @@ a list of all of those environment variables
 
 ### Base Configuration
 
-| Variable Name          | Description                                                                                                                                                                           |
-|------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| KME_ENVIRONMENT_CONFIG | If this is set to true then no config file will be used and only default + environment variables will be used  (true/false)                                                           |
-| KME_EXTERNAL_ADDRESS   | This is the address the address that the clients will use to connect to the main server. If you specify a value for this you will nee to ensure the value is accessible to the client |
-| KME_MENU_MESSAGE       | This is the message displayed on the main menu                                                                                                                                        |
+| Variable Name          | Description                                                                                                                                                                                              |
+|------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| KME_ENVIRONMENT_CONFIG | If this is set to true then no config file will be used and only default + environment variables will be used  (true/false)                                                                              |
+| KME_EXTERNAL_ADDRESS   | This is the address the address that the clients will use to connect to the main server. If you specify a value for this you will nee to ensure the value is accessible to the client                    |
+| KME_MENU_MESSAGE       | This is the message displayed on the main menu                                                                                                                                                           |
+| KME_NETTY_UNPOOLED     | This disables netty buffer pooling. This can greatly increase the amount of ununused ram being freed but with a large number of connections this could hurt performance (true/false) disabled by default |
 
 > NOTE: when using `KME_MENU_MESSAGE` you can use the following codes for special values:
 
@@ -31,8 +32,6 @@ a list of all of those environment variables
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | KME_REDIRECTOR_PORT | The port to use for the redirector server. You shouldn't change this unless you are behind something forwarding port 42127 otherwise clients won't be able to connect |
 | KME_MAIN_PORT       | The port for the main server. You can change this value to any port you are able to bind                                                                              |
-| KME_TICKER_PORT     | The port for the ticker server. You can change this to any value you are able to bind                                                                                 |
-| KME_TELEMETRY_PORT  | The port for the telemetry server. You can change this to any value you are able to bind                                                                              |
 | KME_HTTP_PORT       | The port for the HTTP server you can change this to any port you are able to bind                                                                                     |
 
 ### Logging
@@ -42,7 +41,6 @@ a list of all of those environment variables
 | KME_LOGGER_LEVEL   | The level of logging to print to STDOUT (INFO, WARN, ERROR, FATAL, DEBUG) |
 | KME_LOGGER_SAVE    | Whether to store logs in the logs directory (true/false)                  |
 | KME_LOGGER_PACKETS | Whether to log incoming and outgoing packets (true/false)                 |
-
 
 ### Database Configuration
 

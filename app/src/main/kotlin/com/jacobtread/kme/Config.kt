@@ -25,7 +25,7 @@ data class Config(
     val database: DatabaseConfig = DatabaseConfig(),
     val panel: PanelConfig = PanelConfig(),
     val gaw: GalaxyAtWarConfig = GalaxyAtWarConfig(),
-    val mitm: MITM = MITM(),
+    val mitm: Boolean = false,
 ) {
 
 
@@ -75,14 +75,6 @@ data class Config(
         val main: Int = 14219,
         val discard: Int = 9988,
         val http: Int = 80,
-    )
-
-    @Serializable
-    data class MITM(
-        val enabled: Boolean = false,
-        val host: String = "gsprodblapp-02.ea.com",
-        val port: Int = 10019,
-        val secure: Boolean = true,
     )
 
 

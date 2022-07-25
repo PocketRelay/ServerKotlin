@@ -2,7 +2,7 @@ package com.jacobtread.kme.game.match
 
 import com.jacobtread.kme.game.Game
 import com.jacobtread.kme.game.GameManager
-import com.jacobtread.kme.game.PlayerSession
+import com.jacobtread.kme.servers.main.Session
 import com.jacobtread.kme.utils.logging.Logger
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -26,7 +26,7 @@ object Matchmaking {
      * waitingPlayers A map of the players who are waiting for a match
      * mapped to the rule set that the match must be valid for
      */
-    private val waitingPlayers = HashMap<PlayerSession, MatchRuleSet>()
+    private val waitingPlayers = HashMap<Session, MatchRuleSet>()
 
     /**
      * waitingLock A lock for ensuring thread safety for the waiting map across all
@@ -72,14 +72,13 @@ object Matchmaking {
      * @param ruleSet The rule set for the player
      * @return The game or null if they were added to the waiting list
      */
-    fun getMatchOrQueue(session: PlayerSession, ruleSet: MatchRuleSet): Game? {
+    fun getMatchOrQueue(session: Session, ruleSet: MatchRuleSet): Game? {
         if (session.matchmakingId == 1uL) {
             session.matchmakingId = matchmakingId++
         }
         val game = GameManager.tryFindGame { ruleSet.validate(it.getAttributes()) }
         if (game != null) return game
-        session.matchmaking = true
-        session.startedMatchmaking = System.currentTimeMillis()
+        session.startMatchmaking()
         waitingLock.write { waitingPlayers[session] = ruleSet }
         return null
     }
@@ -90,8 +89,8 @@ object Matchmaking {
      *
      * @param session The session of the player
      */
-    fun removeFromQueue(session: PlayerSession) {
-        session.matchmaking = false
+    fun removeFromQueue(session: Session) {
+        session.resetMatchmakingState()
         waitingLock.write { waitingPlayers.remove(session) }
     }
 
@@ -107,13 +106,16 @@ object Matchmaking {
                     val (session, _) = iterator.next()
                     val timeElapsed = currentTime - session.startedMatchmaking
                     if (timeElapsed >= MATCHMAKING_TIMEOUT) {
-                        Logger.info("Player matchmaking timed out ${session.displayName} (${session.playerId})")
+                        val playerEntity = session.playerEntity
+                        if (playerEntity != null) {
+                            Logger.info("Player matchmaking timed out ${playerEntity.displayName} (${playerEntity.playerId})")
+                        }
                         session.notifyMatchmakingFailed()
                         waitingLock.write {
                             iterator.remove()
                         }
                     } else {
-                        session.pushMatchmakingStatus()
+                        session.notifyMatchmakingStatus()
                     }
                 }
             }

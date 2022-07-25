@@ -1,8 +1,9 @@
 package com.jacobtread.kme.servers
 
-import com.jacobtread.kme.Environment
 import com.jacobtread.blaze.*
 import com.jacobtread.blaze.packet.Packet
+import com.jacobtread.blaze.tdf.GroupTdf
+import com.jacobtread.kme.Environment
 import com.jacobtread.kme.data.Commands
 import com.jacobtread.kme.data.Components
 import com.jacobtread.kme.data.Data
@@ -19,7 +20,13 @@ import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.channel.socket.nio.NioSocketChannel
 import io.netty.handler.ssl.SslContextBuilder
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import java.io.IOException
+import java.net.URL
+import java.util.concurrent.ThreadFactory
 
 /**
  * startMITMServer Starts the MITM server
@@ -52,13 +59,128 @@ fun startMITMServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
     }
 }
 
-private fun obtainAddressAutomatic(eventLoopGroup: NioEventLoopGroup) {
-    info("Connecting to official redirector server for connection information")
-    TODO("NOT YET IMPLEMENTED")
-}
-
 class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboundHandlerAdapter() {
 
+    @Serializable
+    data class LookupResponse(
+        @SerialName("Answer")
+        val answer: List<Answer>,
+    ) {
+        @Serializable
+        data class Answer(
+            val name: String,
+            val data: String,
+        )
+    }
+
+    private fun lookupRedirectorHost(): String {
+        val json = Json { ignoreUnknownKeys = true }
+        val response = URL("https://dns.google/resolve?name=gosredirector.ea.com&type=A").openStream().use {
+            val responseText = it.readAllBytes().decodeToString()
+            json.decodeFromString<LookupResponse>(responseText)
+        }
+        val first = response.answer.firstOrNull()
+        requireNotNull(first) { "Failed to lookup redirector hostname" }
+        return first.data
+    }
+
+    data class ServerDetails(
+        val host: String,
+        val ip: String,
+        val port: Int,
+        val secure: Boolean,
+    )
+
+    private fun getOfficalServerDetails(): ServerDetails {
+        val redirectorHost = lookupRedirectorHost() // gosredirector.ea.com
+        val redirectorPort = 42127
+        val handler = ClientHandler()
+        val channelFuture = Bootstrap()
+            .group(NioEventLoopGroup(1, ThreadFactory { r ->
+                val thread = Thread(r)
+                thread.name = "Server Details Worker"
+                thread.isDaemon = true
+                thread
+            }))
+            .channel(NioSocketChannel::class.java)
+            .handler(handler)
+            .connect(redirectorHost, redirectorPort)
+            .sync()
+        val channel = channelFuture.channel()
+        info("Connected to server")
+        info("Sending REDIRECTOR / GET_SERVER_INSTANCE packet")
+        val packet = createRedirectPacket()
+        channel.write(packet)
+        channel.flush()
+        info("Waiting for closed response")
+        channel.closeFuture().sync()
+        val serverDetails = handler.serverDetails
+        requireNotNull(serverDetails) { "Server details were null" }
+        info("Obtained server details: $serverDetails")
+
+        return serverDetails
+    }
+
+    private fun createRedirectPacket(): Packet {
+        return clientPacket(Components.REDIRECTOR, Commands.GET_SERVER_INSTANCE, 0x0) {
+            text("BSDK", "3.15.6.0")
+            text("BTIM", "Dec 21 2012 12:47:10")
+            text("CLNT", "MassEffect3-pc")
+            number("CLTP", 0x0)
+            text("CSKU", "134845")
+            text("CVER", "05427.124")
+            text("DSDK", "8.14.7.1")
+            text("ENV", "prod")
+            optional("FPID")
+            number("LOC", 0x656e4e5a)
+            text("NAME", "masseffect-3-pc")
+            text("PLAT", "Windows")
+            text("PROF", "standardSecure_v3")
+        }
+    }
+
+    class ClientHandler : ChannelInboundHandlerAdapter() {
+        var serverDetails: ServerDetails? = null
+
+        override fun handlerAdded(ctx: ChannelHandlerContext) {
+            val context = SslContextBuilder.forClient()
+                .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                .build()
+            val channel = ctx.channel()
+            channel.pipeline()
+                .addFirst(PacketDecoder())
+                .addFirst(context.newHandler(channel.alloc()))
+                .addLast(PacketEncoder)
+        }
+
+        @Suppress("DeprecatedCallableAddReplaceWith")
+        @Deprecated("Deprecated in Java")
+        override fun exceptionCaught(ctx: ChannelHandlerContext?, cause: Throwable?) {
+            Logger.error("Exception", cause)
+        }
+
+        override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
+            if (msg !is Packet) {
+                println("NOn message packet")
+                ctx.fireChannelRead(msg)
+                return
+            }
+            if (msg.component == Components.REDIRECTOR && msg.command == Commands.GET_SERVER_INSTANCE) {
+                val address = msg.optional("ADDR")
+                val value = address.value as GroupTdf
+                val host = value.text("HOST")
+                val ip = value.number("IP")
+                val port = value.number("PORT")
+                val secure: Boolean = msg.number("SECU") == 0x1uL
+                val ipString = ((ip shr 24) and 255u).toString() + "." + ((ip shr 16) and 255u) + "." + ((ip shr 8) and 255u) + "." + (ip and 255u)
+                serverDetails = ServerDetails(host, ipString, port.toInt(), secure)
+                ctx.close()
+            }
+        }
+    }
+
+
+    val serverDetails = getOfficalServerDetails()
     var clientChannel: Channel? = null
     var officialChannel: Channel? = null
 
@@ -99,15 +221,15 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboun
                     channelReadOffical(msg)
                 }
             })
-            .connect(Environment.mitmHost, Environment.mitmPort)
+            .connect(serverDetails.host, serverDetails.port)
             .sync()
         info("Created new MITM connection")
         val channel = channelFuture.channel()
         channel.attr(PacketEncoder.ENCODER_CONTEXT_KEY)
             .set("Connection to EA")
-        val pipeline = channel.pipeline();
+        val pipeline = channel.pipeline()
         pipeline.addFirst(PacketDecoder())
-        if (Environment.mitmSecure) {
+        if (serverDetails.secure) {
             val context = SslContextBuilder.forClient()
                 .ciphers(listOf("TLS_RSA_WITH_RC4_128_SHA", "TLS_RSA_WITH_RC4_128_MD5"))
                 .protocols("SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3")
@@ -121,8 +243,9 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboun
     }
 
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-        if (msg !is Packet) return
-        PacketLogger.logDebug("DECODED FROM CLIENT", ctx.channel(), msg)
+        if (msg !is Packet) {
+            return
+        }
         if (unlockCheat
             && msg.component == Components.UTIL
             && msg.command == Commands.USER_SETTINGS_LOAD_ALL
@@ -134,11 +257,12 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboun
         //  Forward HTTP traffic to local
         if (forwardHttp
             && msg.component == Components.UTIL
-            && msg.command == Commands.FETCH_CLIENT_CONFIG) {
+            && msg.command == Commands.FETCH_CLIENT_CONFIG
+        ) {
             val type = msg.text("CFID")
             if (type == "ME3_DATA") {
                 clientChannel?.apply {
-                    write(msg.respond  {
+                    write(msg.respond {
                         map("CONF", Data.createDataConfig())
                     })
                     flush()
@@ -151,7 +275,6 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboun
             write(msg)
             flush()
         }
-        Packet.release(msg)
     }
 
     private fun createUnlockPackets() {
@@ -182,14 +305,9 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboun
 
     fun channelReadOffical(msg: Any) {
         if (msg !is Packet) return
-        val officialChannel = officialChannel
-        if (officialChannel != null) {
-            PacketLogger.logDebug("DECODED FROM EA", officialChannel, msg)
-        }
         clientChannel?.apply {
             write(msg)
             flush()
         }
-        Packet.release(msg)
     }
 }
