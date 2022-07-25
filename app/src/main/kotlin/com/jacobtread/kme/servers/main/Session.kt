@@ -26,6 +26,24 @@ import io.netty.channel.ChannelInboundHandlerAdapter
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicInteger
 
+/**
+ * Represents an individual clients session connected to the main
+ * server. This stores information about the current session which
+ * includes client information along with authentication infromation
+ *
+ * This also has a [PacketProcessor] annotation and is a [ChannelInboundHandlerAdapter]
+ * so that it can handle routing and provide routing to the handler functions
+ * present.
+ *
+ * Each session is uniquely identified at runtime using its [sessionId].
+ *
+ * In order to prevent memory leaks any references to this object must be
+ * removed when [dispose] is called.
+ *
+ * @constructor Creates a new session linked to the provided channel
+ *
+ * @param channel The underlying channel this session is for
+ */
 @PacketProcessor
 class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter() {
 
@@ -64,33 +82,93 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     private var internalPort: ULong = 0uL
 
+    /**
+     * If the internal and external networking information was updated using
+     * a [Components.USER_SESSIONS] / [Commands.UPDATE_NETWORK_INFO] packet
+     * then this value will be false otherwise it's true. Determines whether
+     * [createNetworkingTdf] will return an empty optional or one with a value
+     */
     private val isNetworkingUnset: Boolean get() = externalAddress == 0uL || externalPort == 0uL || internalAddress == 0uL || internalPort == 0uL
 
+    /**
+     * Usage unknown further investigation needed.
+     */
     var dbps: ULong = 0uL
         private set
+
+    /**
+     *  The type of Network Address Translation that needs to be used for the client
+     *  that this session represents.  0 (Unknown?), 1 (Unknown?), 4 (Appears to be PAT "Port Address Translation")
+     */
     var nattType: ULong = 0uL
         private set
+
+    /**
+     * Usage unknown further investigation needed.
+     */
     var ubps: ULong = 0uL
         private set
 
+    /**
+     * Usage unknown further investigation needed.
+     */
     private var hardwareFlag: Int = 0
+
+    /**
+     * Usage unknown further investigation needed.
+     *
+     * Possibly the clients' connectivity to the
+     * different player sync services?
+     */
     private var pslm: ArrayList<ULong> = arrayListOf(0xfff0fffu, 0xfff0fffu, 0xfff0fffu)
 
-    private var location: ULong = 0x64654445uL 
 
+    private var location: ULong = 0x64654445uL
+
+    /**
+     * The unix timestamp in milliseconds of when the last ping packet was
+     * recieved from the client. -1 until the first ping is recieved.
+     *
+     * TODO: Implement timeout using this
+     */
     private var lastPingTime: Long = -1L
 
+    /**
+     * References the current game that this session is a part of.
+     * Null if the session is not in a game.
+     */
     private var game: Game? = null
-    var gameSlot: Int = 0
-    private val gameId: ULong get() = game?.id ?: 1uL
 
+    /**
+     * The slot index that this session is placed at in the current game.
+     * Slot 0 is the host slot. This is zero until a game is joined where
+     * it is then set to the proper value.
+     */
+    var gameSlot: Int = 0
+
+    /**
+     * Field for safely accessing the ID of the current game.
+     * In cases where the game is null this is just 1
+     */
+    private val gameIdSafe: ULong get() = game?.id ?: 1uL
+
+    /**
+     * This variable states whether this session is stored in
+     * the matchmaking queue. This helps keep track of the
+     * matchmaking state
+     */
     private var matchmaking: Boolean = false
+
+    /**
+     * This is a unique identifier given to each session that joins the
+     * matchmaking queue.
+     */
     var matchmakingId: ULong = 1uL
 
     /**
      * The unix timestamp in miliseconds from when this session entered
      * the matchmaking queue. Used to calcualte whether a session should
-     * timeout from matchmaking
+     * time out from matchmaking
      */
     var startedMatchmaking: Long = 1L
         private set
@@ -111,22 +189,44 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         updateEncoderContext() // Set the initial encoder context
     }
 
+    /**
+     * Updates the session matchmaking state and sets
+     * the started matchmaking time to the current time
+     */
     fun startMatchmaking() {
         matchmaking = true
         startedMatchmaking = System.currentTimeMillis()
     }
 
+    /**
+     * Clears the session matchmaking state and resets
+     * the matchmaking start time to -1
+     *
+     */
     fun resetMatchmakingState() {
         matchmaking = false
         startedMatchmaking = -1L
     }
 
+    /**
+     * Sets the currently connected game as well as the current
+     * game slot. This removes the session from any existing games
+     *
+     * @param game The game this session is apart of
+     * @param gameSlot The slot in the game this session occupies
+     */
     fun setGame(game: Game, gameSlot: Int) {
         removeFromGame()
         this.game = game
         this.gameSlot = gameSlot
     }
 
+    /**
+     * Clears the currently connect game reference. This is
+     * called by the game itself once the player has been
+     * removed from the game. This also sets the slot back
+     * to zero
+     */
     fun clearGame() {
         game = null
         gameSlot = 0
@@ -165,6 +265,15 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             .set(builder.toString())
     }
 
+    /**
+     * Handles pushing packets to be written to the socket
+     * connection. Checks if the push request was in the
+     * event loop and then writes and flushes the packet
+     * otherwise it tells the event loop to execute the
+     * same thing.
+     *
+     * @param packet The packet to write to the socket
+     */
     override fun push(packet: Packet) {
         val eventLoop = socketChannel.eventLoop()
         if (eventLoop.inEventLoop()) { // If the push was made inside the event loop
@@ -179,6 +288,15 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         }
     }
 
+    /**
+     * Handles pushing multiple packets to be written to the socket
+     * connection. Checks to see if the push request was in the event
+     * loop and then writes all then packets before flushing. If its
+     * called outside the event loop it tells the event loop to execute
+     * the same instruction
+     *
+     * @param packets The packets to write to the socket
+     */
     override fun pushAll(vararg packets: Packet) {
         val eventLoop = socketChannel.eventLoop()
         if (eventLoop.inEventLoop()) { // If the push was made inside the event loop
@@ -193,7 +311,18 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         }
     }
 
-    fun setAuthenticatedPlayer(playerEntity: PlayerEntity?) {
+    /**
+     * Sets the currently authenticated player entity. If there
+     * is already an authenticated player that player is removed
+     * from any games before setting the new player.
+     *
+     * Null can be provided to clear the authenticated player
+     *
+     * Calling this updates the encoder context.
+     *
+     * @param playerEntity The new authenticated player or null to logout
+     */
+    private fun setAuthenticatedPlayer(playerEntity: PlayerEntity?) {
         val existing = this.playerEntity
         if (existing != playerEntity) {
             removeFromGame()
@@ -203,6 +332,14 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         updateEncoderContext()
     }
 
+    /**
+     * Handles dealing with messages that have been read from the pipeline.
+     * In this case it handles the packets that are recieved and passes them
+     * onto the generated routing function.
+     *
+     * @param ctx The channel context
+     * @param msg The recieved message
+     */
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
         if (msg !is Packet) return
         try { // Automatic routing to the desired function
@@ -933,7 +1070,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         pslm[1] = nlmp.getOrDefault("rs-iad", 0xfff0fffu)
         pslm[2] = nlmp.getOrDefault("rs-lhr", 0xfff0fffu)
 
-        pushAll(packet.respond(),createSetSessionPacket())
+        pushAll(packet.respond(), createSetSessionPacket())
     }
 
     /**
@@ -1198,6 +1335,11 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
 
     // region Packet Generators
 
+    /**
+     * Notifies the client for this session that it failed to complete
+     * matchmaking. This also makes a call to [resetMatchmakingState]
+     * to reset the matchmaking state.
+     */
     fun notifyMatchmakingFailed() {
         resetMatchmakingState()
         val playerEntity = playerEntity ?: return
@@ -1211,6 +1353,11 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         )
     }
 
+    /**
+     * Notifies the client for this session of its current matchmaking status
+     * the fields for this packet need to be investigated further as it doesn't
+     * entirely work properly at the moment
+     */
     fun notifyMatchmakingStatus() {
         val playerEntity = playerEntity ?: return
         push(
@@ -1326,6 +1473,12 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         )
     }
 
+    /**
+     * Creates the group TDF that stores the external
+     * networking information (ip and port)
+     *
+     * @return The created group tdf
+     */
     fun createExternalNetGroup(): GroupTdf {
         return group("EXIP") {
             number("IP", externalAddress)
@@ -1333,6 +1486,13 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         }
     }
 
+
+    /**
+     * Creates the group TDF that stores the internal
+     * networking information (ip and port)
+     *
+     * @return The created group tdf
+     */
     fun createInternalNetGroup(): GroupTdf {
         return group("INIP") {
             number("IP", internalAddress)
@@ -1340,6 +1500,15 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         }
     }
 
+    /**
+     * Creates the optional tdf value that stores the networking
+     * information for this session. If the networking information
+     * is unset ([isNetworkingUnset]) then this will return an empty
+     * optional.
+     *
+     * @param label The label to give the created tdf
+     * @return The created optional tdf
+     */
     private fun createNetworkingTdf(label: String): OptionalTdf {
         return if (isNetworkingUnset) { // If networking information hasn't been provided
             OptionalTdf(label)
@@ -1351,6 +1520,13 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         }
     }
 
+    /**
+     * Sets the current internal and external address
+     * and port information from the provided group
+     * tdf.
+     *
+     * @param group The tdf containing the EXIP and INIP groups
+     */
     private fun setNetworkingFromGroup(group: GroupTdf) {
         val exip = group.group("EXIP")
         externalAddress = exip.number("IP")
@@ -1361,6 +1537,13 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         internalPort = inip.number("PORT")
     }
 
+    /**
+     * Pushes the packets that update the information about this session
+     * to which ever [session] is provided. This is used to update the user
+     * information as well as session information for each session.
+     *
+     * @param session The session to send the update to
+     */
     fun updateSessionFor(session: Session) {
         val playerEntity = playerEntity ?: return
         val sessionDetailsPacket = unique(
@@ -1389,6 +1572,13 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         session.pushAll(sessionDetailsPacket, identityPacket)
     }
 
+    /**
+     * Creates a tdf group with the session data information.
+     * This is used by [Commands.SESSION_DETAILS] and
+     * [Commands.SET_SESSION]
+     *
+     * @return The created tdf group
+     */
     private fun createSessionDataGroup(): GroupTdf {
         return group("DATA") {
             +createNetworkingTdf("ADDR")
@@ -1404,10 +1594,16 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
                 number("UBPS", ubps)
             }
             number("UATT", 0)
-            list("ULST", listOf(VarTripple(4u, 1u, gameId)))
+            list("ULST", listOf(VarTripple(4u, 1u, gameIdSafe)))
         }
     }
 
+    /**
+     * Creates a packet which sets the session details for this
+     * session.
+     *
+     * @return The created packet
+     */
     fun createSetSessionPacket(): Packet {
         return unique(
             Components.USER_SESSIONS,
@@ -1431,7 +1627,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         return group("PDAT") {
             blob("BLOB")
             number("EXID", 0x0)
-            number("GID", gameId) // Current game ID
+            number("GID", gameIdSafe) // Current game ID
             number("LOC", location) // Encoded Location
             text("NAME", playerEntity.displayName) // Player Display Name
             number("PID", playerId)  // Player ID
@@ -1544,6 +1740,14 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         dispose()
     }
 
+    /**
+     * Equality for sessions is only checked by reference
+     * and the actual session ID itself as those will always
+     * be unique.
+     *
+     * @param other The other object to check equality with
+     * @return Whether the two objects are equal
+     */
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is Session) return false
@@ -1551,6 +1755,12 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         return true
     }
 
+    /**
+     * The hash code for sessions is just the hashcode
+     * of the session ID
+     *
+     * @return The hash code value
+     */
     override fun hashCode(): Int {
         return sessionId.hashCode()
     }
@@ -1559,6 +1769,12 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     companion object {
 
         private const val SKEY = "11229301_9b171d92cc562b293e602ee8325612e7"
+
+        /**
+         * The integer value which is used as the ID of the
+         * next session. This is incremented as each session
+         * takes their ID
+         */
         private val nextSessionId = AtomicInteger(0)
 
     }
