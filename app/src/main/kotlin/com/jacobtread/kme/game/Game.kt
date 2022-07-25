@@ -72,31 +72,25 @@ class Game(
         player.setGame(this, gameSlot)
 
         players[gameSlot] = player
-        sendHostPlayerJoin(player)
-
-        activePlayers.forEach {
-            if (it.sessionId != player.sessionId) {
-                player.updateSessionFor(it)
-            }
-        }
-
-        player.push(createMatchmakingResult(player))
-        player.push(player.createSetSessionPacket())
-    }
-
-    private fun sendHostPlayerJoin(session: Session) {
 
         val host = getHost()
 
-        host.updateSessionFor(session)
-        host.push(unique(Components.GAME_MANAGER, Commands.JOIN_GAME_BY_GROUP) {
-            number("GID", id)
-            val playerDataGroup = session.createPlayerDataGroup()
-            if (playerDataGroup != null) {
-                +playerDataGroup
-            }
-        })
-        host.push(session.createSetSessionPacket())
+        host.updateSessionFor(player)
+        host.pushAll(
+            unique(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOINING) {
+                number("GID", id)
+                +player.createPlayerDataGroup()
+            },
+            player.createSetSessionPacket()
+        )
+        activePlayers.forEach {
+            player.updateSessionFor(it)
+        }
+
+        player.pushAll(
+            createMatchmakingResult(player),
+            player.createSetSessionPacket()
+        )
     }
 
 
@@ -352,10 +346,7 @@ class Game(
         val playersList = ArrayList<GroupTdf>()
         players.forEach {
             if (it != null) {
-                val playerDataGroup = it.createPlayerDataGroup()
-                if (playerDataGroup != null) {
-                    playersList.add(playerDataGroup)
-                }
+                playersList.add(it.createPlayerDataGroup())
             }
         }
         return ListTdf("PROS", Tdf.GROUP, playersList)

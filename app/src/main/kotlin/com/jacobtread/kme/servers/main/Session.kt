@@ -668,7 +668,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         }
         pushAll(
             packet.respond(),
-            unique(Components.GAME_MANAGER, Commands.MIGRATE_ADMIN_PLAYER) {
+            unique(Components.GAME_MANAGER, Commands.NOTIFY_GAME_SETTINGS_CHANGE) {
                 number("ATTR", setting)
                 number("GID", gameId)
             }
@@ -1615,15 +1615,15 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      *
      * @return The created group tdf
      */
-    fun createPlayerDataGroup(): GroupTdf? {
-        val playerEntity = playerEntity ?: return null
-        val playerId = playerEntity.playerId
+    fun createPlayerDataGroup(): GroupTdf {
+        val playerId = playerIdSafe
+        val displayName = playerEntity?.displayName ?: ""
         return group("PDAT") {
             blob("BLOB")
             number("EXID", 0x0)
             number("GID", gameIdSafe) // Current game ID
             number("LOC", location) // Encoded Location
-            text("NAME", playerEntity.displayName) // Player Display Name
+            text("NAME", displayName) // Player Display Name
             number("PID", playerId)  // Player ID
             +createNetworkingTdf("PNET") // Player Network Information
             number("SID", gameSlot) // Player Slot Index/ID
