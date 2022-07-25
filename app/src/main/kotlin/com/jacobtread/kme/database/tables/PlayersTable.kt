@@ -31,12 +31,10 @@ object PlayersTable : IntIdTable("players") {
     val challengeReward = integer("csreward")
         .default(0)
     val faceCodes = text("faces_codes")
-        .nullable()
-        .default(null)
+        .default("20;")
 
     val newItem = text("new_item")
-        .nullable()
-        .default(null)
+        .default("20;4;")
 
     val completion = text("completion")
         .nullable()

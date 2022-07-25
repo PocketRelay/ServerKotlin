@@ -202,9 +202,9 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
             for (character in characters) {
                 out[character.key] = character.toEncoded()
             }
-            faceCodes?.apply { out["FaceCodes"] = this }
-            newItem?.apply { out["NewItem"] = this }
 
+            out["FaceCodes"] = faceCodes
+            out["NewItem"] = newItem
             out["csreward"] = csReward.toString()
 
             completion?.apply { out["Completion"] = this }
