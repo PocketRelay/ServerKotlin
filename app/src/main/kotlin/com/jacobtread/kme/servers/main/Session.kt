@@ -76,7 +76,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     private var hardwareFlag: Int = 0
     private var pslm: ArrayList<ULong> = arrayListOf(0xfff0fffu, 0xfff0fffu, 0xfff0fffu)
 
-    private var location: ULong = 0x64654445uL // RETRIEVE FROM PREAUTH
+    private var location: ULong = 0x64654445uL 
 
     private var lastPingTime: Long = -1L
 
@@ -1522,10 +1522,26 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         clearGame()
     }
 
-    fun dispose() {
+    /**
+     * Handles removing all references to this session. This will allow
+     * it to be garbage collected preventing memory leaks.
+     */
+    private fun dispose() {
         setAuthenticatedPlayer(null)
         if (matchmaking) Matchmaking.removeFromQueue(this)
         // TODO: REMOVE ALL REFERENCES TO THIS OBJECT SO IT CAN BE GARBAGE COLLECTED
+    }
+
+    /**
+     * Handles disposing of any references to this session when
+     * the underlying channel becomes inactive / disconnected
+     *
+     * @param ctx The channel context
+     */
+    override fun channelInactive(ctx: ChannelHandlerContext) {
+        super.channelInactive(ctx)
+
+        dispose()
     }
 
     override fun equals(other: Any?): Boolean {
