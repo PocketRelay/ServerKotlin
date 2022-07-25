@@ -687,17 +687,12 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         val gameId = packet.number("GID")
         val attributes = packet.mapOrNull<String, String>("ATTR")
         if (attributes != null) {
-            var game = GameManager.getGameById(gameId)
-            if (game != null) {
+            val game = GameManager.getGameById(gameId)
+            if (game != null ) {
                 game.setAttributes(attributes)
                 game.broadcastAttributeUpdate()
-            } else {
-                // TODO: WIP Implementation
-                Logger.info("Recreating game with ID $gameId")
-                game = GameManager.createGameWithID(this, gameId) // Create a new game
-                game.setAttributes(attributes) // If the attributes are missing use empty
-                game.join(this)
             }
+
         }
         push(packet.respond())
     }

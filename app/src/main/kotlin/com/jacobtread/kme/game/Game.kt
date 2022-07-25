@@ -150,11 +150,10 @@ class Game(
             Logger.logIfDebug { "Removing player at id $index" }
             val removedPlayer = players[index]
             if (removedPlayer != null) {
+                players.forEach { it?.push(createRemoveNotification(removedPlayer)) }
                 playersLock.write { players[index] = null }
-
                 removedPlayer.clearGame()
 
-                players.forEach { it?.push(createRemoveNotification(removedPlayer)) }
                 Logger.logIfDebug {
                     val playerEntity = removedPlayer.playerEntity ?: return@logIfDebug ""
                     "Removed player in slot $index ${playerEntity.displayName} (${playerEntity.playerId})"
