@@ -76,9 +76,10 @@ object Environment {
 
         val unpooledNetty = env.booleanValue("KME_NETTY_UNPOOLED", false)
         if (unpooledNetty) {
+            Logger.warn("Netty pooling disabled.")
             System.setProperty("io.netty.allocator.type", "unpooled")
         }
-        
+
         // Initialize the logger with its configuration
         Logger.init(
             env.stringValue("KME_LOGGER_LEVEL", loggingConfig.level),
@@ -169,7 +170,6 @@ object Environment {
                 PlayersTable,
                 PlayerClassesTable,
                 PlayerCharactersTable,
-                PlayerSettingsTable,
                 GalaxyAtWarTable,
                 MessagesTable
             )
