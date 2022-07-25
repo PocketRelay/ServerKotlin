@@ -88,7 +88,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      * then this value will be false otherwise it's true. Determines whether
      * [createNetworkingTdf] will return an empty optional or one with a value
      */
-    private val isNetworkingUnset: Boolean get() = externalAddress == 0uL || externalPort == 0uL || internalAddress == 0uL || internalPort == 0uL
+    private var isNetworkingUnset: Boolean = true
 
     /**
      * Usage unknown further investigation needed.
@@ -1529,6 +1529,8 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         val inip = group.group("INIP")
         internalAddress = inip.number("IP")
         internalPort = inip.number("PORT")
+
+        isNetworkingUnset = false
     }
 
     /**
