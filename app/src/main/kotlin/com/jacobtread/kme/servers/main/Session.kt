@@ -688,11 +688,10 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         val attributes = packet.mapOrNull<String, String>("ATTR")
         if (attributes != null) {
             val game = GameManager.getGameById(gameId)
-            if (game != null ) {
+            if (game != null) {
                 game.setAttributes(attributes)
                 game.broadcastAttributeUpdate()
             }
-
         }
         push(packet.respond())
     }
@@ -1491,7 +1490,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     fun createInternalNetGroup(): GroupTdf {
         return group("INIP") {
             number("IP", internalAddress)
-            number("PORT", externalPort)
+            number("PORT", internalPort)
         }
     }
 
