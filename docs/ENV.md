@@ -32,8 +32,6 @@ a list of all of those environment variables
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | KME_REDIRECTOR_PORT | The port to use for the redirector server. You shouldn't change this unless you are behind something forwarding port 42127 otherwise clients won't be able to connect |
 | KME_MAIN_PORT       | The port for the main server. You can change this value to any port you are able to bind                                                                              |
-| KME_TICKER_PORT     | The port for the ticker server. You can change this to any value you are able to bind                                                                                 |
-| KME_TELEMETRY_PORT  | The port for the telemetry server. You can change this to any value you are able to bind                                                                              |
 | KME_HTTP_PORT       | The port for the HTTP server you can change this to any port you are able to bind                                                                                     |
 
 ### Logging

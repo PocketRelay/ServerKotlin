@@ -41,10 +41,7 @@ object Environment {
 
     val menuMessage: String
 
-    val mitmHost: String
-    val mitmPort: Int
     val mitmEnabled: Boolean
-    val mitmSecure: Boolean
 
     val gawReadinessDecay: Float
     val gawEnabledPromotions: Boolean
@@ -106,11 +103,7 @@ object Environment {
         menuMessage = env.stringValue("KME_MENU_MESSAGE", config.menuMessage)
 
         // Man in the middle configuration
-        val mitmConfig = config.mitm
-        mitmEnabled = env.booleanValue("KME_MITM_ENABLED", mitmConfig.enabled)
-        mitmHost = env.stringValue("KME_MITM_HOST", mitmConfig.host)
-        mitmPort = env.intValue("KME_MITM_PORT", mitmConfig.port)
-        mitmSecure = env.booleanValue("KME_MITM_SECURE", mitmConfig.secure)
+        mitmEnabled = env.booleanValue("KME_MITM_ENABLED", config.mitm)
 
         // Galaxy at war configuration
         val gawConfig = config.gaw
