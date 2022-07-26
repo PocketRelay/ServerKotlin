@@ -331,7 +331,7 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
             statement.executeUpdate()
             val generatedKeys = statement.generatedKeys
             if (generatedKeys.next()) {
-                val id = generatedKeys.getInt("id")
+                val id = generatedKeys.getInt(1)
                 statement.close()
                 return createDefaultPlayerFrom(id, email, hashedPassword)
             } else {
