@@ -6,8 +6,8 @@ import com.jacobtread.kme.data.Commands
 import com.jacobtread.kme.data.Components
 import com.jacobtread.kme.data.Constants
 import com.jacobtread.kme.database.adapter.DatabaseAdapter
-import com.jacobtread.kme.database.adapter.MySQLDatabaseAdapter
-import com.jacobtread.kme.database.adapter.SQLiteDatabaseAdapter
+import com.jacobtread.kme.database.adapter.sql.MySQLDatabaseAdapter
+import com.jacobtread.kme.database.adapter.sql.SQLiteDatabaseAdapter
 import com.jacobtread.kme.exceptions.DatabaseException
 import com.jacobtread.kme.utils.logging.Logger
 import java.io.IOException

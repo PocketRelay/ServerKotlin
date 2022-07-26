@@ -1,19 +1,32 @@
-package com.jacobtread.kme.database.adapter
+package com.jacobtread.kme.database.adapter.sql
 
+import com.jacobtread.kme.database.adapter.DatabaseAdapter
 import com.jacobtread.kme.database.data.GalaxyAtWarData
 import com.jacobtread.kme.database.data.Player
 import com.jacobtread.kme.database.data.PlayerCharacter
 import com.jacobtread.kme.database.data.PlayerClass
 import com.jacobtread.kme.exceptions.DatabaseException
+import com.jacobtread.kme.utils.logging.Logger
 import java.sql.Connection
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
 
 abstract class SQLDatabaseAdapter(
-    protected val connection: Connection,
+    private val connection: Connection,
 ) : DatabaseAdapter {
 
+    abstract fun getTableSql(): String;
+
+    override fun setup() {
+        try {
+            val statement = connection.createStatement()
+            statement.executeUpdate(getTableSql())
+            statement.close()
+        } catch (e: SQLException) {
+            Logger.fatal("Failed to create database tables", e)
+        }
+    }
 
     override fun isPlayerEmailTaken(email: String): Boolean {
         try {
