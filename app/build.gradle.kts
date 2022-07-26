@@ -13,12 +13,8 @@ dependencies {
     // Core dependency groupings
     serializationDependencies()
     nettyDependencies()
-    exposedDatabaseDependencies()
     blazeDependencies()
     xmlDependency()
-
-    // NO-OP dependency to disable SLF4J logging that is used by the exposed library
-    implementation("org.slf4j:slf4j-nop:1.7.36")
 
     // Logging project
     implementation(project(":logger"))
@@ -90,17 +86,6 @@ fun DependencyHandlerScope.nettyDependencies() {
     implementation("io.netty:netty-handler:$nettyVersion")
     implementation("io.netty:netty-buffer:$nettyVersion")
     implementation("io.netty:netty-codec-http:$nettyVersion")
-}
-
-/**
- * exposedDatabaseDependencies Adds the dependencies for the
- * exposed database module
- */
-fun DependencyHandlerScope.exposedDatabaseDependencies() {
-    val exposedVersion: String by project
-    implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
-    implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
-    implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
 }
 
 /*
