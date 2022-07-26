@@ -8,5 +8,5 @@ package com.jacobtread.kme.data
  * @constructor Create empty Constants
  */
 object Constants {
-    const val KME_VERSION = "1.0.1"
+    const val KME_VERSION = "1.0.2"
 }
