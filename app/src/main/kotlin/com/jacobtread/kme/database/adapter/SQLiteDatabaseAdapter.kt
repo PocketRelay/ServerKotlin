@@ -48,7 +48,7 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
             |     `session_token`   TEXT    DEFAULT NULL,
             |     `password`        TEXT NOT NULL ,
             |     `credits`         INTEGER DEFAULT 0,
-            |     `credits_sepnt`   INTEGER DEFAULT 0,
+            |     `credits_spent`   INTEGER DEFAULT 0,
             |     `games_played`    INTEGER DEFAULT 0,
             |     `seconds_played`  INTEGER DEFAULT 0,
             |     `inventory`       TEXT    DEFAULT '',
@@ -429,12 +429,63 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
     }
 
     private fun hasPlayerCharacter(player: Player, index: Int): Boolean {
-        return false
+        val statement = connection.prepareStatement("SELECT `id` FROM `player_characters` WHERE `player_id` = ? AND `index` = ?")
+        statement.setInt(1, player.playerId)
+        statement.setInt(2, index)
+        val resultSet = statement.executeQuery()
+        return resultSet.next()
     }
 
 
     override fun setPlayerCharacter(player: Player, playerCharacter: PlayerCharacter) {
-        TODO("Not yet implemented")
+        try {
+            val hasExistingCharacter = hasPlayerCharacter(player, playerCharacter.index)
+            if (hasExistingCharacter) {
+                val statement = connection.prepareStatement(
+                    """
+                    |UPDATE `player_characters`
+                    |SET `kit_name` = ?, `name` = ?, `tint1` = ?, `tint2` = ?,
+                    |`pattern` = ?, `pattern_color` = ?, `phong` = ?, `emissive` = ?,
+                    |`skin_tone` = ?, `seconds_played` = ?, `timestamp_year` = ?,
+                    |`timestamp_month` = ?, `timestamp_day` = ?, `timestamp_seconds` = ?,
+                    |`powers` = ?, `hotkeys` = ?, `weapons` = ?, `weapon_mods` = ?,
+                    |`deployed` = ?, `leveled_up` = ?
+                    |WHERE `player_id` = ? AND `index` = ?
+                    """.trimMargin()
+                )
+                statement.setString(1, playerCharacter.kitName)
+                statement.setString(2, playerCharacter.name)
+                statement.setInt(3, playerCharacter.tint1)
+                statement.setInt(4, playerCharacter.tint2)
+                statement.setInt(5, playerCharacter.pattern)
+                statement.setInt(6, playerCharacter.patternColor)
+                statement.setInt(7, playerCharacter.phong)
+                statement.setInt(8, playerCharacter.emissive)
+                statement.setInt(9, playerCharacter.skinTone)
+                statement.setLong(10, playerCharacter.secondsPlayed)
+                statement.setInt(11, playerCharacter.timestampYear)
+                statement.setInt(12, playerCharacter.timestampMonth)
+                statement.setInt(13, playerCharacter.timestampDay)
+                statement.setInt(14, playerCharacter.timestampSeconds)
+                statement.setString(15, playerCharacter.powers)
+                statement.setString(16, playerCharacter.hotkeys)
+                statement.setString(17, playerCharacter.weapons)
+                statement.setString(18, playerCharacter.weaponMods)
+                statement.setBoolean(19, playerCharacter.deployed)
+                statement.setBoolean(20, playerCharacter.leveledUp)
+                statement.setInt(21, player.playerId)
+                statement.setInt(22, playerCharacter.index)
+                statement.executeUpdate()
+            } else {
+                val statement = connection.prepareStatement(
+                    ""
+                )
+                statement.setInt(1, player.playerId)
+                statement.executeUpdate()
+            }
+        } catch (e: SQLException) {
+            throw DatabaseException("SQLException in setPlayerClass", e)
+        }
     }
 
     override fun setPlayerSessionToken(player: Player, sessionToken: String) {

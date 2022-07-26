@@ -63,7 +63,7 @@ class MySQLDatabaseAdapter(
         TODO("Not yet implemented")
     }
 
-    override fun getGalaxyAtWarData(player: Player): GalaxyAtWarData? {
+    override fun getGalaxyAtWarData(player: Player): GalaxyAtWarData {
         TODO("Not yet implemented")
     }
 
