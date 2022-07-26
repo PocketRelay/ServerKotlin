@@ -30,7 +30,7 @@ interface DatabaseAdapter {
     fun getPlayerCharacters(player: Player): MutableList<PlayerCharacter>
 
     @Throws(DatabaseException::class)
-    fun getGalaxyAtWarData(player: Player): GalaxyAtWarData?
+    fun getGalaxyAtWarData(player: Player): GalaxyAtWarData
 
     @Throws(DatabaseException::class)
     fun createPlayer(email: String, hashedPassword: String): Player

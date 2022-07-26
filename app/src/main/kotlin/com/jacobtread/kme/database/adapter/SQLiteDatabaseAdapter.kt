@@ -5,10 +5,12 @@ import com.jacobtread.kme.database.data.GalaxyAtWarData
 import com.jacobtread.kme.database.data.Player
 import com.jacobtread.kme.database.data.PlayerCharacter
 import com.jacobtread.kme.database.data.PlayerClass
+import com.jacobtread.kme.exceptions.DatabaseException
 import com.jacobtread.kme.utils.logging.Logger
 import java.nio.file.Paths
 import java.sql.Connection
 import java.sql.DriverManager
+import java.sql.ResultSet
 import java.sql.SQLException
 import kotlin.io.path.absolute
 import kotlin.io.path.createDirectories
@@ -44,6 +46,7 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
             |     `id`              INTEGER
             |         CONSTRAINT players_pk
             |             PRIMARY KEY AUTOINCREMENT,
+            |     `email`    TEXT NOT NULL,
             |     `display_name`    TEXT NOT NULL,
             |     `session_token`   TEXT    DEFAULT NULL,
             |     `password`        TEXT,
@@ -94,7 +97,7 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
             |     `tint1`             INTEGER       NOT NULL,
             |     `tint2`             INTEGER       NOT NULL,
             |     `pattern`           INTEGER       NOT NULL,
-            |     `patternColor`      INTEGER       NOT NULL,
+            |     `pattern_color`      INTEGER       NOT NULL,
             |     `phong`             INTEGER       NOT NULL,
             |     `emissive`          INTEGER       NOT NULL,
             |     `skin_tone`         INTEGER       NOT NULL,
@@ -144,31 +147,179 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
     }
 
     override fun isPlayerEmailTaken(email: String): Boolean {
-        TODO("Not yet implemented")
+        try {
+            val statement = connection.prepareStatement("SELECT `id` FROM `players` WHERE email = ? LIMIT 1")
+            statement.setString(1, email)
+            val resultSet = statement.executeQuery()
+            val result = resultSet.next()
+            statement.close()
+            return result
+        } catch (e: SQLException) {
+            throw DatabaseException("Exception in isPlayerEmailTaken", e)
+        }
+    }
+
+    private fun getPlayerFromResultSet(resultSet: ResultSet): Player {
+        return Player(
+            playerId = resultSet.getInt("id"),
+            email = resultSet.getString("email"),
+            displayName = resultSet.getString("display_name"),
+            password = resultSet.getString("password"),
+            sessionToken = resultSet.getString("session_token"),
+            credits = resultSet.getInt("credits"),
+            creditsSpent = resultSet.getInt("credits_spent"),
+            gamesPlayed = resultSet.getInt("games_played"),
+            secondsPlayed = resultSet.getLong("seconds_played"),
+            inventory = resultSet.getString("inventory"),
+            csReward = resultSet.getInt("csreward"),
+            faceCodes = resultSet.getString("face_codes"),
+            newItem = resultSet.getString("new_item"),
+            completion = resultSet.getString("completion"),
+            progress = resultSet.getString("progress"),
+            cscompletion = resultSet.getString("cs_completion"),
+            cstimestamps1 = resultSet.getString("cs_timestamps_1"),
+            cstimestamps2 = resultSet.getString("cs_timestamps_2"),
+            cstimestamps3 = resultSet.getString("cs_timestamps_3"),
+        )
     }
 
     override fun getPlayerById(id: Int): Player? {
-        TODO("Not yet implemented")
+        try {
+            val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `id` = ? LIMIT 1")
+            statement.setInt(1, id)
+            val resultSet = statement.executeQuery()
+            if (!resultSet.next()) return null
+            val player = getPlayerFromResultSet(resultSet)
+            statement.close()
+            return player
+        } catch (e: SQLException) {
+            throw DatabaseException("Exception in getPlayerById", e)
+        }
     }
 
     override fun getPlayerByEmail(email: String): Player? {
-        TODO("Not yet implemented")
+        try {
+            val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `email` = ? LIMIT 1")
+            statement.setString(1, email)
+            val resultSet = statement.executeQuery()
+            if (!resultSet.next()) return null
+            val player = getPlayerFromResultSet(resultSet)
+            statement.close()
+            return player
+        } catch (e: SQLException) {
+            throw DatabaseException("Exception in getPlayerById", e)
+        }
     }
 
     override fun getPlayerBySessionToken(sessionToken: String): Player? {
-        TODO("Not yet implemented")
+        try {
+            val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `session_token` = ? LIMIT 1")
+            statement.setString(1, sessionToken)
+            val resultSet = statement.executeQuery()
+            if (!resultSet.next()) return null
+            val player = getPlayerFromResultSet(resultSet)
+            statement.close()
+            return player
+        } catch (e: SQLException) {
+            throw DatabaseException("Exception in getPlayerById", e)
+        }
+    }
+
+    private fun getPlayerClassFromResultSet(resultSet: ResultSet): PlayerClass {
+        return PlayerClass(
+            index = resultSet.getInt("index"),
+            name = resultSet.getString("name"),
+            level = resultSet.getInt("level"),
+            exp = resultSet.getFloat("exp"),
+            promotions = resultSet.getInt("promotions"),
+        )
     }
 
     override fun getPlayerClasses(player: Player): MutableList<PlayerClass> {
-        TODO("Not yet implemented")
+        try {
+            val statement = connection.prepareStatement("SELECT * FROM `player_classes` WHERE `player_id` = ?")
+            statement.setInt(1, player.playerId)
+            val resultSet = statement.executeQuery()
+            val results = ArrayList<PlayerClass>()
+            while (resultSet.next()) {
+                val value = getPlayerClassFromResultSet(resultSet)
+                results.add(value)
+            }
+            statement.close()
+            return results
+        } catch (e: SQLException) {
+            throw DatabaseException("Exception in getPlayerClasses", e)
+        }
+    }
+
+    private fun getPlayerCharacterFromResultSet(resultSet: ResultSet): PlayerCharacter {
+        return PlayerCharacter(
+            index = resultSet.getInt("index"),
+            kitName = resultSet.getString("kit_name"),
+            name = resultSet.getString("name"),
+            tint1 = resultSet.getInt("tint1"),
+            tint2 = resultSet.getInt("tint2"),
+            pattern = resultSet.getInt("pattern"),
+            patternColor = resultSet.getInt("pattern_color"),
+            phong = resultSet.getInt("phong"),
+            emissive = resultSet.getInt("emissive"),
+            skinTone = resultSet.getInt("skin_tone"),
+            secondsPlayed = resultSet.getLong("seconds_played"),
+            timestampYear = resultSet.getInt("timestamp_year"),
+            timestampMonth = resultSet.getInt("timestamp_month"),
+            timestampDay = resultSet.getInt("timestamp_day"),
+            timestampSeconds = resultSet.getInt("timestamp_seconds"),
+            powers = resultSet.getString("powers"),
+            hotkeys = resultSet.getString("hotkeys"),
+            weapons = resultSet.getString("weapons"),
+            weaponMods = resultSet.getString("weapon_mods"),
+            deployed = resultSet.getBoolean("deployed"),
+            leveledUp = resultSet.getBoolean("leveled_up"),
+        )
     }
 
     override fun getPlayerCharacters(player: Player): MutableList<PlayerCharacter> {
-        TODO("Not yet implemented")
+        try {
+            val statement = connection.prepareStatement("SELECT * FROM `player_characters` WHERE `player_id` = ?")
+            statement.setInt(1, player.playerId)
+            val resultSet = statement.executeQuery()
+            val results = ArrayList<PlayerCharacter>()
+            while (resultSet.next()) {
+                val value = getPlayerCharacterFromResultSet(resultSet)
+                results.add(value)
+            }
+            statement.close()
+            return results
+        } catch (e: SQLException) {
+            throw DatabaseException("Exception in getPlayerCharacters", e)
+        }
     }
 
-    override fun getGalaxyAtWarData(player: Player): GalaxyAtWarData? {
-        TODO("Not yet implemented")
+    override fun getGalaxyAtWarData(player: Player): GalaxyAtWarData {
+        try {
+            val statement = connection.prepareStatement("SELECT * FROM `player_gaw` WHERE `player_id` = ? LIMIT 1")
+            statement.setInt(1, player.playerId)
+            val resultSet = statement.executeQuery()
+            if (resultSet.next()) {
+                val galaxyAtWarData = GalaxyAtWarData(
+                    lastModified = resultSet.getLong("last_modified"),
+                    groupA = resultSet.getInt("group_a"),
+                    groupB = resultSet.getInt("group_b"),
+                    groupC = resultSet.getInt("group_c"),
+                    groupD = resultSet.getInt("group_d"),
+                    groupE = resultSet.getInt("group_e"),
+                )
+                statement.close()
+                return galaxyAtWarData
+            } else {
+                statement.close()
+                val defaultData = GalaxyAtWarData.createDefault()
+                setGalaxyAtWarData(player, defaultData)
+                return defaultData
+            }
+        } catch (e: SQLException) {
+            throw DatabaseException("Exception in getGalaxyAtWarData", e)
+        }
     }
 
     override fun createPlayer(email: String, hashedPassword: String): Player {
@@ -198,6 +349,4 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
     override fun setGalaxyAtWarData(player: Player, galaxyAtWarData: GalaxyAtWarData) {
         TODO("Not yet implemented")
     }
-
-
 }

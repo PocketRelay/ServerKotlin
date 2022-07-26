@@ -36,17 +36,11 @@ data class Player(
 
     fun getGalaxyAtWarData(): GalaxyAtWarData {
         val value = Environment.database.getGalaxyAtWarData(this)
-        return if (value != null) {
-            value.applyDecay()
-            if (value.isModified) {
-                Environment.database.setGalaxyAtWarData(this, value)
-            }
-            value
-        } else {
-            val default = GalaxyAtWarData.createDefault()
-            Environment.database.setGalaxyAtWarData(this, default)
-            default
+        value.applyDecay()
+        if (value.isModified) {
+            Environment.database.setGalaxyAtWarData(this, value)
         }
+        return value
     }
 
     fun getSessionToken(): String {
