@@ -6,7 +6,11 @@ import com.jacobtread.kme.data.Commands
 import com.jacobtread.kme.data.Components
 import com.jacobtread.kme.data.Constants
 import com.jacobtread.kme.database.RuntimeDriver
-import com.jacobtread.kme.database.tables.*
+import com.jacobtread.kme.database.adapter.DatabaseAdapter
+import com.jacobtread.kme.database.old.tables.GalaxyAtWarTable
+import com.jacobtread.kme.database.old.tables.PlayerCharactersTable
+import com.jacobtread.kme.database.old.tables.PlayerClassesTable
+import com.jacobtread.kme.database.old.tables.PlayersTable
 import com.jacobtread.kme.utils.logging.Logger
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -22,7 +26,6 @@ import java.sql.DriverManager
 import kotlin.io.path.*
 import org.jetbrains.exposed.sql.Database as ExposedDatabase
 
-
 /**
  * Environment This object stores the names of different system
  * environment variables that can control the server as well as
@@ -31,6 +34,9 @@ import org.jetbrains.exposed.sql.Database as ExposedDatabase
  * @constructor Create empty Environment
  */
 object Environment {
+
+    // TODO: Initialize
+    lateinit var database: DatabaseAdapter
 
     val externalAddress: String
 
@@ -141,18 +147,7 @@ object Environment {
                 if (parentDir.notExists()) parentDir.createDirectories()
                 ExposedDatabase.connect({ DriverManager.getConnection("jdbc:sqlite:$file") })
             }
-            "postgres" -> {
-                val version = "42.4.0"
-                val url = "https://repo1.maven.org/maven2/org/postgresql/postgresql/$version/postgresql-$version.jar"
-                setupDatabaseDriver(url, "org.postgresql.Driver", "postgres.jar")
-                val host = env.stringValue("KME_MYSQL_HOST", databaseConfig.host)
-                val port = env.intValue("KME_MYSQL_PORT", databaseConfig.port)
-                val user = env.stringValue("KME_MYSQL_USER", databaseConfig.user)
-                val password = env.stringValue("KME_MYSQL_PASSWORD", databaseConfig.password)
-                val database = env.stringValue("KME_MYSQL_DATABASE", databaseConfig.database)
-                ExposedDatabase.connect({ DriverManager.getConnection("jdbc:postgresql://${host}:${port}/${database}", user, password) })
-            }
-            else -> Logger.fatal("Unknwon database type: $databaseType (expected mysql, postgres, or sqlite)")
+            else -> Logger.fatal("Unknwon database type: $databaseType (expected mysql, or sqlite)")
         }
         createDatabaseTables()
     }
@@ -164,7 +159,6 @@ object Environment {
                 PlayerClassesTable,
                 PlayerCharactersTable,
                 GalaxyAtWarTable,
-                MessagesTable
             )
         }
     }

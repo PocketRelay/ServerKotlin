@@ -1,4 +1,4 @@
-package com.jacobtread.kme.database.tables
+package com.jacobtread.kme.database.old.tables
 
 import org.jetbrains.exposed.dao.id.IntIdTable
 

@@ -2,8 +2,8 @@ package com.jacobtread.kme.servers.http.routes
 
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.database.byId
-import com.jacobtread.kme.database.entities.GalaxyAtWarEntity
-import com.jacobtread.kme.database.entities.PlayerEntity
+import com.jacobtread.kme.database.old.entities.GalaxyAtWarEntity
+import com.jacobtread.kme.database.old.entities.PlayerEntity
 import com.jacobtread.kme.servers.http.router.*
 import com.jacobtread.kme.tools.unixTimeSeconds
 import com.jacobtread.kme.utils.logging.Logger

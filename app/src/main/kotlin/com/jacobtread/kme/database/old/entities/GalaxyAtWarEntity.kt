@@ -1,8 +1,8 @@
-package com.jacobtread.kme.database.entities
+package com.jacobtread.kme.database.old.entities
 
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.database.firstOrNullSafe
-import com.jacobtread.kme.database.tables.GalaxyAtWarTable
+import com.jacobtread.kme.database.old.tables.GalaxyAtWarTable
 import com.jacobtread.kme.tools.unixTimeDaysSince
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass

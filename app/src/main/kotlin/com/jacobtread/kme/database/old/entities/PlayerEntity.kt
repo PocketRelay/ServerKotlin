@@ -1,9 +1,9 @@
-package com.jacobtread.kme.database.entities
+package com.jacobtread.kme.database.old.entities
 
 import com.jacobtread.kme.database.firstOrNullSafe
-import com.jacobtread.kme.database.tables.PlayerCharactersTable
-import com.jacobtread.kme.database.tables.PlayerClassesTable
-import com.jacobtread.kme.database.tables.PlayersTable
+import com.jacobtread.kme.database.old.tables.PlayerCharactersTable
+import com.jacobtread.kme.database.old.tables.PlayerClassesTable
+import com.jacobtread.kme.database.old.tables.PlayersTable
 import com.jacobtread.kme.tools.MEStringParser
 import com.jacobtread.kme.tools.hashPassword
 import kotlinx.serialization.Serializable
@@ -25,8 +25,7 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
             return firstOrNullSafe { PlayersTable.sessionToken eq sessionToken }
         }
 
-        fun create(email: String, password: String): PlayerEntity {
-            val hashedPassword = hashPassword(password)
+        fun create(email: String, hashedPassword: String): PlayerEntity {
             return transaction {
                 PlayerEntity.new {
                     this.email = email

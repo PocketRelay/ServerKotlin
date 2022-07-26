@@ -1,7 +1,7 @@
 package com.jacobtread.kme.servers.http.routes
 
 import com.jacobtread.kme.database.byId
-import com.jacobtread.kme.database.entities.PlayerEntity
+import com.jacobtread.kme.database.old.entities.PlayerEntity
 import com.jacobtread.kme.servers.http.router.*
 import io.netty.handler.codec.http.HttpResponseStatus.OK
 

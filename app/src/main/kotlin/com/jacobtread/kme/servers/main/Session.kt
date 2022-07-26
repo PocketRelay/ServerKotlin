@@ -10,14 +10,14 @@ import com.jacobtread.blaze.tdf.OptionalTdf
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.data.*
 import com.jacobtread.kme.database.byId
-import com.jacobtread.kme.database.entities.MessageEntity
-import com.jacobtread.kme.database.entities.PlayerEntity
+import com.jacobtread.kme.database.old.entities.PlayerEntity
 import com.jacobtread.kme.exceptions.GameException
 import com.jacobtread.kme.game.Game
 import com.jacobtread.kme.game.GameManager
 import com.jacobtread.kme.game.match.MatchRuleSet
 import com.jacobtread.kme.game.match.Matchmaking
 import com.jacobtread.kme.tools.comparePasswordHash
+import com.jacobtread.kme.tools.hashPassword
 import com.jacobtread.kme.tools.unixTimeSeconds
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.channel.Channel
@@ -586,7 +586,8 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             return push(LoginError.EMAIL_ALREADY_IN_USE(packet))
         }
         // Create a new player entity
-        val playerEntity = PlayerEntity.create(email, password)
+        val hashedPassword = hashPassword(password)
+        val playerEntity = PlayerEntity.create(email, hashedPassword)
         setAuthenticatedPlayer(playerEntity) // Link the player to this session
         push(createAuthenticatedResponse(packet))
     }
@@ -1113,7 +1114,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         } else {
             when (type) {
                 "ME3_DATA" -> Data.createDataConfig() // Configurations for GAW, images and others
-                "ME3_MSG" -> MessageEntity.createMessageMap() // Custom multiplayer messages
+                "ME3_MSG" -> emptyMap() // Custom multiplayer messages
                 "ME3_ENT" -> Data.createEntitlementMap() // Entitlements
                 "ME3_DIME" -> Data.createDimeResponse() // Shop contents?
                 "ME3_BINI_VERSION" -> mapOf(

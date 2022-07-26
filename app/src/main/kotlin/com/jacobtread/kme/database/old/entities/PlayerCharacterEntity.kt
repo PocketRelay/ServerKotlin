@@ -1,6 +1,6 @@
-package com.jacobtread.kme.database.entities
+package com.jacobtread.kme.database.old.entities
 
-import com.jacobtread.kme.database.tables.PlayerCharactersTable
+import com.jacobtread.kme.database.old.tables.PlayerCharactersTable
 import com.jacobtread.kme.database.updateOrCreate
 import com.jacobtread.kme.tools.MEStringParser
 import org.jetbrains.exposed.dao.IntEntity
