@@ -9,14 +9,13 @@ import com.jacobtread.blaze.tdf.GroupTdf
 import com.jacobtread.blaze.tdf.OptionalTdf
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.data.*
-import com.jacobtread.kme.database.byId
-import com.jacobtread.kme.database.old.entities.PlayerEntity
+import com.jacobtread.kme.database.data.Player
+import com.jacobtread.kme.exceptions.DatabaseException
 import com.jacobtread.kme.exceptions.GameException
 import com.jacobtread.kme.game.Game
 import com.jacobtread.kme.game.GameManager
 import com.jacobtread.kme.game.match.MatchRuleSet
 import com.jacobtread.kme.game.match.Matchmaking
-import com.jacobtread.kme.tools.comparePasswordHash
 import com.jacobtread.kme.tools.hashPassword
 import com.jacobtread.kme.tools.unixTimeSeconds
 import com.jacobtread.kme.utils.logging.Logger
@@ -177,13 +176,13 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      * References the player entity that this session is currently
      * authenticated as.
      */
-    var playerEntity: PlayerEntity? = null
+    var player: Player? = null
 
     /**
      * Safe way of retrieving the player ID in the cases where
      * the player could be null 1 is returned instead
      */
-    val playerIdSafe: Int get() = playerEntity?.playerId ?: 1
+    val playerIdSafe: Int get() = player?.playerId ?: 1
 
     init {
         updateEncoderContext() // Set the initial encoder context
@@ -250,7 +249,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             .append(remoteAddress)
             .appendLine(')')
 
-        val playerEntity = playerEntity
+        val playerEntity = player
         if (playerEntity != null) {
             builder.append("Player: (NAME: ")
                 .append(playerEntity.displayName)
@@ -320,14 +319,14 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      *
      * Calling this updates the encoder context.
      *
-     * @param playerEntity The new authenticated player or null to logout
+     * @param player The new authenticated player or null to logout
      */
-    private fun setAuthenticatedPlayer(playerEntity: PlayerEntity?) {
-        val existing = this.playerEntity
-        if (existing != playerEntity) {
+    private fun setAuthenticatedPlayer(player: Player?) {
+        val existing = this.player
+        if (existing != player) {
             removeFromGame()
         }
-        this.playerEntity = playerEntity
+        this.player = player
         // Update the encoder context because player has changed
         updateEncoderContext()
     }
@@ -468,7 +467,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     @PacketHandler(Components.AUTHENTICATION, Commands.LOGOUT)
     fun handleLogout(packet: Packet) {
         push(packet.respond())
-        val playerEntity = playerEntity ?: return
+        val playerEntity = player ?: return
         Logger.info("Logged out player ${playerEntity.displayName}")
         setAuthenticatedPlayer(null)
     }
@@ -501,7 +500,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     @PacketHandler(Components.AUTHENTICATION, Commands.GET_AUTH_TOKEN)
     fun handleGetAuthToken(packet: Packet) {
-        val playerEntity = playerEntity ?: throw NotAuthenticatedException()
+        val playerEntity = player ?: throw NotAuthenticatedException()
         push(packet.respond {
             text("AUTH", playerEntity.playerId.toString(16).uppercase())
         })
@@ -527,16 +526,23 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             return push(LoginError.INVALID_EMAIL(packet))
         }
 
-        // Retrieve the player with this email or send an email not found error
-        val playerEntity = PlayerEntity.byEmail(email) ?: return push(LoginError.EMAIL_NOT_FOUND(packet))
+        try {
+            val database = Environment.database
 
-        // Compare the provided password with the hashed password of the player
-        if (!comparePasswordHash(password, playerEntity.password)) { // If it's not the same password
-            return push(LoginError.WRONG_PASSWORD(packet))
+            // Retrieve the player with this email or send an email not found error
+            val player = database.getPlayerByEmail(email) ?: return push(LoginError.EMAIL_NOT_FOUND(packet))
+
+            // Compare the provided password with the hashed password of the player
+            if (!player.isMatchingPassword(password)) { // If it's not the same password
+                return push(LoginError.WRONG_PASSWORD(packet))
+            }
+
+            setAuthenticatedPlayer(player) // Set the authenticated session
+            push(createAuthenticatedResponse(packet))
+        } catch (e: DatabaseException) {
+            Logger.warn("Failed to login player", e)
+            push(LoginError.SERVER_UNAVAILABLE(packet))
         }
-
-        setAuthenticatedPlayer(playerEntity) // Set the authenticated session
-        push(createAuthenticatedResponse(packet))
     }
 
     /**
@@ -549,26 +555,32 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     fun handleSilentLogin(packet: Packet) {
         val pid = packet.numberInt("PID")
         val auth = packet.text("AUTH")
-        // Find the player with a matching ID or send an INVALID_ACCOUNT error
-        val playerEntity = PlayerEntity.byId(pid) ?: return push(LoginError.INVALID_ACCOUNT(packet))
-        // If the session token's don't match send INVALID_ACCOUNT error
-        if (!playerEntity.isSessionToken(auth)) return push(LoginError.INVALID_SESSION(packet))
-        val sessionToken = playerEntity.sessionToken // Session token grabbed after auth as to not generate new one
-        setAuthenticatedPlayer(playerEntity)
-        // We don't store last login time so this is just computed here
-        push(packet.respond {
-            number("AGUP", 0)
-            text("LDHT", "")
-            number("NTOS", 0)
-            text("PCTK", sessionToken)
-            text("PRIV", "")
-            +group("SESS") { appendDetailsTo(this) }
-            number("SPAM", 0)
-            text("THST", "")
-            text("TSUI", "")
-            text("TURI", "")
-        })
-        updateSessionFor(this)
+        try {
+            val database = Environment.database
+            // Find the player with a matching ID or send an INVALID_ACCOUNT error
+            val player = database.getPlayerById(pid) ?: return push(LoginError.INVALID_ACCOUNT(packet))
+            // If the session token's don't match send INVALID_ACCOUNT error
+            if (!player.isSessionToken(auth)) return push(LoginError.INVALID_SESSION(packet))
+            val sessionToken = player.getSessionToken() // Session token grabbed after auth as to not generate new one
+            setAuthenticatedPlayer(player)
+            // We don't store last login time so this is just computed here
+            push(packet.respond {
+                number("AGUP", 0)
+                text("LDHT", "")
+                number("NTOS", 0)
+                text("PCTK", sessionToken)
+                text("PRIV", "")
+                +group("SESS") { appendDetailsTo(this) }
+                number("SPAM", 0)
+                text("THST", "")
+                text("TSUI", "")
+                text("TURI", "")
+            })
+            updateSessionFor(this)
+        } catch (e: IOException) {
+            Logger.warn("Failed silent login", e)
+            push(LoginError.SERVER_UNAVAILABLE(packet))
+        }
     }
 
 
@@ -582,14 +594,21 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     fun handleCreateAccount(packet: Packet) {
         val email: String = packet.text("MAIL")
         val password: String = packet.text("PASS")
-        if (PlayerEntity.isEmailTaken(email)) { // Check if the email is already in use
-            return push(LoginError.EMAIL_ALREADY_IN_USE(packet))
+        try {
+            val database = Environment.database
+            if (database.isPlayerEmailTaken(email)) {
+                push(LoginError.EMAIL_ALREADY_IN_USE(packet))
+                return
+            }
+
+            val hashedPassword = hashPassword(password)
+            val player = database.createPlayer(email, hashedPassword)
+            setAuthenticatedPlayer(player) // Link the player to this session
+            push(createAuthenticatedResponse(packet))
+        } catch (e: DatabaseException) {
+            Logger.warn("Failed to create account", e)
+            push(LoginError.SERVER_UNAVAILABLE(packet))
         }
-        // Create a new player entity
-        val hashedPassword = hashPassword(password)
-        val playerEntity = PlayerEntity.create(email, hashedPassword)
-        setAuthenticatedPlayer(playerEntity) // Link the player to this session
-        push(createAuthenticatedResponse(packet))
     }
 
     /**
@@ -721,7 +740,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     @PacketHandler(Components.GAME_MANAGER, Commands.START_MATCHMAKING)
     fun handleStartMatchmaking(packet: Packet) {
-        val playerEntity = playerEntity ?: throw NotAuthenticatedException()
+        val playerEntity = player ?: throw NotAuthenticatedException()
         Logger.info("Player ${playerEntity.displayName} started match making")
         val ruleSet = MatchRuleSet(packet)
         val game = Matchmaking.getMatchOrQueue(this, ruleSet)
@@ -741,7 +760,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     @PacketHandler(Components.GAME_MANAGER, Commands.CANCEL_MATCHMAKING)
     fun handleCancelMatchmaking(packet: Packet) {
-        val playerEntity = playerEntity ?: throw NotAuthenticatedException()
+        val playerEntity = player ?: throw NotAuthenticatedException()
         Logger.info("Player ${playerEntity.displayName} cancelled match making")
         Matchmaking.removeFromQueue(this)
         removeFromGame()
@@ -760,7 +779,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         val gameId = packet.number("GID")
         push(packet.respond())
 
-        val playerEntity = playerEntity ?: return
+        val playerEntity = player ?: return
         val game = GameManager.getGameById(gameId) ?: return
         val host = game.getHost()
         val playerId = playerEntity.playerId
@@ -931,7 +950,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     @PacketHandler(Components.MESSAGING, Commands.FETCH_MESSAGES)
     fun handleFetchMessages(packet: Packet) {
-        val playerEntity = playerEntity
+        val playerEntity = player
 
         if (playerEntity == null) { // If not authenticate display no messages
             push(packet.respond { number("MCNT", 0) })
@@ -1032,14 +1051,20 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     @PacketHandler(Components.USER_SESSIONS, Commands.RESUME_SESSION)
     fun handleResumeSession(packet: Packet) {
-        val sessionToken = packet.text("SKEY")
-        val playerEntity = PlayerEntity.bySessionToken(sessionToken)
-        if (playerEntity == null) {
-            push(LoginError.INVALID_INFORMATION(packet))
-            return
+        try {
+            val database = Environment.database
+            val sessionToken = packet.text("SKEY")
+            val player = database.getPlayerBySessionToken(sessionToken)
+            if (player == null) {
+                push(LoginError.INVALID_INFORMATION(packet))
+                return
+            }
+            setAuthenticatedPlayer(player)
+        } catch (e: DatabaseException) {
+            Logger.warn("Failed to resume session", e)
+        } finally {
+            push(packet.respond())
         }
-        setAuthenticatedPlayer(playerEntity)
-        push(packet.respond())
     }
 
     /**
@@ -1283,7 +1308,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     @PacketHandler(Components.UTIL, Commands.USER_SETTINGS_SAVE)
     fun handleUserSettingsSave(packet: Packet) {
-        val playerEntity = playerEntity ?: throw NotAuthenticatedException()
+        val playerEntity = player ?: throw NotAuthenticatedException()
         val value = packet.textOrNull("DATA")
         val key = packet.textOrNull("KEY")
         if (value != null && key != null) {
@@ -1301,7 +1326,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     @PacketHandler(Components.UTIL, Commands.USER_SETTINGS_LOAD_ALL)
     fun handleUserSettingsLoadAll(packet: Packet) {
-        val playerEntity = playerEntity ?: throw NotAuthenticatedException()
+        val playerEntity = player ?: throw NotAuthenticatedException()
         push(packet.respond {
             map("SMAP", playerEntity.createSettingsMap())
         })
@@ -1337,7 +1362,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     fun notifyMatchmakingFailed() {
         resetMatchmakingState()
-        val playerEntity = playerEntity ?: return
+        val playerEntity = player ?: return
         push(
             unique(Components.GAME_MANAGER, Commands.NOTIFY_MATCHMAKING_FAILED) {
                 number("MAXF", 0x5460)
@@ -1354,7 +1379,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      * entirely work properly at the moment
      */
     fun notifyMatchmakingStatus() {
-        val playerEntity = playerEntity ?: return
+        val playerEntity = player ?: return
         push(
             unique(
                 Components.GAME_MANAGER,
@@ -1542,7 +1567,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      * @param session The session to send the update to
      */
     fun updateSessionFor(session: Session) {
-        val playerEntity = playerEntity ?: return
+        val playerEntity = player ?: return
         val sessionDetailsPacket = unique(
             Components.USER_SESSIONS,
             Commands.SESSION_DETAILS
@@ -1607,7 +1632,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             Commands.SET_SESSION
         ) {
             +createSessionDataGroup()
-            number("USID", playerEntity?.playerId ?: 1)
+            number("USID", player?.playerId ?: 1)
         }
     }
 
@@ -1620,7 +1645,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     fun createPlayerDataGroup(): GroupTdf {
         val playerId = playerIdSafe
-        val displayName = playerEntity?.displayName ?: ""
+        val displayName = player?.displayName ?: ""
         return group("PDAT") {
             blob("BLOB")
             number("EXID", 0x0)
@@ -1649,7 +1674,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      * @throws NotAuthenticatedException If the session is not authenticated
      */
     private fun createAuthenticatedResponse(packet: Packet): Packet {
-        val playerEntity = playerEntity ?: throw NotAuthenticatedException()
+        val playerEntity = player ?: throw NotAuthenticatedException()
         return packet.respond {
             text("LDHT", "")
             number("NTOS", 0)
@@ -1672,7 +1697,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      * @param builder The builder to append to
      */
     private fun appendDetailsTo(builder: TdfBuilder) {
-        val playerEntity = playerEntity ?: throw NotAuthenticatedException()
+        val playerEntity = player ?: throw NotAuthenticatedException()
         with(builder) {
             number("BUID", playerEntity.playerId)
             number("FRST", 0)
@@ -1692,7 +1717,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      * @return The created persona group tdf
      */
     private fun createPersonaGroup(): GroupTdf {
-        val playerEntity = playerEntity ?: throw NotAuthenticatedException()
+        val playerEntity = player ?: throw NotAuthenticatedException()
         return group("PDTL") {
             text("DSNM", playerEntity.displayName) // Player Display Name
             number("LAST", 0) // Last login time (Ignored)

@@ -130,7 +130,7 @@ class Game(
         val playerIndex: Int = playersLock.read {
             players.indexOfFirst {
                 if (it == null) return@indexOfFirst false
-                val playerEntity = it.playerEntity
+                val playerEntity = it.player
                 playerEntity != null && playerEntity.playerId == playerId
             }
         }
@@ -149,7 +149,7 @@ class Game(
                 removedPlayer.clearGame()
 
                 Logger.logIfDebug {
-                    val playerEntity = removedPlayer.playerEntity ?: return@logIfDebug ""
+                    val playerEntity = removedPlayer.player ?: return@logIfDebug ""
                     "Removed player in slot $index ${playerEntity.displayName} (${playerEntity.playerId})"
                 }
             } else {
@@ -165,7 +165,7 @@ class Game(
                 val host = getHostOrNull()
                 if (host != null) {
                     Logger.logIfDebug {
-                        val playerEntity = host.playerEntity ?: return@logIfDebug ""
+                        val playerEntity = host.player ?: return@logIfDebug ""
                         "Migrating host for $id to ${playerEntity.displayName} (${playerEntity.playerId})"
                     }
                     migrateHost(host)
@@ -279,7 +279,7 @@ class Game(
 
     private fun createGameGroup(): GroupTdf {
         val host = getHost()
-        val hostPlayer = host.playerEntity
+        val hostPlayer = host.player
         check(hostPlayer != null) { "Host player was null couldn't create game group" }
         val hostId = hostPlayer.playerId
 

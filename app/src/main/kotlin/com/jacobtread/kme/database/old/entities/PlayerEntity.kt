@@ -15,33 +15,6 @@ import org.jetbrains.exposed.sql.transactions.transaction
 class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<PlayerEntity>(PlayersTable) {
 
-        fun isEmailTaken(email: String): Boolean = transaction { !(find { PlayersTable.email eq email }.limit(1).empty()) }
-
-        fun byEmail(email: String): PlayerEntity? {
-            return firstOrNullSafe { PlayersTable.email eq email }
-        }
-
-        fun bySessionToken(sessionToken: String): PlayerEntity? {
-            return firstOrNullSafe { PlayersTable.sessionToken eq sessionToken }
-        }
-
-        fun create(email: String, hashedPassword: String): PlayerEntity {
-            return transaction {
-                PlayerEntity.new {
-                    this.email = email
-                    this.displayName = email
-                    this.password = hashedPassword
-                }
-            }
-        }
-
-        fun createSerialList(offset: Int, limit: Int): List<Serial> {
-            return transaction {
-                all()
-                    .limit(limit, (offset * limit).toLong())
-                    .map { it.createSerial() }
-            }
-        }
 
     }
 
@@ -75,8 +48,6 @@ class PlayerEntity(id: EntityID<Int>) : IntEntity(id) {
 
     private val classes by PlayerClassEntity referrersOn PlayerClassesTable.player
     private val characters by PlayerCharacterEntity referrersOn PlayerCharactersTable.player
-
-    val galaxyAtWar: GalaxyAtWarEntity get() = GalaxyAtWarEntity.forPlayer(this)
 
     /**
      * Property which represents the total number of promotions that this player

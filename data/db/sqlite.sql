@@ -1,4 +1,4 @@
-CREATE TABLE `players`
+CREATE TABLE IF NOT EXISTS `players`
 (
     `id`              INTEGER
         CONSTRAINT players_pk
@@ -22,7 +22,7 @@ CREATE TABLE `players`
     `cs_timestamps_3` TEXT    DEFAULT NULL
 );
 
-create table `player_classes`
+CREATE TABLE IF NOT EXISTS `player_classes`
 (
     `id`         INTEGER
         CONSTRAINT player_classes_pk
@@ -31,13 +31,13 @@ create table `player_classes`
         constraint player_classes_players_id_fk
             references players (`id`) NOT NULL,
     `index`      INTEGER              NOT NULL,
-    `name`       text                 NOT NULL,
+    `name`       TEXT                 NOT NULL,
     `level`      INTEGER              NOT NULL,
     `exp`        REAL                 NOT NULL,
     `promotions` INTEGER              NOT NULL
 );
 
-create table `player_gaw`
+CREATE TABLE IF NOT EXISTS `player_gaw`
 (
     `id`            INTEGER
         CONSTRAINT player_classes_pk
@@ -53,17 +53,17 @@ create table `player_gaw`
     `group_e`       INTEGER           NOT NULL
 );
 
-create table `player_characters`
+CREATE TABLE IF NOT EXISTS `player_characters`
 (
     `id`                INTEGER
         CONSTRAINT player_characters_pk
             PRIMARY KEY AUTOINCREMENT,
     `player_id`         INTEGER
-        constraint player_characters_players_id_fk
-            references players (`id`) NOT NULL,
+        CONSTRAINT player_characters_players_id_fk
+            REFERENCES players (`id`) NOT NULL,
     `index`             INTEGER       NOT NULL,
-    `kit_name`          text          NOT NULL,
-    `name`              text          NOT NULL,
+    `kit_name`          TEXT          NOT NULL,
+    `name`              TEXT          NOT NULL,
     `tint1`             INTEGER       NOT NULL,
     `tint2`             INTEGER       NOT NULL,
     `pattern`           INTEGER       NOT NULL,

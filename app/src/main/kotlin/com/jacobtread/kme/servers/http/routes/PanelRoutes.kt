@@ -14,7 +14,6 @@ fun RoutingGroup.routeGroupPanel() {
     // Ignore this route group if the panel is disabled
     if (!Environment.panelEnabled) return
     group("panel") {
-        routeGroupApi() // Add api routing group
         routePanelFallback() // Add fallback routing
     }
 }

@@ -106,7 +106,7 @@ object Matchmaking {
                     val (session, _) = iterator.next()
                     val timeElapsed = currentTime - session.startedMatchmaking
                     if (timeElapsed >= MATCHMAKING_TIMEOUT) {
-                        val playerEntity = session.playerEntity
+                        val playerEntity = session.player
                         if (playerEntity != null) {
                             Logger.info("Player matchmaking timed out ${playerEntity.displayName} (${playerEntity.playerId})")
                         }

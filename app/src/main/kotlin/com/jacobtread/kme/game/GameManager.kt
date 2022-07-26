@@ -14,7 +14,7 @@ object GameManager {
     private var gameId: ULong = 1uL
 
     fun createGame(host: Session): Game = gamesLock.write {
-        val hostPlayer = host.playerEntity ?: throw NotAuthenticatedException()
+        val hostPlayer = host.player ?: throw NotAuthenticatedException()
         removeInactive()
         val game = Game(gameId, host)
 
@@ -25,7 +25,7 @@ object GameManager {
     }
 
     fun createGameWithID(host: Session, id: ULong): Game = gamesLock.write {
-        val hostPlayer = host.playerEntity ?: throw NotAuthenticatedException()
+        val hostPlayer = host.player ?: throw NotAuthenticatedException()
         removeInactive()
         val game = Game(id, host)
         Logger.info("Created new game (${game.id}) hosted by ${hostPlayer.displayName}")

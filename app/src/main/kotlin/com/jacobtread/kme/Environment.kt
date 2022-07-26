@@ -5,26 +5,18 @@ import com.jacobtread.blaze.debug.BlazeLoggingOutput
 import com.jacobtread.kme.data.Commands
 import com.jacobtread.kme.data.Components
 import com.jacobtread.kme.data.Constants
-import com.jacobtread.kme.database.RuntimeDriver
 import com.jacobtread.kme.database.adapter.DatabaseAdapter
-import com.jacobtread.kme.database.old.tables.GalaxyAtWarTable
-import com.jacobtread.kme.database.old.tables.PlayerCharactersTable
-import com.jacobtread.kme.database.old.tables.PlayerClassesTable
-import com.jacobtread.kme.database.old.tables.PlayersTable
+import com.jacobtread.kme.database.adapter.MySQLDatabaseAdapter
+import com.jacobtread.kme.database.adapter.SQLiteDatabaseAdapter
+import com.jacobtread.kme.exceptions.DatabaseException
 import com.jacobtread.kme.utils.logging.Logger
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.transactions.transaction
-import java.net.URL
-import java.net.URLClassLoader
-import java.nio.file.Paths
-import java.nio.file.StandardOpenOption
-import java.sql.Driver
-import java.sql.DriverManager
-import kotlin.io.path.*
-import org.jetbrains.exposed.sql.Database as ExposedDatabase
+import kotlin.io.path.Path
+import kotlin.io.path.notExists
+import kotlin.io.path.readText
+import kotlin.io.path.writeText
 
 /**
  * Environment This object stores the names of different system
@@ -36,7 +28,7 @@ import org.jetbrains.exposed.sql.Database as ExposedDatabase
 object Environment {
 
     // TODO: Initialize
-    lateinit var database: DatabaseAdapter
+    val database: DatabaseAdapter
 
     val externalAddress: String
 
@@ -126,40 +118,25 @@ object Environment {
         val databaseConfig = config.database
         val databaseType = env.stringValue("KME_DATABASE_TYPE", databaseConfig.type)
             .lowercase()
-        when (databaseType) {
+        database = when (databaseType) {
             "mysql" -> {
-                val version = "8.0.29"
-                val url = "https://repo1.maven.org/maven2/mysql/mysql-connector-java/$version/mysql-connector-java-$version.jar"
-                setupDatabaseDriver(url, "com.mysql.cj.jdbc.Driver", "mysql.jar")
                 val host = env.stringValue("KME_MYSQL_HOST", databaseConfig.host)
                 val port = env.intValue("KME_MYSQL_PORT", databaseConfig.port)
                 val user = env.stringValue("KME_MYSQL_USER", databaseConfig.user)
                 val password = env.stringValue("KME_MYSQL_PASSWORD", databaseConfig.password)
                 val database = env.stringValue("KME_MYSQL_DATABASE", databaseConfig.database)
-                ExposedDatabase.connect({ DriverManager.getConnection("jdbc:mysql://${host}:${port}/${database}", user, password) })
+                MySQLDatabaseAdapter(host, port, user, password, database)
             }
             "sqlite" -> {
-                val version = "3.36.0.3"
-                val url = "https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/$version/sqlite-jdbc-$version.jar"
-                setupDatabaseDriver(url, "org.sqlite.JDBC", "sqlite.jar")
                 val file = env.stringValue("KME_SQLITE_FILE", databaseConfig.file)
-                val parentDir = Paths.get(file).absolute().parent
-                if (parentDir.notExists()) parentDir.createDirectories()
-                ExposedDatabase.connect({ DriverManager.getConnection("jdbc:sqlite:$file") })
+                SQLiteDatabaseAdapter(file)
             }
             else -> Logger.fatal("Unknwon database type: $databaseType (expected mysql, or sqlite)")
         }
-        createDatabaseTables()
-    }
-
-    private fun createDatabaseTables() {
-        transaction {
-            SchemaUtils.create(
-                PlayersTable,
-                PlayerClassesTable,
-                PlayerCharactersTable,
-                GalaxyAtWarTable,
-            )
+        try {
+            database.setup()
+        } catch (e: DatabaseException) {
+            Logger.fatal("Failed to setup database", e)
         }
     }
 
@@ -219,43 +196,5 @@ object Environment {
         }
         val contents = configFile.readText()
         return json.decodeFromString(contents)
-    }
-
-    /**
-     * Setup database driver Downloads the jar file from the provided url if It's
-     * not already downloaded then loads the jar file and registers the driver inside
-     *
-     * @param url The url where the driver can be downloaded from
-     * @param clazz The java class for the driver
-     * @param fileName The file name for the downloaded jar file
-     */
-    private fun setupDatabaseDriver(
-        url: String,
-        clazz: String,
-        fileName: String,
-    ) {
-        val driversPath = Path("drivers")
-        if (!driversPath.exists()) driversPath.createDirectories()
-        val path = driversPath.resolve(fileName)
-        if (path.notExists()) {
-            Logger.info("Database driver not installed. Downloading $fileName...")
-            try {
-                URL(url).openStream().use { input ->
-                    path.outputStream(StandardOpenOption.CREATE_NEW).use { output ->
-                        input.copyTo(output)
-                        Logger.info("Download Completed.")
-                    }
-                }
-            } catch (e: Exception) {
-                Logger.fatal("Failed to downlaod database driver", e)
-            }
-        }
-        // Load the jar file and create the wrapped runtime driver
-        val classLoader = URLClassLoader.newInstance(arrayOf(path.toUri().toURL()))
-        classLoader.loadClass(clazz)
-        val driver: Driver = Class.forName(clazz, true, classLoader)
-            .getDeclaredConstructor()
-            .newInstance() as Driver
-        DriverManager.registerDriver(RuntimeDriver(driver))
     }
 }
