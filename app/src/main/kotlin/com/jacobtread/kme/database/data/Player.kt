@@ -18,8 +18,8 @@ data class Player(
     var secondsPlayed: Long,
     var inventory: String,
 
-    var faceCodes: String,
-    var newItem: String,
+    var faceCodes: String?,
+    var newItem: String?,
     var csReward: Int,
 
     var completion: String?,
@@ -90,8 +90,8 @@ data class Player(
         classes.forEach { out[it.getKey()] = it.toEncoded() }
         characters.forEach { out[it.getKey()] = it.toEncoded() }
 
-        out["FaceCodes"] = faceCodes
-        out["NewItem"] = newItem
+        faceCodes?.apply { out["FaceCodes"] = this }
+        newItem?.apply { out["NewItem"] = this }
         out["csreward"] = csReward.toString()
 
         completion?.apply { out["Completion"] = this }

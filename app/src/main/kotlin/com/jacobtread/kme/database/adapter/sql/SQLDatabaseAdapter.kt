@@ -6,27 +6,14 @@ import com.jacobtread.kme.database.data.Player
 import com.jacobtread.kme.database.data.PlayerCharacter
 import com.jacobtread.kme.database.data.PlayerClass
 import com.jacobtread.kme.exceptions.DatabaseException
-import com.jacobtread.kme.utils.logging.Logger
 import java.sql.Connection
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
 
 abstract class SQLDatabaseAdapter(
-    private val connection: Connection,
+    protected val connection: Connection,
 ) : DatabaseAdapter {
-
-    abstract fun getTableSql(): String;
-
-    override fun setup() {
-        try {
-            val statement = connection.createStatement()
-            statement.executeUpdate(getTableSql())
-            statement.close()
-        } catch (e: SQLException) {
-            Logger.fatal("Failed to create database tables", e)
-        }
-    }
 
     override fun isPlayerEmailTaken(email: String): Boolean {
         try {
@@ -207,12 +194,13 @@ abstract class SQLDatabaseAdapter(
     override fun createPlayer(email: String, hashedPassword: String): Player {
         try {
             val statement = connection.prepareStatement(
-                "INSERT INTO `players` (`email`, `display_name`, `password`) VALUES (?, ?, ?)",
+                "INSERT INTO `players` (`email`, `display_name`, `password`, `inventory`) VALUES (?, ?, ?)",
                 Statement.RETURN_GENERATED_KEYS
             )
             statement.setString(1, email)
-            statement.setString(2, email)
-            statement.setString(3, hashedPassword)
+            statement.setString(2, email.take(99)) // Display name
+            statement.setString(3, hashedPassword) // Password
+            statement.setString(4, "") // Inventory
             statement.executeUpdate()
             val generatedKeys = statement.generatedKeys
             if (generatedKeys.next()) {

@@ -32,7 +32,18 @@ class SQLiteDatabaseAdapter(file: String) : SQLDatabaseAdapter(createConnection(
         }
     }
 
-    override fun getTableSql(): String = """
+    override fun setup() {
+        try {
+            val statement = connection.createStatement()
+            statement.executeUpdate(getTableSql())
+            statement.close()
+        } catch (e: SQLException) {
+            Logger.fatal("Failed to create database tables", e)
+        }
+    }
+
+
+    private fun getTableSql(): String = """
         -- Players Table
         CREATE TABLE IF NOT EXISTS `players`
         (
