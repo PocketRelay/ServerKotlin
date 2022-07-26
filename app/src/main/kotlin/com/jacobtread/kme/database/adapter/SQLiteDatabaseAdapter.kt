@@ -322,7 +322,7 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
     override fun createPlayer(email: String, hashedPassword: String): Player {
         try {
             val statement = connection.prepareStatement(
-                "INSERT INTO players (email, display_name, password) VALUES (?, ?, ?)",
+                "INSERT INTO `players` (`email`, `display_name`, `password`) VALUES (?, ?, ?)",
                 Statement.RETURN_GENERATED_KEYS
             )
             statement.setString(1, email)
@@ -391,21 +391,37 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
     }
 
     private fun hasPlayerClass(player: Player, index: Int): Boolean {
-        val statement = connection.prepareStatement("SELECT `id` FROM `player_classes` WHERE `player_id` = ?")
+        val statement = connection.prepareStatement("SELECT `id` FROM `player_classes` WHERE `player_id` = ? AND `index` = ?")
         statement.setInt(1, player.playerId)
+        statement.setInt(2, index)
         val resultSet = statement.executeQuery()
         return resultSet.next()
     }
 
     override fun setPlayerClass(player: Player, playerClass: PlayerClass) {
         try {
-
-
             val hasExistingClass = hasPlayerClass(player, playerClass.index)
             if (hasExistingClass) {
-
+                val statement = connection.prepareStatement(
+                    "UPDATE `player_classes` SET `name` = ?, `level` = ?, `exp` = ?, `promotions` = ? WHERE `player_id` = ? AND `index` = ?"
+                )
+                statement.setString(1, playerClass.name)
+                statement.setInt(2, playerClass.level)
+                statement.setFloat(3, playerClass.exp)
+                statement.setInt(4, playerClass.promotions)
+                statement.setInt(5, player.playerId)
+                statement.setInt(6, playerClass.index)
             } else {
-
+                val statement = connection.prepareStatement(
+                    "INSERT INTO `player_classes` (`player_id`, `index`, `name`, `level`, `exp`, `promotions`) VALUES (?, ?, ?, ?, ?, ?)"
+                )
+                statement.setInt(1, player.playerId)
+                statement.setInt(2, playerClass.index)
+                statement.setString(3, playerClass.name)
+                statement.setInt(4, playerClass.level)
+                statement.setFloat(5, playerClass.exp)
+                statement.setInt(6, playerClass.promotions)
+                statement.executeUpdate()
             }
         } catch (e: SQLException) {
             throw DatabaseException("SQLException in setPlayerClass", e)
