@@ -478,9 +478,40 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
                 statement.executeUpdate()
             } else {
                 val statement = connection.prepareStatement(
-                    ""
+                    """
+                        |INSERT INTO `player_characters` 
+                        |(
+                        |     `player_id`, `index`, `kit_name`, `name`, `tint1`, `tint2`,
+                        |     `pattern`, `pattern_color`, `phong`, `emissive`, `skin_tone`, 
+                        |     `seconds_played`, `timestamp_year`, `timestamp_month`, `timestamp_day`, 
+                        |     `timestamp_seconds`, `powers`, `hotkeys`, `weapons`, `weapon_mods`, `deployed`, 
+                        |     `leveled_up`
+                        |)
+                        | VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """.trimMargin()
                 )
                 statement.setInt(1, player.playerId)
+                statement.setInt(2, playerCharacter.index)
+                statement.setString(3, playerCharacter.kitName)
+                statement.setString(4, playerCharacter.name)
+                statement.setInt(5, playerCharacter.tint1)
+                statement.setInt(6, playerCharacter.tint2)
+                statement.setInt(7, playerCharacter.pattern)
+                statement.setInt(8, playerCharacter.patternColor)
+                statement.setInt(9, playerCharacter.phong)
+                statement.setInt(10, playerCharacter.emissive)
+                statement.setInt(11, playerCharacter.skinTone)
+                statement.setLong(12, playerCharacter.secondsPlayed)
+                statement.setInt(13, playerCharacter.timestampYear)
+                statement.setInt(14, playerCharacter.timestampMonth)
+                statement.setInt(15, playerCharacter.timestampDay)
+                statement.setInt(16, playerCharacter.timestampSeconds)
+                statement.setString(17, playerCharacter.powers)
+                statement.setString(18, playerCharacter.hotkeys)
+                statement.setString(19, playerCharacter.weapons)
+                statement.setString(20, playerCharacter.weaponMods)
+                statement.setBoolean(21, playerCharacter.deployed)
+                statement.setBoolean(22, playerCharacter.leveledUp)
                 statement.executeUpdate()
             }
         } catch (e: SQLException) {
