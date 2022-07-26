@@ -1312,7 +1312,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         val value = packet.textOrNull("DATA")
         val key = packet.textOrNull("KEY")
         if (value != null && key != null) {
-            playerEntity.setSetting(key, value)
+            playerEntity.setPlayerData(key, value)
         }
         push(packet.respond())
     }
@@ -1678,7 +1678,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         return packet.respond {
             text("LDHT", "")
             number("NTOS", 0)
-            text("PCTK", playerEntity.sessionToken) // PC Session Token
+            text("PCTK", playerEntity.getSessionToken()) // PC Session Token
             list("PLST", listOf(createPersonaGroup())) // Persona List
             text("PRIV", "")
             text("SKEY", SKEY)

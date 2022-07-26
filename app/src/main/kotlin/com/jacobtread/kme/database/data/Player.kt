@@ -49,10 +49,6 @@ data class Player(
         }
     }
 
-    fun setGalaxyAtWarData(value: GalaxyAtWarData) {
-        Environment.database.setGalaxyAtWarData(this, value)
-    }
-
     fun getSessionToken(): String {
         var sessionToken = sessionToken
         if (sessionToken == null) {

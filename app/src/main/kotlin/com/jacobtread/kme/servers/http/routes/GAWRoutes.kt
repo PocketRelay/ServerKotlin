@@ -107,6 +107,8 @@ private fun RoutingGroup.routeIncreaseRatings() {
                 queryInt("rinc|3", default = 0),
                 queryInt("rinc|4", default = 0)
             )
+            database.setGalaxyAtWarData(player, rating)
+
             respondRatings(player, rating)
         } catch (e: DatabaseException) {
             Logger.warn("Failed to increase ratings", e)
