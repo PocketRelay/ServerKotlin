@@ -444,7 +444,6 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
         return result
     }
 
-
     override fun setPlayerCharacter(player: Player, playerCharacter: PlayerCharacter) {
         try {
             val hasExistingCharacter = hasPlayerCharacter(player, playerCharacter.index)
@@ -633,7 +632,48 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
         }
     }
 
+
+    private fun hasGalaxyAtWarData(player: Player): Boolean {
+        val statement = connection.prepareStatement("SELECT `id` FROM player_gaw WHERE `player_id` = ?")
+        statement.setInt(1, player.playerId)
+        val resultSet = statement.executeQuery()
+        val result = resultSet.next()
+        statement.close()
+        return result
+    }
+
     override fun setGalaxyAtWarData(player: Player, galaxyAtWarData: GalaxyAtWarData) {
-        TODO("Not yet implemented")
+        try {
+            val hasData = hasGalaxyAtWarData(player)
+            if (hasData) {
+                val statement = connection.prepareStatement(
+                    "UPDATE `player_gaw` SET `last_modified` = ?, `group_a` = ?, `group_b` = ?, `group_c` = ? , `group_d` = ? , `group_e` = ? WHERE `player_id` = ?"
+                )
+                statement.setLong(1, galaxyAtWarData.lastModified)
+                statement.setInt(2, galaxyAtWarData.groupA)
+                statement.setInt(3, galaxyAtWarData.groupB)
+                statement.setInt(4, galaxyAtWarData.groupC)
+                statement.setInt(5, galaxyAtWarData.groupD)
+                statement.setInt(6, galaxyAtWarData.groupE)
+                statement.setInt(7, player.playerId)
+                statement.executeUpdate()
+                statement.close()
+            } else {
+                val statement = connection.prepareStatement(
+                    "INSERT INTO `player_gaw` (`player_id`,`last_modified`, `group_a`, `group_b`, `group_c`, `group_d`, `group_e`) VALUES (?, ?, ?, ?, ?, ?, ?)"
+                )
+                statement.setInt(1, player.playerId)
+                statement.setLong(2, galaxyAtWarData.lastModified)
+                statement.setInt(3, galaxyAtWarData.groupA)
+                statement.setInt(4, galaxyAtWarData.groupB)
+                statement.setInt(5, galaxyAtWarData.groupC)
+                statement.setInt(6, galaxyAtWarData.groupD)
+                statement.setInt(7, galaxyAtWarData.groupE)
+                statement.executeUpdate()
+                statement.close()
+            }
+        } catch (e: SQLException) {
+            throw DatabaseException("SQLException in setGalaxyAtWarData", e)
+        }
     }
 }
