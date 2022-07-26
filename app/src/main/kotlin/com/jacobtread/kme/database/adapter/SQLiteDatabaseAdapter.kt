@@ -542,39 +542,95 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
     }
 
     override fun setUpdatedPlayerData(player: Player, key: String) {
-       when(key) {
-           "Base" -> {
-//                val statement = connection.prepareStatement()
-           }
-           "FaceCodes" -> {
-
-           }
-           "NewItem" -> {
-
-           }
-           // (Possible name is Challenge Selected Reward)
-           "csreward" -> {
-
-           }
-           "Completion" -> {
-
-           }
-           "Progress" -> {
-
-           }
-           "cscompletion" -> {
-
-           }
-           "cstimestamps" -> {
-
-           }
-           "cstimestamps2" -> {
-
-           }
-           "cstimestamps3" -> {
-
-           }
-       }
+        try {
+            when (key) {
+                "Base" -> {
+                    val statement = connection.prepareStatement(
+                        """
+                    |UPDATE `players` SET 
+                    |`credits` = ?, `credits_spent` = ?, 
+                    |`games_played` = ?, `seconds_played` = ?,
+                    |`inventory` = ?
+                    |WHERE `id` = ?
+                    """.trimMargin()
+                    )
+                    statement.setInt(1, player.credits)
+                    statement.setInt(2, player.creditsSpent)
+                    statement.setInt(3, player.gamesPlayed)
+                    statement.setLong(4, player.secondsPlayed)
+                    statement.setString(5, player.inventory)
+                    statement.setInt(6, player.playerId)
+                    statement.executeUpdate()
+                    statement.close()
+                }
+                "FaceCodes" -> {
+                    val statement = connection.prepareStatement("UPDATE `players` SET `face_codes` = ? WHERE `id` = ?")
+                    statement.setString(1, player.faceCodes)
+                    statement.setInt(2, player.playerId)
+                    statement.executeUpdate()
+                    statement.close()
+                }
+                "NewItem" -> {
+                    val statement = connection.prepareStatement("UPDATE `players` SET `new_item` = ? WHERE `id` = ?")
+                    statement.setString(1, player.newItem)
+                    statement.setInt(2, player.playerId)
+                    statement.executeUpdate()
+                    statement.close()
+                }
+                // (Possible name is Challenge Selected Reward)
+                "csreward" -> {
+                    val statement = connection.prepareStatement("UPDATE `players` SET `csreward` = ? WHERE `id` = ?")
+                    statement.setInt(1, player.csReward)
+                    statement.setInt(2, player.playerId)
+                    statement.executeUpdate()
+                    statement.close()
+                }
+                "Completion" -> {
+                    val statement = connection.prepareStatement("UPDATE `players` SET `completion` = ? WHERE `id` = ?")
+                    statement.setString(1, player.completion)
+                    statement.setInt(2, player.playerId)
+                    statement.executeUpdate()
+                    statement.close()
+                }
+                "Progress" -> {
+                    val statement = connection.prepareStatement("UPDATE `players` SET `progress` = ? WHERE `id` = ?")
+                    statement.setString(1, player.progress)
+                    statement.setInt(2, player.playerId)
+                    statement.executeUpdate()
+                    statement.close()
+                }
+                "cscompletion" -> {
+                    val statement = connection.prepareStatement("UPDATE `players` SET `cs_completion` = ? WHERE `id` = ?")
+                    statement.setString(1, player.cscompletion)
+                    statement.setInt(2, player.playerId)
+                    statement.executeUpdate()
+                    statement.close()
+                }
+                "cstimestamps" -> {
+                    val statement = connection.prepareStatement("UPDATE `players` SET `cs_timestamps_1` = ? WHERE `id` = ?")
+                    statement.setString(1, player.cstimestamps1)
+                    statement.setInt(2, player.playerId)
+                    statement.executeUpdate()
+                    statement.close()
+                }
+                "cstimestamps2" -> {
+                    val statement = connection.prepareStatement("UPDATE `players` SET `cs_timestamps_2` = ? WHERE `id` = ?")
+                    statement.setString(1, player.cstimestamps2)
+                    statement.setInt(2, player.playerId)
+                    statement.executeUpdate()
+                    statement.close()
+                }
+                "cstimestamps3" -> {
+                    val statement = connection.prepareStatement("UPDATE `players` SET `cs_timestamps_3` = ? WHERE `id` = ?")
+                    statement.setString(1, player.cstimestamps3)
+                    statement.setInt(2, player.playerId)
+                    statement.executeUpdate()
+                    statement.close()
+                }
+            }
+        } catch (e: SQLException) {
+            throw DatabaseException("SQLException in setUpdatedPlayerData", e)
+        }
     }
 
     override fun setGalaxyAtWarData(player: Player, galaxyAtWarData: GalaxyAtWarData) {
