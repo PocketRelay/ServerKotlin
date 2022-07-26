@@ -332,6 +332,7 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
             val generatedKeys = statement.generatedKeys
             if (generatedKeys.next()) {
                 val id = generatedKeys.getInt("id")
+                statement.close()
                 return createDefaultPlayerFrom(id, email, hashedPassword)
             } else {
                 throw DatabaseException("Creating player failed. No id key was generated ")
@@ -384,7 +385,7 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
             statement.setString(15, player.cstimestamps3)
             statement.setInt(16, player.playerId)
             statement.executeUpdate()
-
+            statement.close()
         } catch (e: SQLException) {
             throw DatabaseException("SQLException in updatePlayerFully", e)
         }
@@ -395,7 +396,9 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
         statement.setInt(1, player.playerId)
         statement.setInt(2, index)
         val resultSet = statement.executeQuery()
-        return resultSet.next()
+        val result = resultSet.next()
+        statement.close()
+        return result
     }
 
     override fun setPlayerClass(player: Player, playerClass: PlayerClass) {
@@ -411,6 +414,8 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
                 statement.setInt(4, playerClass.promotions)
                 statement.setInt(5, player.playerId)
                 statement.setInt(6, playerClass.index)
+                statement.executeUpdate()
+                statement.close()
             } else {
                 val statement = connection.prepareStatement(
                     "INSERT INTO `player_classes` (`player_id`, `index`, `name`, `level`, `exp`, `promotions`) VALUES (?, ?, ?, ?, ?, ?)"
@@ -422,6 +427,7 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
                 statement.setFloat(5, playerClass.exp)
                 statement.setInt(6, playerClass.promotions)
                 statement.executeUpdate()
+                statement.close()
             }
         } catch (e: SQLException) {
             throw DatabaseException("SQLException in setPlayerClass", e)
@@ -433,7 +439,9 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
         statement.setInt(1, player.playerId)
         statement.setInt(2, index)
         val resultSet = statement.executeQuery()
-        return resultSet.next()
+        val result = resultSet.next()
+        statement.close()
+        return result
     }
 
 
@@ -476,6 +484,7 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
                 statement.setInt(21, player.playerId)
                 statement.setInt(22, playerCharacter.index)
                 statement.executeUpdate()
+                statement.close()
             } else {
                 val statement = connection.prepareStatement(
                     """
@@ -513,6 +522,7 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
                 statement.setBoolean(21, playerCharacter.deployed)
                 statement.setBoolean(22, playerCharacter.leveledUp)
                 statement.executeUpdate()
+                statement.close()
             }
         } catch (e: SQLException) {
             throw DatabaseException("SQLException in setPlayerClass", e)
@@ -520,11 +530,51 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
     }
 
     override fun setPlayerSessionToken(player: Player, sessionToken: String) {
-        TODO("Not yet implemented")
+        try {
+            val statement = connection.prepareStatement("UPDATE `players` SET `session_token` = ? WHERE `id` = ?")
+            statement.setString(1, sessionToken)
+            statement.setInt(2, player.playerId)
+            statement.executeUpdate()
+            statement.close()
+        } catch (e: SQLException) {
+            throw DatabaseException("SQLException in setPlayerSessionToken", e)
+        }
     }
 
     override fun setUpdatedPlayerData(player: Player, key: String) {
-        TODO("Not yet implemented")
+       when(key) {
+           "Base" -> {
+//                val statement = connection.prepareStatement()
+           }
+           "FaceCodes" -> {
+
+           }
+           "NewItem" -> {
+
+           }
+           // (Possible name is Challenge Selected Reward)
+           "csreward" -> {
+
+           }
+           "Completion" -> {
+
+           }
+           "Progress" -> {
+
+           }
+           "cscompletion" -> {
+
+           }
+           "cstimestamps" -> {
+
+           }
+           "cstimestamps2" -> {
+
+           }
+           "cstimestamps3" -> {
+
+           }
+       }
     }
 
     override fun setGalaxyAtWarData(player: Player, galaxyAtWarData: GalaxyAtWarData) {
