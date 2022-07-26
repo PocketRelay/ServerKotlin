@@ -4,7 +4,6 @@ import com.jacobtread.kme.Environment
 import com.jacobtread.kme.servers.http.router.createRouter
 import com.jacobtread.kme.servers.http.routes.routeContents
 import com.jacobtread.kme.servers.http.routes.routeGroupGAW
-import com.jacobtread.kme.servers.http.routes.routeGroupPanel
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.nio.NioEventLoopGroup
@@ -21,7 +20,6 @@ fun startHttpServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
     try {
         val router = createRouter {
             routeGroupGAW() // Galaxy at war routing group
-            routeGroupPanel() // Panel routing group
             routeContents() // Contents routing
         }
         ServerBootstrap()

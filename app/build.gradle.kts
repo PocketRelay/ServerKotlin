@@ -2,7 +2,6 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm")
-    kotlin("plugin.serialization")
     id("com.github.johnrengelman.shadow")
     id("com.google.devtools.ksp")
     idea
@@ -11,7 +10,6 @@ plugins {
 dependencies {
 
     // Core dependency groupings
-    serializationDependencies()
     nettyDependencies()
     blazeDependencies()
     xmlDependency()
@@ -66,15 +64,6 @@ fun DependencyHandlerScope.blazeDependencies() {
 
     // KSP annoatation processing for packet routing
     ksp("com.jacobtread.blaze:blaze-processor:$blazeVersion")
-}
-
-/**
- * serializationDependencies Adds the implementations for the
- * dependencies that this project uses for serialization
- */
-fun DependencyHandlerScope.serializationDependencies() {
-    val kotlinxSerializationJson: String by project
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinxSerializationJson") // JSON
 }
 
 /**

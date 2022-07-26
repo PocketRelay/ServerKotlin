@@ -3,9 +3,6 @@ package com.jacobtread.kme.servers.http
 import com.jacobtread.kme.servers.http.router.BadRequestException
 import io.netty.handler.codec.http.FullHttpRequest
 import io.netty.handler.codec.http.HttpMethod
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.json.Json
 import java.net.URLDecoder
 import io.netty.handler.codec.http.HttpRequest as NettyHttpRequest
 
@@ -200,20 +197,4 @@ class HttpRequest(private val http: NettyHttpRequest) {
      * @return The contents as a UTF-8 String
      */
     fun contentString(): String = contentBytes().decodeToString()
-
-    /**
-     * contentJson Reads the contents of the body as a string
-     * then parses them as a JSON using the deserialized from
-     * the provided type V
-     *
-     * @param V The type of object to deserialize (reified so type can be accessed)
-     * @throws BadRequestException Thrown if the request doesn't have a body or if
-     * it couldn't be deserialized using the objects deserialized
-     * @return The deserialized object
-     */
-    inline fun <reified V> contentJson(): V = try {
-        Json.decodeFromString(contentString())
-    } catch (e: SerializationException) {
-        throw BadRequestException()
-    }
 }

@@ -20,10 +20,6 @@ import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.channel.socket.nio.NioSocketChannel
 import io.netty.handler.ssl.SslContextBuilder
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.json.Json
 import java.io.IOException
 import java.net.URL
 import java.util.concurrent.ThreadFactory
@@ -61,27 +57,13 @@ fun startMITMServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
 
 class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboundHandlerAdapter() {
 
-    @Serializable
-    data class LookupResponse(
-        @SerialName("Answer")
-        val answer: List<Answer>,
-    ) {
-        @Serializable
-        data class Answer(
-            val name: String,
-            val data: String,
-        )
-    }
-
     private fun lookupRedirectorHost(): String {
-        val json = Json { ignoreUnknownKeys = true }
-        val response = URL("https://dns.google/resolve?name=gosredirector.ea.com&type=A").openStream().use {
-            val responseText = it.readAllBytes().decodeToString()
-            json.decodeFromString<LookupResponse>(responseText)
-        }
-        val first = response.answer.firstOrNull()
-        requireNotNull(first) { "Failed to lookup redirector hostname" }
-        return first.data
+        val url = URL("https://dns.google/resolve?name=gosredirector.ea.com&type=A")
+        val response = url.openStream().use { it.readAllBytes().decodeToString() }
+        val regex = Regex("\"data\": \"(.*)\"")
+        val match = regex.matchAt(response, 0)
+        require(match != null) { "Unable to find redirector ip" }
+        return match.groupValues[0]
     }
 
     data class ServerDetails(

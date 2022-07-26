@@ -10,8 +10,6 @@ import io.netty.handler.codec.http.DefaultFullHttpResponse
 import io.netty.handler.codec.http.HttpHeaderNames
 import io.netty.handler.codec.http.HttpResponseStatus
 import io.netty.handler.codec.http.HttpVersion
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 
 // Content-Type constants
 const val XML_CONTENT_TYPE = "text/xml;charset=UTF-8"
@@ -141,21 +139,6 @@ fun responseStatic(
     }
     val buffer = Unpooled.wrappedBuffer(resource)
     return response(HttpResponseStatus.OK, buffer, contentType)
-}
-
-/**
- * responseJson Creates a JSON serialized response from
- * the provided value if a serialization exception is
- * thrown it will be caught by the router which will
- * send a INTERNAL_SERVER_ERROR instead of the response
- *
- * @param V The type of the object to serialize
- * @param value The object to serialize
- * @return The created HttpResponse
- */
-inline fun <reified V> responseJson(value: V): HttpResponse {
-    val content = Unpooled.copiedBuffer(Json.encodeToString(value), Charsets.UTF_8)
-    return response(HttpResponseStatus.OK, content, JSON_CONTENT_TYPE)
 }
 
 /**
