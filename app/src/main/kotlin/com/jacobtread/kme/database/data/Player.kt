@@ -55,6 +55,8 @@ data class Player(
         return sessionToken
     }
 
+    fun getNullableSessionToken(): String? = sessionToken
+
     fun isSessionToken(token: String): Boolean {
         return sessionToken != null && sessionToken == token
     }

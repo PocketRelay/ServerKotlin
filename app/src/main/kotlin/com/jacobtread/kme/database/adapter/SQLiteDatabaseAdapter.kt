@@ -8,10 +8,7 @@ import com.jacobtread.kme.database.data.PlayerClass
 import com.jacobtread.kme.exceptions.DatabaseException
 import com.jacobtread.kme.utils.logging.Logger
 import java.nio.file.Paths
-import java.sql.Connection
-import java.sql.DriverManager
-import java.sql.ResultSet
-import java.sql.SQLException
+import java.sql.*
 import kotlin.io.path.absolute
 import kotlin.io.path.createDirectories
 import kotlin.io.path.notExists
@@ -46,15 +43,15 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
             |     `id`              INTEGER
             |         CONSTRAINT players_pk
             |             PRIMARY KEY AUTOINCREMENT,
-            |     `email`    TEXT NOT NULL,
+            |     `email`           TEXT NOT NULL,
             |     `display_name`    TEXT NOT NULL,
             |     `session_token`   TEXT    DEFAULT NULL,
-            |     `password`        TEXT,
+            |     `password`        TEXT NOT NULL ,
             |     `credits`         INTEGER DEFAULT 0,
             |     `credits_sepnt`   INTEGER DEFAULT 0,
             |     `games_played`    INTEGER DEFAULT 0,
             |     `seconds_played`  INTEGER DEFAULT 0,
-            |     `inventory`       TEXT,
+            |     `inventory`       TEXT    DEFAULT '',
             |     `csreward`        INTEGER DEFAULT 0,
             |     `face_codes`      TEXT    DEFAULT '20;',
             |     `new_item`        TEXT    DEFAULT '20;4;',
@@ -155,7 +152,7 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
             statement.close()
             return result
         } catch (e: SQLException) {
-            throw DatabaseException("Exception in isPlayerEmailTaken", e)
+            throw DatabaseException("SQLException in isPlayerEmailTaken", e)
         }
     }
 
@@ -193,7 +190,7 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
             statement.close()
             return player
         } catch (e: SQLException) {
-            throw DatabaseException("Exception in getPlayerById", e)
+            throw DatabaseException("SQLException in getPlayerById", e)
         }
     }
 
@@ -207,7 +204,7 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
             statement.close()
             return player
         } catch (e: SQLException) {
-            throw DatabaseException("Exception in getPlayerById", e)
+            throw DatabaseException("SQLException in getPlayerById", e)
         }
     }
 
@@ -221,7 +218,7 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
             statement.close()
             return player
         } catch (e: SQLException) {
-            throw DatabaseException("Exception in getPlayerById", e)
+            throw DatabaseException("SQLException in getPlayerById", e)
         }
     }
 
@@ -248,7 +245,7 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
             statement.close()
             return results
         } catch (e: SQLException) {
-            throw DatabaseException("Exception in getPlayerClasses", e)
+            throw DatabaseException("SQLException in getPlayerClasses", e)
         }
     }
 
@@ -291,7 +288,7 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
             statement.close()
             return results
         } catch (e: SQLException) {
-            throw DatabaseException("Exception in getPlayerCharacters", e)
+            throw DatabaseException("SQLException in getPlayerCharacters", e)
         }
     }
 
@@ -318,21 +315,107 @@ class SQLiteDatabaseAdapter(file: String) : DatabaseAdapter {
                 return defaultData
             }
         } catch (e: SQLException) {
-            throw DatabaseException("Exception in getGalaxyAtWarData", e)
+            throw DatabaseException("SQLException in getGalaxyAtWarData", e)
         }
     }
 
     override fun createPlayer(email: String, hashedPassword: String): Player {
-        TODO("Not yet implemented")
+        try {
+            val statement = connection.prepareStatement(
+                "INSERT INTO players (email, display_name, password) VALUES (?, ?, ?)",
+                Statement.RETURN_GENERATED_KEYS
+            )
+            statement.setString(1, email)
+            statement.setString(2, email)
+            statement.setString(3, hashedPassword)
+            statement.executeUpdate()
+            val generatedKeys = statement.generatedKeys
+            if (generatedKeys.next()) {
+                val id = generatedKeys.getInt("id")
+                return createDefaultPlayerFrom(id, email, hashedPassword)
+            } else {
+                throw DatabaseException("Creating player failed. No id key was generated ")
+            }
+        } catch (e: SQLException) {
+            throw DatabaseException("SQLException in createPlayer", e)
+        }
+    }
+
+    private fun createDefaultPlayerFrom(id: Int, email: String, password: String): Player {
+        return Player(
+            playerId = id,
+            email = email,
+            displayName = email,
+            password = password,
+            sessionToken = null,
+            credits = 0, creditsSpent = 0, gamesPlayed = 0, secondsPlayed = 0, inventory = "",
+            faceCodes = "20;", newItem = "20;4;", csReward = 0, completion = null, progress = null,
+            cscompletion = null, cstimestamps1 = null, cstimestamps2 = null, cstimestamps3 = null,
+        )
     }
 
     override fun updatePlayerFully(player: Player) {
-        TODO("Not yet implemented")
+        try {
+            val statement = connection.prepareStatement(
+                """
+                    |UPDATE `players`
+                    |SET `session_token` = ?, `credits` = ?, `credits_spent` = ?,
+                    |`games_played` = ?, `seconds_played` = ?, `inventory` = ?,
+                    |`csreward` = ?, `face_codes` = ?, `new_item` = ?, `completion` = ?,
+                    |`progress` = ?, `cs_completion` = ?, `cs_timestamps_1` = ?, `cs_timestamps_2` = ?,
+                    |`cs_timestamps_3` = ?
+                    |WHERE `id` = ?
+                """.trimMargin(),
+            )
+            statement.setString(1, player.getNullableSessionToken())
+            statement.setInt(2, player.credits)
+            statement.setInt(3, player.creditsSpent)
+            statement.setInt(4, player.gamesPlayed)
+            statement.setLong(5, player.secondsPlayed)
+            statement.setString(6, player.inventory)
+            statement.setInt(7, player.csReward)
+            statement.setString(8, player.faceCodes)
+            statement.setString(9, player.newItem)
+            statement.setString(10, player.completion)
+            statement.setString(11, player.progress)
+            statement.setString(12, player.cscompletion)
+            statement.setString(13, player.cstimestamps1)
+            statement.setString(14, player.cstimestamps2)
+            statement.setString(15, player.cstimestamps3)
+            statement.setInt(16, player.playerId)
+            statement.executeUpdate()
+
+        } catch (e: SQLException) {
+            throw DatabaseException("SQLException in updatePlayerFully", e)
+        }
+    }
+
+    private fun hasPlayerClass(player: Player, index: Int): Boolean {
+        val statement = connection.prepareStatement("SELECT `id` FROM `player_classes` WHERE `player_id` = ?")
+        statement.setInt(1, player.playerId)
+        val resultSet = statement.executeQuery()
+        return resultSet.next()
     }
 
     override fun setPlayerClass(player: Player, playerClass: PlayerClass) {
-        TODO("Not yet implemented")
+        try {
+
+
+            val hasExistingClass = hasPlayerClass(player, playerClass.index)
+            if (hasExistingClass) {
+
+            } else {
+
+            }
+        } catch (e: SQLException) {
+            throw DatabaseException("SQLException in setPlayerClass", e)
+        }
     }
+
+    private fun hasPlayerCharacter(player: Player, index: Int): Boolean {
+        return false
+    }
+
 
     override fun setPlayerCharacter(player: Player, playerCharacter: PlayerCharacter) {
         TODO("Not yet implemented")
