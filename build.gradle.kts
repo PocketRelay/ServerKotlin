@@ -1,3 +1,6 @@
+import com.github.jengelman.gradle.plugins.shadow.ShadowExtension
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
 val kme3Version: String by project
 
 group = "com.jacobtread.kme"
@@ -149,4 +152,8 @@ idea {
         testSourceDirs = testSourceDirs + file("build/generated/ksp/test/kotlin")
         generatedSourceDirs = generatedSourceDirs + file("build/generated/ksp/main/kotlin") + file("build/generated/ksp/test/kotlin")
     }
+}
+
+tasks.withType(ShadowJar::class) {
+    minimize()
 }
