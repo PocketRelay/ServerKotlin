@@ -1,4 +1,4 @@
-package com.jacobtread.kme.logging
+package com.jacobtread.kme.utils.logging
 
 import java.io.BufferedOutputStream
 import java.io.IOException

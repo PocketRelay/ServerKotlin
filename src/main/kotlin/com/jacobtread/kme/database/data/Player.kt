@@ -1,8 +1,8 @@
 package com.jacobtread.kme.database.data
 
 import com.jacobtread.kme.Environment
-import com.jacobtread.kme.tools.MEStringParser
-import com.jacobtread.kme.tools.comparePasswordHash
+import com.jacobtread.kme.utils.MEStringParser
+import com.jacobtread.kme.utils.comparePasswordHash
 
 data class Player(
     val playerId: Int,

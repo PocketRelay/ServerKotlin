@@ -5,8 +5,8 @@ import com.jacobtread.kme.database.data.GalaxyAtWarData
 import com.jacobtread.kme.database.data.Player
 import com.jacobtread.kme.exceptions.DatabaseException
 import com.jacobtread.kme.servers.http.router.*
-import com.jacobtread.kme.tools.unixTimeSeconds
-import com.jacobtread.kme.logging.Logger
+import com.jacobtread.kme.utils.unixTimeSeconds
+import com.jacobtread.kme.utils.logging.Logger
 import io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR
 

@@ -1,8 +1,37 @@
-package com.jacobtread.kme.data
+package com.jacobtread.kme.data.blaze
 
 import com.jacobtread.blaze.debug.DebugNaming
 
 class DebugCommandNaming : DebugNaming {
+
+    override fun getComponentNames(): Map<Int, String> {
+        return mapOf(
+            Components.AUTHENTICATION to "AUTHENTICATION",
+            Components.EXAMPLE to "EXAMPLE",
+            Components.GAME_MANAGER to "GAME_MANAGER",
+            Components.REDIRECTOR to "REDIRECTOR",
+            Components.PLAY_GROUPS to "PLAY_GROUPS",
+            Components.STATS to "STATS",
+            Components.UTIL to "UTIL",
+            Components.CENSUS_DATA to "CENSUS_DATA",
+            Components.CLUBS to "CLUBS",
+            Components.GAME_REPORT_LEGACY to "GAME_REPORT_LEGACY",
+            Components.LEAGUE to "LEAGUE",
+            Components.MAIL to "MAIL",
+            Components.MESSAGING to "MESSAGING",
+            Components.LOCKER to "LOCKER",
+            Components.ROOMS to "ROOMS",
+            Components.TOURNAMENTS to "TOURNAMENTS",
+            Components.COMMERCE_INFO to "COMMERCE_INFO",
+            Components.ASSOCIATION_LISTS to "ASSOCIATION_LISTS",
+            Components.GPS_CONTENT_CONTROLLER to "GPS_CONTENT_CONTROLLER",
+            Components.GAME_REPORTING to "GAME_REPORTING",
+            Components.DYNAMIC_FILTER to "DYNAMIC_FILTER",
+            Components.RSP to "RSP",
+            Components.USER_SESSIONS to "USER_SESSIONS",
+        )
+    }
+
     override fun getCommandNames(): Map<Int, String> {
         return mapOf(
             0x10014 to "UPDATE_ACCOUNT",
@@ -188,34 +217,6 @@ class DebugCommandNaming : DebugNaming {
             0x78020021 to "FETCH_LAST_LOCALE_USED_AND_AUTH_ERROR",
             0x78020022 to "FETCH_USER_FIRST_LAST_AUTH_TIME",
             0x78020023 to "RESUME_SESSION",
-        )
-    }
-
-    override fun getComponentNames(): Map<Int, String> {
-        return mapOf(
-            Components.AUTHENTICATION to "AUTHENTICATION",
-            Components.EXAMPLE to "EXAMPLE",
-            Components.GAME_MANAGER to "GAME_MANAGER",
-            Components.REDIRECTOR to "REDIRECTOR",
-            Components.PLAY_GROUPS to "PLAY_GROUPS",
-            Components.STATS to "STATS",
-            Components.UTIL to "UTIL",
-            Components.CENSUS_DATA to "CENSUS_DATA",
-            Components.CLUBS to "CLUBS",
-            Components.GAME_REPORT_LEGACY to "GAME_REPORT_LEGACY",
-            Components.LEAGUE to "LEAGUE",
-            Components.MAIL to "MAIL",
-            Components.MESSAGING to "MESSAGING",
-            Components.LOCKER to "LOCKER",
-            Components.ROOMS to "ROOMS",
-            Components.TOURNAMENTS to "TOURNAMENTS",
-            Components.COMMERCE_INFO to "COMMERCE_INFO",
-            Components.ASSOCIATION_LISTS to "ASSOCIATION_LISTS",
-            Components.GPS_CONTENT_CONTROLLER to "GPS_CONTENT_CONTROLLER",
-            Components.GAME_REPORTING to "GAME_REPORTING",
-            Components.DYNAMIC_FILTER to "DYNAMIC_FILTER",
-            Components.RSP to "RSP",
-            Components.USER_SESSIONS to "USER_SESSIONS",
         )
     }
 

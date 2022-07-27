@@ -1,7 +1,7 @@
 package com.jacobtread.kme.servers.http.router
 
 import com.jacobtread.kme.servers.http.HttpRequest
-import com.jacobtread.kme.logging.Logger
+import com.jacobtread.kme.utils.logging.Logger
 import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.SimpleChannelInboundHandler

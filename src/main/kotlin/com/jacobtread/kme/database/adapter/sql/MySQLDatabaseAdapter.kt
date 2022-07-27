@@ -1,7 +1,7 @@
 package com.jacobtread.kme.database.adapter.sql
 
 import com.jacobtread.kme.database.RuntimeDriver
-import com.jacobtread.kme.logging.Logger
+import com.jacobtread.kme.utils.logging.Logger
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException

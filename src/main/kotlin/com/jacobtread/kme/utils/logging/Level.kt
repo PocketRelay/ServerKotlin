@@ -1,4 +1,4 @@
-package com.jacobtread.kme.logging
+package com.jacobtread.kme.utils.logging
 
 enum class Level(val levelName: String, val index: Byte, private val colorCode: String) {
     INFO("INFO", 4, "\u001b[36m"),

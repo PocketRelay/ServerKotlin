@@ -4,8 +4,8 @@ import com.jacobtread.blaze.PacketDecoder
 import com.jacobtread.blaze.PacketEncoder
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.servers.startMITMServer
-import com.jacobtread.kme.logging.Logger
-import com.jacobtread.kme.logging.Logger.info
+import com.jacobtread.kme.utils.logging.Logger
+import com.jacobtread.kme.utils.logging.Logger.info
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandler.Sharable

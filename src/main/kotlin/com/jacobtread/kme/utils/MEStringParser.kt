@@ -1,4 +1,4 @@
-package com.jacobtread.kme.tools
+package com.jacobtread.kme.utils
 
 /**
  * MEStringParser Simple parser for parsing strings from ME3 that are split

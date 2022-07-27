@@ -1,6 +1,6 @@
 package com.jacobtread.kme.database
 
-import com.jacobtread.kme.logging.Logger
+import com.jacobtread.kme.utils.logging.Logger
 import java.net.URL
 import java.net.URLClassLoader
 import java.nio.file.Files

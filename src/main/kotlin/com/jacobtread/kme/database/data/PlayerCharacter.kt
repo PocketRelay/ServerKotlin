@@ -1,6 +1,6 @@
 package com.jacobtread.kme.database.data
 
-import com.jacobtread.kme.tools.MEStringParser
+import com.jacobtread.kme.utils.MEStringParser
 
 data class PlayerCharacter(
     val index: Int,

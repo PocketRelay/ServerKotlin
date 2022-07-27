@@ -4,7 +4,7 @@ import com.jacobtread.kme.Environment
 import com.jacobtread.kme.servers.http.router.createRouter
 import com.jacobtread.kme.servers.http.routes.routeContents
 import com.jacobtread.kme.servers.http.routes.routeGroupGAW
-import com.jacobtread.kme.logging.Logger
+import com.jacobtread.kme.utils.logging.Logger
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel

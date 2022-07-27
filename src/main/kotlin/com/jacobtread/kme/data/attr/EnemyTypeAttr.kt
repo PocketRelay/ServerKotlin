@@ -1,4 +1,4 @@
-package com.jacobtread.kme.data
+package com.jacobtread.kme.data.attr
 
 enum class EnemyTypeAttr(val enemyName: String, val key: String) {
     RANDOM("Unknown Enemy", "random"),

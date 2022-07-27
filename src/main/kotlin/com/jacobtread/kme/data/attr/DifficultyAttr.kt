@@ -1,4 +1,4 @@
-package com.jacobtread.kme.data
+package com.jacobtread.kme.data.attr
 
 enum class DifficultyAttr(val difficultyName: String, val key: String) {
     BRONZE("Bronze", "difficulty0"),

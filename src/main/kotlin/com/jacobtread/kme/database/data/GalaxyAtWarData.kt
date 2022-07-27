@@ -1,8 +1,8 @@
 package com.jacobtread.kme.database.data
 
 import com.jacobtread.kme.Environment
-import com.jacobtread.kme.tools.unixTimeDaysSince
-import com.jacobtread.kme.tools.unixTimeSeconds
+import com.jacobtread.kme.utils.unixTimeDaysSince
+import com.jacobtread.kme.utils.unixTimeSeconds
 
 data class GalaxyAtWarData(
     var lastModified: Long,

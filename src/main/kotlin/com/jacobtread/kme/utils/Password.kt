@@ -1,4 +1,4 @@
-package com.jacobtread.kme.tools
+package com.jacobtread.kme.utils
 
 import java.security.SecureRandom
 import java.util.*

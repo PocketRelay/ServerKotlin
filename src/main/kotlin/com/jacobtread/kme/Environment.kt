@@ -2,15 +2,13 @@ package com.jacobtread.kme
 
 import com.jacobtread.blaze.PacketLogger
 import com.jacobtread.blaze.debug.BlazeLoggingOutput
-import com.jacobtread.kme.data.Commands
-import com.jacobtread.kme.data.Components
 import com.jacobtread.kme.data.Constants
-import com.jacobtread.kme.data.DebugCommandNaming
+import com.jacobtread.kme.data.blaze.DebugCommandNaming
 import com.jacobtread.kme.database.adapter.DatabaseAdapter
 import com.jacobtread.kme.database.adapter.sql.MySQLDatabaseAdapter
 import com.jacobtread.kme.database.adapter.sql.SQLiteDatabaseAdapter
 import com.jacobtread.kme.exceptions.DatabaseException
-import com.jacobtread.kme.logging.Logger
+import com.jacobtread.kme.utils.logging.Logger
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Paths

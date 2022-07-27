@@ -1,7 +1,7 @@
 package com.jacobtread.kme.database.adapter.sql
 
 import com.jacobtread.kme.database.RuntimeDriver
-import com.jacobtread.kme.logging.Logger
+import com.jacobtread.kme.utils.logging.Logger
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.sql.Connection

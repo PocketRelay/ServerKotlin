@@ -1,6 +1,6 @@
 @file:Suppress("unused")
 
-package com.jacobtread.kme.logging
+package com.jacobtread.kme.utils.logging
 
 import java.io.PrintWriter
 import java.io.StringWriter

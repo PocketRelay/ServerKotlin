@@ -1,4 +1,4 @@
-package com.jacobtread.kme.data
+package com.jacobtread.kme.data.blaze
 
 @Suppress("unused")
 object Commands {

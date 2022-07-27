@@ -1,7 +1,7 @@
 package com.jacobtread.kme.servers
 
 import com.jacobtread.kme.Environment
-import com.jacobtread.kme.logging.Logger
+import com.jacobtread.kme.utils.logging.Logger
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter

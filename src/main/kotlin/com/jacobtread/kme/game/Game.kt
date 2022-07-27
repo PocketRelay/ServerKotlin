@@ -6,11 +6,11 @@ import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.blaze.tdf.GroupTdf
 import com.jacobtread.blaze.tdf.ListTdf
 import com.jacobtread.blaze.tdf.Tdf
-import com.jacobtread.kme.data.Commands
-import com.jacobtread.kme.data.Components
-import com.jacobtread.kme.data.GameStateAttr
-import com.jacobtread.kme.exceptions.GameStoppedException
-import com.jacobtread.kme.logging.Logger
+import com.jacobtread.kme.data.blaze.Commands
+import com.jacobtread.kme.data.blaze.Components
+import com.jacobtread.kme.data.attr.GameStateAttr
+import com.jacobtread.kme.exceptions.GameException
+import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.servers.main.Session
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
@@ -59,7 +59,7 @@ class Game(
         return host
     }
 
-    fun getHost(): Session = getHostOrNull() ?: throw GameStoppedException()
+    fun getHost(): Session = getHostOrNull() ?: throw GameException.StoppedException()
 
 
     fun join(player: Session) = playersLock.write {
