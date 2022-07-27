@@ -1,17 +1,17 @@
 package com.jacobtread.kme.game
 
 import com.jacobtread.blaze.group
+import com.jacobtread.blaze.notify
 import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.blaze.tdf.GroupTdf
 import com.jacobtread.blaze.tdf.ListTdf
 import com.jacobtread.blaze.tdf.Tdf
-import com.jacobtread.blaze.unique
 import com.jacobtread.kme.data.Commands
 import com.jacobtread.kme.data.Components
 import com.jacobtread.kme.data.GameStateAttr
 import com.jacobtread.kme.exceptions.GameStoppedException
-import com.jacobtread.kme.servers.main.Session
 import com.jacobtread.kme.logging.Logger
+import com.jacobtread.kme.servers.main.Session
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
@@ -77,7 +77,7 @@ class Game(
 
         host.updateSessionFor(player)
         host.pushAll(
-            unique(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOINING) {
+            notify(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOINING) {
                 number("GID", id)
                 +player.createPlayerDataGroup()
             },
@@ -175,7 +175,7 @@ class Game(
     }
 
     private fun migrateHost(newHost: Session) {
-        val startPacket = unique(
+        val startPacket = notify(
             Components.GAME_MANAGER,
             Commands.NOTIFY_HOST_MIGRATION_START
         ) {
@@ -188,7 +188,7 @@ class Game(
 
         pushAll(createNotifySetup())
 
-        val finishPacket = unique(
+        val finishPacket = notify(
             Components.GAME_MANAGER,
             Commands.NOTIFY_HOST_MIGRATION_FINISHED
         ) {
@@ -201,7 +201,7 @@ class Game(
 
 
     private fun createRemoveNotification(player: Session): Packet {
-        return unique(
+        return notify(
             Components.GAME_MANAGER,
             Commands.NOTIFY_PLAYER_REMOVED
         ) {
@@ -214,10 +214,10 @@ class Game(
 
     private fun updatePlayersList() {
         val host = getHost()
-        val hostPacket = unique(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", host.playerIdSafe) }
+        val hostPacket = notify(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", host.playerIdSafe) }
         for (i in 1 until MAX_PLAYERS) {
             val player = players[i] ?: continue
-            val playerPacket = unique(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", player.playerIdSafe) }
+            val playerPacket = notify(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", player.playerIdSafe) }
 
             player.push(hostPacket)
             host.push(playerPacket)
@@ -257,7 +257,7 @@ class Game(
     }
 
     fun createNotifySetup(): Packet =
-        unique(
+        notify(
             Components.GAME_MANAGER,
             Commands.NOTIFY_GAME_SETUP
         ) {
@@ -269,7 +269,7 @@ class Game(
         }
 
     private fun createNotifyPacket(): Packet =
-        unique(
+        notify(
             Components.GAME_MANAGER,
             Commands.NOTIFY_GAME_UPDATED
         ) {
@@ -353,7 +353,7 @@ class Game(
     }
 
     private fun createMatchmakingResult(forSession: Session): Packet =
-        unique(
+        notify(
             Components.GAME_MANAGER,
             Commands.NOTIFY_GAME_SETUP
         ) {

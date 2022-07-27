@@ -5,6 +5,7 @@ import com.jacobtread.blaze.debug.BlazeLoggingOutput
 import com.jacobtread.kme.data.Commands
 import com.jacobtread.kme.data.Components
 import com.jacobtread.kme.data.Constants
+import com.jacobtread.kme.data.DebugCommandNaming
 import com.jacobtread.kme.database.adapter.DatabaseAdapter
 import com.jacobtread.kme.database.adapter.sql.MySQLDatabaseAdapter
 import com.jacobtread.kme.database.adapter.sql.SQLiteDatabaseAdapter
@@ -79,7 +80,7 @@ object Environment {
         val logPackets = env.booleanValue("KME_LOGGER_PACKETS", "logging.packets", false)
 
         if (logPackets && Logger.debugEnabled) { // Load command and component names for debugging
-            PacketLogger.init(Components, Commands, createBlazeLoggingOutput())
+            PacketLogger.init(DebugCommandNaming(), createBlazeLoggingOutput())
         }
 
         // External address string

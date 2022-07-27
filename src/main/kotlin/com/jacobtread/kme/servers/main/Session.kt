@@ -688,7 +688,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         }
         pushAll(
             packet.respond(),
-            unique(Components.GAME_MANAGER, Commands.NOTIFY_GAME_SETTINGS_CHANGE) {
+            notify(Components.GAME_MANAGER, Commands.NOTIFY_GAME_SETTINGS_CHANGE) {
                 number("ATTR", setting)
                 number("GID", gameId)
             }
@@ -784,16 +784,16 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         val host = game.getHost()
         val playerId = playerEntity.playerId
 
-        val a = unique(Components.GAME_MANAGER, Commands.NOTIFY_GAME_PLAYER_STATE_CHANGE) {
+        val a = notify(Components.GAME_MANAGER, Commands.NOTIFY_GAME_PLAYER_STATE_CHANGE) {
             number("GID", gameId)
             number("PID", playerId)
             number("STAT", 4)
         }
-        val b = unique(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOIN_COMPLETED) {
+        val b = notify(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOIN_COMPLETED) {
             number("GID", gameId)
             number("PID", playerId)
         }
-        val c = unique(Components.GAME_MANAGER, Commands.NOTIFY_ADMIN_LIST_CHANGE) {
+        val c = notify(Components.GAME_MANAGER, Commands.NOTIFY_ADMIN_LIST_CHANGE) {
             number("ALST", playerId)
             number("GID", gameId)
             number("OPER", 0) // 0 = add 1 = remove
@@ -964,7 +964,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             .replace("{n}", playerEntity.displayName)
             .replace("{ip}", ip) + 0xA.toChar()
 
-        push(unique(Components.MESSAGING, Commands.SEND_MESSAGE) {
+        push(notify(Components.MESSAGING, Commands.SEND_MESSAGE) {
             number("FLAG", 0x01)
             number("MGID", 0x01)
             text("NAME", menuMessage)
@@ -1027,7 +1027,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     @PacketHandler(Components.GAME_REPORTING, Commands.SUBMIT_OFFLINE_GAME_REPORT)
     fun handleSubmitOfflineReport(packet: Packet) {
         push(packet.respond())
-        push(unique(Components.GAME_REPORTING, Commands.GAME_REPORT_RESULT_72) {
+        push(notify(Components.GAME_REPORTING, Commands.GAME_REPORT_RESULT_72) {
             varList("DATA")
             number("EROR", 0)
             number("FNL", 0)
@@ -1364,7 +1364,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         resetMatchmakingState()
         val playerEntity = player ?: return
         push(
-            unique(Components.GAME_MANAGER, Commands.NOTIFY_MATCHMAKING_FAILED) {
+            notify(Components.GAME_MANAGER, Commands.NOTIFY_MATCHMAKING_FAILED) {
                 number("MAXF", 0x5460)
                 number("MSID", matchmakingId)
                 number("RSLT", 0x4)
@@ -1381,7 +1381,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     fun notifyMatchmakingStatus() {
         val playerEntity = player ?: return
         push(
-            unique(
+            notify(
                 Components.GAME_MANAGER,
                 Commands.NOTIFY_MATCHMAKING_ASYNC_STATUS
             ) {
@@ -1568,7 +1568,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     fun updateSessionFor(session: Session) {
         val playerEntity = player ?: return
-        val sessionDetailsPacket = unique(
+        val sessionDetailsPacket = notify(
             Components.USER_SESSIONS,
             Commands.SESSION_DETAILS
         ) {
@@ -1583,7 +1583,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             }
         }
 
-        val identityPacket = unique(
+        val identityPacket = notify(
             Components.USER_SESSIONS,
             Commands.UPDATE_EXTENDED_DATA_ATTRIBUTE
         ) {
@@ -1627,7 +1627,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      * @return The created packet
      */
     fun createSetSessionPacket(): Packet {
-        return unique(
+        return notify(
             Components.USER_SESSIONS,
             Commands.SET_SESSION
         ) {

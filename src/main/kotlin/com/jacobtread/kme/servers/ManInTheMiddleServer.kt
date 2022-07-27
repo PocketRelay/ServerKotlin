@@ -32,11 +32,7 @@ import java.util.concurrent.ThreadFactory
  */
 fun startMITMServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
     try {
-        if (PacketLogger.isEnabled && Logger.debugEnabled) {
-            Logger.warn("WARNING: You have packet logging enabled while MITM is enabled.")
-            Logger.warn("this will flood your logs with lots of repeated packets and")
-            Logger.warn("I recommend you disable packet logging while using MITM")
-        }
+        PacketLogger.isEnabled = false
         ServerBootstrap()
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
@@ -228,6 +224,7 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboun
         if (msg !is Packet) {
             return
         }
+        PacketLogger.log("DECODED FROM CLIENT", officialChannel!!, msg)
         if (unlockCheat
             && msg.component == Components.UTIL
             && msg.command == Commands.USER_SETTINGS_LOAD_ALL
@@ -252,11 +249,11 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboun
                 return
             }
         }
-
-        officialChannel?.apply {
-            write(msg)
-            flush()
-        }
+        officialChannel
+            ?.writeAndFlush(msg)
+            ?.addListener {
+                Packet.release(msg)
+            }
     }
 
     private fun createUnlockPackets() {
@@ -287,9 +284,12 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboun
 
     fun channelReadOffical(msg: Any) {
         if (msg !is Packet) return
-        clientChannel?.apply {
-            write(msg)
-            flush()
-        }
+        PacketLogger.log("DECODED FROM EA", officialChannel!!, msg)
+
+        clientChannel
+            ?.writeAndFlush(msg)
+            ?.addListener {
+                Packet.release(msg)
+            }
     }
 }
