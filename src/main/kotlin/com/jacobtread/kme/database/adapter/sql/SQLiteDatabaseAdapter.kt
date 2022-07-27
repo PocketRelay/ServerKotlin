@@ -2,13 +2,11 @@ package com.jacobtread.kme.database.adapter.sql
 
 import com.jacobtread.kme.database.RuntimeDriver
 import com.jacobtread.kme.logging.Logger
+import java.nio.file.Files
 import java.nio.file.Paths
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
-import kotlin.io.path.absolute
-import kotlin.io.path.createDirectories
-import kotlin.io.path.notExists
 
 class SQLiteDatabaseAdapter(file: String) : SQLDatabaseAdapter(createConnection(file)) {
 
@@ -21,9 +19,9 @@ class SQLiteDatabaseAdapter(file: String) : SQLDatabaseAdapter(createConnection(
                 "sqlite.jar"
             )
 
-            val path = Paths.get(file).absolute()
+            val path = Paths.get(file).toAbsolutePath()
             val parentDir = path.parent
-            if (parentDir.notExists()) parentDir.createDirectories()
+            if (Files.notExists(parentDir)) Files.createDirectories(parentDir)
             try {
                 return DriverManager.getConnection("jdbc:sqlite:$file")
             } catch (e: SQLException) {

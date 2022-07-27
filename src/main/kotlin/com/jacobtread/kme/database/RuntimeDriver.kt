@@ -3,10 +3,11 @@ package com.jacobtread.kme.database
 import com.jacobtread.kme.logging.Logger
 import java.net.URL
 import java.net.URLClassLoader
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import java.sql.Driver
 import java.sql.DriverManager
-import kotlin.io.path.*
 
 /**
  * Wrapper for SQL drivers that are loaded at runtime.
@@ -31,14 +32,14 @@ class RuntimeDriver(private val driver: Driver) : Driver by driver {
             clazz: String,
             fileName: String,
         ) {
-            val driversPath = Path("drivers")
-            if (!driversPath.exists()) driversPath.createDirectories()
+            val driversPath = Paths.get("drivers")
+            if (Files.notExists(driversPath)) Files.createDirectories(driversPath)
             val path = driversPath.resolve(fileName)
-            if (path.notExists()) {
+            if (Files.notExists(path)) {
                 Logger.info("Database driver not installed. Downloading $fileName...")
                 try {
                     URL(url).openStream().use { input ->
-                        path.outputStream(StandardOpenOption.CREATE_NEW).use { output ->
+                        Files.newOutputStream(path, StandardOpenOption.CREATE_NEW).use { output ->
                             input.copyTo(output)
                             Logger.info("Download Completed.")
                         }

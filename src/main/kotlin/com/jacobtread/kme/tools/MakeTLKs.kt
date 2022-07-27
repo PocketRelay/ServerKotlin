@@ -2,7 +2,8 @@
 
 package com.jacobtread.kme.tools
 
-import kotlin.io.path.*
+import java.nio.file.Files
+import java.nio.file.Paths
 
 object MakeTLKs {
     /**
@@ -16,22 +17,23 @@ object MakeTLKs {
      */
     @JvmStatic
     fun main(args: Array<String>) {
-        val tlkDir = Path("data/tlk")
-        val outDir = Path("app/src/main/resources/data/tlk")
-        if (!outDir.exists()) outDir.createDirectories()
-        tlkDir.forEachDirectoryEntry {
-            val fileName = it.fileName.toString()
-            if (fileName.endsWith(".tlk")) {
-                val newName = when (fileName) {
-                    "ME3TLK.tlk" -> "default.tlk.chunked"
-                    else -> {
-                        val locale = fileName.substring(7, fileName.length - 4)
-                        "$locale.tlk.chunked"
+        val tlkDir = Paths.get("data/tlk")
+        val outDir = Paths.get("app/src/main/resources/data/tlk")
+        if (Files.notExists(outDir)) Files.createDirectories(outDir)
+        Files.newDirectoryStream(tlkDir)
+            .forEach {
+                val fileName = it.fileName.toString()
+                if (fileName.endsWith(".tlk")) {
+                    val newName = when (fileName) {
+                        "ME3TLK.tlk" -> "default.tlk.chunked"
+                        else -> {
+                            val locale = fileName.substring(7, fileName.length - 4)
+                            "$locale.tlk.chunked"
+                        }
                     }
+                    val outFile = outDir.resolve(newName)
+                    ResourceProcessing.processTlkFile(it, outFile)
                 }
-                val outFile = outDir / newName
-                ResourceProcessing.processTlkFile(it, outFile)
             }
-        }
     }
 }

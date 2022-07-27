@@ -2,9 +2,8 @@
 
 package com.jacobtread.kme.tools
 
-import kotlin.io.path.Path
-import kotlin.io.path.exists
-import kotlin.io.path.isRegularFile
+import java.nio.file.Files
+import java.nio.file.Paths
 
 object MakeCoalesced {
 
@@ -19,10 +18,10 @@ object MakeCoalesced {
      */
     @JvmStatic
     fun main(args: Array<String>) {
-        val inFile = Path("data/bini.bin")
-        require(inFile.exists() && inFile.isRegularFile()) { "Input file data/bini.bin didn't exist or was not a file." }
-        val destFile = Path("app/src/main/resources/data/bini.bin.chunked")
+        val inFile = Paths.get("data/bini.bin")
+        require(Files.exists(inFile) && Files.isRegularFile(inFile)) { "Input file data/bini.bin didn't exist or was not a file." }
+        val destFile = Paths.get("app/src/main/resources/data/bini.bin.chunked")
         ResourceProcessing.processCoalesced(inFile, destFile)
-        require(destFile.exists() && destFile.isRegularFile()) { "Something went wrong output file was never generate" }
+        require(Files.exists(destFile) && Files.isRegularFile(destFile)) { "Something went wrong output file was never generate" }
     }
 }

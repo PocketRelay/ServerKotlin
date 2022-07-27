@@ -1,9 +1,11 @@
 package com.jacobtread.kme.data
 
-import com.jacobtread.kme.Environment
 import com.jacobtread.blaze.TdfBuilder
 import com.jacobtread.blaze.group
+import com.jacobtread.kme.Environment
+import java.io.BufferedReader
 import java.io.IOException
+import java.io.InputStreamReader
 
 /**
  * Data Pre constructed data and retrieval of data that's used throughout the app
@@ -596,17 +598,22 @@ object Data {
     }
 
     fun createDimeResponse(): Map<String, String> {
-        val dime = getResourceOrNull("data/dime.xml")?.toString(Charsets.UTF_8)
-            ?: throw IOException("Missing internal resource: data/dime.xml");
-        return mapOf("Config" to dime)
+        val dime = getResourceOrNull("data/dime.xml")
+            ?: throw IOException("Missing internal resource: data/dime.xml")
+        return mapOf("Config" to String(dime, Charsets.UTF_8))
     }
 
     fun loadBiniCompressed(): Map<String, String> = loadChunkedFile("data/bini.bin.chunked")
 
     fun loadChunkedFile(path: String): Map<String, String> {
         val inputStream = Data::class.java.getResourceAsStream("/$path") ?: throw IOException("Missing internal resource: $path")
-        val reader = inputStream.bufferedReader()
-        val lines = reader.readLines()
+        val reader = BufferedReader(InputStreamReader(inputStream))
+        val lines = ArrayList<String>()
+        while (true) {
+            val line = reader.readLine()
+            if (line == null) break
+            lines.add(line)
+        }
         val out = LinkedHashMap<String, String>(lines.size + 1)
         lines.forEach {
             val parts = it.split(':', limit = 2)

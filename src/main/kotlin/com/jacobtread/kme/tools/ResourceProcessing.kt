@@ -1,19 +1,19 @@
 package com.jacobtread.kme.tools
 
 import io.netty.buffer.Unpooled
+import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
 import java.util.zip.Deflater
-import kotlin.io.path.*
 
 object ResourceProcessing {
 
     fun processCoalesced(file: Path, output: Path) {
-        require(file.exists()) { "No coalesced file at ${file.absolute()}" }
-        require(file.isRegularFile()) { "Path ${file.fileName} is not a file" }
-        val result = processCoalescedBytes(file.readBytes())
-        if (!output.exists()) output.createFile()
-        output.writeText(result)
+        require(Files.exists(file)) { "No coalesced file at ${file.toAbsolutePath()}" }
+        require(Files.isRegularFile(file)) { "Path ${file.fileName} is not a file" }
+        val result = processCoalescedBytes(Files.readAllBytes(file))
+        if (Files.notExists(output)) Files.createFile(output)
+        Files.writeString(output, result)
     }
 
     private fun processCoalescedBytes(contents: ByteArray): String {
@@ -49,18 +49,18 @@ object ResourceProcessing {
     }
 
     fun processTlkFile(file: Path, output: Path) {
-        require(file.exists()) { "No tlk file at ${file.absolute()}" }
-        require(file.isRegularFile()) { "Path ${file.fileName} is not a file" }
-        val result = processTlkBytes(file.readBytes())
-        if (!output.exists()) output.createFile()
-        output.writeText(result)
+        require(Files.exists(file)) { "No tlk file at ${file.toAbsolutePath()}" }
+        require(Files.isRegularFile(file)) { "Path ${file.fileName} is not a file" }
+        val result = processTlkBytes(Files.readAllBytes(file))
+        if (Files.notExists(output)) Files.createFile(output)
+        Files.writeString(output, result)
     }
-
 
 
     private fun processTlkBytes(contents: ByteArray): String {
         return orderChunkedBase64(contents)
     }
+
     private fun orderChunkedBase64(bytes: ByteArray): String {
         val base64 = Base64.getEncoder().encodeToString(bytes)
         val chunks = base64.chunked(255)

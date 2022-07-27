@@ -1,14 +1,16 @@
 package com.jacobtread.kme.logging
 
+import java.io.BufferedOutputStream
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
+import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.zip.GZIPOutputStream
-import kotlin.io.path.*
 
 /**
  * LogWriter Handles writing of logs to disk as well as keeping
@@ -76,10 +78,10 @@ class LogWriter {
      */
     @Synchronized
     private fun createFileChannel(): FileChannel {
-        val parent = Path("logs")
+        val parent = Paths.get("logs")
         val file = parent.resolve("latest.log")
-        if (parent.notExists()) parent.createDirectories()
-        if (file.notExists()) file.createFile()
+        if (Files.notExists(parent)) Files.createDirectories(parent)
+        if (Files.notExists(file)) Files.createFile(file)
         return FileChannel.open(file, StandardOpenOption.CREATE, StandardOpenOption.APPEND)
     }
 
@@ -92,26 +94,26 @@ class LogWriter {
      */
     @Synchronized
     fun archiveOldLog() {
-        val file = Path("logs", "latest.log")
-        if (!file.isRegularFile()) return
-        val logsPath = Path("logs")
-        val lastModified = file.getLastModifiedTime().toMillis()
+        val file = Paths.get("logs", "latest.log")
+        if (!Files.isRegularFile(file)) return
+        val logsPath = Paths.get("logs")
+        val lastModified = Files.getLastModifiedTime(file).toMillis()
         val dateFormat = SimpleDateFormat("yyyy-MM-dd")
         val date = dateFormat.format(Date(lastModified))
         var newPath: Path
         var i = 1
         while (true) {
             newPath = logsPath.resolve("$date-$i.log.gz")
-            if (newPath.notExists()) break
+            if (Files.notExists(newPath)) break
             i++
         }
-        val inputStream = file.inputStream()
-        val outputStream = GZIPOutputStream(newPath.outputStream(StandardOpenOption.CREATE).buffered())
+        val inputStream = Files.newInputStream(file)
+        val outputStream = GZIPOutputStream(BufferedOutputStream(Files.newOutputStream(newPath, StandardOpenOption.CREATE)))
         inputStream.copyTo(outputStream)
         inputStream.close()
         outputStream.flush()
         outputStream.close()
-        file.deleteExisting()
+        Files.deleteIfExists(file)
     }
 
     /**

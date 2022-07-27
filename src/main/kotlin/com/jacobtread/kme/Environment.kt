@@ -12,12 +12,10 @@ import com.jacobtread.kme.exceptions.DatabaseException
 import com.jacobtread.kme.logging.Logger
 import java.io.IOException
 import java.nio.file.Files
+import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.security.Security
 import java.util.*
-import kotlin.io.path.Path
-import kotlin.io.path.inputStream
-import kotlin.io.path.notExists
 
 /**
  * Environment This object stores the names of different system
@@ -216,8 +214,8 @@ object Environment {
     }
 
     private fun loadProperties(properties: Properties) {
-        val configFile = Path("app.properties")
-        if (configFile.notExists()) {
+        val configFile = Paths.get("app.properties")
+        if (Files.notExists(configFile)) {
             Logger.info("No configuration found. Using default")
             val defaultPropertiesStream = Environment::class.java.getResourceAsStream("/app.default.properties")
             if (defaultPropertiesStream != null) {
@@ -233,7 +231,7 @@ object Environment {
                 Logger.error("Unable to load default properties")
             }
         } else {
-            val inputStream = configFile.inputStream()
+            val inputStream = Files.newInputStream(configFile)
             properties.load(inputStream)
             try {
                 inputStream.close()
