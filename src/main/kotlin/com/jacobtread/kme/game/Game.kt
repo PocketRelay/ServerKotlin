@@ -6,12 +6,12 @@ import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.blaze.tdf.GroupTdf
 import com.jacobtread.blaze.tdf.ListTdf
 import com.jacobtread.blaze.tdf.Tdf
+import com.jacobtread.kme.data.attr.GameStateAttr
 import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
-import com.jacobtread.kme.data.attr.GameStateAttr
 import com.jacobtread.kme.exceptions.GameException
-import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.servers.main.Session
+import com.jacobtread.kme.utils.logging.Logger
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
@@ -63,7 +63,8 @@ class Game(
 
 
     fun join(player: Session) = playersLock.write {
-        // TODO: Unsafe could overflow if too many players. implement limit
+        if (playersCount >= MAX_PLAYERS) throw GameException.GameFullException()
+
 
         player.resetMatchmakingState()
 
