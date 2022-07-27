@@ -53,16 +53,17 @@ object Environment {
     init {
         Logger.info("Starting KME3 server (version: ${Constants.KME_VERSION})")
 
-        val env = System.getenv() // Wrapper over the environment variables
-
-        val properties = Properties()
+        val env = Settings(
+            System.getenv(),
+            Properties()
+        )
 
         // Choose whether to load the config or use the default
-        if (!env.booleanValue("KME_ENVIRONMENT_CONFIG", false)) {
-            loadProperties(properties) // Load the existing config file
+        if (!env.booleanValue("KME_ENVIRONMENT_CONFIG", "ignore", false)) {
+            loadProperties(env.properties) // Load the existing config file
         }
 
-        val unpooledNetty = env.booleanValue("KME_NETTY_UNPOOLED", false)
+        val unpooledNetty = env.booleanValue("KME_NETTY_UNPOOLED", "netty.unpooled", false)
         if (unpooledNetty) {
             Logger.warn("Netty pooling disabled.")
             System.setProperty("io.netty.allocator.type", "unpooled")
@@ -70,108 +71,57 @@ object Environment {
 
         // Initialize the logger with its configuration
         Logger.init(
-            env.stringValue(
-                "KME_LOGGER_LEVEL",
-                properties.stringOrDefault("logging.level", "info")
-            ),
-            env.booleanValue(
-                "KME_LOGGER_SAVE",
-                properties.booleanOrDefault("logging.save", true)
-            ),
+            env.stringValue("KME_LOGGER_LEVEL", "logging.level", "info"),
+            env.booleanValue("KME_LOGGER_SAVE", "logging.save", true)
         )
 
-        val logPackets = env.booleanValue(
-            "KME_LOGGER_PACKETS",
-            properties.booleanOrDefault("logging.packets", false)
-        )
+        val logPackets = env.booleanValue("KME_LOGGER_PACKETS", "logging.packets", false)
 
         if (logPackets && Logger.debugEnabled) { // Load command and component names for debugging
             PacketLogger.init(Components, Commands, createBlazeLoggingOutput())
         }
 
         // External address string
-        externalAddress = env.stringValue(
-            "KME_EXTERNAL_ADDRESS",
-            properties.stringOrDefault("externalAddress", "383933-gosprapp396.ea.com")
-        )
-
+        externalAddress = env.stringValue("KME_EXTERNAL_ADDRESS", "externalAddress", "383933-gosprapp396.ea.com")
 
         // Server ports
-        redirectorPort = env.intValue(
-            "KME_REDIRECTOR_PORT",
-            properties.intOrDefault("ports.redirector", 42127)
-        )
-        mainPort = env.intValue(
-            "KME_MAIN_PORT",
-            properties.intOrDefault("ports.main", 14219)
-        )
-        discardPort = env.intValue(
-            "KME_DISCARD_PORT",
-            properties.intOrDefault("ports.discard", 9988)
-        )
-        httpPort = env.intValue(
-            "KME_HTTP_PORT",
-            properties.intOrDefault("ports.http", 80)
-        )
+        redirectorPort = env.intValue("KME_REDIRECTOR_PORT", "ports.redirector", 42127)
+        mainPort = env.intValue("KME_MAIN_PORT", "ports.main", 14219)
+        discardPort = env.intValue("KME_DISCARD_PORT", "ports.discard", 9988)
+        httpPort = env.intValue("KME_HTTP_PORT", "ports.http", 80)
+
 
         // Main menu message string
-        menuMessage = env.stringValue(
-            "KME_MENU_MESSAGE",
-            properties.stringOrDefault("menuMessage", "<font color='#B2B2B2'>KME3</font> - <font color='#FFFF66'>Logged as: {n}</font>")
-        )
+        menuMessage = env.stringValue("KME_MENU_MESSAGE", "menuMessage", "<font color='#B2B2B2'>KME3</font> - <font color='#FFFF66'>Logged as: {n}</font>")
+
 
         // Man in the middle configuration
-        mitmEnabled = env.booleanValue(
-            "KME_MITM_ENABLED",
-            properties.booleanOrDefault("mitm", false)
-        )
+        mitmEnabled = env.booleanValue("KME_MITM_ENABLED", "mitm", false)
+
 
         // Galaxy at war configuration
-        gawReadinessDecay = env.floatValue(
-            "KME_GAW_READINESS_DECAY",
-            properties.floatOrDefault("gaw.readinessDailyDecay", 0f)
-        )
-        gawEnabledPromotions = env.booleanValue(
-            "KME_GAW_ENABLE_PROMOTIONS",
-            properties.booleanOrDefault("gaw.enablePromotions", true)
-        )
+        gawReadinessDecay = env.floatValue("KME_GAW_READINESS_DECAY", "gaw.readinessDailyDecay", 0f)
+        gawEnabledPromotions = env.booleanValue("KME_GAW_ENABLE_PROMOTIONS", "gaw.enablePromotions", true)
+
 
         // Database configuration
-        val databaseType = env.stringValue(
-            "KME_DATABASE_TYPE",
-            properties.stringOrDefault("database.type", "sqlite")
-        ).lowercase()
+        val databaseType = env.stringValue("KME_DATABASE_TYPE", "database.type", "sqlite")
+            .lowercase()
         database = when (databaseType) {
             "mysql" -> {
-                val host = env.stringValue(
-                    "KME_MYSQL_HOST",
-                    properties.stringOrDefault("database.host", "127.0.0.1")
-                )
-                val port = env.intValue(
-                    "KME_MYSQL_PORT",
-                    properties.intOrDefault("database.port", 3306)
-                )
-                val user = env.stringValue(
-                    "KME_MYSQL_USER",
-                    properties.stringOrDefault("database.user", "root")
-                )
-                val password = env.stringValue(
-                    "KME_MYSQL_PASSWORD",
-                    properties.stringOrDefault("database.password", "password")
-                )
-                val database = env.stringValue(
-                    "KME_MYSQL_DATABASE",
-                    properties.stringOrDefault("database.db", "kme")
-                )
+                val host = env.stringValue("KME_MYSQL_HOST", "database.host", "127.0.0.1")
+                val port = env.intValue("KME_MYSQL_PORT", "database.port", 3306)
+                val user = env.stringValue("KME_MYSQL_USER", "database.user", "root")
+                val password = env.stringValue("KME_MYSQL_PASSWORD", "database.password", "password")
+                val database = env.stringValue("KME_MYSQL_DATABASE", "database.db", "kme")
                 MySQLDatabaseAdapter(host, port, user, password, database)
             }
+
             "sqlite" -> {
-                val file = env.stringValue(
-                    "KME_SQLITE_FILE",
-                    properties.stringOrDefault("database.file", "data/app.db")
-                )
+                val file = env.stringValue("KME_SQLITE_FILE", "database.file", "data/app.db")
                 SQLiteDatabaseAdapter(file)
             }
+
             else -> Logger.fatal("Unknwon database type: $databaseType (expected mysql, or sqlite)")
         }
         try {
@@ -205,37 +155,60 @@ object Environment {
         }
     }
 
-    private fun Map<String, String>.stringValue(key: String, default: String): String = getOrDefault(key, default)
-    private fun Map<String, String>.booleanValue(key: String, default: Boolean): Boolean = get(key)?.toBooleanStrictOrNull() ?: default
-    private fun Map<String, String>.intValue(key: String, default: Int): Int = get(key)?.toIntOrNull() ?: default
-    private fun Map<String, String>.floatValue(key: String, default: Float): Float = get(key)?.toFloatOrNull() ?: default
 
-    private fun Properties.booleanOrDefault(key: String, default: Boolean): Boolean {
-        return when (val value = get(key)) {
-            is String -> value.toBooleanStrictOrNull() ?: default
-            is Boolean -> value
-            else -> default
-        }
-    }    private fun Properties.stringOrDefault(key: String, default: String): String {
-        return when (val value = get(key)) {
-            is String -> value
-            else -> default
-        }
-    }
+    private class Settings(val env: Map<String, String>, val properties: Properties) {
 
-    private fun Properties.intOrDefault(key: String, default: Int): Int {
-        return when (val value = get(key)) {
-            is String -> value.toIntOrNull() ?: default
-            is Int -> value
-            else -> default
+        fun stringValue(envKey: String, propertiesKey: String?, default: String): String {
+            val envValue = env[envKey]
+            if (envValue != null) return envValue
+            if (propertiesKey == null) return default
+            return when (val propertyValue = properties[propertiesKey]) {
+                is String -> propertyValue
+                else -> default
+            }
         }
-    }
 
-    private fun Properties.floatOrDefault(key: String, default: Float): Float {
-        return when (val value = get(key)) {
-            is String -> value.toFloatOrNull() ?: default
-            is Float -> value
-            else -> default
+        fun booleanValue(envKey: String, propertiesKey: String?, default: Boolean): Boolean {
+            val envValue = env[envKey]
+            if (envValue != null) {
+                val booleanValue = envValue.toBooleanStrictOrNull()
+                if (booleanValue != null) return booleanValue
+            }
+            if (propertiesKey == null) return default
+            return when (val propertyValue = properties[propertiesKey]) {
+                is String -> propertyValue.toBooleanStrictOrNull() ?: default
+                is Boolean -> propertyValue
+                else -> default
+            }
+        }
+
+
+        fun intValue(envKey: String, propertiesKey: String?, default: Int): Int {
+            val envValue = env[envKey]
+            if (envValue != null) {
+                val intValue = envValue.toIntOrNull()
+                if (intValue != null) return intValue
+            }
+            if (propertiesKey == null) return default
+            return when (val propertyValue = properties[propertiesKey]) {
+                is String -> propertyValue.toIntOrNull() ?: default
+                is Int -> propertyValue
+                else -> default
+            }
+        }
+
+        fun floatValue(envKey: String, propertiesKey: String?, default: Float): Float {
+            val envValue = env[envKey]
+            if (envValue != null) {
+                val floatValue = envValue.toFloatOrNull()
+                if (floatValue != null) return floatValue
+            }
+            if (propertiesKey == null) return default
+            return when (val propertyValue = properties[propertiesKey]) {
+                is String -> propertyValue.toFloatOrNull() ?: default
+                is Float -> propertyValue
+                else -> default
+            }
         }
     }
 
