@@ -59,7 +59,7 @@ object Environment {
         )
 
         // Choose whether to load the config or use the default
-        if (!env.booleanValue("KME_ENVIRONMENT_CONFIG", "ignore", false)) {
+        if (!env.booleanValue("KME_ENVIRONMENT_CONFIG", null, false)) {
             loadProperties(env.properties) // Load the existing config file
         }
 
