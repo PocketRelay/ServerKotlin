@@ -194,7 +194,7 @@ abstract class SQLDatabaseAdapter(
     override fun createPlayer(email: String, hashedPassword: String): Player {
         try {
             val statement = connection.prepareStatement(
-                "INSERT INTO `players` (`email`, `display_name`, `password`, `inventory`) VALUES (?, ?, ?)",
+                "INSERT INTO `players` (`email`, `display_name`, `password`, `inventory`) VALUES (?, ?, ?, ?)",
                 Statement.RETURN_GENERATED_KEYS
             )
             statement.setString(1, email)

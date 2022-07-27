@@ -22,14 +22,14 @@ class MySQLDatabaseAdapter(
             password: String,
             database: String,
         ): Connection {
-            val version = "8.0.29"
+            val version = "8.0.30"
             RuntimeDriver.createRuntimeDriver(
                 "https://repo1.maven.org/maven2/mysql/mysql-connector-java/$version/mysql-connector-java-$version.jar",
                 "com.mysql.cj.jdbc.Driver",
                 "mysql.jar"
             )
             try {
-                return DriverManager.getConnection("jdbc:mysql://${host}:${port}/${database}", user, password)
+                return DriverManager.getConnection("jdbc:mysql://${host}:${port}/${database}?useSSL=false", user, password)
             } catch (e: SQLException) {
                 Logger.fatal("Unable to connect to SQLite database", e)
             }
