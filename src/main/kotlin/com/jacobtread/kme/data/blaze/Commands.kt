@@ -76,8 +76,8 @@ object Commands {
     const val LIST_GAMES = 0x11
     const val SET_PLAYER_CUSTOM_DATA = 0x12
     const val REPLAY_GAME = 0x13
-    const val RETURN_DEDICATED_SERVER_TO_POOL = 0x14 // US
-    const val JOIN_GAME_BY_GROUP = 0x15 // US
+    const val RETURN_DEDICATED_SERVER_TO_POOL = 0x14
+    const val JOIN_GAME_BY_GROUP = 0x15
     const val LEAVE_GAME_BY_GROUP = 0x16
     const val MIGRATE_GAME = 0x17
     const val UPDATE_GAME_HOST_MIGRATION_STATUS = 0x18
@@ -92,7 +92,7 @@ object Commands {
     const val UPDATE_GAME_NAME = 0x27
     const val EJECT_HOST = 0x28
     const val NOTIFY_GAME_UPDATED = 0x50 // US
-    const val GET_GAME_LIST_SNAPSHOT = 0x64 // US
+    const val GET_GAME_LIST_SNAPSHOT = 0x64
     const val GET_GAME_LIST_SUBSCRIPTION = 0x65
     const val DESTROY_GAME_LIST = 0x66
     const val GET_FULL_GAME_DATA = 0x67
@@ -102,7 +102,7 @@ object Commands {
     const val REMOVE_ADMIN_PLAYER = 0x6B
     const val SET_PLAYER_TEAM = 0x6C
     const val CHANGE_GAME_TEAM_ID = 0x6D
-    const val MIGRATE_ADMIN_PLAYER = 0x6E // US
+    const val MIGRATE_ADMIN_PLAYER = 0x6E
     const val GET_USER_SET_GAME_LIST_SUBSCRIPTION = 0x6F
     const val SWAP_PLAYERS_TEAM = 0x70
     const val REGISTER_DYNAMIC_DEDICATED_SERVER_CREATOR = 0x96
@@ -244,7 +244,7 @@ object Commands {
     const val GET_GAME_REPORT_COLUMN_VALUES = 0xD
     const val SUBMIT_TRUSTED_MID_GAME_REPORT = 0x64
     const val SUBMIT_TRUSTED_END_GAME_REPORT = 0x65
-    const val GAME_REPORT_RESULT_72 = 0x72 // US
+    const val NOTIFY_GAME_REPORT_SUBMITTED = 0x72 // US
 
     //endregion
 
@@ -261,7 +261,7 @@ object Commands {
     const val UPDATE_NETWORK_INFO = 0x14 // FC
     const val LOOKUP_USER_GEO_IP_DATA = 0x17
     const val OVERRIDE_USER_GEO_IP_DATA = 0x18
-    const val UPDATE_USER_SESSION_CLIENT_DATA = 0x19
+    const val UPDATE_USER_ScESSION_CLIENT_DATA = 0x19
     const val SET_USER_INFO_ATTRIBUTE = 0x1A
     const val RESET_USER_GEO_IP_DATA = 0x1B
     const val LOOKUP_USER_SESSION_ID = 0x20

@@ -261,7 +261,7 @@ class DebugCommandNaming : DebugNaming {
             0x400DC to "NOTIFY_CREATE_DYNAMIC_DEDICATED_SERVER_GAME",
             0x400E6 to "NOTIFY_GAME_NAME_CHANGE",
             0xF0001 to "SEND_MESSAGE",
-            0x1C0072 to "GAME_REPORT_RESULT_72",
+            0x1C0072 to "NOTIFY_GAME_REPORT_SUBMITTED",
             0x78020001 to "SET_SESSION",
             0x78020002 to "SESSION_DETAILS",
             0x78020003 to "FETCH_EXTENDED_DATA",

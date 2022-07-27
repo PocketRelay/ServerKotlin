@@ -8,7 +8,9 @@ import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.blaze.tdf.GroupTdf
 import com.jacobtread.blaze.tdf.OptionalTdf
 import com.jacobtread.kme.Environment
-import com.jacobtread.kme.data.*
+import com.jacobtread.kme.data.Constants
+import com.jacobtread.kme.data.Data
+import com.jacobtread.kme.data.LoginError
 import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
 import com.jacobtread.kme.database.data.Player
@@ -19,8 +21,8 @@ import com.jacobtread.kme.game.GameManager
 import com.jacobtread.kme.game.match.MatchRuleSet
 import com.jacobtread.kme.game.match.Matchmaking
 import com.jacobtread.kme.utils.hashPassword
-import com.jacobtread.kme.utils.unixTimeSeconds
 import com.jacobtread.kme.utils.logging.Logger
+import com.jacobtread.kme.utils.unixTimeSeconds
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
@@ -959,28 +961,35 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             return
         }
 
-        push(packet.respond { number("MCNT", 1) }) // Number of messages
         val ip = socketChannel.remoteAddress().toString()
         val menuMessage = Environment.menuMessage
             .replace("{v}", Constants.KME_VERSION)
             .replace("{n}", playerEntity.displayName)
             .replace("{ip}", ip) + 0xA.toChar()
 
-        push(notify(Components.MESSAGING, Commands.SEND_MESSAGE) {
-            number("FLAG", 0x01)
-            number("MGID", 0x01)
-            text("NAME", menuMessage)
-            +group("PYLD") {
-                map("ATTR", mapOf("B0000" to "160"))
-                number("FLAG", 0x01)
-                number("STAT", 0x00)
-                number("TAG", 0x00)
-                tripple("TARG", 0x7802, 0x01, playerEntity.playerId.toLong())
-                number("TYPE", 0x0)
+        pushAll(
+            packet.respond { number("MCNT", 1) }, // Number of messages
+
+            notify(Components.MESSAGING, Commands.SEND_MESSAGE) {
+                number("FLAG", 0x1)
+                number("MGID", 0x1)
+                text("NAME", menuMessage)
+                +group("PYLD") {
+                    map("ATTR", mapOf("B0000" to "160"))
+                    // Flag types
+                    // 0x1 = Default message
+                    // 0x2 = Unlocked acomplishment
+
+                    number("FLAG", 0x1)
+                    number("STAT", 0x0)
+                    number("TAG", 0x0)
+                    tripple("TARG", Components.USER_SESSIONS.toLong(), Commands.SET_SESSION.toLong(), playerEntity.playerId.toLong())
+                    number("TYPE", 0x0)
+                }
+                tripple("SRCE", Components.USER_SESSIONS.toLong(), Commands.SET_SESSION.toLong(), playerEntity.playerId.toLong())
+                number("TIME", unixTimeSeconds())
             }
-            tripple("SRCE", 0x7802, 0x01, playerEntity.playerId.toLong())
-            number("TIME", unixTimeSeconds())
-        })
+        )
     }
 
 
@@ -1029,7 +1038,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     @PacketHandler(Components.GAME_REPORTING, Commands.SUBMIT_OFFLINE_GAME_REPORT)
     fun handleSubmitOfflineReport(packet: Packet) {
         push(packet.respond())
-        push(notify(Components.GAME_REPORTING, Commands.GAME_REPORT_RESULT_72) {
+        push(notify(Components.GAME_REPORTING, Commands.NOTIFY_GAME_REPORT_SUBMITTED) {
             varList("DATA")
             number("EROR", 0)
             number("FNL", 0)
@@ -1148,6 +1157,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
                     "SECTION" to "BINI_PC_COMPRESSED",
                     "VERSION" to "40128"
                 )
+
                 "ME3_BINI_PC_COMPRESSED" -> Data.loadBiniCompressed() // Loads the chunked + compressed bini
                 else -> emptyMap()
             }
