@@ -14,4 +14,3 @@ pluginManagement {
 }
 
 rootProject.name = "kme"
-include("app", "logger")
