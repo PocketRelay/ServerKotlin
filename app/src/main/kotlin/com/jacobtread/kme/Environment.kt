@@ -13,6 +13,7 @@ import com.jacobtread.kme.utils.logging.Logger
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.security.Security
 import java.util.*
 import kotlin.io.path.Path
 import kotlin.io.path.inputStream
@@ -68,6 +69,8 @@ object Environment {
             Logger.warn("Netty pooling disabled.")
             System.setProperty("io.netty.allocator.type", "unpooled")
         }
+        // Clears the disabled algorithms. This is necessary for SSLv3
+        Security.setProperty("jdk.tls.disabledAlgorithms", "")
 
         // Initialize the logger with its configuration
         Logger.init(
