@@ -610,8 +610,7 @@ object Data {
         val reader = BufferedReader(InputStreamReader(inputStream))
         val lines = ArrayList<String>()
         while (true) {
-            val line = reader.readLine()
-            if (line == null) break
+            val line = reader.readLine() ?: break
             lines.add(line)
         }
         val out = LinkedHashMap<String, String>(lines.size + 1)

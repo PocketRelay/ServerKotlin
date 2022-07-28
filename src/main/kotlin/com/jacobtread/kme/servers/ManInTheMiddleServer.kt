@@ -11,10 +11,7 @@ import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.logging.Logger.info
 import io.netty.bootstrap.Bootstrap
 import io.netty.bootstrap.ServerBootstrap
-import io.netty.channel.Channel
-import io.netty.channel.ChannelHandlerContext
-import io.netty.channel.ChannelInboundHandlerAdapter
-import io.netty.channel.ChannelInitializer
+import io.netty.channel.*
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.channel.socket.nio.NioSocketChannel
@@ -22,7 +19,6 @@ import io.netty.handler.ssl.SslContextBuilder
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory
 import java.io.IOException
 import java.net.URL
-import java.util.concurrent.ThreadFactory
 
 /**
  * startMITMServer Starts the MITM server
@@ -72,16 +68,48 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboun
     private fun getOfficalServerDetails(): ServerDetails {
         val redirectorHost = lookupRedirectorHost() // gosredirector.ea.com
         val redirectorPort = 42127
-        val handler = ClientHandler()
+        var result: ServerDetails? = null
         val channelFuture = Bootstrap()
-            .group(NioEventLoopGroup(1, ThreadFactory { r ->
-                val thread = Thread(r)
-                thread.name = "Server Details Worker"
-                thread.isDaemon = true
-                thread
-            }))
+            .group(DefaultEventLoopGroup())
             .channel(NioSocketChannel::class.java)
-            .handler(handler)
+            .handler(object : ChannelInboundHandlerAdapter() {
+
+                override fun handlerAdded(ctx: ChannelHandlerContext) {
+                    val context = SslContextBuilder.forClient()
+                        .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                        .build()
+                    val channel = ctx.channel()
+                    channel.pipeline()
+                        .addFirst(PacketDecoder())
+                        .addFirst(context.newHandler(channel.alloc()))
+                        .addLast(PacketEncoder)
+                }
+
+                @Suppress("DeprecatedCallableAddReplaceWith")
+                @Deprecated("Deprecated in Java")
+                override fun exceptionCaught(ctx: ChannelHandlerContext?, cause: Throwable?) {
+                    Logger.error("Exception", cause)
+                }
+
+                override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
+                    if (msg !is Packet) {
+                        println("NOn message packet")
+                        ctx.fireChannelRead(msg)
+                        return
+                    }
+                    if (msg.component == Components.REDIRECTOR && msg.command == Commands.GET_SERVER_INSTANCE) {
+                        val address = msg.optional("ADDR")
+                        val value = address.value as GroupTdf
+                        val host = value.text("HOST")
+                        val ip = value.number("IP")
+                        val port = value.number("PORT")
+                        val secure: Boolean = msg.number("SECU") == 0x1uL
+                        val ipString = ((ip shr 24) and 255u).toString() + "." + ((ip shr 16) and 255u) + "." + ((ip shr 8) and 255u) + "." + (ip and 255u)
+                        result = ServerDetails(host, ipString, port.toInt(), secure)
+                        ctx.close()
+                    }
+                }
+            })
             .connect(redirectorHost, redirectorPort)
             .sync()
         val channel = channelFuture.channel()
@@ -92,11 +120,10 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboun
         channel.flush()
         info("Waiting for closed response")
         channel.closeFuture().sync()
-        val serverDetails = handler.serverDetails
-        requireNotNull(serverDetails) { "Server details were null" }
-        info("Obtained server details: $serverDetails")
+        requireNotNull(result) { "Server details were null" }
+        info("Obtained server details: $result")
 
-        return serverDetails
+        return result!!
     }
 
     private fun createRedirectPacket(): Packet {
@@ -117,48 +144,8 @@ class MITMHandler(private val eventLoopGroup: NioEventLoopGroup) : ChannelInboun
         }
     }
 
-    class ClientHandler : ChannelInboundHandlerAdapter() {
-        var serverDetails: ServerDetails? = null
 
-        override fun handlerAdded(ctx: ChannelHandlerContext) {
-            val context = SslContextBuilder.forClient()
-                .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                .build()
-            val channel = ctx.channel()
-            channel.pipeline()
-                .addFirst(PacketDecoder())
-                .addFirst(context.newHandler(channel.alloc()))
-                .addLast(PacketEncoder)
-        }
-
-        @Suppress("DeprecatedCallableAddReplaceWith")
-        @Deprecated("Deprecated in Java")
-        override fun exceptionCaught(ctx: ChannelHandlerContext?, cause: Throwable?) {
-            Logger.error("Exception", cause)
-        }
-
-        override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-            if (msg !is Packet) {
-                println("NOn message packet")
-                ctx.fireChannelRead(msg)
-                return
-            }
-            if (msg.component == Components.REDIRECTOR && msg.command == Commands.GET_SERVER_INSTANCE) {
-                val address = msg.optional("ADDR")
-                val value = address.value as GroupTdf
-                val host = value.text("HOST")
-                val ip = value.number("IP")
-                val port = value.number("PORT")
-                val secure: Boolean = msg.number("SECU") == 0x1uL
-                val ipString = ((ip shr 24) and 255u).toString() + "." + ((ip shr 16) and 255u) + "." + ((ip shr 8) and 255u) + "." + (ip and 255u)
-                serverDetails = ServerDetails(host, ipString, port.toInt(), secure)
-                ctx.close()
-            }
-        }
-    }
-
-
-    val serverDetails = getOfficalServerDetails()
+    private val serverDetails = getOfficalServerDetails()
     var clientChannel: Channel? = null
     var officialChannel: Channel? = null
 
