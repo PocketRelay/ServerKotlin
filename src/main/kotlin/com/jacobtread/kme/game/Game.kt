@@ -3,9 +3,9 @@ package com.jacobtread.kme.game
 import com.jacobtread.blaze.group
 import com.jacobtread.blaze.notify
 import com.jacobtread.blaze.packet.Packet
-import com.jacobtread.blaze.tdf.GroupTdf
-import com.jacobtread.blaze.tdf.ListTdf
 import com.jacobtread.blaze.tdf.Tdf
+import com.jacobtread.blaze.tdf.types.GroupTdf
+import com.jacobtread.blaze.tdf.types.ListTdf
 import com.jacobtread.kme.data.attr.GameStateAttr
 import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
@@ -196,8 +196,6 @@ class Game(
             number("GID", id)
         }
         pushAll(finishPacket)
-
-
     }
 
 

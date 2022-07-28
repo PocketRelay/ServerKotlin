@@ -3,7 +3,7 @@ package com.jacobtread.kme.game.match
 import com.jacobtread.blaze.TdfContainer
 import com.jacobtread.blaze.group
 import com.jacobtread.blaze.list
-import com.jacobtread.blaze.tdf.GroupTdf
+import com.jacobtread.blaze.tdf.types.GroupTdf
 import com.jacobtread.blaze.text
 import java.util.*
 

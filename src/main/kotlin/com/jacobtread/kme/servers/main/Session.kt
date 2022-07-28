@@ -3,10 +3,10 @@ package com.jacobtread.kme.servers.main
 import com.jacobtread.blaze.*
 import com.jacobtread.blaze.annotations.PacketHandler
 import com.jacobtread.blaze.annotations.PacketProcessor
-import com.jacobtread.blaze.data.VarTripple
+import com.jacobtread.blaze.data.VarTriple
 import com.jacobtread.blaze.packet.Packet
-import com.jacobtread.blaze.tdf.GroupTdf
-import com.jacobtread.blaze.tdf.OptionalTdf
+import com.jacobtread.blaze.tdf.types.GroupTdf
+import com.jacobtread.blaze.tdf.types.OptionalTdf
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.data.Constants
 import com.jacobtread.kme.data.Data
@@ -925,7 +925,6 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     /**
      * Handles retrieving the contents of the centered leaderboard
      *
-     *
      * TODO: Currently not implemented
      *
      * @param packet
@@ -1628,7 +1627,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
                 number("UBPS", ubps)
             }
             number("UATT", 0)
-            list("ULST", listOf(VarTripple(4u, 1u, gameIdSafe)))
+            list("ULST", listOf(VarTriple(4u, 1u, gameIdSafe)))
         }
     }
 

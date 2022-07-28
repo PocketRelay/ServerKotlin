@@ -2,11 +2,11 @@ package com.jacobtread.kme.servers
 
 import com.jacobtread.blaze.*
 import com.jacobtread.blaze.packet.Packet
-import com.jacobtread.blaze.tdf.GroupTdf
+import com.jacobtread.blaze.tdf.types.GroupTdf
 import com.jacobtread.kme.Environment
+import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
-import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.logging.Logger.info
 import io.netty.bootstrap.Bootstrap
