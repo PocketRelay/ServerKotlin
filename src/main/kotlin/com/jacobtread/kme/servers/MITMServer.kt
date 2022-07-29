@@ -3,13 +3,16 @@ package com.jacobtread.kme.servers
 import com.jacobtread.blaze.*
 import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.blaze.tdf.types.GroupTdf
+import com.jacobtread.kme.Environment
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.bootstrap.Bootstrap
+import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.*
 import io.netty.channel.nio.NioEventLoopGroup
+import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.channel.socket.nio.NioSocketChannel
 import io.netty.handler.ssl.SslContextBuilder
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory
@@ -17,12 +20,29 @@ import java.io.IOException
 import java.net.URL
 import java.util.regex.Pattern
 
-fun startMITMServerV2(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
-
+fun startMITMServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
+    try {
+        PacketLogger.isEnabled = false
+        ServerBootstrap()
+            .group(bossGroup, workerGroup)
+            .channel(NioServerSocketChannel::class.java)
+            .childHandler(object : ChannelInitializer<Channel>() {
+                override fun initChannel(ch: Channel) {
+                    ch.attr(PacketEncoder.ENCODER_CONTEXT_KEY)
+                        .set("Connection to Client")
+                    ch.pipeline()
+                        .addLast(MITMHandler(ch))
+                }
+            })
+            .bind(Environment.mainPort)
+            .addListener { Logger.info("Started MITM Server on port ${Environment.mainPort}") }
+    } catch (e: IOException) {
+        Logger.error("Exception in man-in-the-middle server", e)
+    }
 }
 
-class MITMHandlerV2(
-    val clientChannel: Channel,
+class MITMHandler(
+    private val clientChannel: Channel,
 ) : ChannelInboundHandlerAdapter() {
 
 
@@ -70,6 +90,11 @@ class MITMHandlerV2(
         serverChannel = createOfficialChannel()
     }
 
+    /**
+     * Connects to the official redirector server and obtains the
+     * information of the main server for creating the MITM
+     * bridge connection.
+     */
     private fun initialSetup() {
         val redirectorHost = getRedirectorHost()
         val redirectorPort = 42127
@@ -102,7 +127,6 @@ class MITMHandlerV2(
                         val addressGroup = address.value as GroupTdf
 
                         host = addressGroup.text("HOST")
-                        val ipEncoded = addressGroup.number("IP")
                         port = addressGroup.numberInt("PORT")
                         secure = msg.numberInt("SECU") == 0x1
                         ctx.close()
@@ -119,11 +143,7 @@ class MITMHandlerV2(
         Logger.info("Sending redirect request packet")
 
         channel.writeAndFlush(
-            clientPacket(
-                Components.REDIRECTOR,
-                Commands.GET_SERVER_INSTANCE,
-                0x0
-            ) {
+            clientPacket(Components.REDIRECTOR, Commands.GET_SERVER_INSTANCE, 0x0) {
                 text("BSDK", "3.15.6.0")
                 text("BTIM", "Dec 21 2012 12:47:10")
                 text("CLNT", "MassEffect3-pc")
@@ -144,6 +164,13 @@ class MITMHandlerV2(
         channel.closeFuture().sync()
     }
 
+    /**
+     * Creates a connection to the official server and uses this
+     * as the channel for communicating between the client and
+     * the server.
+     *
+     * @return The created channel
+     */
     private fun createOfficialChannel(): Channel {
         val channelFuture = Bootstrap()
             .group(DefaultEventLoopGroup())
