@@ -63,9 +63,41 @@ data class Player(
     var cstimestamps3: String?,
 ) {
 
-    fun updateFully() {
-        Environment.database.updatePlayerFully(this)
+    init {
+//        makeGod()
     }
+
+    fun makeGod() {
+        inventory = "FF".repeat(671)
+        credits = Int.MAX_VALUE
+        csReward = 154
+        val completionBuilder = StringBuilder("22")
+        repeat(221) { completionBuilder.append(",255") }
+        completion = completionBuilder.toString()
+        Environment.database.updatePlayerFully(this)
+        val classes = Environment.database.getPlayerClasses(this)
+        classes.forEach { playerClass ->
+            playerClass.level = 20
+            playerClass.promotions = Int.MAX_VALUE
+            Environment.database.setPlayerClass(this, playerClass)
+        }
+
+        val characters = Environment.database.getPlayerCharacters(this)
+        characters.forEach { playerCharacter ->
+            val powers = playerCharacter.getParsedPowers()
+            if (powers.isNotEmpty()) {
+                powers.forEach {
+                    it.level = 6.000f
+                    it.rank4 = 3
+                    it.rank5 = 3
+                    it.rank6 = 3
+                }
+                playerCharacter.setPowersFromParsed(powers)
+                Environment.database.setPlayerCharacter(this, playerCharacter)
+            }
+        }
+    }
+
 
     fun getGalaxyAtWarData(): GalaxyAtWarData {
         val value = Environment.database.getGalaxyAtWarData(this)
@@ -166,6 +198,7 @@ data class Player(
                     parser.skip(1)
                     inventory = parser.str()
                 }
+
                 "FaceCodes" -> faceCodes = value
                 "NewItem" -> newItem = value
                 // (Possible name is Challenge Selected Reward)

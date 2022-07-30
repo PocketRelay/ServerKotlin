@@ -5,9 +5,9 @@ import com.jacobtread.kme.utils.MEStringParser
 data class PlayerClass(
     val index: Int,
     val name: String,
-    val level: Int,
-    val exp: Float,
-    val promotions: Int,
+    var level: Int,
+    var exp: Float,
+    var promotions: Int,
 ) {
     fun getKey(): String = "class$index"
     fun toEncoded(): String = StringBuilder("20;4;")
