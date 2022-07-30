@@ -51,7 +51,7 @@ enum class ChallengeRewards(
     N7_DAY_ALLIANCE_CHALLENGE(153, "N7 Day Alliance Challenge", "Layalist"),
 
     // Banner for Staff
-    BIOWARE_STAFF(154, "BioWare"),
+    BIOWARE_STAFF(154, "BioWare", "BioWare"),
 
     OPERATION_PRIVATEER(155, "Operation Privateer", "Corsair"),
 
