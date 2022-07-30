@@ -5,21 +5,54 @@ import com.jacobtread.kme.utils.MEStringParser
 import com.jacobtread.kme.utils.comparePasswordHash
 
 data class Player(
+    /**
+     * The unique id for this player which uniquely identifies it amoungst
+     * all the players in the datbase
+     */
     val playerId: Int,
+    /**
+     * The email address used when created this account. In future this could be used
+     * to send out emails for password resets and such.
+     */
     val email: String,
+    /**
+     * The unique display name for this player. Currently, this
+     * is the first 99 chars of the email until a system for
+     * updating this is added.
+     */
     val displayName: String,
     private val password: String,
     private var sessionToken: String?,
-
+    /**
+     * The total number of usable credits that this player has
+     */
     var credits: Int,
-
+    /**
+     * The total number of credits that this player has spent
+     */
     var creditsSpent: Int,
+    /**
+     * The total number of games that this player has played
+     */
     var gamesPlayed: Int,
+    /**
+     * The total number of seconds that this player has spent
+     * inside of games.
+     */
     var secondsPlayed: Long,
+    /**
+     * List of values representing the amount/level of each
+     * inventory item this player has.
+     */
     var inventory: String,
 
     var faceCodes: String?,
     var newItem: String?,
+
+    /**
+     * The challenge reward banner to display behind the player profile
+     * see the known values listed in [com.jacobtread.kme.data.constants.ChallengeRewards]
+     */
     var csReward: Int,
 
     var completion: String?,
