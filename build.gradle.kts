@@ -19,9 +19,25 @@ repositories {
 
 dependencies {
     // Core dependency groupings
-    nettyDependencies()
-    blazeDependencies()
-    xmlDependency()
+
+    val nettyHttpVersion: String by project
+    implementation("com.jacobtread.netty:kotlin-netty-http:$nettyHttpVersion")
+
+    val nettyVersion: String by project
+    implementation("io.netty:netty-handler:$nettyVersion")
+    implementation("io.netty:netty-buffer:$nettyVersion")
+    implementation("io.netty:netty-codec-http:$nettyVersion")
+
+    val blazeVersion: String by project
+
+    implementation("com.jacobtread.blaze:blaze-core:$blazeVersion")
+    implementation("com.jacobtread.blaze:blaze-annotations:$blazeVersion")
+
+    // KSP annoatation processing for packet routing
+    ksp("com.jacobtread.blaze:blaze-processor:$blazeVersion")
+
+    val xmlVersion: String by project
+    implementation("com.jacobtread.xml:xml-builder-kt:$xmlVersion")
 }
 
 
@@ -57,31 +73,6 @@ fun replaceConstants(value: String): String {
     return value.replace("%KME_VERSION%", kme3Version)
 }
 
-fun DependencyHandlerScope.xmlDependency() {
-    val xmlVersion: String by project
-    implementation("com.jacobtread.xml:xml-builder-kt:$xmlVersion")
-}
-
-fun DependencyHandlerScope.blazeDependencies() {
-    val blazeVersion: String by project
-
-    implementation("com.jacobtread.blaze:blaze-core:$blazeVersion")
-    implementation("com.jacobtread.blaze:blaze-annotations:$blazeVersion")
-
-    // KSP annoatation processing for packet routing
-    ksp("com.jacobtread.blaze:blaze-processor:$blazeVersion")
-}
-
-/**
- * nettyDependencies Adds the individual netty networking
- * components used by this project
- */
-fun DependencyHandlerScope.nettyDependencies() {
-    val nettyVersion: String by project
-    implementation("io.netty:netty-handler:$nettyVersion")
-    implementation("io.netty:netty-buffer:$nettyVersion")
-    implementation("io.netty:netty-codec-http:$nettyVersion")
-}
 
 /*
  * Hooks into the kotlin compiling task to set the
