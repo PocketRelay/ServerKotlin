@@ -1279,17 +1279,15 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
 
             //  telemetryAddress = "reports.tools.gos.ea.com:9988"
             //  tickerAddress = "waleu2.tools.gos.ea.com:8999"
-            val address = Environment.externalAddress
-            val port = Environment.discardPort
 
             +group("TELE") {
-                text("ADRS", address) // Server Address
+                text("ADRS", "127.0.0.1") // Server Address
                 number("ANON", 0)
                 text("DISA", "**")
                 text("FILT", "-UION/****") // Telemetry filter?
                 number("LOC", 1701725253)
                 text("NOOK", "US,CA,MX")
-                number("PORT", port)
+                number("PORT", 9988)
                 number("SDLY", 15000)
                 text("SESS", "JMhnT9dXSED")
                 text("SKEY", "")
@@ -1298,8 +1296,8 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             }
 
             +group("TICK") {
-                text("ADRS", address)
-                number("port", port)
+                text("ADRS", "127.0.0.1")
+                number("port", 9988)
                 text("SKEY", "823287263,10.23.15.2:8999,masseffect-3-pc,10,50,50,50,50,0,12")
             }
 

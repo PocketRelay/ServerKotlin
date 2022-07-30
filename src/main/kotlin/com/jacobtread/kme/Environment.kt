@@ -31,7 +31,6 @@ object Environment {
 
     val redirectorPort: Int
     val mainPort: Int
-    val discardPort: Int
     val httpPort: Int
 
     val menuMessage: String
@@ -87,7 +86,6 @@ object Environment {
         // Server ports
         redirectorPort = env.intValue("KME_REDIRECTOR_PORT", "ports.redirector", 42127)
         mainPort = env.intValue("KME_MAIN_PORT", "ports.main", 14219)
-        discardPort = env.intValue("KME_DISCARD_PORT", "ports.discard", 9988)
         httpPort = env.intValue("KME_HTTP_PORT", "ports.http", 80)
 
 

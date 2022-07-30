@@ -3,7 +3,6 @@
 package com.jacobtread.kme
 
 import com.jacobtread.kme.servers.main.startMainServer
-import com.jacobtread.kme.servers.startDiscardServer
 import com.jacobtread.kme.servers.startHttpServer
 import com.jacobtread.kme.servers.startRedirector
 import io.netty.channel.nio.NioEventLoopGroup
@@ -17,7 +16,6 @@ fun main() {
     startRedirector(bossGroup, workerGroup)
     startMainServer(bossGroup, workerGroup)
     startHttpServer(bossGroup, workerGroup)
-    startDiscardServer(bossGroup, workerGroup)
 
     System.gc() // Cleanup after initialization
 }

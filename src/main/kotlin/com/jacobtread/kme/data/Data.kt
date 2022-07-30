@@ -234,7 +234,7 @@ object Data {
             "TEL_PORT" to "9988",
             "TEL_SEND_DELAY" to "15000",
             "TEL_SEND_PCT" to "75",
-            "TEL_SERVER" to "159.153.235.32",
+            "TEL_SERVER" to "127.0.0.1",
         )
     }
 
