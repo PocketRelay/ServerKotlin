@@ -587,20 +587,15 @@ object Data {
 
     //endregion
 
-    fun getResourceOrNull(name: String): ByteArray? {
-        try {
-            val stream = Data::class.java.getResourceAsStream("/$name")
-                ?: return null
-            return stream.readAllBytes()
-        } catch (e: IOException) {
-            return null
-        }
-    }
-
     fun createDimeResponse(): Map<String, String> {
-        val dime = getResourceOrNull("data/dime.xml")
-            ?: throw IOException("Missing internal resource: data/dime.xml")
-        return mapOf("Config" to String(dime, Charsets.UTF_8))
+        try {
+            val stream = Data::class.java.getResourceAsStream("/data/dime.xml")
+                ?: throw IOException("Missing internal resource: data/dime.xml")
+            val dimeBytes = stream.use { stream.readAllBytes() }
+            return mapOf("Config" to String(dimeBytes, Charsets.UTF_8))
+        } catch (e: IOException) {
+            throw IOException("Missing internal resource: data/dime.xml", e)
+        }
     }
 
     fun loadBiniCompressed(): Map<String, String> = loadChunkedFile("data/bini.bin.chunked")
