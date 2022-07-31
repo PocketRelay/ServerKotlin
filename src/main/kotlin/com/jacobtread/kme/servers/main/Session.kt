@@ -350,12 +350,9 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         } catch (e: NotAuthenticatedException) { // Handle player access with no player
             push(LoginError.INVALID_ACCOUNT(msg))
             val address = ctx.channel().remoteAddress()
-            Logger.warn(
-                "Client at {} tried to access a authenticated route without authenticating",
-                address
-            )
+            Logger.warn("Client at $address tried to access a authenticated route without authenticating",)
         } catch (e: Exception) {
-            Logger.warn("Failed to handle packet: {}", msg, e)
+            Logger.warn("Failed to handle packet: $msg", e)
             push(msg.respond())
         } catch (e: GameException) {
             Logger.warn("Client caused game exception", e)

@@ -1,12 +1,9 @@
-@file:Suppress("unused")
-
 package com.jacobtread.kme.utils.logging
 
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.collections.ArrayList
 import kotlin.system.exitProcess
 
 /**
@@ -38,10 +35,6 @@ object Logger {
             writer = if (value) LogWriter() else null
         }
 
-    // Whether to log packets
-    var logPackets = false
-        private set
-
     /**
      * isDebugEnabled Checks whether the current
      * logging level is debug logging
@@ -68,11 +61,9 @@ object Logger {
 
     fun info(text: String) = append(Level.INFO, text)
     fun info(text: String, throwable: Throwable) = appendThrowable(Level.INFO, text, throwable)
-    fun info(text: String, vararg values: Any?) = appendVarargs(Level.INFO, text, values)
 
     fun warn(text: String) = append(Level.WARN, text)
     fun warn(text: String, throwable: Throwable) = appendThrowable(Level.WARN, text, throwable)
-    fun warn(text: String, vararg values: Any?) = appendVarargs(Level.WARN, text, values)
 
     fun fatal(text: String): Nothing {
         append(Level.FATAL, text)
@@ -84,26 +75,15 @@ object Logger {
         exitProcess(1)
     }
 
-    fun fatal(text: String, vararg values: Any?): Nothing {
-        appendVarargs(Level.FATAL, text, values)
-        exitProcess(1)
-    }
 
     inline fun logIfDebug(text: () -> String) {
         if (debugEnabled) debug(text())
     }
 
     fun debug(text: String) = append(Level.DEBUG, text)
-    fun debug(text: String, throwable: Throwable) = appendThrowable(Level.DEBUG, text, throwable)
-    fun debug(text: String, vararg values: Any?) = appendVarargs(Level.DEBUG, text, values)
 
     fun error(text: String) = append(Level.ERROR, text)
     fun error(text: String, throwable: Throwable) = appendThrowable(Level.ERROR, text, throwable)
-    fun error(text: String, vararg values: Any?) = appendVarargs(Level.ERROR, text, values)
-
-    fun log(level: Level, text: String) = append(level, text)
-    fun log(level: Level, text: String, throwable: Throwable) = appendThrowable(level, text, throwable)
-    fun log(level: Level, text: String, vararg values: Any?) = appendVarargs(level, text, values)
 
     /**
      * append Appends a simple message to the log.
@@ -142,75 +122,6 @@ object Logger {
             pw.println()
             pw.flush()
             writer?.write(sw.toString())
-        }
-    }
-
-    /**
-     * appendVarargs Appends a log that uses vararg arguments. This does replacements
-     * of {} variables using the provided args as well as providing a stack trace for
-     * all the exceptions that were provided
-     *
-     * @param level The log level
-     * @param message The base message to log
-     * @param args The provided arguments
-     */
-    private fun appendVarargs(level: Level, message: String, args: Array<out Any?>) {
-        if (level.index > Logger.level.index) return
-        val time = printDateFormat.format(Date())
-        var exceptions: ArrayList<Throwable>? = null
-        val builder = StringBuilder()
-        var i = 0
-        var last = 0
-        while (true) {
-            val index = message.indexOf("{}", last)
-            if (index < 0) break
-            check(i < args.size) { "Incorrect number of arguments provided" }
-            builder.append(message.substring(last, index))
-            var arg = args[i]
-            while (arg is Throwable) {
-                i++
-                if (exceptions == null) {
-                    exceptions = ArrayList()
-                }
-                exceptions.add(arg)
-                if (i < args.size) {
-                    arg = args[i]
-                } else {
-                    arg = null
-                    break
-                }
-            }
-            builder.append(arg?.toString() ?: "null")
-            last = index + 2
-        }
-        i++
-        while (i < args.size) {
-            val arg = args[i]
-            if (arg is Throwable) {
-                if (exceptions == null) exceptions = ArrayList()
-                exceptions.add(arg)
-            }
-            i++
-        }
-        if (last < message.length) {
-            builder.append(message.substring(last))
-        }
-        val text = "[$time] ${level.coloredText()} $builder"
-        val stream = if (level.index < 3) System.err else System.out
-        stream.println(text)
-        if (saveFile) {
-            writer?.write("[$time] [${level.levelName}] $builder\n")
-            val exStringWriter = StringWriter() // String writer to write the exceptions to
-            val exPrintWriter = PrintWriter(exStringWriter) // Print writer abstraction
-            exceptions?.forEach {
-                it.printStackTrace(stream) // Print the exception to the console
-                it.printStackTrace(exPrintWriter) // Print the exception to the writer
-                exPrintWriter.println() // Print a new line
-            }
-            exPrintWriter.flush() // Flush the writer
-            writer?.write(exStringWriter.toString()) // Write the string to the log file
-        } else {
-            exceptions?.forEach { it.printStackTrace() } // Print the exceptions to console
         }
     }
 }
