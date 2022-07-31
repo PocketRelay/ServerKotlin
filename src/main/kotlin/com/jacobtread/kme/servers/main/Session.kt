@@ -597,7 +597,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         val password: String = packet.text("PASS")
         try {
             val database = Environment.database
-            if (database.isPlayerEmailTaken(email)) {
+            if (database.isEmailTaken(email)) {
                 push(LoginError.EMAIL_ALREADY_IN_USE(packet))
                 return
             }

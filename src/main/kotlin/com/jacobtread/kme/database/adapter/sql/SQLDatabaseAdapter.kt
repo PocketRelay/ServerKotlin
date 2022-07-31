@@ -12,7 +12,7 @@ abstract class SQLDatabaseAdapter(
     protected val connection: Connection,
 ) : DatabaseAdapter {
 
-    override fun isPlayerEmailTaken(email: String): Boolean {
+    override fun isEmailTaken(email: String): Boolean {
         try {
             val statement = connection.prepareStatement("SELECT `id` FROM `players` WHERE email = ? LIMIT 1")
             statement.setString(1, email)
@@ -25,7 +25,8 @@ abstract class SQLDatabaseAdapter(
         }
     }
 
-    private fun getPlayerFromResultSet(resultSet: ResultSet): Player {
+    private fun getPlayerFromResultSet(resultSet: ResultSet): Player? {
+        if (!resultSet.next()) return null
         return Player(
             playerId = resultSet.getInt("id"),
             email = resultSet.getString("email"),
@@ -54,7 +55,6 @@ abstract class SQLDatabaseAdapter(
             val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `id` = ? LIMIT 1")
             statement.setInt(1, id)
             val resultSet = statement.executeQuery()
-            if (!resultSet.next()) return null
             val player = getPlayerFromResultSet(resultSet)
             statement.close()
             return player
@@ -68,7 +68,6 @@ abstract class SQLDatabaseAdapter(
             val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `email` = ? LIMIT 1")
             statement.setString(1, email)
             val resultSet = statement.executeQuery()
-            if (!resultSet.next()) return null
             val player = getPlayerFromResultSet(resultSet)
             statement.close()
             return player
@@ -82,7 +81,6 @@ abstract class SQLDatabaseAdapter(
             val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `session_token` = ? LIMIT 1")
             statement.setString(1, sessionToken)
             val resultSet = statement.executeQuery()
-            if (!resultSet.next()) return null
             val player = getPlayerFromResultSet(resultSet)
             statement.close()
             return player

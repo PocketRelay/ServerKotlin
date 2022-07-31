@@ -8,18 +8,58 @@ import com.jacobtread.kme.exceptions.DatabaseException
 
 interface DatabaseAdapter {
 
+    /**
+     * Called when the database is initialized. Should be used
+     * to create database tables and set up the database
+     */
     @Throws(DatabaseException::class)
     fun setup()
 
+    /**
+     * Checks the database to see if there are any players
+     * with the provided email set. Used to check if the
+     * email provided while creating an acocunt is unique
+     *
+     * @param email The email to check for
+     * @return Whether the email was taken
+     */
     @Throws(DatabaseException::class)
-    fun isPlayerEmailTaken(email: String): Boolean
+    fun isEmailTaken(email: String): Boolean
 
+    /**
+     * Retrieves a player from the database where the player
+     * has the same ID as the provided ID. Will return null
+     * if there is no player with that ID. Used for silent
+     * authentication
+     *
+     * @param id The id of the player to find
+     * @return The found player or null if none exist
+     */
     @Throws(DatabaseException::class)
     fun getPlayerById(id: Int): Player?
 
+    /**
+     * Retrieves a player from the database where the player has
+     * the same  email as the provided email. Will return null if
+     * there are no players with that email. Used when logging in
+     * using an email and password
+     *
+     * @param email The email of the player to find
+     * @return The found player or null if none exist
+     */
     @Throws(DatabaseException::class)
     fun getPlayerByEmail(email: String): Player?
 
+    /**
+     * Retrieves a player from the database where the player has
+     * the same session token as the provided session token. Will
+     * return null if there are no players with that session token.
+     *
+     * Used for resuming sessions using the player session token.
+     *
+     * @param sessionToken The session token of the player to find
+     * @return The found player or null if none exist
+     */
     @Throws(DatabaseException::class)
     fun getPlayerBySessionToken(sessionToken: String): Player?
 
