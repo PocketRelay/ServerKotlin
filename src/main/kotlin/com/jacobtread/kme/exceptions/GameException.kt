@@ -1,7 +1,5 @@
 package com.jacobtread.kme.exceptions
 
-import com.jacobtread.kme.game.Game
-
 open class GameException : RuntimeException {
     constructor(message: String) : super(message)
     constructor(message: String, throwable: Throwable) : super(message, throwable)
