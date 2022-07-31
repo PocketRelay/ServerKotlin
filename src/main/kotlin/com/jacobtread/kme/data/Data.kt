@@ -616,7 +616,6 @@ object Data {
         reader.use {
             while (true) {
                 val line = reader.readLine() ?: break
-
                 val parts = line.split(':', limit = 2)
                 if (parts.size < 2) continue
                 out[parts[0]] = parts[1]
