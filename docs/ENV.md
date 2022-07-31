@@ -70,11 +70,3 @@ database config will be used. The possible values for this are: mysql, and sqlit
 |---------------------------|----------------------------------------------------------------------------------------------------------------------|
 | KME_GAW_READINESS_DECAY   | The amount of readiness level to decay each day from last update 0.5 = -1%.Set this value defaults to 0 for no decay |
 | KME_GAW_ENABLE_PROMOTIONS | Whether to enable promotions in gaw (use true or false)                                                              |
-
-### Panel Configuration
-
-| Variable Name      | Description                                                 |
-|--------------------|-------------------------------------------------------------|
-| KME_PANEL_ENABLED  | Whether the management panel should be enabled (true/false) |
-| KME_PANEL_USERNAME | The username required for accessing the panel               |
-| KME_PANEL_PASSWORD | The password required for accessing the panel               |

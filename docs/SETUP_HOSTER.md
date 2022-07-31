@@ -11,9 +11,9 @@ if you are using docker then you can skip all other portions of this guide
 
 
 ## Prerequisites 
-- Java 17 (If you would like to use another Java version you must recompile KME against that version)
+- Minimum Java 11 (If you would like to use another Java version you must recompile KME against that version)
   - Oracle: ([https://www.oracle.com/java/technologies/downloads/](https://www.oracle.com/java/technologies/downloads/))
-- The server executable (This can be found in the releases)
+- The server executable (This can be found in the releases [HERE](https://github.com/jacobtread/KME3/releases/latest))
 
 ### 1. Preparing
 Prepare a folder for you server. Depending on your configuration the server will generate both
@@ -40,9 +40,9 @@ If you are looking for information on how to connect to the server now you can t
 [Client Setup](SETUP_CLIENT.md)
 
 ### Environment Variables
-KME3 can be configured using environment variables. You can view a list of them at [Environment Variables](docs/ENV.md)
+KME3 can be configured using environment variables. You can view a list of them at [Environment Variables](./ENV.md)
 
 ### Port Forwarding
 If you haven't already make sure that you are forwarding the 4 ports you have inside your config
-by default these ports are 42127, 14219, 9988, and 80 however you can change all of these except 
+by default these ports are 42127, 14219, and 80 however you can change all of these except 
 redirector port. Search online for guides on port forwarding for your specific router 
