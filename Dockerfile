@@ -5,13 +5,11 @@ ENV GRADLE_USER_HOME /home/gradle/cache_home
 
 WORKDIR /home/gradle/app
 
-COPY build.gradle.kts gradle.properties settings.gradle.kts ./
-COPY app/build.gradle.kts ./app/build.gradle.kts
-COPY blaze/build.gradle.kts ./blaze/build.gradle.kts
-COPY blaze-processor/build.gradle.kts ./blaze-processor/build.gradle.kts
-COPY logger/build.gradle.kts ./logger/build.gradle.kts
+# Building depends on constants generation
 
-RUN gradle app:clean app:build -i --stacktrace
+COPY build.gradle.kts gradle.properties settings.gradle.kts ./
+
+RUN gradle clean build -i
 
 # Building with gradle 7.4.2 and JDK 17
 FROM gradle:7.4.2-jdk17-alpine AS build
@@ -19,34 +17,30 @@ FROM gradle:7.4.2-jdk17-alpine AS build
 COPY --from=cache /home/gradle/cache_home /home/gradle/.gradle
 
 # Copy the local source code to a folder on the image
-COPY --chown=gradle:gradle . /home/gradle/src
+COPY --chown=gradle:gradle . /home/gradle/app/
 
 # Set the working directory
-WORKDIR /home/gradle/src
+WORKDIR /home/gradle/app
 
 # Build the shadow JAR
-RUN gradle app:shadowJar --no-daemon
+RUN gradle shadowJar --no-daemon
 
 # Run step uses OpenJDK 17 alpine
 FROM openjdk:17-alpine
 
 # Use environment variable based config only shouldn't
-# be changed unless you want an on disk config aswell
+# be changed unless you want an on disk config as well
 ENV KME_ENVIRONMENT_CONFIG=true
 
 # External address for clients to access this server through
-ENV KME_EXTERNAL_ADDRESS="383933-gosprapp396.ea.com"
+# this is the address that the redirector will tell the client
+# that the main server is hosted at
+ENV KME_EXTERNAL_ADDRESS="kme.jacobtread.local"
 
 # Server ports
 ENV KME_REDIRECTOR_PORT=42127
 ENV KME_MAIN_PORT=14219
-ENV DISCARD_PORT=9988
 ENV KME_HTTP_PORT=80
-
-# Panel config
-ENV KME_PANEL_ENABLED=true
-ENV KME_PANEL_USERNAME=admin
-ENV KME_PANEL_PASSWORD=admin
 
 # Database config
 ENV KME_DATABASE_TYPE=sqlite
@@ -76,8 +70,6 @@ ENV KME_LOGGER_PACKETS=false
 # Exposing the ports for all the servers
 EXPOSE ${KME_REDIRECTOR_PORT}
 EXPOSE ${KME_MAIN_PORT}
-EXPOSE ${KME_TICKER_PORT}
-EXPOSE ${KME_TELEMETRY_PORT}
 EXPOSE ${KME_HTTP_PORT}
 
 # Create an app directory
@@ -87,7 +79,7 @@ RUN mkdir "/app"
 WORKDIR /app
 
 # Copy the compiled JAR from the build step
-COPY --from=build /home/gradle/src/app/build/libs/server.jar server.jar
+COPY --from=build /home/gradle/app/build/libs/server.jar server.jar
 
 VOLUME ["/run"]
 WORKDIR /run

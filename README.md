@@ -6,17 +6,18 @@ Kotlin Mass Effect 3
 [![Gradle Build](https://img.shields.io/github/workflow/status/jacobtread/KME3/gradle-build?style=for-the-badge)](https://github.com/jacobtread/KME3/actions/workflows/gradle.yml)
 ![Total Lines](https://img.shields.io/tokei/lines/github/jacobtread/KME3?style=for-the-badge)
 
+[Discord Server (https://discord.gg/yvycWW8RgR)](https://discord.gg/yvycWW8RgR)
+
 KME3 is a custom private server for Mass Effect 3 emulating the functionatlity of the official EA servers
 but allowing you to host your own closed off private server or ever a server for playing together over lan
 
 So far this project has become a very well performing server and is constantly being improved and optimized in my free time.
-There are some bugs which need to be ironed out but at the moment its a perfectly usable server
+There are some bugs which need to be ironed out but at the moment it's a perfectly usable server
 
 ## Links
 - [**Latest Release** - The latest server jar release](https://github.com/jacobtread/KME3/releases/latest) 
 - [**Client Setup** - Setting up yourself to connect to KME3 servers](docs/SETUP_CLIENT.md)
 - [**Hosting Setup** - Setting up yourself to host a KME3 servers](docs/SETUP_HOSTER.md)
-- [**Configuration Reference** - Configuration file info and what each setting in it does](docs/CONFIG_REFERENCE.md)
 
 ## Connection requirements
 
@@ -30,7 +31,6 @@ I plan on making a tool for doing this automatically
 ## Planned
 
 - [ ] Web panel interface
-    - This has been started and is at [https://github.com/jacobtread/KME3Web](https://github.com/jacobtread/KME3Web) but will be included by default
 - [ ] Leaderboard support
 
 ## Credits

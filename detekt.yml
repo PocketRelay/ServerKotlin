@@ -1,0 +1,75 @@
+complexity:
+  # Packet processors are expected to have a large number of functions
+  # as they handle all the different packets
+  TooManyFunctions:
+    thresholdInClasses: 25
+    thresholdInFiles: 20
+    thresholdInObjects: 25
+    ignoreAnnotated:
+      - "com.jacobtread.blaze.annotations.PacketProcessor"
+    excludes:
+      # Database logic has a large amount of functions
+      # reducing this would reduce efficiency
+      - "**/com/jacobtread/kme/database/**"
+  # Packet processing classes are large by design.
+  LargeClass:
+    ignoreAnnotated:
+      - "com.jacobtread.blaze.annotations.PacketProcessor"
+  LongMethod:
+    threshold: 500
+
+exceptions:
+  # Exceptions need to be swallowed for certain functions
+  # in order to prevent unhandled exceptions from escaping
+  SwallowedException:
+    active: false
+
+  # Channel read function catches "Exception" to prevent
+  # it from making its way up the pipeline without being
+  # caught. Also allows improved logging for said exception
+  TooGenericExceptionCaught:
+    ignoreFunction:
+      - "channelRead"
+
+  # Print stacktraces are ignored because the logger used by
+  # this project prints the stacktrace when logging so this
+  # error is a false positive
+  PrintStackTrace:
+    active: false
+potential-bugs:
+  # Explicit Garbage collection is used at the begging on the
+  # application in order to garbage collect the chunk of memory
+  # used to set up the app which otherwise wouldn't be done till
+  # much later
+  ExplicitGarbageCollectionCall:
+    active: false
+
+style:
+  # This detects far to many false positive for it to be a useful
+  # setting so this is disabled
+  MagicNumber:
+    active: false
+  # Comments with TO DO are nessicary to this project for describing
+  # what needs futher implementation and so are not an issue
+  ForbiddenComment:
+    active: false
+  # Wildcard imports are automatically used by Intellij IDEA when
+  # enough things are imported.
+  WildcardImport:
+    active: false
+  # Max line length is increased due to some hardcoded strings being
+  # too long to fit the original (120)
+  MaxLineLength:
+    maxLineLength: 150
+    excludes:
+      - "**/com/jacobtread/kme/data/Data.kt"
+
+  # Maximum return count increased for functions that must make many
+  # checks to determine the outcome (handleLogin)
+  ReturnCount:
+    max: 5
+
+  # Original value is too strict and prevents certain things
+  # such as parsing while skipping invalid field possible
+  LoopWithTooManyJumpStatements:
+    maxJumpCount: 3

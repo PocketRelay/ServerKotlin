@@ -59,7 +59,7 @@ Don't forget to replace ${ADDRESS} with the IP address of your server
 > replacing ${ADDRESS} with the IP address of your server
 
 ```
-${ADDRESS} 383933-gosprapp396.ea.com
+${ADDRESS} kme.jacobtread.local
 ```
 
 ### 3. Patching your game
