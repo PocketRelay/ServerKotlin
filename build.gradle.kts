@@ -41,7 +41,8 @@ dependencies {
 }
 
 detekt {
-    toolVersion = "1.21.0"
+    val detektVersion: String by project
+    toolVersion = detektVersion
     config = files("detekt.yml")
     buildUponDefaultConfig = true
 }
