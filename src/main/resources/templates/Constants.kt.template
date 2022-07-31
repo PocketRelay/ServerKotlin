@@ -9,4 +9,6 @@ package com.jacobtread.kme.data
  */
 object Constants {
     const val KME_VERSION = "%KME_VERSION%"
+    const val MYSQL_VERSION = "%MYSQL_VERSION%"
+    const val SQLITE_VERSION = "%SQLITE_VERSION%"
 }

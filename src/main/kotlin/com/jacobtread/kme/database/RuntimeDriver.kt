@@ -1,5 +1,6 @@
 package com.jacobtread.kme.database
 
+import com.jacobtread.kme.data.Constants
 import com.jacobtread.kme.utils.logging.Logger
 import java.io.IOException
 import java.net.URL
@@ -8,8 +9,10 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
+import java.sql.Connection
 import java.sql.Driver
 import java.sql.DriverManager
+import java.sql.SQLException
 
 /**
  * Wrapper for SQL drivers that are loaded at runtime.
@@ -21,6 +24,64 @@ import java.sql.DriverManager
 class RuntimeDriver(private val driver: Driver) : Driver by driver {
 
     companion object {
+
+        /**
+         * Creates a new MySQL connection. This includes creating the
+         * runtime driver for MySQL. The application will forcibily close
+         * if the connection could not be made
+         *
+         * @param host The host address of the MySQL server
+         * @param port The port of the MySQL server
+         * @param user The username of the MySQL server
+         * @param password The password of the MySQL server
+         * @param database The database within the MySQL server
+         * @return The created connection
+         */
+        fun createMySQLonnection(
+            host: String,
+            port: Int,
+            user: String,
+            password: String,
+            database: String,
+        ): Connection {
+            val version = Constants.MYSQL_VERSION
+            createRuntimeDriver(
+                "https://repo1.maven.org/maven2/mysql/mysql-connector-java/$version/mysql-connector-java-$version.jar",
+                "com.mysql.cj.jdbc.Driver",
+                "mysql.jar"
+            )
+            try {
+                return DriverManager.getConnection("jdbc:mysql://${host}:${port}/${database}", user, password)
+            } catch (e: SQLException) {
+                Logger.fatal("Unable to connect to SQLite database", e)
+            }
+        }
+
+        /**
+         * Creates a new SQLite connection. This includes creating a runtime driver
+         * for SQLite. The application will forcibily close if the connection could
+         * not be made
+         *
+         * @param file The file path to the SQLite database file
+         * @return The created connection
+         */
+        fun createSQLiteConnection(file: String): Connection {
+            val version = Constants.SQLITE_VERSION
+            createRuntimeDriver(
+                "https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/$version/sqlite-jdbc-$version.jar",
+                "org.sqlite.JDBC",
+                "sqlite.jar"
+            )
+            val path = Paths.get(file).toAbsolutePath()
+            val parentDir = path.parent
+            if (Files.notExists(parentDir)) Files.createDirectories(parentDir)
+            try {
+                return DriverManager.getConnection("jdbc:sqlite:$file")
+            } catch (e: SQLException) {
+                Logger.fatal("Unable to connect to SQLite database", e)
+            }
+        }
+
         /**
          * Creates a database driver that is loaded at runtime. It downloads the provided
          * library if not already downloaded and then registers the driver.
@@ -29,7 +90,7 @@ class RuntimeDriver(private val driver: Driver) : Driver by driver {
          * @param clazz The java class for the driver
          * @param fileName The file name for the downloaded jar file
          */
-        fun createRuntimeDriver(
+        private fun createRuntimeDriver(
             url: String,
             clazz: String,
             fileName: String,

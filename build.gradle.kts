@@ -76,7 +76,11 @@ tasks.register("generateConstants") {
  */
 fun replaceConstants(value: String): String {
     val kme3Version: String by project
+    val mysqlVersion: String by project
+    val sqliteVersion: String by project
     return value.replace("%KME_VERSION%", kme3Version)
+        .replace("%MYSQL_VERSION%", mysqlVersion)
+        .replace("%SQLITE_VERSION%", sqliteVersion)
 }
 
 

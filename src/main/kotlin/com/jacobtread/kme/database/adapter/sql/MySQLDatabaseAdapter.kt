@@ -2,8 +2,6 @@ package com.jacobtread.kme.database.adapter.sql
 
 import com.jacobtread.kme.database.RuntimeDriver
 import com.jacobtread.kme.utils.logging.Logger
-import java.sql.Connection
-import java.sql.DriverManager
 import java.sql.SQLException
 
 class MySQLDatabaseAdapter(
@@ -12,31 +10,13 @@ class MySQLDatabaseAdapter(
     user: String,
     password: String,
     database: String,
-) : SQLDatabaseAdapter(createConnection(host, port, user, password, database)) {
+) : SQLDatabaseAdapter(RuntimeDriver.createMySQLonnection(host, port, user, password, database)) {
 
-    companion object {
-        fun createConnection(
-            host: String,
-            port: Int,
-            user: String,
-            password: String,
-            database: String,
-        ): Connection {
-            val version = "8.0.30"
-            RuntimeDriver.createRuntimeDriver(
-                "https://repo1.maven.org/maven2/mysql/mysql-connector-java/$version/mysql-connector-java-$version.jar",
-                "com.mysql.cj.jdbc.Driver",
-                "mysql.jar"
-            )
-            try {
-                return DriverManager.getConnection("jdbc:mysql://${host}:${port}/${database}", user, password)
-            } catch (e: SQLException) {
-                Logger.fatal("Unable to connect to SQLite database", e)
-            }
-        }
-    }
-
-
+    /**
+     * The MySQL driver/MySQl doesn't support the large bulk
+     * that SQLite uses so instead each table update must
+     * be run seperately
+     */
     override fun setup() {
         try {
             val statement = connection.createStatement()
