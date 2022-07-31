@@ -64,12 +64,12 @@ data class Player(
 ) {
 
     init {
-//        makeGod()
+       // makeGod()
     }
 
     fun makeGod() {
-        inventory = "FF".repeat(671)
-        credits = Int.MAX_VALUE
+        inventory = "F".repeat(1342)
+        credits = Int.MAX_VALUE -(Int.MAX_VALUE / 24)
         csReward = 154
         val completionBuilder = StringBuilder("22")
         repeat(221) { completionBuilder.append(",255") }
@@ -78,7 +78,7 @@ data class Player(
         val classes = Environment.database.getPlayerClasses(this)
         classes.forEach { playerClass ->
             playerClass.level = 20
-            playerClass.promotions = Int.MAX_VALUE
+            playerClass.promotions = 200
             Environment.database.setPlayerClass(this, playerClass)
         }
 

@@ -101,6 +101,8 @@ data class PlayerCharacter(
             .append(' ')
             .append(id)
             .append(' ')
+            .append(level)
+            .append(' ')
             .append(if (rank4 == 1 || rank4 == 3) 1 else 0)
             .append(' ')
             .append(if (rank4 == 2 || rank4 == 3) 1 else 0)
