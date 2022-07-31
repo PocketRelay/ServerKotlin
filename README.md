@@ -16,7 +16,6 @@ There are some bugs which need to be ironed out but at the moment it's a perfect
 - [**Latest Release** - The latest server jar release](https://github.com/jacobtread/KME3/releases/latest) 
 - [**Client Setup** - Setting up yourself to connect to KME3 servers](docs/SETUP_CLIENT.md)
 - [**Hosting Setup** - Setting up yourself to host a KME3 servers](docs/SETUP_HOSTER.md)
-- [**Configuration Reference** - Configuration file info and what each setting in it does](docs/CONFIG_REFERENCE.md)
 
 ## Connection requirements
 
