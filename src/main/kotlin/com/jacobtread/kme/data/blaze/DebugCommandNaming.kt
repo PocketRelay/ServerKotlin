@@ -20,21 +20,15 @@ class DebugCommandNaming : DebugNaming {
                     Logger.warn("Naming file invalid entry: $line")
                     continue
                 }
-                val idPart = parts[0]
-                if (idPart.length < 2) {
-                    Logger.warn("Invalid ID in naming file: $idPart")
-                    continue
-                }
-
                 val id = parts[0]
                     .substring(2)
                     .toIntOrNull(16)
                 if (id == null) {
-                    Logger.warn("Invalid ID in naming file: $idPart")
-                    continue
+                    Logger.warn("Invalid ID in naming file: ${parts[0]}")
+                } else {
+                    val name = parts[1]
+                    output[id] = name
                 }
-                val name = parts[1]
-                output[id] = name
             }
         }
 
