@@ -37,7 +37,7 @@ class RuntimeDriver(private val driver: Driver) : Driver by driver {
          * @param database The database within the MySQL server
          * @return The created connection
          */
-        fun createMySQLonnection(
+        fun createMySQLConnection(
             host: String,
             port: Int,
             user: String,

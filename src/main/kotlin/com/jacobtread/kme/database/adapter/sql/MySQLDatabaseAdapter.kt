@@ -10,7 +10,7 @@ class MySQLDatabaseAdapter(
     user: String,
     password: String,
     database: String,
-) : SQLDatabaseAdapter(RuntimeDriver.createMySQLonnection(host, port, user, password, database)) {
+) : SQLDatabaseAdapter(RuntimeDriver.createMySQLConnection(host, port, user, password, database)) {
 
     /**
      * The MySQL driver/MySQl doesn't support the large bulk
