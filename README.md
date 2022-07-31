@@ -32,6 +32,8 @@ I plan on making a tool for doing this automatically
 
 - [ ] Web panel interface
 - [ ] Leaderboard support
+- [ ] Automatic import from official servers
+- [ ] Origin authentication support 
 
 ## Credits
 
