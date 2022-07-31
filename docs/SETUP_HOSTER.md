@@ -23,7 +23,8 @@ and make sure you set it to your working directory (Command is most likely `cd` 
 
 ### 2. Starting
 
-To start the server run the following command
+To start the server run the following command inside your terminal
+while in the same directory as the server.jar file
 
 ```java -jar server.jar```
 
@@ -48,6 +49,18 @@ KME3 can be configured using environment variables. You can view a list of them 
 
 ### Port Forwarding
 
-If you haven't already make sure that you are forwarding the 4 ports you have inside your config
-by default these ports are 42127, 14219, and 80 however you can change all of these except
-redirector port. Search online for guides on port forwarding for your specific router 
+In order for this server to be public available to non lan devices you will need
+to forward the following ports
+
+> NOTE: If you have modified any of these ports in your configuration file
+> excluding the redirector port then you will need to forward the port you
+> changed it too instead
+
+- 42127 _(The redirector port)_
+- 14219 _(The main server port this can be modified in the config)_
+- 80 _(The http server port this can be modified in the config)_
+
+If your router asks you to specific which protocol is being forwarded you 
+should select `TCP` or `TCP/UDP` if that's not available
+
+Search online for guides on port forwarding for your specific router 
