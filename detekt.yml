@@ -2,10 +2,15 @@ complexity:
   # Packet processors are expected to have a large number of functions
   # as they handle all the different packets
   TooManyFunctions:
+    thresholdInClasses: 25
     thresholdInFiles: 20
     thresholdInObjects: 25
     ignoreAnnotated:
       - "com.jacobtread.blaze.annotations.PacketProcessor"
+    excludes:
+      # Database logic has a large amount of functions
+      # reducing this would reduce efficiency
+      - "**/com/jacobtread/kme/database/**"
   # Packet processing classes are large by design.
   LargeClass:
     ignoreAnnotated:

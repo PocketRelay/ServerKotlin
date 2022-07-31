@@ -64,18 +64,11 @@ class Game(
 
     fun join(player: Session) = playersLock.write {
         if (playersCount >= MAX_PLAYERS) throw GameException.GameFullException()
-
-
         player.resetMatchmakingState()
-
         val gameSlot = playersCount++
-
         player.setGame(this, gameSlot)
-
         players[gameSlot] = player
-
         val host = getHost()
-
         host.updateSessionFor(player)
         host.pushAll(
             notify(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOINING) {
