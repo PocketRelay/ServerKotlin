@@ -44,11 +44,11 @@ class RuntimeDriver(private val driver: Driver) : Driver by driver {
             password: String,
             database: String,
         ): Connection {
-            val version = Constants.MYSQL_VERSION
-            createRuntimeDriver(
-                "https://repo1.maven.org/maven2/mysql/mysql-connector-java/$version/mysql-connector-java-$version.jar",
-                "com.mysql.cj.jdbc.Driver",
-                "mysql.jar"
+            createMavenDriver(
+                "mysql",
+                "mysql-connector-java",
+                Constants.MYSQL_VERSION,
+                "com.mysql.cj.jdbc.Driver"
             )
             try {
                 return DriverManager.getConnection("jdbc:mysql://${host}:${port}/${database}", user, password)
@@ -66,11 +66,11 @@ class RuntimeDriver(private val driver: Driver) : Driver by driver {
          * @return The created connection
          */
         fun createSQLiteConnection(file: String): Connection {
-            val version = Constants.SQLITE_VERSION
-            createRuntimeDriver(
-                "https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/$version/sqlite-jdbc-$version.jar",
-                "org.sqlite.JDBC",
-                "sqlite.jar"
+            createMavenDriver(
+                "org.xerial",
+                "sqlite-jdbc",
+                Constants.SQLITE_VERSION,
+                "org.sqlite.JDBC"
             )
             val path = Paths.get(file).toAbsolutePath()
             val parentDir = path.parent
@@ -80,6 +80,24 @@ class RuntimeDriver(private val driver: Driver) : Driver by driver {
             } catch (e: SQLException) {
                 Logger.fatal("Unable to connect to SQLite database", e)
             }
+        }
+
+        /**
+         * Creates a runtime driver using a JDBC library hosted
+         * on a maven repository.
+         *
+         * @param group The group id of the package
+         * @param name The name of the package
+         * @param version The version of the package
+         * @param driverClass The driver class name for loading
+         */
+        private fun createMavenDriver(group: String, name: String, version: String, driverClass: String) {
+            val groupEncoded = group.replace('.', '/')
+            createRuntimeDriver(
+                "https://repo1.maven.org/maven2/$groupEncoded/$name/$version/$name-$version.jar",
+                driverClass,
+                "$name.jar"
+            )
         }
 
         /**
