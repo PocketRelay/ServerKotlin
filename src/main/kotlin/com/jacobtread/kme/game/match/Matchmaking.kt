@@ -108,7 +108,9 @@ object Matchmaking {
                     if (timeElapsed >= MATCHMAKING_TIMEOUT) {
                         val playerEntity = session.player
                         if (playerEntity != null) {
-                            Logger.info("Player matchmaking timed out ${playerEntity.displayName} (${playerEntity.playerId})")
+                            Logger.info(
+                                "Player matchmaking timed out ${playerEntity.displayName} (${playerEntity.playerId})"
+                            )
                         }
                         session.notifyMatchmakingFailed()
                         waitingLock.write {

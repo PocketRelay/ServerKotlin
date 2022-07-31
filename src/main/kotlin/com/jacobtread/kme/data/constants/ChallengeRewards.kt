@@ -1,7 +1,7 @@
 package com.jacobtread.kme.data.constants
 
 enum class ChallengeRewards(
-    val value: Int,
+    val id: Int,
     val rewardName: String,
     val text: String = rewardName,
 ) {

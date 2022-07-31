@@ -1,8 +1,11 @@
 package com.jacobtread.kme.servers
 
-import com.jacobtread.kme.Environment
-import com.jacobtread.blaze.*
+import com.jacobtread.blaze.PacketDecoder
+import com.jacobtread.blaze.PacketEncoder
+import com.jacobtread.blaze.group
 import com.jacobtread.blaze.packet.Packet
+import com.jacobtread.blaze.respond
+import com.jacobtread.kme.Environment
 import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
 import com.jacobtread.kme.utils.logging.Logger
@@ -150,18 +153,20 @@ class RedirectorHandler : ChannelInboundHandlerAdapter() {
         Security.setProperty("jdk.tls.disabledAlgorithms", "")
         val keyStorePassword = charArrayOf('1', '2', '3', '4', '5', '6')
         val keyStoreStream = RedirectorHandler::class.java.getResourceAsStream("/redirector.pfx")
-            ?: throw IllegalStateException("Missing required keystore for SSLv3")
+        checkNotNull(keyStoreStream) { "Missing required keystore for SSLv3" }
         val keyStore = KeyStore.getInstance("PKCS12")
         keyStore.load(keyStoreStream, keyStorePassword)
         val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
         kmf.init(keyStore, keyStorePassword)
 
         // Create new SSLv3 compatible context
-        return SslContextBuilder.forServer(kmf)
+        val context = SslContextBuilder.forServer(kmf)
             .ciphers(listOf("TLS_RSA_WITH_RC4_128_SHA", "TLS_RSA_WITH_RC4_128_MD5"))
             .protocols("SSLv3", "TLSv1.2", "TLSv1.3")
             .startTls(true)
             .trustManager(InsecureTrustManagerFactory.INSTANCE)
-            .build() ?: throw IllegalStateException("Unable to create SSL Context")
+            .build()
+        checkNotNull(context) { "Unable to create SSL Context" }
+        return context
     }
 }

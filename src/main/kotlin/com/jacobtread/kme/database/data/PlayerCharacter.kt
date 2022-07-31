@@ -54,8 +54,11 @@ data class PlayerCharacter(
             val parts = section.split(' ', limit = 11)
             if (parts.size < 11) continue
             val name = parts[0]
-            val ua = parts[1].toIntOrNull() ?: continue
-            val level = parts[2].toFloatOrNull() ?: continue
+            val ua = parts[1].toIntOrNull()
+            val level = parts[2].toFloatOrNull()
+            if (ua == null || level == null) {
+                continue
+            }
             val rankAT = parts[3].toInt()
             val rankAB = parts[4].toInt()
             val rankBT = parts[5].toInt()

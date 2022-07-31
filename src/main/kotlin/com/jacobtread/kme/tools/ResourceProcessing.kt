@@ -104,5 +104,4 @@ object ResourceProcessing {
             .append(base64.length)
         return outBuilder.toString()
     }
-
 }

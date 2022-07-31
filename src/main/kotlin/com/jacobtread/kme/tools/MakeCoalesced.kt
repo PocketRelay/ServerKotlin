@@ -19,9 +19,11 @@ object MakeCoalesced {
     @JvmStatic
     fun main(args: Array<String>) {
         val inFile = Paths.get("data/bini.bin")
-        require(Files.exists(inFile) && Files.isRegularFile(inFile)) { "Input file data/bini.bin didn't exist or was not a file." }
+        val inputExists = Files.exists(inFile) && Files.isRegularFile(inFile)
+        require(inputExists) { "Input file data/bini.bin didn't exist or was not a file." }
         val destFile = Paths.get("app/src/main/resources/data/bini.bin.chunked")
         ResourceProcessing.processCoalesced(inFile, destFile)
-        require(Files.exists(destFile) && Files.isRegularFile(destFile)) { "Something went wrong output file was never generate" }
+        val outputExists = Files.exists(destFile) && Files.isRegularFile(destFile)
+        require(outputExists) { "Something went wrong output file was never generate" }
     }
 }

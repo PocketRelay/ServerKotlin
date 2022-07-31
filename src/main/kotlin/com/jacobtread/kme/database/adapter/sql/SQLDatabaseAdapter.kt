@@ -6,10 +6,7 @@ import com.jacobtread.kme.database.data.Player
 import com.jacobtread.kme.database.data.PlayerCharacter
 import com.jacobtread.kme.database.data.PlayerClass
 import com.jacobtread.kme.exceptions.DatabaseException
-import java.sql.Connection
-import java.sql.ResultSet
-import java.sql.SQLException
-import java.sql.Statement
+import java.sql.*
 
 abstract class SQLDatabaseAdapter(
     protected val connection: Connection,
@@ -265,7 +262,9 @@ abstract class SQLDatabaseAdapter(
     }
 
     private fun hasPlayerClass(player: Player, index: Int): Boolean {
-        val statement = connection.prepareStatement("SELECT `id` FROM `player_classes` WHERE `player_id` = ? AND `index` = ?")
+        val statement = connection.prepareStatement(
+            "SELECT `id` FROM `player_classes` WHERE `player_id` = ? AND `index` = ?"
+        )
         statement.setInt(1, player.playerId)
         statement.setInt(2, index)
         val resultSet = statement.executeQuery()
@@ -435,6 +434,7 @@ abstract class SQLDatabaseAdapter(
                     statement.executeUpdate()
                     statement.close()
                 }
+
                 "FaceCodes" -> {
                     val statement = connection.prepareStatement("UPDATE `players` SET `face_codes` = ? WHERE `id` = ?")
                     statement.setString(1, player.faceCodes)
@@ -442,6 +442,7 @@ abstract class SQLDatabaseAdapter(
                     statement.executeUpdate()
                     statement.close()
                 }
+
                 "NewItem" -> {
                     val statement = connection.prepareStatement("UPDATE `players` SET `new_item` = ? WHERE `id` = ?")
                     statement.setString(1, player.newItem)
@@ -457,6 +458,7 @@ abstract class SQLDatabaseAdapter(
                     statement.executeUpdate()
                     statement.close()
                 }
+
                 "Completion" -> {
                     val statement = connection.prepareStatement("UPDATE `players` SET `completion` = ? WHERE `id` = ?")
                     statement.setString(1, player.completion)
@@ -464,6 +466,7 @@ abstract class SQLDatabaseAdapter(
                     statement.executeUpdate()
                     statement.close()
                 }
+
                 "Progress" -> {
                     val statement = connection.prepareStatement("UPDATE `players` SET `progress` = ? WHERE `id` = ?")
                     statement.setString(1, player.progress)
@@ -471,6 +474,7 @@ abstract class SQLDatabaseAdapter(
                     statement.executeUpdate()
                     statement.close()
                 }
+
                 "cscompletion" -> {
                     val statement = connection.prepareStatement("UPDATE `players` SET `cs_completion` = ? WHERE `id` = ?")
                     statement.setString(1, player.cscompletion)
@@ -478,6 +482,7 @@ abstract class SQLDatabaseAdapter(
                     statement.executeUpdate()
                     statement.close()
                 }
+
                 "cstimestamps" -> {
                     val statement = connection.prepareStatement("UPDATE `players` SET `cs_timestamps_1` = ? WHERE `id` = ?")
                     statement.setString(1, player.cstimestamps1)
@@ -485,6 +490,7 @@ abstract class SQLDatabaseAdapter(
                     statement.executeUpdate()
                     statement.close()
                 }
+
                 "cstimestamps2" -> {
                     val statement = connection.prepareStatement("UPDATE `players` SET `cs_timestamps_2` = ? WHERE `id` = ?")
                     statement.setString(1, player.cstimestamps2)
@@ -492,6 +498,7 @@ abstract class SQLDatabaseAdapter(
                     statement.executeUpdate()
                     statement.close()
                 }
+
                 "cstimestamps3" -> {
                     val statement = connection.prepareStatement("UPDATE `players` SET `cs_timestamps_3` = ? WHERE `id` = ?")
                     statement.setString(1, player.cstimestamps3)
@@ -515,33 +522,51 @@ abstract class SQLDatabaseAdapter(
         return result
     }
 
+    private fun PreparedStatement.setGalaxyAtWar(start: Int, galaxyAtWarData: GalaxyAtWarData) {
+        setLong(start, galaxyAtWarData.lastModified)
+        setInt(start + 1, galaxyAtWarData.groupA)
+        setInt(start + 2, galaxyAtWarData.groupB)
+        setInt(start + 3, galaxyAtWarData.groupC)
+        setInt(start + 4, galaxyAtWarData.groupD)
+        setInt(start + 5, galaxyAtWarData.groupE)
+    }
+
     override fun setGalaxyAtWarData(player: Player, galaxyAtWarData: GalaxyAtWarData) {
         try {
             val hasData = hasGalaxyAtWarData(player)
             if (hasData) {
                 val statement = connection.prepareStatement(
-                    "UPDATE `player_gaw` SET `last_modified` = ?, `group_a` = ?, `group_b` = ?, `group_c` = ? , `group_d` = ? , `group_e` = ? WHERE `player_id` = ?"
+                    """
+                       UPDATE `player_gaw` SET 
+                       `last_modified` = ?, 
+                       `group_a` = ?, 
+                       `group_b` = ?, 
+                       `group_c` = ? , 
+                       `group_d` = ? , 
+                       `group_e` = ?
+                       WHERE `player_id` = ?
+                    """.trimIndent()
                 )
-                statement.setLong(1, galaxyAtWarData.lastModified)
-                statement.setInt(2, galaxyAtWarData.groupA)
-                statement.setInt(3, galaxyAtWarData.groupB)
-                statement.setInt(4, galaxyAtWarData.groupC)
-                statement.setInt(5, galaxyAtWarData.groupD)
-                statement.setInt(6, galaxyAtWarData.groupE)
+                statement.setGalaxyAtWar(1, galaxyAtWarData)
                 statement.setInt(7, player.playerId)
                 statement.executeUpdate()
                 statement.close()
             } else {
                 val statement = connection.prepareStatement(
-                    "INSERT INTO `player_gaw` (`player_id`,`last_modified`, `group_a`, `group_b`, `group_c`, `group_d`, `group_e`) VALUES (?, ?, ?, ?, ?, ?, ?)"
+                    """
+                    INSERT INTO `player_gaw` (
+                        `player_id`, 
+                        `last_modified`, 
+                        `group_a`,
+                        `group_b`, 
+                        `group_c`, 
+                        `group_d`, 
+                        `group_e`
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """.trimIndent()
                 )
                 statement.setInt(1, player.playerId)
-                statement.setLong(2, galaxyAtWarData.lastModified)
-                statement.setInt(3, galaxyAtWarData.groupA)
-                statement.setInt(4, galaxyAtWarData.groupB)
-                statement.setInt(5, galaxyAtWarData.groupC)
-                statement.setInt(6, galaxyAtWarData.groupD)
-                statement.setInt(7, galaxyAtWarData.groupE)
+                statement.setGalaxyAtWar(2, galaxyAtWarData)
                 statement.executeUpdate()
                 statement.close()
             }

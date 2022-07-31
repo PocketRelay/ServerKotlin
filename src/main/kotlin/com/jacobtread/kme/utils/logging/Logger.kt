@@ -57,7 +57,6 @@ object Logger {
      *
      * @param levelName The logging level name
      * @param file Whether to save the log output to the log files
-     * @param packets Whether to log packet input and output
      */
     fun init(
         levelName: String,

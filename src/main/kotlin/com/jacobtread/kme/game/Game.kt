@@ -246,15 +246,6 @@ class Game(
         playersLock.read { players.forEach { it?.push(packet) } }
     }
 
-    private fun pushAllExcludingHost(packet: Packet) {
-        playersLock.read {
-            for (i in 1 until MAX_PLAYERS) {
-                val player = players[i] ?: continue
-                player.push(packet)
-            }
-        }
-    }
-
     fun createNotifySetup(): Packet =
         notify(
             Components.GAME_MANAGER,
@@ -378,5 +369,4 @@ class Game(
     fun setAttributes(map: Map<String, String>) {
         attributesLock.write { attributes.putAll(map) }
     }
-
 }

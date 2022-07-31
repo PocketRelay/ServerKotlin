@@ -108,7 +108,9 @@ class LogWriter {
             i++
         }
         val inputStream = Files.newInputStream(file)
-        val outputStream = GZIPOutputStream(BufferedOutputStream(Files.newOutputStream(newPath, StandardOpenOption.CREATE)))
+        val fileStream = Files.newOutputStream(newPath, StandardOpenOption.CREATE)
+            .buffered()
+        val outputStream = GZIPOutputStream(fileStream)
         inputStream.copyTo(outputStream)
         inputStream.close()
         outputStream.flush()
@@ -126,7 +128,7 @@ class LogWriter {
         try {
             flush()
             fileChannel.close()
-        } catch (e: Exception) {
+        } catch (e: IOException) {
             println("Failed to save log")
             e.printStackTrace()
         }

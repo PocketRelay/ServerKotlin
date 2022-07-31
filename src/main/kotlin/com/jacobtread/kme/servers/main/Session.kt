@@ -982,10 +982,20 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
                     number("FLAG", 0x1)
                     number("STAT", 0x0)
                     number("TAG", 0x0)
-                    tripple("TARG", Components.USER_SESSIONS.toLong(), Commands.SET_SESSION.toLong(), playerEntity.playerId.toLong())
+                    tripple(
+                        "TARG",
+                        Components.USER_SESSIONS,
+                        Commands.SET_SESSION,
+                        playerEntity.playerId
+                    )
                     number("TYPE", 0x0)
                 }
-                tripple("SRCE", Components.USER_SESSIONS.toLong(), Commands.SET_SESSION.toLong(), playerEntity.playerId.toLong())
+                tripple(
+                    "SRCE",
+                    Components.USER_SESSIONS,
+                    Commands.SET_SESSION,
+                    playerEntity.playerId
+                )
                 number("TIME", unixTimeSeconds())
             }
         )
@@ -1152,7 +1162,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
                     "SECTION" to "BINI_PC_COMPRESSED",
                     "VERSION" to "40128"
                 )
-                "ME3_BINI_PC_COMPRESSED" -> Data.loadBiniCompressed() ?: emptyMap() // Loads the chunked + compressed bini
+                "ME3_BINI_PC_COMPRESSED" -> Data.loadBiniCompressed() // Loads the chunked + compressed bini
                 else -> emptyMap()
             }
         }
@@ -1796,7 +1806,6 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
 
 
     companion object {
-
         private const val SKEY = "11229301_9b171d92cc562b293e602ee8325612e7"
 
         /**
@@ -1805,7 +1814,5 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
          * takes their ID
          */
         private val nextSessionId = AtomicInteger(0)
-
     }
-
 }

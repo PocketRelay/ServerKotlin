@@ -90,7 +90,11 @@ object Environment {
 
 
         // Main menu message string
-        menuMessage = env.stringValue("KME_MENU_MESSAGE", "menuMessage", "<font color='#B2B2B2'>KME3</font> - <font color='#FFFF66'>Logged as: {n}</font>")
+        menuMessage = env.stringValue(
+            "KME_MENU_MESSAGE",
+            "menuMessage",
+            "<font color='#B2B2B2'>KME3</font> - <font color='#FFFF66'>Logged as: {n}</font>"
+        )
 
 
         // Man in the middle configuration

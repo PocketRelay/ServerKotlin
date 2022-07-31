@@ -299,8 +299,9 @@ class MITMHandler(
      * @return Whether to ignore sending this packet to the client
      */
     private fun tryForwardHttp(packet: Packet): Boolean {
-        if (!forwardHttp) return false
-        if (packet.component == Components.UTIL && packet.command == Commands.FETCH_CLIENT_CONFIG) {
+        if (forwardHttp
+            && packet.component == Components.UTIL
+            && packet.command == Commands.FETCH_CLIENT_CONFIG) {
             val type = packet.text("CFID")
             if (type == "ME3_DATA") {
                 clientChannel.writeAndFlush(

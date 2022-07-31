@@ -596,7 +596,10 @@ object Data {
         }
     }
 
-    fun loadBiniCompressed(): Map<String, String>? = loadChunkedFile("data/bini.bin.chunked")
+    fun loadBiniCompressed(): Map<String, String> {
+        val value = loadChunkedFile("data/bini.bin.chunked")
+        return value ?: emptyMap()
+    }
 
     fun getTalkFileConfig(lang: String): Map<String, String> {
         var map = loadChunkedFile("data/tlk/$lang.tlk.chunked")
@@ -615,7 +618,7 @@ object Data {
                 val line = reader.readLine() ?: break
 
                 val parts = line.split(':', limit = 2)
-                if (parts.size > 2) throw RuntimeException("ERR TOO MANY VALUES")
+                if (parts.size < 2) continue
                 out[parts[0]] = parts[1]
             }
         }

@@ -10,6 +10,7 @@ plugins {
     kotlin("jvm")
     id("com.github.johnrengelman.shadow")
     id("com.google.devtools.ksp")
+    id("io.gitlab.arturbosch.detekt")
     idea
 }
 
@@ -40,6 +41,11 @@ dependencies {
     implementation("com.jacobtread.xml:xml-builder-kt:$xmlVersion")
 }
 
+detekt {
+    toolVersion = "1.21.0"
+    config = files("detekt.yml")
+    buildUponDefaultConfig = true
+}
 
 /**
  * This task generates a constants file at src/main/kotlin/com/jacobtread/kme/data/Constants.kt

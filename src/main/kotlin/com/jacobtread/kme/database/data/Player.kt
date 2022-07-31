@@ -213,5 +213,4 @@ data class Player(
             Environment.database.setUpdatedPlayerData(this, key)
         }
     }
-
 }
