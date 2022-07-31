@@ -1077,9 +1077,9 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
                 return
             }
             setAuthenticatedPlayer(player)
+            push(packet.respond())
         } catch (e: DatabaseException) {
             Logger.warn("Failed to resume session", e)
-        } finally {
             push(packet.respond())
         }
     }
@@ -1692,7 +1692,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             text("PCTK", playerEntity.getSessionToken()) // PC Session Token
             list("PLST", listOf(createPersonaGroup())) // Persona List
             text("PRIV", "")
-            text("SKEY", SKEY)
+            text("SKEY", playerEntity.getSessionToken())
             number("SPAM", 0)
             text("THST", "")
             text("TSUI", "")
@@ -1712,7 +1712,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         with(builder) {
             number("BUID", playerEntity.playerId)
             number("FRST", 0)
-            text("KEY", SKEY)
+            text("KEY", playerEntity.getSessionToken())
             number("LLOG", 0)
             text("MAIL", playerEntity.email) // Player Email
             +createPersonaGroup()
@@ -1803,7 +1803,6 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
 
 
     companion object {
-        private const val SKEY = "11229301_9b171d92cc562b293e602ee8325612e7"
 
         /**
          * The integer value which is used as the ID of the
