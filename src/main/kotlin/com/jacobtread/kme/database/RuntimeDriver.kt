@@ -4,6 +4,7 @@ import com.jacobtread.kme.utils.logging.Logger
 import java.net.URL
 import java.net.URLClassLoader
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import java.sql.Driver
@@ -36,17 +37,7 @@ class RuntimeDriver(private val driver: Driver) : Driver by driver {
             if (Files.notExists(driversPath)) Files.createDirectories(driversPath)
             val path = driversPath.resolve(fileName)
             if (Files.notExists(path)) {
-                Logger.info("Database driver not installed. Downloading $fileName...")
-                try {
-                    URL(url).openStream().use { input ->
-                        Files.newOutputStream(path, StandardOpenOption.CREATE_NEW).use { output ->
-                            input.copyTo(output)
-                            Logger.info("Download Completed.")
-                        }
-                    }
-                } catch (e: Exception) {
-                    Logger.fatal("Failed to downlaod database driver", e)
-                }
+                downloadDriver(url, fileName, path)
             }
             // Load the jar file and create the wrapped runtime driver
             val classLoader = URLClassLoader.newInstance(arrayOf(path.toUri().toURL()))
@@ -56,6 +47,27 @@ class RuntimeDriver(private val driver: Driver) : Driver by driver {
                 .newInstance() as Driver
             DriverManager.registerDriver(RuntimeDriver(driver))
         }
-    }
 
+        /**
+         * Downloads the JDBC driver jar stored at the provided
+         * url and saves it to the provided file path
+         *
+         * @param url The url where the jar file is hosted
+         * @param fileName The file name to save it as
+         * @param path The path to save to the file to
+         */
+        private fun downloadDriver(url: String, fileName: String, path: Path) {
+            Logger.info("Database driver not installed. Downloading $fileName...")
+            try {
+                URL(url).openStream().use { input ->
+                    Files.newOutputStream(path, StandardOpenOption.CREATE_NEW).use { output ->
+                        input.copyTo(output)
+                        Logger.info("Download Completed.")
+                    }
+                }
+            } catch (e: Exception) {
+                Logger.fatal("Failed to downlaod database driver", e)
+            }
+        }
+    }
 }
