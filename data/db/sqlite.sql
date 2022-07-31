@@ -5,8 +5,10 @@ CREATE TABLE IF NOT EXISTS `players`
     `email`           TEXT    NOT NULL,
     `display_name`    TEXT    NOT NULL,
     `session_token`   TEXT    DEFAULT NULL,
+    `origin`          INTEGER NOT NULL,
     `password`        TEXT    NOT NULL,
-    `credits`         INT     DEFAULT 0,
+
+    `credits`         INTEGER DEFAULT 0,
     `credits_spent`   INTEGER DEFAULT 0,
     `games_played`    INTEGER DEFAULT 0,
     `seconds_played`  INTEGER DEFAULT 0,

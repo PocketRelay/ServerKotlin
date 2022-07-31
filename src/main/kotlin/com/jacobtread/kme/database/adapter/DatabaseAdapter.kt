@@ -112,6 +112,17 @@ interface DatabaseAdapter {
     fun createPlayer(email: String, hashedPassword: String): Player
 
     /**
+     * Handles retrieving an Origin player from the database.
+     * Origin accounts are generated based on a origin token
+     * and the username is uniquely generated
+     *
+     * @param token The origin token
+     * @return The created player
+     */
+    @Throws(DatabaseException::class)
+    fun getOriginPlayer(token: String): Player
+
+    /**
      * Updates all the mutable fields on the player object
      * in the database regardless of whether they have been
      * modified or not.

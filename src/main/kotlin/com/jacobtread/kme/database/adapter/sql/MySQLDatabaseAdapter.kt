@@ -37,8 +37,10 @@ class MySQLDatabaseAdapter(
             `id`              INT(255)               NOT NULL AUTO_INCREMENT,
             `email`           VARCHAR(254)           NOT NULL,
             `display_name`    VARCHAR(99)            NOT NULL,
-            `session_token`   VARCHAR(128) DEFAULT NULL,
+            `session_token`   VARCHAR(254) DEFAULT NULL,
+            `origin`          BOOLEAN                NOT NULL,
             `password`        VARCHAR(128)           NOT NULL,
+            
             `credits`         INT(255)     DEFAULT 0 NOT NULL,
             `credits_spent`   INT(255)     DEFAULT 0 NOT NULL,
             `games_played`    INT(255)     DEFAULT 0 NOT NULL,

@@ -64,12 +64,12 @@ data class Player(
 ) {
 
     init {
-       // makeGod()
+        // makeGod()
     }
 
     fun makeGod() {
         inventory = "F".repeat(1342)
-        credits = Int.MAX_VALUE -(Int.MAX_VALUE / 24)
+        credits = Int.MAX_VALUE - (Int.MAX_VALUE / 24)
         csReward = 154
         val completionBuilder = StringBuilder("22")
         repeat(221) { completionBuilder.append(",255") }

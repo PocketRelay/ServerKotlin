@@ -350,7 +350,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         } catch (e: NotAuthenticatedException) { // Handle player access with no player
             push(LoginError.INVALID_ACCOUNT(msg))
             val address = ctx.channel().remoteAddress()
-            Logger.warn("Client at $address tried to access a authenticated route without authenticating",)
+            Logger.warn("Client at $address tried to access a authenticated route without authenticating")
         } catch (e: Exception) {
             Logger.warn("Failed to handle packet: $msg", e)
             push(msg.respond())
@@ -447,16 +447,20 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
 
 
     /**
-     * Handles logins from clients using the origin system. This currently
-     * is not implemented however in the future I could add a system which
-     * creates accounts for the origin players
+     * Handles logins from clients using the origin system. This generates a
+     * unqiue username for the provided origin token.
      *
      * @param packet The packet requesting origin login
      */
     @PacketHandler(Components.AUTHENTICATION, Commands.ORIGIN_LOGIN)
     fun handleOriginLogin(packet: Packet) {
-        Logger.info("Recieved unsupported request for Origin Login")
-        push(packet.respond())
+        val auth = packet.text("AUTH")
+        val player = Environment.database.getOriginPlayer(auth)
+        Logger.info("Authenticated Origin Account ${player.displayName}")
+
+        setAuthenticatedPlayer(player)
+        push(createSilentAuthenticatedResponse(packet))
+        updateSessionFor(this)
     }
 
     /**
@@ -562,21 +566,8 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             val player = database.getPlayerById(pid) ?: return push(LoginError.INVALID_ACCOUNT(packet))
             // If the session token's don't match send INVALID_ACCOUNT error
             if (!player.isSessionToken(auth)) return push(LoginError.INVALID_SESSION(packet))
-            val sessionToken = player.getSessionToken() // Session token grabbed after auth as to not generate new one
             setAuthenticatedPlayer(player)
-            // We don't store last login time so this is just computed here
-            push(packet.respond {
-                number("AGUP", 0)
-                text("LDHT", "")
-                number("NTOS", 0)
-                text("PCTK", sessionToken)
-                text("PRIV", "")
-                +group("SESS") { appendDetailsTo(this) }
-                number("SPAM", 0)
-                text("THST", "")
-                text("TSUI", "")
-                text("TURI", "")
-            })
+            push(createSilentAuthenticatedResponse(packet))
             updateSessionFor(this)
         } catch (e: IOException) {
             Logger.warn("Failed silent login", e)
@@ -1159,6 +1150,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
                     "SECTION" to "BINI_PC_COMPRESSED",
                     "VERSION" to "40128"
                 )
+
                 "ME3_BINI_PC_COMPRESSED" -> Data.loadBiniCompressed() // Loads the chunked + compressed bini
                 else -> emptyMap()
             }
@@ -1698,6 +1690,24 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             text("TSUI", "")
             text("TURI", "")
             number("UID", playerEntity.playerId) // Player ID
+        }
+    }
+
+    private fun createSilentAuthenticatedResponse(packet: Packet): Packet {
+        val player = player ?: throw NotAuthenticatedException()
+        setAuthenticatedPlayer(player)
+        // We don't store last login time so this is just computed here
+        return packet.respond {
+            number("AGUP", 0)
+            text("LDHT", "")
+            number("NTOS", 0)
+            text("PCTK", player.getSessionToken())
+            text("PRIV", "")
+            +group("SESS") { appendDetailsTo(this) }
+            number("SPAM", 0)
+            text("THST", "")
+            text("TSUI", "")
+            text("TURI", "")
         }
     }
 
