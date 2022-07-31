@@ -10,10 +10,17 @@ KME has a dockerfile in the root of the project this can be used to host the ser
 which requires no extra setup. The docker server can be configured using [Environment Variables](docs/ENV.md)
 if you are using docker then you can skip all other portions of this guide
 
+
+Docker pull command:
+```shell
+docker pull jacobtread/kme:latest
+```
+
 ## Prerequisites
 - The server executable (This can be found in the releases [HERE](https://github.com/jacobtread/KME3/releases/latest))
 - Minimum Java 11 (If you would like to use another Java version you must recompile KME against that version)
     - Oracle: ([https://www.oracle.com/java/technologies/downloads/](https://www.oracle.com/java/technologies/downloads/))
+
 
 ### 1. Preparing
 
