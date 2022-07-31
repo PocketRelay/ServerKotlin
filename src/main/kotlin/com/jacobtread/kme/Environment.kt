@@ -81,7 +81,11 @@ object Environment {
         }
 
         // External address string
-        externalAddress = env.stringValue("KME_EXTERNAL_ADDRESS", "externalAddress", "383933-gosprapp396.ea.com")
+        externalAddress = env.stringValue(
+            "KME_EXTERNAL_ADDRESS",
+            "externalAddress",
+            "kme.jacobtread.local"
+        )
 
         // Server ports
         redirectorPort = env.intValue("KME_REDIRECTOR_PORT", "ports.redirector", 42127)
