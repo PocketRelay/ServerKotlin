@@ -1,4 +1,5 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val kme3Version: String by project
 
@@ -18,24 +19,23 @@ repositories {
 }
 
 dependencies {
-    // Core dependency groupings
-
-    val nettyHttpVersion: String by project
-    implementation("com.jacobtread.netty:kotlin-netty-http:$nettyHttpVersion")
-
+    // Netty Dependencies
     val nettyVersion: String by project
     implementation("io.netty:netty-handler:$nettyVersion")
     implementation("io.netty:netty-buffer:$nettyVersion")
     implementation("io.netty:netty-codec-http:$nettyVersion")
 
-    val blazeVersion: String by project
+    // Netty HTTP routing
+    val nettyHttpVersion: String by project
+    implementation("com.jacobtread.netty:kotlin-netty-http:$nettyHttpVersion")
 
+    // Blaze Dependencies
+    val blazeVersion: String by project
     implementation("com.jacobtread.blaze:blaze-core:$blazeVersion")
     implementation("com.jacobtread.blaze:blaze-annotations:$blazeVersion")
-
-    // KSP annoatation processing for packet routing
     ksp("com.jacobtread.blaze:blaze-processor:$blazeVersion")
 
+    // XML Dependencies
     val xmlVersion: String by project
     implementation("com.jacobtread.xml:xml-builder-kt:$xmlVersion")
 }
@@ -61,26 +61,15 @@ tasks.register("generateConstants") {
     outputs.file(output)
 
     doFirst {
-        var templateFile = input.readText(Charsets.UTF_8)
-        templateFile = replaceConstants(templateFile)
+        val kme3Version: String by project
+        val mysqlVersion: String by project
+        val sqliteVersion: String by project
+        val templateFile = input.readText(Charsets.UTF_8)
+            .replace("%KME_VERSION%", kme3Version)
+            .replace("%MYSQL_VERSION%", mysqlVersion)
+            .replace("%SQLITE_VERSION%", sqliteVersion)
         output.writeText(templateFile, Charsets.UTF_8)
     }
-}
-
-/**
- * This function handles replacing the individual different
- * constant variables within the template string
- *
- * @param value The template string
- * @return The replaced template string
- */
-fun replaceConstants(value: String): String {
-    val kme3Version: String by project
-    val mysqlVersion: String by project
-    val sqliteVersion: String by project
-    return value.replace("%KME_VERSION%", kme3Version)
-        .replace("%MYSQL_VERSION%", mysqlVersion)
-        .replace("%SQLITE_VERSION%", sqliteVersion)
 }
 
 
@@ -88,12 +77,12 @@ fun replaceConstants(value: String): String {
  * Hooks into the kotlin compiling task to set the
  * jvm target and add the defaults' compiler arg
  */
-tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class) {
+tasks.withType(KotlinCompile::class) {
+    // Require constants to be generated before compile
     dependsOn("generateConstants")
-
     kotlinOptions {
-        val javaCompileVersion: String by project
-        jvmTarget = javaCompileVersion
+        val jvmTarget: String by project
+        this.jvmTarget = jvmTarget
         freeCompilerArgs = freeCompilerArgs + "-Xjvm-default=all"
     }
 }
@@ -155,6 +144,7 @@ idea {
     }
 }
 
+
 tasks.withType(ShadowJar::class) {
-    minimize()
+    minimize() // Minimize the created shadow jar
 }
