@@ -1141,11 +1141,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         val type = packet.text("CFID")
         val conf: Map<String, String> = if (type.startsWith("ME3_LIVE_TLK_PC_")) {
             val lang = type.substring(16)
-            try {
-                Data.loadChunkedFile("data/tlk/$lang.tlk.chunked")
-            } catch (e: IOException) {
-                Data.loadChunkedFile("data/tlk/default.tlk.chunked")
-            }
+            Data.getTalkFileConfig(lang)
         } else {
             when (type) {
                 "ME3_DATA" -> Data.createDataConfig() // Configurations for GAW, images and others
@@ -1156,8 +1152,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
                     "SECTION" to "BINI_PC_COMPRESSED",
                     "VERSION" to "40128"
                 )
-
-                "ME3_BINI_PC_COMPRESSED" -> Data.loadBiniCompressed() // Loads the chunked + compressed bini
+                "ME3_BINI_PC_COMPRESSED" -> Data.loadBiniCompressed() ?: emptyMap() // Loads the chunked + compressed bini
                 else -> emptyMap()
             }
         }

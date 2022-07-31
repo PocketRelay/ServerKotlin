@@ -3,9 +3,7 @@ package com.jacobtread.kme.data
 import com.jacobtread.blaze.TdfBuilder
 import com.jacobtread.blaze.group
 import com.jacobtread.kme.Environment
-import java.io.BufferedReader
 import java.io.IOException
-import java.io.InputStreamReader
 
 /**
  * Data Pre constructed data and retrieval of data that's used throughout the app
@@ -598,21 +596,28 @@ object Data {
         }
     }
 
-    fun loadBiniCompressed(): Map<String, String> = loadChunkedFile("data/bini.bin.chunked")
+    fun loadBiniCompressed(): Map<String, String>? = loadChunkedFile("data/bini.bin.chunked")
 
-    fun loadChunkedFile(path: String): Map<String, String> {
-        val inputStream = Data::class.java.getResourceAsStream("/$path") ?: throw IOException("Missing internal resource: $path")
-        val reader = BufferedReader(InputStreamReader(inputStream))
-        val lines = ArrayList<String>()
-        while (true) {
-            val line = reader.readLine() ?: break
-            lines.add(line)
-        }
-        val out = LinkedHashMap<String, String>(lines.size + 1)
-        lines.forEach {
-            val parts = it.split(':', limit = 2)
-            if (parts.size > 2) throw RuntimeException("ERR TOO MANY VALUES")
-            out[parts[0]] = parts[1]
+    fun getTalkFileConfig(lang: String): Map<String, String> {
+        var map = loadChunkedFile("data/tlk/$lang.tlk.chunked")
+        if (map == null) map = loadChunkedFile("data/tlk/default.tlk.chunked")
+        if (map == null) map = emptyMap()
+        return map
+    }
+
+    private fun loadChunkedFile(path: String): Map<String, String>? {
+        val inputStream = Data::class.java.getResourceAsStream("/$path")
+            ?: return null
+        val out = LinkedHashMap<String, String>()
+        val reader = inputStream.bufferedReader(Charsets.UTF_8)
+        reader.use {
+            while (true) {
+                val line = reader.readLine() ?: break
+
+                val parts = line.split(':', limit = 2)
+                if (parts.size > 2) throw RuntimeException("ERR TOO MANY VALUES")
+                out[parts[0]] = parts[1]
+            }
         }
         return out
     }
