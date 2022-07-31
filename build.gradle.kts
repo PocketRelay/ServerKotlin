@@ -64,11 +64,13 @@ tasks.register("generateConstants") {
         val kme3Version: String by project
         val mysqlVersion: String by project
         val sqliteVersion: String by project
-        val templateFile = input.readText(Charsets.UTF_8)
-            .replace("%KME_VERSION%", kme3Version)
-            .replace("%MYSQL_VERSION%", mysqlVersion)
-            .replace("%SQLITE_VERSION%", sqliteVersion)
-        output.writeText(templateFile, Charsets.UTF_8)
+        if (input.exists()) {
+            val templateFile = input.readText(Charsets.UTF_8)
+                .replace("%KME_VERSION%", kme3Version)
+                .replace("%MYSQL_VERSION%", mysqlVersion)
+                .replace("%SQLITE_VERSION%", sqliteVersion)
+            output.writeText(templateFile, Charsets.UTF_8)
+        }
     }
 }
 
