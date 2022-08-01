@@ -149,13 +149,13 @@ class RedirectorHandler : ChannelInboundHandlerAdapter() {
      * @return The created context
      */
     private fun createSslContext(): SslContext {
-        // Clears the disabled algorithms necessary for SSLv3
-        Security.setProperty("jdk.tls.disabledAlgorithms", "")
         val keyStorePassword = charArrayOf('1', '2', '3', '4', '5', '6')
         val keyStoreStream = RedirectorHandler::class.java.getResourceAsStream("/redirector.pfx")
         checkNotNull(keyStoreStream) { "Missing required keystore for SSLv3" }
         val keyStore = KeyStore.getInstance("PKCS12")
-        keyStore.load(keyStoreStream, keyStorePassword)
+        keyStoreStream.use {
+            keyStore.load(keyStoreStream, keyStorePassword)
+        }
         val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
         kmf.init(keyStore, keyStorePassword)
 
