@@ -10,7 +10,6 @@ import com.jacobtread.kme.data.attr.GameStateAttr
 import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
 import com.jacobtread.kme.exceptions.GameException
-import com.jacobtread.kme.servers.main.Session
 import com.jacobtread.kme.utils.logging.Logger
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read

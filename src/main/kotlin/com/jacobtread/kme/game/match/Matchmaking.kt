@@ -2,7 +2,7 @@ package com.jacobtread.kme.game.match
 
 import com.jacobtread.kme.game.Game
 import com.jacobtread.kme.game.GameManager
-import com.jacobtread.kme.servers.main.Session
+import com.jacobtread.kme.game.Session
 import com.jacobtread.kme.utils.logging.Logger
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit

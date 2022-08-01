@@ -1,4 +1,4 @@
-package com.jacobtread.kme.servers.main
+package com.jacobtread.kme.game
 
 import com.jacobtread.blaze.*
 import com.jacobtread.blaze.annotations.PacketHandler
@@ -16,10 +16,9 @@ import com.jacobtread.kme.data.blaze.Components
 import com.jacobtread.kme.database.data.Player
 import com.jacobtread.kme.exceptions.DatabaseException
 import com.jacobtread.kme.exceptions.GameException
-import com.jacobtread.kme.game.Game
-import com.jacobtread.kme.game.GameManager
 import com.jacobtread.kme.game.match.MatchRuleSet
 import com.jacobtread.kme.game.match.Matchmaking
+import com.jacobtread.kme.game.routeSession
 import com.jacobtread.kme.utils.hashPassword
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.unixTimeSeconds
