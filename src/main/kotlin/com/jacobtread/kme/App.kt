@@ -10,6 +10,8 @@ import io.netty.channel.nio.NioEventLoopGroup
 fun main() {
     Environment // Make sure environment is initialized
 
+    // TODO: Implement auto-updater
+
     val bossGroup = NioEventLoopGroup()
     val workerGroup = NioEventLoopGroup()
 
