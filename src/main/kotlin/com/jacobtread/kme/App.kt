@@ -6,6 +6,7 @@ import com.jacobtread.kme.servers.startHttpServer
 import com.jacobtread.kme.servers.startMainServer
 import com.jacobtread.kme.servers.startRedirector
 import io.netty.channel.nio.NioEventLoopGroup
+import java.util.*
 
 fun main() {
     Environment // Make sure environment is initialized

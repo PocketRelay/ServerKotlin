@@ -5,12 +5,12 @@ import com.jacobtread.blaze.notify
 import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.blaze.tdf.Tdf
 import com.jacobtread.blaze.tdf.types.GroupTdf
-import com.jacobtread.blaze.tdf.types.ListTdf
 import com.jacobtread.kme.data.attr.GameStateAttr
 import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
 import com.jacobtread.kme.exceptions.GameException
 import com.jacobtread.kme.utils.logging.Logger
+import java.util.*
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
@@ -30,8 +30,6 @@ class Game(
     private val attributesLock = ReentrantReadWriteLock()
     private val attributes = HashMap<String, String>()
 
-    fun isGameState(stateAttr: GameStateAttr): Boolean = isAttribute(GameStateAttr.GAME_STATE_ATTR, stateAttr.value)
-
     var isActive = true
 
 
@@ -39,14 +37,12 @@ class Game(
     private var playersCount = 1
     private val players = arrayOfNulls<Session>(MAX_PLAYERS)
 
-    private val activePlayers: List<Session>
-        get() = playersLock.read { players.filterNotNull() }
-
-    val isFull: Boolean get() = playersCount == MAX_PLAYERS
+    private val isFull: Boolean get() = playersCount == MAX_PLAYERS
     val isJoinable: Boolean get() = isActive && !isFull
 
     init {
         players[0] = host
+        host.setGame(this, 0)
     }
 
     private fun getHostOrNull(): Session? {
@@ -58,8 +54,15 @@ class Game(
         return host
     }
 
-    fun getHost(): Session = getHostOrNull() ?: throw GameException.StoppedException()
+    private fun getHost(): Session = getHostOrNull() ?: throw GameException.StoppedException()
 
+    fun setupHost() {
+        val host = getHost()
+        host.pushAll(
+            createGameSetupPacket(null),
+            host.createSetSessionPacket()
+        )
+    }
 
     fun join(player: Session) = playersLock.write {
         if (playersCount >= MAX_PLAYERS) throw GameException.GameFullException()
@@ -76,16 +79,12 @@ class Game(
             },
             player.createSetSessionPacket()
         )
-        activePlayers.forEach {
-            player.updateSessionFor(it)
-        }
-
+        forEachPlayer { player.updateSessionFor(it) }
         player.pushAll(
-            createMatchmakingResult(player),
+            createGameSetupPacket(player),
             player.createSetSessionPacket()
         )
     }
-
 
     private fun updatePlayerSlots() {
         playersCount = 0
@@ -114,11 +113,6 @@ class Game(
     }
 
 
-    fun removePlayer(player: Session) {
-        removeAtIndex(player.gameSlot)
-    }
-
-
     fun removePlayerById(playerId: Int) {
         val playerIndex: Int = playersLock.read {
             players.indexOfFirst {
@@ -132,12 +126,21 @@ class Game(
         }
     }
 
-    private fun removeAtIndex(index: Int) {
+    fun removeAtIndex(index: Int) {
         playersLock.read {
             Logger.logIfDebug { "Removing player at id $index" }
             val removedPlayer = players[index]
             if (removedPlayer != null) {
-                players.forEach { it?.push(createRemoveNotification(removedPlayer)) }
+                val removeNotifiation = notify(
+                    Components.GAME_MANAGER,
+                    Commands.NOTIFY_PLAYER_REMOVED
+                ) {
+                    number("CNTX", 0x0)
+                    number("GID", id)
+                    number("PID", removedPlayer.playerIdSafe)
+                    number("REAS", 0x6) // Possible remove reason? Investigate further
+                }
+                players.forEach { it?.push(removeNotifiation) }
                 playersLock.write { players[index] = null }
                 removedPlayer.clearGame()
 
@@ -177,31 +180,15 @@ class Game(
             number("PMIG", 0x2)
             number("SLOT", newHost.gameSlot)
         }
-        pushAll(startPacket)
-
-        pushAll(createNotifySetup())
-
         val finishPacket = notify(
             Components.GAME_MANAGER,
             Commands.NOTIFY_HOST_MIGRATION_FINISHED
         ) {
             number("GID", id)
         }
-        pushAll(finishPacket)
+        pushAll(startPacket, createGameSetupPacket(null), finishPacket)
     }
 
-
-    private fun createRemoveNotification(player: Session): Packet {
-        return notify(
-            Components.GAME_MANAGER,
-            Commands.NOTIFY_PLAYER_REMOVED
-        ) {
-            number("CNTX", 0x0)
-            number("GID", id)
-            number("PID", player.playerIdSafe)
-            number("REAS", 0x6) // Possible remove reason? Investigate further
-        }
-    }
 
     private fun updatePlayersList() {
         val host = getHost()
@@ -227,130 +214,141 @@ class Game(
         }
     }
 
-    fun broadcastAttributeUpdate() {
-        playersLock.read {
-            val packet = createNotifyPacket()
-            players.forEach { it?.push(packet) }
+    fun updateMeshConnection(playerSession: Session) {
+        val playerEntity = playerSession.player ?: return
+        val playerId = playerEntity.playerId
+        val host = getHost()
+        val a = notify(Components.GAME_MANAGER, Commands.NOTIFY_GAME_PLAYER_STATE_CHANGE) {
+            number("GID", id)
+            number("PID", playerId)
+            number("STAT", 4)
         }
+        val b = notify(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOIN_COMPLETED) {
+            number("GID", id)
+            number("PID", playerId)
+        }
+        val c = notify(Components.GAME_MANAGER, Commands.NOTIFY_ADMIN_LIST_CHANGE) {
+            number("ALST", playerId)
+            number("GID", id)
+            number("OPER", 0) // 0 = add 1 = remove
+            number("UID", host.playerIdSafe)
+        }
+        pushAll(a, b, c)
     }
 
     private fun pushAll(packet: Packet) {
-        playersLock.read { players.forEach { it?.push(packet) } }
+        forEachPlayer { player -> player.push(packet) }
     }
 
-    fun createNotifySetup(): Packet =
-        notify(
-            Components.GAME_MANAGER,
-            Commands.NOTIFY_GAME_SETUP
-        ) {
-            +createGameGroup()
-            +createPlayersList()
-            optional("REAS", group("VALU") {
-                number("DCTX", 0x0)
-            })
-        }
+    private fun pushAll(vararg packets: Packet) {
+        forEachPlayer { player -> player.pushAll(*packets) }
+    }
 
-    private fun createNotifyPacket(): Packet =
-        notify(
-            Components.GAME_MANAGER,
-            Commands.NOTIFY_GAME_UPDATED
-        ) {
-            map("ATTR", getAttributes())
-            number("GID", id)
-        }
 
-    private fun createGameGroup(): GroupTdf {
-        val host = getHost()
-        val hostPlayer = host.player
-        check(hostPlayer != null) { "Host player was null couldn't create game group" }
-        val hostId = hostPlayer.playerId
-
-        return group("GAME") {
-            val playerIds = ArrayList<ULong>()
+    private inline fun forEachPlayer(action: (player: Session) -> Unit) {
+        playersLock.read {
             players.forEach {
-                if (it != null) {
-                    playerIds.add(it.playerIdSafe.toULong())
-                }
+                if (it != null) action(it)
             }
-
-            // Game Admins
-            list("ADMN", playerIds)
-            map("ATTR", getAttributes())
-            list("CAP", listOf(0x4, 0x0))
-            number("GID", id)
-            text("GNAM", hostPlayer.displayName)
-            number("GPVH", 0x5a4f2b378b715c6)
-            number("GSET", gameSetting)
-            number("GSID", 0x4000000a76b645)
-            number("GSTA", gameState)
-            text("GTYP", "")
-            // Host network information
-            list("HNET", listOf(
-                group(start2 = true) {
-                    +host.createExternalNetGroup()
-                    +host.createInternalNetGroup()
-                }
-            ))
-            number("HSES", host.playerIdSafe)
-            number("IGNO", 0x0)
-            number("MCAP", 0x4)
-            +group("NQOS") {
-                number("DBPS", host.dbps)
-                number("NATT", host.nattType)
-                number("UBPS", host.ubps)
-            }
-            number("NRES", 0x0)
-            number("NTOP", 0x0)
-            text("PGID", "")
-            blob("PGSR")
-            +group("PHST") {
-                number("HPID", hostId)
-                number("HSLT", 0x0)
-            }
-            number("PRES", 0x1)
-            text("PSAS", "")
-            number("QCAP", 0x0)
-            number("SEED", 0x4cbc8585) // Seed? Could be used for game randomness?
-            number("TCAP", 0x0)
-            +group("THST") {
-                number("HPID", hostId)
-                number("HSLT", 0x0)
-            }
-            text("UUID", "286a2373-3e6e-46b9-8294-3ef05e479503")
-            number("VOIP", 0x2)
-            text("VSTR", "ME3-295976325-179181965240128") // Mass effect version string
-            blob("XNNC")
-            blob("XSES")
         }
     }
 
-    private fun createPlayersList(): ListTdf {
-        val playersList = ArrayList<GroupTdf>()
-        players.forEach {
-            if (it != null) {
-                playersList.add(it.createPlayerDataGroup())
-            }
+    private inline fun <T> mapPlayers(mapper: (player: Session) -> T): List<T> {
+        val output = ArrayList<T>()
+        forEachPlayer {
+            output.add(mapper(it))
         }
-        return ListTdf("PROS", Tdf.GROUP, playersList)
+        return output
     }
 
-    private fun createMatchmakingResult(forSession: Session): Packet =
-        notify(
+    private fun createGameSetupPacket(matchmakingSesion: Session?): Packet {
+        return notify(
             Components.GAME_MANAGER,
             Commands.NOTIFY_GAME_SETUP
         ) {
-            +createGameGroup()
-            +createPlayersList()
-            // Matchmaking result
-            optional("REAS", 0x3u, group("VALU") {
-                number("FIT", 0x3f7a)
-                number("MAXF", 0x5460)
-                number("MSID", forSession.matchmakingId)
-                number("RSLT", 0x2)
-                number("USID", forSession.playerIdSafe)
-            })
-        }
+            val host = getHost()
+            val hostPlayer = host.player
+            check(hostPlayer != null) { "Host player was null couldn't create game group" }
+            val hostId = hostPlayer.playerId
 
+            val playerIds = ArrayList<ULong>()
+            val playerGroups = ArrayList<GroupTdf>()
+            forEachPlayer { player ->
+                playerIds.add(player.playerIdSafe.toULong())
+                playerGroups.add(player.createPlayerDataGroup())
+            }
+
+            group("GAME") {
+                // Game Admins
+                list("ADMN", playerIds)
+                map("ATTR", getAttributes())
+                list("CAP", listOf(0x4, 0x0))
+                number("GID", id)
+                text("GNAM", hostPlayer.displayName)
+                number("GPVH", 0x5a4f2b378b715c6)
+                number("GSET", gameSetting)
+                number("GSID", 0x4000000a76b645)
+                number("GSTA", gameState)
+                text("GTYP", "")
+                // Host network information
+                list("HNET", listOf(
+                    group(start2 = true) {
+                        +host.createExternalNetGroup()
+                        +host.createInternalNetGroup()
+                    }
+                ))
+                number("HSES", host.playerIdSafe)
+                number("IGNO", 0x0)
+                number("MCAP", 0x4)
+                +group("NQOS") {
+                    number("DBPS", host.dbps)
+                    number("NATT", host.nattType)
+                    number("UBPS", host.ubps)
+                }
+                number("NRES", 0x0)
+                number("NTOP", 0x0)
+                text("PGID", "")
+                blob("PGSR")
+                +group("PHST") {
+                    number("HPID", hostId)
+                    number("HSLT", 0x0)
+                }
+                number("PRES", 0x1)
+                text("PSAS", "")
+                number("QCAP", 0x0)
+                number("SEED", 0x4cbc8585) // Seed? Could be used for game randomness?
+                number("TCAP", 0x0)
+                +group("THST") {
+                    number("HPID", hostId)
+                    number("HSLT", 0x0)
+                }
+                val uuid = UUID.randomUUID()
+                text("UUID", uuid.toString())
+                number("VOIP", 0x2)
+                text("VSTR", "ME3-295976325-179181965240128") // Mass effect version string?
+                blob("XNNC")
+                blob("XSES")
+            }
+
+            list("PROS", Tdf.GROUP, playerGroups)
+
+            if (matchmakingSesion != null) {
+                optional("REAS", 0x3u, group("VALU") {
+                    number("FIT", 0x3f7a)
+                    number("MAXF", 0x5460)
+                    number("MSID", matchmakingSesion.matchmakingId) // Matchmaking session id
+                    number("RSLT", 0x2)
+                    number("USID", matchmakingSesion.playerIdSafe) // Player ID
+                })
+            } else {
+                optional("REAS", group("VALU") {
+                    number("DCTX", 0x0)
+                })
+            }
+        }
+    }
+
+    fun isGameState(stateAttr: GameStateAttr): Boolean = isAttribute(GameStateAttr.GAME_STATE_ATTR, stateAttr.value)
 
     private fun getAttribute(key: String): String? = attributesLock.read { attributes[key] }
 
@@ -358,7 +356,18 @@ class Game(
 
     fun getAttributes(): Map<String, String> = attributesLock.read { attributes }
 
-    fun setAttributes(map: Map<String, String>) {
+    fun setAttributes(map: Map<String, String>, update: Boolean) {
         attributesLock.write { attributes.putAll(map) }
+        if (update) {
+            pushAll(
+                notify(
+                    Components.GAME_MANAGER,
+                    Commands.NOTIFY_GAME_UPDATED
+                ) {
+                    map("ATTR", getAttributes())
+                    number("GID", id)
+                }
+            )
+        }
     }
 }

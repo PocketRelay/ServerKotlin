@@ -18,7 +18,6 @@ import com.jacobtread.kme.exceptions.DatabaseException
 import com.jacobtread.kme.exceptions.GameException
 import com.jacobtread.kme.game.match.MatchRuleSet
 import com.jacobtread.kme.game.match.Matchmaking
-import com.jacobtread.kme.game.routeSession
 import com.jacobtread.kme.utils.hashPassword
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.unixTimeSeconds
@@ -635,12 +634,11 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             if (first != null) setNetworkingFromGroup(first)
         }
 
-        game.setAttributes(attributes ?: emptyMap()) // If the attributes are missing use empty
-        pushAll(
-            packet.respond { number("GID", game.id) },
-            game.createNotifySetup(),
-            createSetSessionPacket()
-        ) // Send the user session
+        game.setAttributes(attributes ?: emptyMap(), false) // If the attributes are missing use empty
+
+        push(packet.respond { number("GID", game.id) }) // Send the user session
+
+        game.setupHost()
         Matchmaking.onGameCreated(game)
     }
 
@@ -699,10 +697,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         val attributes = packet.mapOrNull<String, String>("ATTR")
         if (attributes != null) {
             val game = GameManager.getGameById(gameId)
-            if (game != null) {
-                game.setAttributes(attributes)
-                game.broadcastAttributeUpdate()
-            }
+            game?.setAttributes(attributes, true)
         }
         push(packet.respond())
     }
@@ -769,30 +764,8 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     fun handleUpdateMeshConnection(packet: Packet) {
         val gameId = packet.number("GID")
         push(packet.respond())
-
-        val playerEntity = player ?: return
         val game = GameManager.getGameById(gameId) ?: return
-        val host = game.getHost()
-        val playerId = playerEntity.playerId
-
-        val a = notify(Components.GAME_MANAGER, Commands.NOTIFY_GAME_PLAYER_STATE_CHANGE) {
-            number("GID", gameId)
-            number("PID", playerId)
-            number("STAT", 4)
-        }
-        val b = notify(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOIN_COMPLETED) {
-            number("GID", gameId)
-            number("PID", playerId)
-        }
-        val c = notify(Components.GAME_MANAGER, Commands.NOTIFY_ADMIN_LIST_CHANGE) {
-            number("ALST", playerId)
-            number("GID", gameId)
-            number("OPER", 0) // 0 = add 1 = remove
-            number("UID", host.playerIdSafe)
-        }
-
-        pushAll(a, b, c)
-        host.pushAll(a, b, c)
+        game.updateMeshConnection(this)
     }
 
     // endregion
@@ -1756,7 +1729,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     private fun removeFromGame() {
         resetMatchmakingState()
-        game?.removePlayer(this)
+        game?.removeAtIndex(gameSlot)
         clearGame()
     }
 

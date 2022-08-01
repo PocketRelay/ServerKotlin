@@ -23,16 +23,6 @@ object GameManager {
         game
     }
 
-    fun createGameWithID(host: Session, id: ULong): Game = gamesLock.write {
-        val hostPlayer = host.player ?: throw NotAuthenticatedException()
-        removeInactive()
-        val game = Game(id, host)
-        Logger.info("Created new game (${game.id}) hosted by ${hostPlayer.displayName}")
-        games[id] = game
-        game
-    }
-
-
     fun tryFindGame(test: (Game) -> Boolean): Game? = gamesLock.read { games.values.firstOrNull(test) }
 
     private fun removeInactive() {
