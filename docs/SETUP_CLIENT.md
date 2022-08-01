@@ -2,8 +2,13 @@
 
 [Back](../README.md)
 
-This document contains the instructions for connecting to a KME3 server. This process is a bit tedious at the moment,
-but I plan on making a tool that does the patching and hosts file redirect automatically to make this a bit easier
+## Automatic
+All the setups listed in this document can be done automatically using the patcher tool at
+[https://github.com/GamerClassN7/KME3_Patcher](https://github.com/GamerClassN7/KME3_Patcher) this
+is made by a friend on mine who is helping out with this project!
+
+If you wish to manually do what this patcher does you can follow the steps below.
+
 
 ### 1. Getting Server Address
 
