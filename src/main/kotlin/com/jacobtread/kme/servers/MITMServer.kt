@@ -10,7 +10,10 @@ import com.jacobtread.kme.data.blaze.Components
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.bootstrap.Bootstrap
 import io.netty.bootstrap.ServerBootstrap
-import io.netty.channel.*
+import io.netty.channel.Channel
+import io.netty.channel.ChannelHandlerContext
+import io.netty.channel.ChannelInboundHandlerAdapter
+import io.netty.channel.ChannelInitializer
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.channel.socket.nio.NioSocketChannel
@@ -22,6 +25,7 @@ import java.util.regex.Pattern
 
 fun startMITMServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
     try {
+        val serverDetails = MITMHandler.getServerDetails()
         PacketLogger.isEnabled = false
         ServerBootstrap()
             .group(bossGroup, workerGroup)
@@ -31,7 +35,9 @@ fun startMITMServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
                     ch.attr(PacketEncoder.ENCODER_CONTEXT_KEY)
                         .set("Connection to Client")
                     ch.pipeline()
-                        .addLast(MITMHandler(ch))
+                        .addFirst(PacketDecoder())
+                        .addLast(PacketEncoder)
+                        .addLast(MITMHandler(ch, serverDetails))
                 }
             })
             .bind(Environment.mainPort)
@@ -41,127 +47,141 @@ fun startMITMServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
     }
 }
 
+data class ServerDetails(
+    val host: String,
+    val port: Int,
+    val secure: Boolean,
+)
+
 class MITMHandler(
     private val clientChannel: Channel,
+    private val serverDetails: ServerDetails,
 ) : ChannelInboundHandlerAdapter() {
 
 
-    /**
-     * Performs a lookup for the official redirector host
-     * ip address using the Google DNS api, this is because
-     * the host running this server may have a hosts file
-     * redirect for this domain
-     *
-     * @return The redirect host ip
-     */
-    private fun getRedirectorHost(): String {
-        try {
-            val url = URL("https://dns.google/resolve?name=gosredirector.ea.com&type=A")
-
-            val inputStream = url.openStream()
-            val responseBytes = inputStream.use { it.readAllBytes() }
-            val responseText = String(responseBytes, Charsets.UTF_8)
-
-            // Pattern for matching the response data value
-            val pattern = Pattern.compile("\"data\": \"(.*)\"")
-
-            val matcher = pattern.matcher(responseText)
-
-            if (!matcher.find()) {
-                Logger.fatal("Failed to retreive official redirector IP address. Cannot start in MITM mode.")
-            }
-            return matcher.group(0)
-                ?: Logger.fatal("Failed to retreive official redirector IP address. Cannot start in MITM mode.")
-        } catch (e: IOException) {
-            Logger.fatal("Failed to retreive official redirector IP address. Cannot start in MITM mode.", e)
-        }
-    }
-
-    private var host: String = ""
-    private var port: Int = 0
-    private var secure: Boolean = false
     private val serverChannel: Channel
 
     private var forwardHttp: Boolean = false
     private var unlockCheat: Boolean = false
 
     init {
-        initialSetup()
         serverChannel = createOfficialChannel()
     }
 
-    /**
-     * Connects to the official redirector server and obtains the
-     * information of the main server for creating the MITM
-     * bridge connection.
-     */
-    private fun initialSetup() {
-        val redirectorHost = getRedirectorHost()
-        val redirectorPort = 42127
+    companion object {
 
-        val channelFuture = Bootstrap()
-            .group(DefaultEventLoop())
-            .channel(NioSocketChannel::class.java)
-            .handler(object : ChannelInboundHandlerAdapter() {
+        /**
+         * Performs a lookup for the official redirector host
+         * ip address using the Google DNS api, this is because
+         * the host running this server may have a hosts file
+         * redirect for this domain
+         *
+         * @return The redirect host ip
+         */
+        private fun getRedirectorHost(): String {
+            try {
+                val url = URL("https://dns.google/resolve?name=gosredirector.ea.com&type=A")
 
-                override fun handlerAdded(ctx: ChannelHandlerContext) {
-                    super.handlerAdded(ctx)
-                    val sslContext = SslContextBuilder.forClient()
-                        .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                        .build()
-                    val channel = ctx.channel()
-                    val pipeline = channel.pipeline()
-                    pipeline.addFirst(PacketDecoder())
-                        .addFirst(sslContext.newHandler(channel.alloc()))
-                        .addLast(PacketEncoder)
+                val inputStream = url.openStream()
+                val responseBytes = inputStream.use { it.readAllBytes() }
+                val responseText = String(responseBytes, Charsets.UTF_8)
+
+                // Pattern for matching the response data value
+                val pattern = Pattern.compile("\"data\":\"([0-9.]+)\"")
+
+                val matcher = pattern.matcher(responseText)
+
+                if (!matcher.find()) {
+                    Logger.fatal("Failed to retreive official redirector IP address. Cannot start in MITM mode. (No Match)")
                 }
-
-                override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-                    if (msg !is Packet) {
-                        ctx.fireChannelRead(msg)
-                        return
-                    }
-
-                    if (msg.component == Components.REDIRECTOR && msg.command == Commands.GET_SERVER_INSTANCE) {
-                        val address = msg.optional("ADDR")
-                        val addressGroup = address.value as GroupTdf
-
-                        host = addressGroup.text("HOST")
-                        port = addressGroup.numberInt("PORT")
-                        secure = msg.numberInt("SECU") == 0x1
-                        ctx.close()
-                    }
-
-                }
-
-            })
-            .connect(redirectorHost, redirectorPort)
-            .sync()
-
-        val channel = channelFuture.channel()
-        Logger.info("Connected to official redirector server")
-        Logger.info("Sending redirect request packet")
-
-        channel.writeAndFlush(
-            clientPacket(Components.REDIRECTOR, Commands.GET_SERVER_INSTANCE, 0x0) {
-                text("BSDK", "3.15.6.0")
-                text("BTIM", "Dec 21 2012 12:47:10")
-                text("CLNT", "MassEffect3-pc")
-                number("CLTP", 0x0)
-                text("CSKU", "134845")
-                text("CVER", "05427.124")
-                text("DSDK", "8.14.7.1")
-                text("ENV", "prod")
-                optional("FPID")
-                number("LOC", 0x656e4e5a)
-                text("NAME", "masseffect-3-pc")
-                text("PLAT", "Windows")
-                text("PROF", "standardSecure_v3")
+                return matcher.group(1)
+                    ?: Logger.fatal("Failed to retreive official redirector IP address. Cannot start in MITM mode. (Group was null)")
+            } catch (e: IOException) {
+                Logger.fatal("Failed to retreive official redirector IP address. Cannot start in MITM mode.", e)
             }
-        )
+        }
 
-        Logger.info("Waiting for server response and close")
-        channel.closeFuture().sync()
+        /**
+         * Connects to the official redirector server and obtains the
+         * information of the main server for creating the MITM
+         * bridge connection.
+         */
+        fun getServerDetails(): ServerDetails {
+            val redirectorHost = getRedirectorHost()
+            Logger.info("Located MITM host address: $redirectorHost")
+            val redirectorPort = 42127
+            var details: ServerDetails? = null
+
+            val channelFuture = Bootstrap()
+                .group(NioEventLoopGroup())
+                .channel(NioSocketChannel::class.java)
+                .handler(object : ChannelInboundHandlerAdapter() {
+
+                    override fun handlerAdded(ctx: ChannelHandlerContext) {
+                        super.handlerAdded(ctx)
+                        val sslContext = SslContextBuilder.forClient()
+                            .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                            .build()
+                        val channel = ctx.channel()
+                        val pipeline = channel.pipeline()
+                        pipeline.addFirst(PacketDecoder())
+                            .addFirst(sslContext.newHandler(channel.alloc()))
+                            .addLast(PacketEncoder)
+                    }
+
+                    override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
+                        if (msg !is Packet) {
+                            ctx.fireChannelRead(msg)
+                            return
+                        }
+
+                        if (msg.component == Components.REDIRECTOR && msg.command == Commands.GET_SERVER_INSTANCE) {
+                            val address = msg.optional("ADDR")
+                            val addressGroup = address.value as GroupTdf
+
+                            details = ServerDetails(
+                                host = addressGroup.text("HOST"),
+                                port = addressGroup.numberInt("PORT"),
+                                secure = msg.numberInt("SECU") == 0x1,
+                            )
+                            ctx.channel().close()
+                            Logger.info("MITM Recieved server instance result. Closing now.")
+                        }
+
+                    }
+
+                })
+                .connect(redirectorHost, redirectorPort)
+                .sync()
+
+            val channel = channelFuture.channel()
+            Logger.info("Connected to official redirector server")
+            Logger.info("Sending redirect request packet")
+
+            channel.writeAndFlush(
+                clientPacket(Components.REDIRECTOR, Commands.GET_SERVER_INSTANCE, 0x0) {
+                    text("BSDK", "3.15.6.0")
+                    text("BTIM", "Dec 21 2012 12:47:10")
+                    text("CLNT", "MassEffect3-pc")
+                    number("CLTP", 0x0)
+                    text("CSKU", "134845")
+                    text("CVER", "05427.124")
+                    text("DSDK", "8.14.7.1")
+                    text("ENV", "prod")
+                    optional("FPID")
+                    number("LOC", 0x656e4e5a)
+                    text("NAME", "masseffect-3-pc")
+                    text("PLAT", "Windows")
+                    text("PROF", "standardSecure_v3")
+                }
+            )
+
+            Logger.info("Waiting for server response and close")
+            channel.closeFuture().sync()
+            Logger.info("Finished MITM Redirect finding")
+            checkNotNull(details) { "Failed to retrieve redirect information" }
+            return details!!
+        }
     }
 
     /**
@@ -172,16 +192,20 @@ class MITMHandler(
      * @return The created channel
      */
     private fun createOfficialChannel(): Channel {
+        Logger.info("Connecting to official server...")
         val channelFuture = Bootstrap()
-            .group(DefaultEventLoopGroup())
+            .group(NioEventLoopGroup())
             .channel(NioSocketChannel::class.java)
             .handler(object : ChannelInboundHandlerAdapter() {
                 override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-                    if (msg !is Packet) return
+                    if (msg !is Packet) {
+                        super.channelRead(ctx, msg)
+                        return
+                    }
                     channelReadOfficial(msg)
                 }
             })
-            .connect(host, port)
+            .connect(serverDetails.host, serverDetails.port)
             .sync()
 
         val channel = channelFuture.channel()
@@ -189,13 +213,17 @@ class MITMHandler(
             .set("Connection to Official EA Server")
         val pipeline = channel.pipeline()
         pipeline.addFirst(PacketDecoder())
-        if (secure) {
+        if (serverDetails.secure) {
             val context = SslContextBuilder.forClient()
+                .ciphers(listOf("TLS_RSA_WITH_RC4_128_SHA", "TLS_RSA_WITH_RC4_128_MD5"))
+                .protocols("SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3")
+                .startTls(true)
                 .trustManager(InsecureTrustManagerFactory.INSTANCE)
                 .build()
             pipeline.addFirst(context.newHandler(channel.alloc()))
         }
-        pipeline.addFirst(PacketEncoder)
+        pipeline.addLast(PacketEncoder)
+        Logger.info("Official server connected")
         return channel
     }
 
@@ -301,7 +329,8 @@ class MITMHandler(
     private fun tryForwardHttp(packet: Packet): Boolean {
         if (forwardHttp
             && packet.component == Components.UTIL
-            && packet.command == Commands.FETCH_CLIENT_CONFIG) {
+            && packet.command == Commands.FETCH_CLIENT_CONFIG
+        ) {
             val type = packet.text("CFID")
             if (type == "ME3_DATA") {
                 clientChannel.writeAndFlush(
@@ -324,7 +353,10 @@ class MITMHandler(
      * @param msg The receieved packet
      */
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-        if (msg !is Packet) return
+        if (msg !is Packet) {
+            super.channelRead(ctx, msg)
+            return
+        }
 
         PacketLogger.log("DECODED FROM CLIENT", clientChannel, msg)
 
