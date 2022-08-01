@@ -253,14 +253,6 @@ class Game(
         }
     }
 
-    private inline fun <T> mapPlayers(mapper: (player: Session) -> T): List<T> {
-        val output = ArrayList<T>()
-        forEachPlayer {
-            output.add(mapper(it))
-        }
-        return output
-    }
-
     private fun createGameSetupPacket(matchmakingSesion: Session?): Packet {
         return notify(
             Components.GAME_MANAGER,
