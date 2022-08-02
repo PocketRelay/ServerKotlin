@@ -270,7 +270,7 @@ class Game(
                 playerGroups.add(player.createPlayerDataGroup())
             }
 
-            group("GAME") {
+            +group("GAME") {
                 // Game Admins
                 list("ADMN", playerIds)
                 map("ATTR", getAttributes())
