@@ -17,6 +17,7 @@ a list of all of those environment variables
 | KME_EXTERNAL_ADDRESS   | This is the address the address that the clients will use to connect to the main server. If you specify a value for this you will nee to ensure the value is accessible to the client                    |
 | KME_MENU_MESSAGE       | This is the message displayed on the main menu                                                                                                                                                           |
 | KME_NETTY_UNPOOLED     | This disables netty buffer pooling. This can greatly increase the amount of ununused ram being freed but with a large number of connections this could hurt performance (true/false) disabled by default |
+| KME_RETRIEVE_OFFICIAL  | Determines whether the server should attempt to get the official information about an origin account when it logs in                                                                                     |
 
 > NOTE: when using `KME_MENU_MESSAGE` you can use the following codes for special values:
 

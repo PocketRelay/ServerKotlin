@@ -30,6 +30,8 @@ object Retriever {
     private val clientEventLoopGroup: NioEventLoopGroup = NioEventLoopGroup()
     private val serverDetails: ServerDetails? = getMainServerDetails()
 
+    internal var isEnabled: Boolean = true
+
     /**
      * Creates a connection to the official server and uses this
      * as the channel for communicating between the client and
@@ -38,7 +40,7 @@ object Retriever {
      * @return The created channel
      */
     fun createOfficialChannel(handler: ChannelHandler): Channel? {
-        if (serverDetails == null) {
+        if (serverDetails == null || !isEnabled) {
             return null
         }
         val channelFuture = Bootstrap()

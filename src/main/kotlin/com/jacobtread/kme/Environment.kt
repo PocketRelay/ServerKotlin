@@ -4,6 +4,7 @@ import com.jacobtread.blaze.PacketLogger
 import com.jacobtread.blaze.debug.BlazeLoggingOutput
 import com.jacobtread.kme.data.Constants
 import com.jacobtread.kme.data.blaze.DebugCommandNaming
+import com.jacobtread.kme.data.retriever.Retriever
 import com.jacobtread.kme.database.adapter.DatabaseAdapter
 import com.jacobtread.kme.database.adapter.sql.MySQLDatabaseAdapter
 import com.jacobtread.kme.database.adapter.sql.SQLiteDatabaseAdapter
@@ -134,6 +135,11 @@ object Environment {
             database.setup()
         } catch (e: DatabaseException) {
             Logger.fatal("Failed to setup database", e)
+        }
+
+        val retrieverEnabled = env.booleanValue("KME_RETRIEVE_OFFICIAL", "retriever.enabled", true)
+        if (retrieverEnabled || mitmEnabled) {
+            Retriever.isEnabled = true
         }
     }
 
