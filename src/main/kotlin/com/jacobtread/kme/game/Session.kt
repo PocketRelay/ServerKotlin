@@ -1175,7 +1175,26 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         push(packet.respond {
             number("ANON", 0x0)
             text("ASRC", "303107")
-            list("CIDS", listOf(1, 25, 4, 28, 7, 9, 63490, 30720, 15, 30721, 30722, 30723, 30725, 30726, 2000))
+            list(
+                // Component IDS? (They match up so assumptions...)
+                "CIDS", listOf(
+                    Components.AUTHENTICATION,
+                    Components.ASSOCIATION_LISTS,
+                    Components.GAME_MANAGER,
+                    Components.GAME_REPORTING,
+                    Components.STATS,
+                    Components.UTIL,
+                    63490,
+                    30720,
+                    Components.MESSAGING,
+                    30721,
+                    Components.USER_SESSIONS,
+                    30723,
+                    30725,
+                    30726,
+                    Components.DYNAMIC_FILTER
+                )
+            )
             text("CNGN", "")
             +group("CONF") {
                 map(
