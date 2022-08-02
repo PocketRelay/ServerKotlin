@@ -216,7 +216,7 @@ abstract class SQLDatabaseAdapter(
 
     private fun getExistingOriginPlayer(token: String): Player? {
         try {
-            val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `session_token` = ? AND `origin` = ? LIMIT 1")
+            val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `password` = ? AND `origin` = ? LIMIT 1")
             statement.setString(1, token)
             statement.setBoolean(2, true)
             val resultSet = statement.executeQuery()
@@ -241,7 +241,7 @@ abstract class SQLDatabaseAdapter(
             statement.setString(3, token) // Password
             statement.setString(4, "") // Inventory
             statement.setBoolean(5, true) // Origin
-            statement.setString(6, token) // Origin
+            statement.setString(6, token) // Session Token
             statement.executeUpdate()
             val generatedKeys = statement.generatedKeys
             if (generatedKeys.next()) {
