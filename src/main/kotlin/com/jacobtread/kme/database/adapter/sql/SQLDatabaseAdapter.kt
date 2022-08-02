@@ -230,7 +230,7 @@ abstract class SQLDatabaseAdapter(
 
     private fun createOriginPlayer(token: String): Player {
 
-        val details = OriginDetailsRetriever.fetch(token)
+        val details = OriginDetailsRetriever.retrieve(token)
         try {
             val statement = connection.prepareStatement(
                 "INSERT INTO `players` (`email`, `display_name`, `password`, `inventory`, `origin`, `session_token`) VALUES (?, ?, ?, ?, ?, ?)",
