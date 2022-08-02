@@ -1,5 +1,6 @@
 package com.jacobtread.kme.database.adapter.sql
 
+import com.jacobtread.kme.data.retriever.OriginDetailsRetriever
 import com.jacobtread.kme.database.adapter.DatabaseAdapter
 import com.jacobtread.kme.database.data.GalaxyAtWarData
 import com.jacobtread.kme.database.data.Player
@@ -7,7 +8,6 @@ import com.jacobtread.kme.database.data.PlayerCharacter
 import com.jacobtread.kme.database.data.PlayerClass
 import com.jacobtread.kme.exceptions.DatabaseException
 import java.sql.*
-import java.util.*
 
 abstract class SQLDatabaseAdapter(
     protected val connection: Connection,
@@ -205,7 +205,7 @@ abstract class SQLDatabaseAdapter(
             if (generatedKeys.next()) {
                 val id = generatedKeys.getInt(1)
                 statement.close()
-                return createDefaultPlayerFrom(id, email, hashedPassword)
+                return createDefaultPlayerFrom(id, email, email, hashedPassword)
             } else {
                 throw DatabaseException("Creating player failed. No id key was generated ")
             }
@@ -229,15 +229,15 @@ abstract class SQLDatabaseAdapter(
     }
 
     private fun createOriginPlayer(token: String): Player {
+
+        val details = OriginDetailsRetriever.fetch(token)
         try {
-            val uuid = UUID.randomUUID()
-            val displayName = "Origin User ($uuid)"
             val statement = connection.prepareStatement(
                 "INSERT INTO `players` (`email`, `display_name`, `password`, `inventory`, `origin`, `session_token`) VALUES (?, ?, ?, ?, ?, ?)",
                 Statement.RETURN_GENERATED_KEYS
             )
-            statement.setString(1, displayName)
-            statement.setString(2, displayName.take(99)) // Display name
+            statement.setString(1, details.email)
+            statement.setString(2, details.displayName) // Display name
             statement.setString(3, token) // Password
             statement.setString(4, "") // Inventory
             statement.setBoolean(5, true) // Origin
@@ -247,7 +247,7 @@ abstract class SQLDatabaseAdapter(
             if (generatedKeys.next()) {
                 val id = generatedKeys.getInt(1)
                 statement.close()
-                return createDefaultPlayerFrom(id, displayName, token)
+                return createDefaultPlayerFrom(id, details.email, details.displayName, token)
             } else {
                 throw DatabaseException("Creating origin player failed. No id key was generated ")
             }
@@ -262,11 +262,11 @@ abstract class SQLDatabaseAdapter(
         return createOriginPlayer(token)
     }
 
-    private fun createDefaultPlayerFrom(id: Int, email: String, password: String): Player {
+    private fun createDefaultPlayerFrom(id: Int, email: String, displayName: String, password: String): Player {
         return Player(
             playerId = id,
             email = email,
-            displayName = email,
+            displayName = displayName,
             password = password,
             sessionToken = null,
             credits = 0, creditsSpent = 0, gamesPlayed = 0, secondsPlayed = 0, inventory = "",
