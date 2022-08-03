@@ -229,7 +229,6 @@ abstract class SQLDatabaseAdapter(
     }
 
     private fun createOriginPlayer(token: String): Player {
-
         val details = OriginDetailsRetriever.retrieve(token)
         try {
             val statement = connection.prepareStatement(
@@ -247,7 +246,12 @@ abstract class SQLDatabaseAdapter(
             if (generatedKeys.next()) {
                 val id = generatedKeys.getInt(1)
                 statement.close()
-                return createDefaultPlayerFrom(id, details.email, details.displayName, token)
+                val player = createDefaultPlayerFrom(id, details.email, details.displayName, token)
+                val dataMap = details.dataMap
+                if (dataMap.isNotEmpty()) {
+                    player.setPlayerDataBulk(dataMap)
+                }
+                return player
             } else {
                 throw DatabaseException("Creating origin player failed. No id key was generated ")
             }

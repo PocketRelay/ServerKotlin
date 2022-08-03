@@ -11,13 +11,14 @@ a list of all of those environment variables
 
 ### Base Configuration
 
-| Variable Name          | Description                                                                                                                                                                                              |
-|------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| KME_ENVIRONMENT_CONFIG | If this is set to true then no config file will be used and only default + environment variables will be used  (true/false)                                                                              |
-| KME_EXTERNAL_ADDRESS   | This is the address the address that the clients will use to connect to the main server. If you specify a value for this you will nee to ensure the value is accessible to the client                    |
-| KME_MENU_MESSAGE       | This is the message displayed on the main menu                                                                                                                                                           |
-| KME_NETTY_UNPOOLED     | This disables netty buffer pooling. This can greatly increase the amount of ununused ram being freed but with a large number of connections this could hurt performance (true/false) disabled by default |
-| KME_RETRIEVE_OFFICIAL  | Determines whether the server should attempt to get the official information about an origin account when it logs in                                                                                     |
+| Variable Name            | Description                                                                                                                                                                                              |
+|--------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| KME_ENVIRONMENT_CONFIG   | If this is set to true then no config file will be used and only default + environment variables will be used  (true/false)                                                                              |
+| KME_EXTERNAL_ADDRESS     | This is the address the address that the clients will use to connect to the main server. If you specify a value for this you will nee to ensure the value is accessible to the client                    |
+| KME_MENU_MESSAGE         | This is the message displayed on the main menu                                                                                                                                                           |
+| KME_NETTY_UNPOOLED       | This disables netty buffer pooling. This can greatly increase the amount of ununused ram being freed but with a large number of connections this could hurt performance (true/false) disabled by default |
+| KME_RETRIEVE_OFFICIAL    | Determines whether the server should attempt to get the official information about an origin account when it logs in                                                                                     |
+| KME_RETRIEVE_ORIGIN_DATA | If retriever is enabled the user characters, classes, etc. will be retrieved as well                                                                                                                     |
 
 > NOTE: when using `KME_MENU_MESSAGE` you can use the following codes for special values:
 
