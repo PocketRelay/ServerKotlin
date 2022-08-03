@@ -145,9 +145,7 @@ object Retriever {
                         ctx.channel().close()
                         Logger.info("MITM Recieved server instance result. Closing now.")
                     }
-
                 }
-
             })
             .connect(redirectorHost, redirectorPort)
             .sync()

@@ -131,5 +131,4 @@ object OriginDetailsRetriever {
             HashMap()
         )
     }
-
 }

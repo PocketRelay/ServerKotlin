@@ -141,7 +141,6 @@ object Environment {
         val retrieverEnabled = env.booleanValue("KME_RETRIEVE_OFFICIAL", "retriever.enabled", true)
         if (retrieverEnabled || mitmEnabled) {
             Retriever.isEnabled = true
-
             OriginDetailsRetriever.isDataFetchingEnabled = env.booleanValue("KME_RETRIEVE_ORIGIN_DATA", "retriever.originPlayerData.enabled", true)
         }
     }

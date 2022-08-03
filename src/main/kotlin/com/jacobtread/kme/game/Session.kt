@@ -1493,7 +1493,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      *
      * @return The created group tdf
      */
-    fun createExternalNetGroup(): GroupTdf {
+    private fun createExternalNetGroup(): GroupTdf {
         return group("EXIP") {
             number("IP", externalAddress)
             number("PORT", externalPort)
@@ -1507,7 +1507,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      *
      * @return The created group tdf
      */
-    fun createInternalNetGroup(): GroupTdf {
+    private fun createInternalNetGroup(): GroupTdf {
         return group("INIP") {
             number("IP", internalAddress)
             number("PORT", internalPort)
@@ -1531,6 +1531,19 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
                 +createExternalNetGroup()
                 +createInternalNetGroup()
             })
+        }
+    }
+
+    /**
+     * Creates host networking group tdf. This is used for
+     * the host connection details in [Game.createGameSetupPacket]
+     *
+     * @return The HNET group
+     */
+    fun createHNET(): GroupTdf {
+        return group(start2 = true) {
+            +createExternalNetGroup()
+            +createInternalNetGroup()
         }
     }
 

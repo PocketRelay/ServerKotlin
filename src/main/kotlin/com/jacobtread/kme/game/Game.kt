@@ -283,12 +283,7 @@ class Game(
                 number("GSTA", gameState)
                 text("GTYP", "")
                 // Host network information
-                list("HNET", listOf(
-                    group(start2 = true) {
-                        +host.createExternalNetGroup()
-                        +host.createInternalNetGroup()
-                    }
-                ))
+                list("HNET", listOf(host.createHNET()))
                 number("HSES", host.playerIdSafe)
                 number("IGNO", 0x0)
                 number("MCAP", 0x4)
@@ -340,17 +335,11 @@ class Game(
         }
     }
 
-    fun isGameState(stateAttr: GameStateAttr): Boolean = isAttribute(GameStateAttr.GAME_STATE_ATTR, stateAttr.value)
-
-    private fun getAttribute(key: String): String? = attributesLock.read { attributes[key] }
-
-    private fun isAttribute(key: String, value: String): Boolean = getAttribute(key) == value
-
     fun getAttributes(): Map<String, String> = attributesLock.read { attributes }
 
     fun setAttributes(map: Map<String, String>, update: Boolean) {
         attributesLock.write { attributes.putAll(map) }
-        if (update) {
+        if (update) { // Push an update to the client with the new attributes
             pushAll(
                 notify(
                     Components.GAME_MANAGER,
