@@ -333,6 +333,22 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         updateEncoderContext()
     }
 
+    @Suppress("OVERRIDE_DEPRECATION") // Not actually depreciated.
+    override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
+        if (cause is IOException) {
+            val message = cause.message
+            if (message != null && message.startsWith("Connection reset")) {
+                val channel = ctx.channel()
+                val ipAddress = channel.remoteAddress()
+                Logger.debug("Connection to client at $ipAddress lost")
+                ctx.close()
+                return
+            }
+        }
+        Logger.warn("Exception caught in Session", cause)
+        ctx.close()
+    }
+
     /**
      * Handles dealing with messages that have been read from the pipeline.
      * In this case it handles the packets that are recieved and passes them

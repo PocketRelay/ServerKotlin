@@ -17,6 +17,7 @@ import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
+import io.netty.handler.codec.DecoderException
 import io.netty.handler.ssl.SslContext
 import io.netty.handler.ssl.SslContextBuilder
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory
@@ -25,6 +26,7 @@ import java.net.UnknownHostException
 import java.security.KeyStore
 import java.security.Security
 import javax.net.ssl.KeyManagerFactory
+import javax.net.ssl.SSLException
 
 /**
  * startRedirector
@@ -99,10 +101,38 @@ class RedirectorHandler : ChannelInboundHandlerAdapter() {
      */
     override fun handlerAdded(ctx: ChannelHandlerContext) {
         val channel = ctx.channel()
+
+        val remoteAddress = channel.remoteAddress()
+        Logger.debug("Connection at $remoteAddress to Redirector Server")
+
         channel.pipeline()
             .addFirst(PacketDecoder())
             .addFirst(context.newHandler(channel.alloc()))
             .addLast(PacketEncoder)
+    }
+
+    @Suppress("OVERRIDE_DEPRECATION") // Not actually depreciated.
+    override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable?) {
+        if (cause == null) return
+        val channel = ctx.channel()
+        val ipAddress = channel.remoteAddress()
+        if (cause is DecoderException) {
+            val underlying = cause.cause
+            if (underlying != null) {
+                if (underlying is SSLException) {
+                    Logger.debug("Connection at $ipAddress tried to connect without vaid SSL (Did someone try to connect with a browser?)")
+                    ctx.close()
+                    return
+                }
+            }
+        } else  if (cause is IOException) {
+            val message = cause.message
+            if (message!= null && message.startsWith("Connection reset")) {
+                Logger.debug("Connection to client at $ipAddress lost")
+                return
+            }
+        }
+        ctx.close()
     }
 
     /**

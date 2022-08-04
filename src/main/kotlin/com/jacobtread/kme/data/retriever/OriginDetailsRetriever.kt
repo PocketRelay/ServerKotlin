@@ -8,6 +8,7 @@ import com.jacobtread.kme.utils.logging.Logger
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
+import java.io.IOException
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -118,7 +119,7 @@ object OriginDetailsRetriever {
             }
             if (originDetails != null) return originDetails!!
         } catch (_: InterruptedException) {
-        }
+        } catch (_: IOException) {}
         val uuid = UUID.randomUUID()
         val displayName = "Origin User ($uuid)"
         if (serverChannel != null) {

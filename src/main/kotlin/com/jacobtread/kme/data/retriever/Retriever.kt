@@ -40,31 +40,35 @@ object Retriever {
      * @return The created channel
      */
     fun createOfficialChannel(handler: ChannelHandler): Channel? {
-        if (serverDetails == null || !isEnabled) {
+        try {
+            if (serverDetails == null || !isEnabled) {
+                return null
+            }
+            val channelFuture = Bootstrap()
+                .group(clientEventLoopGroup)
+                .channel(NioSocketChannel::class.java)
+                .handler(handler)
+                .connect(serverDetails.host, serverDetails.port)
+                .sync()
+            val channel = channelFuture.channel()
+            channel.attr(PacketEncoder.ENCODER_CONTEXT_KEY)
+                .set("Connection to Official EA Server")
+            val pipeline = channel.pipeline()
+            pipeline.addFirst(PacketDecoder())
+            if (serverDetails.secure) {
+                val context = SslContextBuilder.forClient()
+                    .ciphers(listOf("TLS_RSA_WITH_RC4_128_SHA", "TLS_RSA_WITH_RC4_128_MD5"))
+                    .protocols("SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3")
+                    .startTls(true)
+                    .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                    .build()
+                pipeline.addFirst(context.newHandler(channel.alloc()))
+            }
+            pipeline.addLast(PacketEncoder)
+            return channel
+        } catch (_: IOException) {
             return null
         }
-        val channelFuture = Bootstrap()
-            .group(clientEventLoopGroup)
-            .channel(NioSocketChannel::class.java)
-            .handler(handler)
-            .connect(serverDetails.host, serverDetails.port)
-            .sync()
-        val channel = channelFuture.channel()
-        channel.attr(PacketEncoder.ENCODER_CONTEXT_KEY)
-            .set("Connection to Official EA Server")
-        val pipeline = channel.pipeline()
-        pipeline.addFirst(PacketDecoder())
-        if (serverDetails.secure) {
-            val context = SslContextBuilder.forClient()
-                .ciphers(listOf("TLS_RSA_WITH_RC4_128_SHA", "TLS_RSA_WITH_RC4_128_MD5"))
-                .protocols("SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3")
-                .startTls(true)
-                .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                .build()
-            pipeline.addFirst(context.newHandler(channel.alloc()))
-        }
-        pipeline.addLast(PacketEncoder)
-        return channel
     }
 
 
