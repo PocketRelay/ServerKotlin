@@ -45,7 +45,7 @@ object OriginDetailsRetriever {
      * @param token The origin token
      * @return The origin details
      */
-    fun retrieve(token: String): OriginDetails {
+    fun retrieve(token: String): OriginDetails? {
         var serverChannel: Channel? = null
         var originDetails: OriginDetails? = null
         try {
@@ -120,16 +120,9 @@ object OriginDetailsRetriever {
             if (originDetails != null) return originDetails!!
         } catch (_: InterruptedException) {
         } catch (_: IOException) {}
-        val uuid = UUID.randomUUID()
-        val displayName = "Origin User ($uuid)"
         if (serverChannel != null) {
-            Logger.warn("Failed to retrieve origin information for account. Defaulting to: $displayName")
+            Logger.warn("Failed to retrieve origin information for account. Unable to login.")
         }
-        return OriginDetails(
-            displayName,
-            displayName.take(99),
-            token,
-            HashMap()
-        )
+        return null
     }
 }

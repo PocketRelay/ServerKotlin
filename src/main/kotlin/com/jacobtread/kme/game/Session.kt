@@ -470,6 +470,12 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     fun handleOriginLogin(packet: Packet) {
         val auth = packet.text("AUTH")
         val player = Environment.database.getOriginPlayer(auth)
+        if (player == null) {
+            // Failed to create origin account.
+            push(LoginError.SERVER_UNAVAILABLE(packet))
+            return
+        }
+
         Logger.info("Authenticated Origin Account ${player.displayName}")
 
         setAuthenticatedPlayer(player)

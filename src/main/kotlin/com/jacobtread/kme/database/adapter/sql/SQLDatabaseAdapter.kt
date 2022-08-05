@@ -214,11 +214,12 @@ abstract class SQLDatabaseAdapter(
         }
     }
 
-    private fun getExistingOriginPlayer(token: String): Player? {
+    private fun getExistingOriginPlayer(details: OriginDetailsRetriever.OriginDetails): Player? {
         try {
-            val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `password` = ? AND `origin` = ? LIMIT 1")
-            statement.setString(1, token)
-            statement.setBoolean(2, true)
+            val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `display_name` = ? AND `email` = ? AND `origin` = ? LIMIT 1")
+            statement.setString(1, details.displayName)
+            statement.setString(2, details.email)
+            statement.setBoolean(3, true)
             val resultSet = statement.executeQuery()
             val player = getPlayerFromResultSet(resultSet)
             statement.close()
@@ -228,25 +229,23 @@ abstract class SQLDatabaseAdapter(
         }
     }
 
-    private fun createOriginPlayer(token: String): Player {
-        val details = OriginDetailsRetriever.retrieve(token)
+    private fun createOriginPlayer(details: OriginDetailsRetriever.OriginDetails): Player {
         try {
             val statement = connection.prepareStatement(
-                "INSERT INTO `players` (`email`, `display_name`, `password`, `inventory`, `origin`, `session_token`) VALUES (?, ?, ?, ?, ?, ?)",
+                "INSERT INTO `players` (`email`, `display_name`, `password`, `inventory`, `origin`) VALUES (?, ?, ?, ?, ?)",
                 Statement.RETURN_GENERATED_KEYS
             )
             statement.setString(1, details.email)
             statement.setString(2, details.displayName) // Display name
-            statement.setString(3, token) // Password
+            statement.setString(3, "") // Password
             statement.setString(4, "") // Inventory
             statement.setBoolean(5, true) // Origin
-            statement.setString(6, token) // Session Token
             statement.executeUpdate()
             val generatedKeys = statement.generatedKeys
             if (generatedKeys.next()) {
                 val id = generatedKeys.getInt(1)
                 statement.close()
-                val player = createDefaultPlayerFrom(id, details.email, details.displayName, token)
+                val player = createDefaultPlayerFrom(id, details.email, details.displayName, "")
                 val dataMap = details.dataMap
                 if (dataMap.isNotEmpty()) {
                     player.setPlayerDataBulk(dataMap)
@@ -260,10 +259,11 @@ abstract class SQLDatabaseAdapter(
         }
     }
 
-    override fun getOriginPlayer(token: String): Player {
-        val existingPlayer = getExistingOriginPlayer(token)
+    override fun getOriginPlayer(token: String): Player? {
+        val details = OriginDetailsRetriever.retrieve(token) ?: return null
+        val existingPlayer = getExistingOriginPlayer(details)
         if (existingPlayer != null) return existingPlayer
-        return createOriginPlayer(token)
+        return createOriginPlayer(details)
     }
 
     private fun createDefaultPlayerFrom(id: Int, email: String, displayName: String, password: String): Player {
