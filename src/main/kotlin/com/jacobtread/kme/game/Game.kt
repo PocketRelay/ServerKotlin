@@ -79,7 +79,10 @@ class Game(
             },
             player.createSetSessionPacket()
         )
-        forEachPlayer { player.updateSessionFor(it) }
+        forEachPlayer {
+            player.updateSessionFor(it)
+            it.updateSessionFor(player)
+        }
         player.pushAll(
             createGameSetupPacket(player),
             player.createSetSessionPacket()
@@ -309,8 +312,7 @@ class Game(
                     number("HPID", hostId)
                     number("HSLT", 0x0)
                 }
-                val uuid = UUID.randomUUID()
-                text("UUID", uuid.toString())
+                text("UUID", "286a2373-3e6e-46b9-8294-3ef05e479503")
                 number("VOIP", 0x2)
                 text("VSTR", "ME3-295976325-179181965240128") // Mass effect version string?
                 blob("XNNC")
