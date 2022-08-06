@@ -39,9 +39,9 @@ jobs:
         arguments: build
     - uses: actions/upload-artifact@v3
       with:
-        name: server-artifact
+        name: server.jar
         path: build/libs/server.jar
     - uses: actions/upload-artifact@v3
       with:
-        name: detekt-report
-        path: build/reports/detekt.md
+        name: detekt-report.md
+        path: build/reports/detekt/detekt.md
