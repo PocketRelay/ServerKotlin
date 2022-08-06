@@ -142,6 +142,9 @@ object Environment {
         if (retrieverEnabled || mitmEnabled) {
             Retriever.isEnabled = true
             OriginDetailsRetriever.isDataFetchingEnabled = env.booleanValue("KME_RETRIEVE_ORIGIN_DATA", "retriever.originPlayerData.enabled", true)
+            if (OriginDetailsRetriever.isDataFetchingEnabled) {
+                Logger.info("Origin Data Fetching is enabled.")
+            }
         }
     }
 

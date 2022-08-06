@@ -9,7 +9,6 @@ import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
 import java.io.IOException
-import java.util.*
 import java.util.concurrent.TimeUnit
 
 /**
@@ -68,6 +67,8 @@ object OriginDetailsRetriever {
                             val personaData = sessionGroup.group("PDTL")
                             val displayName = personaData.text("DSNM")
 
+                            Logger.logIfDebug { "Fetched details from origin: $displayName ($email)" }
+
                             // Set the origin details
                             originDetails = OriginDetails(
                                 email,
@@ -77,9 +78,10 @@ object OriginDetailsRetriever {
                             )
 
                             if (isDataFetchingEnabled) {
+                                Logger.logIfDebug { "Attempting to fetch settings from origin" }
                                 // Send a request for the user settings
                                 val packet = clientPacket(Components.UTIL, Commands.USER_SETTINGS_LOAD_ALL, 0x2) {}
-                                ctx.writeAndFlush(packet)
+                                serverChannel?.writeAndFlush(packet)
                             } else {
                                 // Close to mark as finished
                                 ctx.close()
@@ -89,6 +91,7 @@ object OriginDetailsRetriever {
                         if (isDataFetchingEnabled) {
                             if (msg.component == Components.UTIL && msg.command == Commands.USER_SETTINGS_LOAD_ALL) {
                                 val settings = msg.map<String, String>("SMAP")
+                                Logger.logIfDebug { "Retreived settings from origin: $settings" }
                                 originDetails?.dataMap?.putAll(settings)
 
                                 // Close to mark as finished
@@ -114,12 +117,20 @@ object OriginDetailsRetriever {
                 }
 
                 serverChannel.writeAndFlush(packet)
-                serverChannel.closeFuture()
-                    .await(8, TimeUnit.SECONDS)
+                val closeFuture = serverChannel.closeFuture()
+                // If we didn't close withing 15 seconds but we are waiting
+                // on data for the player data we can wait 10 more seconds
+                if(
+                    !closeFuture.await(15, TimeUnit.SECONDS)
+                    && originDetails != null
+                ) {
+                    closeFuture.await(10, TimeUnit.SECONDS)
+                }
             }
             if (originDetails != null) return originDetails!!
         } catch (_: InterruptedException) {
-        } catch (_: IOException) {}
+        } catch (_: IOException) {
+        }
         if (serverChannel != null) {
             Logger.warn("Failed to retrieve origin information for account. Unable to login.")
         }
