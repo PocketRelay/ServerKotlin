@@ -121,7 +121,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      * Possibly the clients' connectivity to the
      * different player sync services?
      */
-    private var pslm: ArrayList<ULong> = arrayListOf(0xfff0fffu, 0xfff0fffu, 0xfff0fffu)
+    private var pslm: ULong =0xfff0fffu
 
 
     private var location: ULong = 0x64654445uL
@@ -1088,9 +1088,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         ubps = nqos.number("UBPS")
 
         val nlmp = packet.map<String, ULong>("NLMP")
-        pslm[0] = nlmp.getOrDefault("ea-sjc", 0xfff0fffu)
-        pslm[1] = nlmp.getOrDefault("rs-iad", 0xfff0fffu)
-        pslm[2] = nlmp.getOrDefault("rs-lhr", 0xfff0fffu)
+        pslm = nlmp.getOrDefault("ea-sjc", 0xfff0fffu)
 
         pushAll(packet.respond(), createSetSessionPacket())
     }
@@ -1235,29 +1233,17 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             text("PTAG", "")
             // The following addresses have all been redirected to localhost to be ignored
             +group("QOSS") {
-                +group("BWPS") {
-                    text("PSA", "127.0.0.1")   // Server Address (formerly gossjcprod-qos01.ea.com)
-                    number("PSP", 17502)  // Server Port
-                    text("SNA", "prod-sjc")  // Server name?
+
+                val serverGroup = group("BWPS") {
+                    text("PSA", Environment.externalAddress)
+                    number("PSP", Environment.httpPort)
+                    text("SNA", "prod-sjc")
                 }
 
+                +serverGroup
                 number("LNP", 0xA)
                 map("LTPS", mapOf(
-                    "ea-sjc" to group {
-                        text("PSA", "127.0.0.1")  // Server Address (formerly gossjcprod-qos01.ea.com)
-                        number("PSP", 17502)  // Server Port
-                        text("SNA", "prod-sjc") // Server name?
-                    },
-                    "rs-iad" to group {
-                        text("PSA", "127.0.0.1") // Server Address (formerly gosiadprod-qos01.ea.com)
-                        number("PSP", 17502)  // Server Port
-                        text("SNA", "bio-iad-prod-shared") // Server name?
-                    },
-                    "rs-lhr" to group {
-                        text("PSA", "127.0.0.1") // Server Address (formerly gosgvaprod-qos01.ea.com)
-                        number("PSP", 17502) // Server Port
-                        text("SNA", "bio-dub-prod-shared") // Server name?
-                    }
+                    "ea-sjc" to serverGroup
                 ))
                 number("SVID", 0x45410805)
             }
