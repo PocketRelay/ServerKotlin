@@ -216,10 +216,9 @@ abstract class SQLDatabaseAdapter(
 
     private fun getExistingOriginPlayer(details: OriginDetailsRetriever.OriginDetails): Player? {
         try {
-            val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `display_name` = ? AND `email` = ? AND `origin` = ? LIMIT 1")
-            statement.setString(1, details.displayName)
-            statement.setString(2, details.email)
-            statement.setBoolean(3, true)
+            val statement = connection.prepareStatement("SELECT * FROM `players` WHERE  `email` = ? AND `origin` = ? LIMIT 1")
+            statement.setString(1, details.email)
+            statement.setBoolean(2, true)
             val resultSet = statement.executeQuery()
             val player = getPlayerFromResultSet(resultSet)
             statement.close()
