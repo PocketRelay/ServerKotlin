@@ -261,7 +261,7 @@ object Commands {
     const val UPDATE_NETWORK_INFO = 0x14 // FC
     const val LOOKUP_USER_GEO_IP_DATA = 0x17
     const val OVERRIDE_USER_GEO_IP_DATA = 0x18
-    const val UPDATE_USER_ScESSION_CLIENT_DATA = 0x19
+    const val UPDATE_USER_SESSION_CLIENT_DATA = 0x19
     const val SET_USER_INFO_ATTRIBUTE = 0x1A
     const val RESET_USER_GEO_IP_DATA = 0x1B
     const val LOOKUP_USER_SESSION_ID = 0x20
