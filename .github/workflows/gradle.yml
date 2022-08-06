@@ -37,3 +37,11 @@ jobs:
       uses: gradle/gradle-build-action@v2.2.2
       with:
         arguments: build
+    - uses: actions/upload-artifact@v3
+      with:
+        name: server-artifact
+        path: build/libs/server.jar
+    - uses: actions/upload-artifact@v3
+      with:
+        name: detekt-report
+        path: build/reports/detekt.md
