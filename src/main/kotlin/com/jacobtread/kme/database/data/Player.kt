@@ -64,12 +64,12 @@ data class Player(
 ) {
 
     init {
-       // makeGod()
+        // makeGod()
     }
 
     fun makeGod() {
         inventory = "F".repeat(1342)
-        credits = Int.MAX_VALUE -(Int.MAX_VALUE / 24)
+        credits = Int.MAX_VALUE - (Int.MAX_VALUE / 24)
         csReward = 154
         val completionBuilder = StringBuilder("22")
         repeat(221) { completionBuilder.append(",255") }
@@ -178,6 +178,55 @@ data class Player(
         return out
     }
 
+    fun setPlayerDataBulk(map: Map<String, String>) {
+        val classes = ArrayList<PlayerClass>()
+        val characters = ArrayList<PlayerCharacter>()
+
+        map.forEach { (key, value) ->
+            if (key.startsWith("class")) {
+                val playerClass = PlayerClass.createFromKeyValue(key, value)
+                classes.add(playerClass)
+            } else if (key.startsWith("char")) {
+                val playerCharacter = PlayerCharacter.createFromKeyValue(key, value)
+                characters.add(playerCharacter)
+            } else {
+                setPlayerDataOther(key, value)
+            }
+        }
+
+        val database = Environment.database
+        database.updatePlayerFully(this)
+        classes.forEach { database.setPlayerClass(this, it) }
+        characters.forEach { database.setPlayerCharacter(this, it) }
+    }
+
+    private fun setPlayerDataOther(key: String, value: String) {
+        when (key) {
+            "Base" -> {
+                val parser = MEStringParser(value, 11)
+                credits = parser.int()
+                parser.skip(2) // Skip -1;0
+                creditsSpent = parser.int()
+                parser.skip(1)
+                gamesPlayed = parser.int()
+                secondsPlayed = parser.long()
+                parser.skip(1)
+                inventory = parser.str()
+            }
+
+            "FaceCodes" -> faceCodes = value
+            "NewItem" -> newItem = value
+            // (Possible name is Challenge Selected Reward)
+            "csreward" -> csReward = value.toIntOrNull() ?: 0
+            "Completion" -> completion = value
+            "Progress" -> progress = value
+            "cscompletion" -> cscompletion = value
+            "cstimestamps" -> cstimestamps1 = value
+            "cstimestamps2" -> cstimestamps2 = value
+            "cstimestamps3" -> cstimestamps3 = value
+        }
+    }
+
     fun setPlayerData(key: String, value: String) {
         if (key.startsWith("class")) {
             val playerClass = PlayerClass.createFromKeyValue(key, value)
@@ -186,30 +235,7 @@ data class Player(
             val playerCharacter = PlayerCharacter.createFromKeyValue(key, value)
             Environment.database.setPlayerCharacter(this, playerCharacter)
         } else {
-            when (key) {
-                "Base" -> {
-                    val parser = MEStringParser(value, 11)
-                    credits = parser.int()
-                    parser.skip(2) // Skip -1;0
-                    creditsSpent = parser.int()
-                    parser.skip(1)
-                    gamesPlayed = parser.int()
-                    secondsPlayed = parser.long()
-                    parser.skip(1)
-                    inventory = parser.str()
-                }
-
-                "FaceCodes" -> faceCodes = value
-                "NewItem" -> newItem = value
-                // (Possible name is Challenge Selected Reward)
-                "csreward" -> csReward = value.toIntOrNull() ?: 0
-                "Completion" -> completion = value
-                "Progress" -> progress = value
-                "cscompletion" -> cscompletion = value
-                "cstimestamps" -> cstimestamps1 = value
-                "cstimestamps2" -> cstimestamps2 = value
-                "cstimestamps3" -> cstimestamps3 = value
-            }
+            setPlayerDataOther(key, value)
             Environment.database.setUpdatedPlayerData(this, key)
         }
     }

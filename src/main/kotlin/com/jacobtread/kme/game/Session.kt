@@ -1,4 +1,4 @@
-package com.jacobtread.kme.servers.main
+package com.jacobtread.kme.game
 
 import com.jacobtread.blaze.*
 import com.jacobtread.blaze.annotations.PacketHandler
@@ -16,8 +16,6 @@ import com.jacobtread.kme.data.blaze.Components
 import com.jacobtread.kme.database.data.Player
 import com.jacobtread.kme.exceptions.DatabaseException
 import com.jacobtread.kme.exceptions.GameException
-import com.jacobtread.kme.game.Game
-import com.jacobtread.kme.game.GameManager
 import com.jacobtread.kme.game.match.MatchRuleSet
 import com.jacobtread.kme.game.match.Matchmaking
 import com.jacobtread.kme.utils.hashPassword
@@ -27,6 +25,8 @@ import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
 import java.io.IOException
+import java.net.Inet4Address
+import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -123,7 +123,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      * Possibly the clients' connectivity to the
      * different player sync services?
      */
-    private var pslm: ArrayList<ULong> = arrayListOf(0xfff0fffu, 0xfff0fffu, 0xfff0fffu)
+    private var pslm: ULong = 0xfff0fffu
 
 
     private var location: ULong = 0x64654445uL
@@ -294,7 +294,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     /**
      * Handles pushing multiple packets to be written to the socket
      * connection. Checks to see if the push request was in the event
-     * loop and then writes all then packets before flushing. If its
+     * loop and then writes all then packets before flushing. If it's
      * called outside the event loop it tells the event loop to execute
      * the same instruction
      *
@@ -335,6 +335,22 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         updateEncoderContext()
     }
 
+    @Suppress("OVERRIDE_DEPRECATION") // Not actually depreciated.
+    override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
+        if (cause is IOException) {
+            val message = cause.message
+            if (message != null && message.startsWith("Connection reset")) {
+                val channel = ctx.channel()
+                val ipAddress = channel.remoteAddress()
+                Logger.debug("Connection to client at $ipAddress lost")
+                ctx.close()
+                return
+            }
+        }
+        Logger.warn("Exception caught in Session", cause)
+        ctx.close()
+    }
+
     /**
      * Handles dealing with messages that have been read from the pipeline.
      * In this case it handles the packets that are recieved and passes them
@@ -350,7 +366,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         } catch (e: NotAuthenticatedException) { // Handle player access with no player
             push(LoginError.INVALID_ACCOUNT(msg))
             val address = ctx.channel().remoteAddress()
-            Logger.warn("Client at $address tried to access a authenticated route without authenticating",)
+            Logger.warn("Client at $address tried to access a authenticated route without authenticating")
         } catch (e: Exception) {
             Logger.warn("Failed to handle packet: $msg", e)
             push(msg.respond())
@@ -447,16 +463,26 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
 
 
     /**
-     * Handles logins from clients using the origin system. This currently
-     * is not implemented however in the future I could add a system which
-     * creates accounts for the origin players
+     * Handles logins from clients using the origin system. This generates a
+     * unqiue username for the provided origin token.
      *
      * @param packet The packet requesting origin login
      */
     @PacketHandler(Components.AUTHENTICATION, Commands.ORIGIN_LOGIN)
     fun handleOriginLogin(packet: Packet) {
-        Logger.info("Recieved unsupported request for Origin Login")
-        push(packet.respond())
+        val auth = packet.text("AUTH")
+        val player = Environment.database.getOriginPlayer(auth)
+        if (player == null) {
+            // Failed to create origin account.
+            push(LoginError.SERVER_UNAVAILABLE(packet))
+            return
+        }
+
+        Logger.info("Authenticated Origin Account ${player.displayName}")
+
+        setAuthenticatedPlayer(player)
+        push(createSilentAuthenticatedResponse(packet))
+        updateSessionFor(this)
     }
 
     /**
@@ -562,21 +588,8 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             val player = database.getPlayerById(pid) ?: return push(LoginError.INVALID_ACCOUNT(packet))
             // If the session token's don't match send INVALID_ACCOUNT error
             if (!player.isSessionToken(auth)) return push(LoginError.INVALID_SESSION(packet))
-            val sessionToken = player.getSessionToken() // Session token grabbed after auth as to not generate new one
             setAuthenticatedPlayer(player)
-            // We don't store last login time so this is just computed here
-            push(packet.respond {
-                number("AGUP", 0)
-                text("LDHT", "")
-                number("NTOS", 0)
-                text("PCTK", sessionToken)
-                text("PRIV", "")
-                +group("SESS") { appendDetailsTo(this) }
-                number("SPAM", 0)
-                text("THST", "")
-                text("TSUI", "")
-                text("TURI", "")
-            })
+            push(createSilentAuthenticatedResponse(packet))
             updateSessionFor(this)
         } catch (e: IOException) {
             Logger.warn("Failed silent login", e)
@@ -645,12 +658,11 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             if (first != null) setNetworkingFromGroup(first)
         }
 
-        game.setAttributes(attributes ?: emptyMap()) // If the attributes are missing use empty
-        pushAll(
-            packet.respond { number("GID", game.id) },
-            game.createNotifySetup(),
-            createSetSessionPacket()
-        ) // Send the user session
+        game.setAttributes(attributes ?: emptyMap(), false) // If the attributes are missing use empty
+
+        push(packet.respond { number("GID", game.id) }) // Send the user session
+
+        game.setupHost()
         Matchmaking.onGameCreated(game)
     }
 
@@ -709,10 +721,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         val attributes = packet.mapOrNull<String, String>("ATTR")
         if (attributes != null) {
             val game = GameManager.getGameById(gameId)
-            if (game != null) {
-                game.setAttributes(attributes)
-                game.broadcastAttributeUpdate()
-            }
+            game?.setAttributes(attributes, true)
         }
         push(packet.respond())
     }
@@ -779,30 +788,8 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     fun handleUpdateMeshConnection(packet: Packet) {
         val gameId = packet.number("GID")
         push(packet.respond())
-
-        val playerEntity = player ?: return
         val game = GameManager.getGameById(gameId) ?: return
-        val host = game.getHost()
-        val playerId = playerEntity.playerId
-
-        val a = notify(Components.GAME_MANAGER, Commands.NOTIFY_GAME_PLAYER_STATE_CHANGE) {
-            number("GID", gameId)
-            number("PID", playerId)
-            number("STAT", 4)
-        }
-        val b = notify(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOIN_COMPLETED) {
-            number("GID", gameId)
-            number("PID", playerId)
-        }
-        val c = notify(Components.GAME_MANAGER, Commands.NOTIFY_ADMIN_LIST_CHANGE) {
-            number("ALST", playerId)
-            number("GID", gameId)
-            number("OPER", 0) // 0 = add 1 = remove
-            number("UID", host.playerIdSafe)
-        }
-
-        pushAll(a, b, c)
-        host.pushAll(a, b, c)
+        game.updateMeshConnection(this)
     }
 
     // endregion
@@ -1103,9 +1090,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         ubps = nqos.number("UBPS")
 
         val nlmp = packet.map<String, ULong>("NLMP")
-        pslm[0] = nlmp.getOrDefault("ea-sjc", 0xfff0fffu)
-        pslm[1] = nlmp.getOrDefault("rs-iad", 0xfff0fffu)
-        pslm[2] = nlmp.getOrDefault("rs-lhr", 0xfff0fffu)
+        pslm = nlmp.getOrDefault("ea-sjc", 0xfff0fffu)
 
         pushAll(packet.respond(), createSetSessionPacket())
     }
@@ -1159,6 +1144,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
                     "SECTION" to "BINI_PC_COMPRESSED",
                     "VERSION" to "40128"
                 )
+
                 "ME3_BINI_PC_COMPRESSED" -> Data.loadBiniCompressed() // Loads the chunked + compressed bini
                 else -> emptyMap()
             }
@@ -1211,7 +1197,26 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         push(packet.respond {
             number("ANON", 0x0)
             text("ASRC", "303107")
-            list("CIDS", listOf(1, 25, 4, 28, 7, 9, 63490, 30720, 15, 30721, 30722, 30723, 30725, 30726, 2000))
+            list(
+                // Component IDS? (They match up so assumptions...)
+                "CIDS", listOf(
+                    Components.AUTHENTICATION,
+                    Components.ASSOCIATION_LISTS,
+                    Components.GAME_MANAGER,
+                    Components.GAME_REPORTING,
+                    Components.STATS,
+                    Components.UTIL,
+                    63490,
+                    30720,
+                    Components.MESSAGING,
+                    30721,
+                    Components.USER_SESSIONS,
+                    30723,
+                    30725,
+                    30726,
+                    Components.DYNAMIC_FILTER
+                )
+            )
             text("CNGN", "")
             +group("CONF") {
                 map(
@@ -1230,30 +1235,20 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             text("PTAG", "")
             // The following addresses have all been redirected to localhost to be ignored
             +group("QOSS") {
-                +group("BWPS") {
-                    text("PSA", "127.0.0.1")   // Server Address (formerly gossjcprod-qos01.ea.com)
-                    number("PSP", 17502)  // Server Port
-                    text("SNA", "prod-sjc")  // Server name?
+
+                val serverGroup = group("BWPS") {
+                    text("PSA", Environment.externalAddress)
+                    number("PSP", Environment.httpPort)
+                    text("SNA", "prod-sjc")
                 }
 
+                +serverGroup
                 number("LNP", 0xA)
-                map("LTPS", mapOf(
-                    "ea-sjc" to group {
-                        text("PSA", "127.0.0.1")  // Server Address (formerly gossjcprod-qos01.ea.com)
-                        number("PSP", 17502)  // Server Port
-                        text("SNA", "prod-sjc") // Server name?
-                    },
-                    "rs-iad" to group {
-                        text("PSA", "127.0.0.1") // Server Address (formerly gosiadprod-qos01.ea.com)
-                        number("PSP", 17502)  // Server Port
-                        text("SNA", "bio-iad-prod-shared") // Server name?
-                    },
-                    "rs-lhr" to group {
-                        text("PSA", "127.0.0.1") // Server Address (formerly gosgvaprod-qos01.ea.com)
-                        number("PSP", 17502) // Server Port
-                        text("SNA", "bio-dub-prod-shared") // Server name?
-                    }
-                ))
+                map(
+                    "LTPS", mapOf(
+                        "ea-sjc" to serverGroup
+                    )
+                )
                 number("SVID", 0x45410805)
             }
             text("RSRC", "303107")
@@ -1510,7 +1505,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      *
      * @return The created group tdf
      */
-    fun createExternalNetGroup(): GroupTdf {
+    private fun createExternalNetGroup(): GroupTdf {
         return group("EXIP") {
             number("IP", externalAddress)
             number("PORT", externalPort)
@@ -1524,7 +1519,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      *
      * @return The created group tdf
      */
-    fun createInternalNetGroup(): GroupTdf {
+    private fun createInternalNetGroup(): GroupTdf {
         return group("INIP") {
             number("IP", internalAddress)
             number("PORT", internalPort)
@@ -1552,6 +1547,19 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     }
 
     /**
+     * Creates host networking group tdf. This is used for
+     * the host connection details in [Game.createGameSetupPacket]
+     *
+     * @return The HNET group
+     */
+    fun createHNET(): GroupTdf {
+        return group(start2 = true) {
+            +createExternalNetGroup()
+            +createInternalNetGroup()
+        }
+    }
+
+    /**
      * Sets the current internal and external address
      * and port information from the provided group
      * tdf.
@@ -1568,6 +1576,26 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         internalPort = inip.number("PORT")
 
         isNetworkingUnset = false
+
+        val remoteAddress = socketChannel.remoteAddress()
+        if (remoteAddress is InetSocketAddress) {
+            val addr = remoteAddress.address
+            if (addr is Inet4Address) {
+                val addrString = addr.hostAddress
+                val ipv4Regex = Regex("^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)(\\.(?!\$)|\$)){4}\$")
+                if (addrString.matches(ipv4Regex)) { // Check if the address is an IPv4 Address
+                    val ipParts = addrString.split('.', limit = 4) // Split the address into 4 parts
+                    require(ipParts.size == 4) { "Invalid IPv4 Address" } // Ensure that the address is 4 parts
+                    // Encoding the address as an unsigned long value
+                    externalAddress = (ipParts[0].toULong() shl 24)
+                        .or(ipParts[1].toULong() shl 16)
+                        .or(ipParts[2].toULong() shl 8)
+                        .or(ipParts[3].toULong())
+                    externalPort = internalPort
+                }
+            }
+        }
+
     }
 
     /**
@@ -1701,6 +1729,24 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         }
     }
 
+    private fun createSilentAuthenticatedResponse(packet: Packet): Packet {
+        val player = player ?: throw NotAuthenticatedException()
+        setAuthenticatedPlayer(player)
+        // We don't store last login time so this is just computed here
+        return packet.respond {
+            number("AGUP", 0)
+            text("LDHT", "")
+            number("NTOS", 0)
+            text("PCTK", player.getSessionToken())
+            text("PRIV", "")
+            +group("SESS") { appendDetailsTo(this) }
+            number("SPAM", 0)
+            text("THST", "")
+            text("TSUI", "")
+            text("TURI", "")
+        }
+    }
+
     /**
      * Appends details about this session to the provided
      * tdf builder.
@@ -1747,7 +1793,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     private fun removeFromGame() {
         resetMatchmakingState()
-        game?.removePlayer(this)
+        game?.removeAtIndex(gameSlot)
         clearGame()
     }
 

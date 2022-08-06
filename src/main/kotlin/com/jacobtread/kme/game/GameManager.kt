@@ -1,7 +1,6 @@
 package com.jacobtread.kme.game
 
 import com.jacobtread.blaze.NotAuthenticatedException
-import com.jacobtread.kme.servers.main.Session
 import com.jacobtread.kme.utils.logging.Logger
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
@@ -23,16 +22,6 @@ object GameManager {
         gameId++
         game
     }
-
-    fun createGameWithID(host: Session, id: ULong): Game = gamesLock.write {
-        val hostPlayer = host.player ?: throw NotAuthenticatedException()
-        removeInactive()
-        val game = Game(id, host)
-        Logger.info("Created new game (${game.id}) hosted by ${hostPlayer.displayName}")
-        games[id] = game
-        game
-    }
-
 
     fun tryFindGame(test: (Game) -> Boolean): Game? = gamesLock.read { games.values.firstOrNull(test) }
 

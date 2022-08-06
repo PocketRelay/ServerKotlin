@@ -1,9 +1,9 @@
-package com.jacobtread.kme.servers.main
+package com.jacobtread.kme.servers
 
 import com.jacobtread.blaze.PacketDecoder
 import com.jacobtread.blaze.PacketEncoder
 import com.jacobtread.kme.Environment
-import com.jacobtread.kme.servers.startMITMServer
+import com.jacobtread.kme.game.Session
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.logging.Logger.info
 import io.netty.bootstrap.ServerBootstrap
@@ -21,7 +21,6 @@ import java.io.IOException
  * @param workerGroup The netty worker event loop group
  */
 fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
-
     if (Environment.mitmEnabled) { // If MITM is enabled
         startMITMServer(bossGroup, workerGroup)
         return // Don't create the normal main server

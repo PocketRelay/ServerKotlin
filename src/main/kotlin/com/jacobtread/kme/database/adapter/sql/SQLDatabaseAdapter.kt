@@ -1,5 +1,6 @@
 package com.jacobtread.kme.database.adapter.sql
 
+import com.jacobtread.kme.data.retriever.OriginDetailsRetriever
 import com.jacobtread.kme.database.adapter.DatabaseAdapter
 import com.jacobtread.kme.database.data.GalaxyAtWarData
 import com.jacobtread.kme.database.data.Player
@@ -65,8 +66,9 @@ abstract class SQLDatabaseAdapter(
 
     override fun getPlayerByEmail(email: String): Player? {
         try {
-            val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `email` = ? LIMIT 1")
+            val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `email` = ? AND `origin` = ? LIMIT 1")
             statement.setString(1, email)
+            statement.setBoolean(2, false)
             val resultSet = statement.executeQuery()
             val player = getPlayerFromResultSet(resultSet)
             statement.close()
@@ -78,8 +80,9 @@ abstract class SQLDatabaseAdapter(
 
     override fun getPlayerBySessionToken(sessionToken: String): Player? {
         try {
-            val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `session_token` = ? LIMIT 1")
+            val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `session_token` = ? AND `origin` = ? LIMIT 1")
             statement.setString(1, sessionToken)
+            statement.setBoolean(2, false)
             val resultSet = statement.executeQuery()
             val player = getPlayerFromResultSet(resultSet)
             statement.close()
@@ -189,19 +192,20 @@ abstract class SQLDatabaseAdapter(
     override fun createPlayer(email: String, hashedPassword: String): Player {
         try {
             val statement = connection.prepareStatement(
-                "INSERT INTO `players` (`email`, `display_name`, `password`, `inventory`) VALUES (?, ?, ?, ?)",
+                "INSERT INTO `players` (`email`, `display_name`, `password`, `inventory`, `origin`) VALUES (?, ?, ?, ?, ?)",
                 Statement.RETURN_GENERATED_KEYS
             )
             statement.setString(1, email)
             statement.setString(2, email.take(99)) // Display name
             statement.setString(3, hashedPassword) // Password
             statement.setString(4, "") // Inventory
+            statement.setBoolean(5, false)
             statement.executeUpdate()
             val generatedKeys = statement.generatedKeys
             if (generatedKeys.next()) {
                 val id = generatedKeys.getInt(1)
                 statement.close()
-                return createDefaultPlayerFrom(id, email, hashedPassword)
+                return createDefaultPlayerFrom(id, email, email, hashedPassword)
             } else {
                 throw DatabaseException("Creating player failed. No id key was generated ")
             }
@@ -210,11 +214,62 @@ abstract class SQLDatabaseAdapter(
         }
     }
 
-    private fun createDefaultPlayerFrom(id: Int, email: String, password: String): Player {
+    private fun getExistingOriginPlayer(details: OriginDetailsRetriever.OriginDetails): Player? {
+        try {
+            val statement = connection.prepareStatement("SELECT * FROM `players` WHERE  `email` = ? AND `origin` = ? LIMIT 1")
+            statement.setString(1, details.email)
+            statement.setBoolean(2, true)
+            val resultSet = statement.executeQuery()
+            val player = getPlayerFromResultSet(resultSet)
+            statement.close()
+            return player
+        } catch (e: SQLException) {
+            throw DatabaseException("SQLException in getExistingOriginPlayer", e)
+        }
+    }
+
+    private fun createOriginPlayer(details: OriginDetailsRetriever.OriginDetails): Player {
+        try {
+            val statement = connection.prepareStatement(
+                "INSERT INTO `players` (`email`, `display_name`, `password`, `inventory`, `origin`) VALUES (?, ?, ?, ?, ?)",
+                Statement.RETURN_GENERATED_KEYS
+            )
+            statement.setString(1, details.email)
+            statement.setString(2, details.displayName) // Display name
+            statement.setString(3, "") // Password
+            statement.setString(4, "") // Inventory
+            statement.setBoolean(5, true) // Origin
+            statement.executeUpdate()
+            val generatedKeys = statement.generatedKeys
+            if (generatedKeys.next()) {
+                val id = generatedKeys.getInt(1)
+                statement.close()
+                val player = createDefaultPlayerFrom(id, details.email, details.displayName, "")
+                val dataMap = details.dataMap
+                if (dataMap.isNotEmpty()) {
+                    player.setPlayerDataBulk(dataMap)
+                }
+                return player
+            } else {
+                throw DatabaseException("Creating origin player failed. No id key was generated ")
+            }
+        } catch (e: SQLException) {
+            throw DatabaseException("SQLException in createOriginPlayer", e)
+        }
+    }
+
+    override fun getOriginPlayer(token: String): Player? {
+        val details = OriginDetailsRetriever.retrieve(token) ?: return null
+        val existingPlayer = getExistingOriginPlayer(details)
+        if (existingPlayer != null) return existingPlayer
+        return createOriginPlayer(details)
+    }
+
+    private fun createDefaultPlayerFrom(id: Int, email: String, displayName: String, password: String): Player {
         return Player(
             playerId = id,
             email = email,
-            displayName = email,
+            displayName = displayName,
             password = password,
             sessionToken = null,
             credits = 0, creditsSpent = 0, gamesPlayed = 0, secondsPlayed = 0, inventory = "",

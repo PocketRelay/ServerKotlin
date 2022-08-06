@@ -32,8 +32,11 @@ I plan on making a tool for doing this automatically
 
 - [ ] Web panel interface
 - [ ] Leaderboard support
+- [ ] Automatic import from official servers
+- [ ] Origin authentication support 
 
 ## Credits
 
 1. [https://github.com/PrivateServerEmulator/ME3PSE](https://github.com/PrivateServerEmulator/ME3PSE) Sourced certificate and many game assets from this project
 2. [https://github.com/Erik-JS/masseffect-binkw32](https://github.com/Erik-JS/masseffect-binkw32) Game patcher
+3. [https://github.com/GamerClassN7/](https://github.com/GamerClassN7/) For providing me with an Origin copy of Mass Effect 3 and creating a patcher tool
