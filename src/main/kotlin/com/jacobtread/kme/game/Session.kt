@@ -25,6 +25,8 @@ import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
 import java.io.IOException
+import java.net.Inet4Address
+import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -121,7 +123,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      * Possibly the clients' connectivity to the
      * different player sync services?
      */
-    private var pslm: ULong =0xfff0fffu
+    private var pslm: ULong = 0xfff0fffu
 
 
     private var location: ULong = 0x64654445uL
@@ -292,7 +294,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     /**
      * Handles pushing multiple packets to be written to the socket
      * connection. Checks to see if the push request was in the event
-     * loop and then writes all then packets before flushing. If its
+     * loop and then writes all then packets before flushing. If it's
      * called outside the event loop it tells the event loop to execute
      * the same instruction
      *
@@ -1242,9 +1244,11 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
 
                 +serverGroup
                 number("LNP", 0xA)
-                map("LTPS", mapOf(
-                    "ea-sjc" to serverGroup
-                ))
+                map(
+                    "LTPS", mapOf(
+                        "ea-sjc" to serverGroup
+                    )
+                )
                 number("SVID", 0x45410805)
             }
             text("RSRC", "303107")
@@ -1572,6 +1576,26 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         internalPort = inip.number("PORT")
 
         isNetworkingUnset = false
+
+        val remoteAddress = socketChannel.remoteAddress()
+        if (remoteAddress is InetSocketAddress) {
+            val addr = remoteAddress.address
+            if (addr is Inet4Address) {
+                val addrString = addr.hostAddress
+                val ipv4Regex = Regex("^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)(\\.(?!\$)|\$)){4}\$")
+                if (addrString.matches(ipv4Regex)) { // Check if the address is an IPv4 Address
+                    val ipParts = addrString.split('.', limit = 4) // Split the address into 4 parts
+                    require(ipParts.size == 4) { "Invalid IPv4 Address" } // Ensure that the address is 4 parts
+                    // Encoding the address as an unsigned long value
+                    externalAddress = (ipParts[0].toULong() shl 24)
+                        .or(ipParts[1].toULong() shl 16)
+                        .or(ipParts[2].toULong() shl 8)
+                        .or(ipParts[3].toULong())
+                    externalPort = internalPort
+                }
+            }
+        }
+
     }
 
     /**
