@@ -108,7 +108,7 @@ class MITMHandler(
 
             Logger.info("Unlocking everything with cheat.")
 
-            var id = packet.id
+            var id = 999
 
             // Base settings cheat (Unlocks all inventory items and gives max currency value)
             serverChannel.writeAndFlush(
@@ -136,7 +136,7 @@ class MITMHandler(
                             .append(";20;0;")
                             .append("255")
                         text("DATA", builder.toString())
-                        text("KEY", "class$index")
+                        text("KEY", "class${index + 1}")
                         number("UID", 0)
                     }
                 )
@@ -150,6 +150,7 @@ class MITMHandler(
                     repeat(221) { builder.append(",255") }
                     text("DATA", builder.toString())
                     text("KEY", "cscompletion")
+                    number("UID", 0)
                 }
             )
         }
