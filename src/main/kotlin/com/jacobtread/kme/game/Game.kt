@@ -73,20 +73,16 @@ class Game(
         val host = getHost()
         host.updateSessionFor(player)
         val sessionPacket = player.createSetSessionPacket()
-        host.pushAll(
-            notify(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOINING) {
-                number("GID", id)
-                +player.createPlayerDataGroup()
-            },
-        )
+        host.push(notify(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOINING) {
+            number("GID", id)
+            +player.createPlayerDataGroup()
+        })
         forEachPlayer {
             player.updateSessionFor(it)
             it.updateSessionFor(player)
         }
-        player.pushAll(
-            createGameSetupPacket(player),
-        )
         pushAll(sessionPacket)
+        player.push(createGameSetupPacket(player))
     }
 
     private fun updatePlayerSlots() {
@@ -231,18 +227,19 @@ class Game(
 
         playerSession.setPlayerState(4)
 
-        val b = notify(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOIN_COMPLETED) {
+        val a = notify(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOIN_COMPLETED) {
             number("GID", id)
             number("PID", playerId)
         }
-        val c = notify(Components.GAME_MANAGER, Commands.NOTIFY_ADMIN_LIST_CHANGE) {
+        val b = notify(Components.GAME_MANAGER, Commands.NOTIFY_ADMIN_LIST_CHANGE) {
             number("ALST", playerId)
             number("GID", id)
             number("OPER", 0) // 0 = add 1 = remove
             number("UID", host.playerIdSafe)
         }
-        pushAll(b, c)
+        pushAll(a, b)
     }
+
 
     /**
      * Push a packet to the host only.
@@ -358,7 +355,7 @@ class Game(
             if (matchmakingSesion != null) {
                 optional("REAS", 0x3u, group("VALU") {
                     // 16250, 16675, 21050, 21500, 21600
-                    number("FIT", 0x3f7a) // 0x53fc, 0x3f7a, 0x5460, 0x4123, 0x523a
+                    number("FIT", 0x3f7a) // 0x53fc (4), 0x3f7a (3), 0x5460 (2), 0x4123 (2), 0x523a (2)
                     number("MAXF", 0x5460) /// 0x5460
                     number("MSID", matchmakingSesion.matchmakingId) // Matchmaking session id
                     number("RSLT", matchmakingSesion.gameSlot)
