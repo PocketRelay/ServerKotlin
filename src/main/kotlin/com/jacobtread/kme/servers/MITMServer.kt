@@ -115,7 +115,7 @@ class MITMHandler(
                 clientPacket(Components.UTIL, Commands.USER_SETTINGS_SAVE, id++) {
                     val baseBuilder = StringBuilder("20;4;")
                         .append(Int.MAX_VALUE - (Int.MAX_VALUE / 24))
-                        .append(";-1;0;0;0;50;180000;0;")
+                        .append(";-1;0;0;0;540;4320000;0;")
                     repeat(671) {
                         baseBuilder.append("FF")
                     }
@@ -134,7 +134,7 @@ class MITMHandler(
                         val builder = StringBuilder("20;4;")
                             .append(className)
                             .append(";20;0;")
-                            .append("255")
+                            .append("900")
                         text("DATA", builder.toString())
                         text("KEY", "class${index + 1}")
                         number("UID", 0)
@@ -150,6 +150,17 @@ class MITMHandler(
                     repeat(221) { builder.append(",255") }
                     text("DATA", builder.toString())
                     text("KEY", "cscompletion")
+                    number("UID", 0)
+                }
+            )
+
+            // Challenge completion cheat
+            serverChannel.writeAndFlush(
+                clientPacket(Components.UTIL, Commands.USER_SETTINGS_SAVE, id++) {
+                    val builder = StringBuilder("22")
+                    repeat(746) { builder.append(",255") }
+                    text("DATA", builder.toString())
+                    text("KEY", "Completion")
                     number("UID", 0)
                 }
             )
