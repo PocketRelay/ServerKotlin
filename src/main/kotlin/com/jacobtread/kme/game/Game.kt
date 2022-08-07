@@ -228,11 +228,9 @@ class Game(
         val playerEntity = playerSession.player ?: return
         val playerId = playerEntity.playerId
         val host = getHost()
-        val a = notify(Components.GAME_MANAGER, Commands.NOTIFY_GAME_PLAYER_STATE_CHANGE) {
-            number("GID", id)
-            number("PID", playerId)
-            number("STAT", 4)
-        }
+
+        playerSession.setPlayerState(4)
+
         val b = notify(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOIN_COMPLETED) {
             number("GID", id)
             number("PID", playerId)
@@ -243,7 +241,17 @@ class Game(
             number("OPER", 0) // 0 = add 1 = remove
             number("UID", host.playerIdSafe)
         }
-        pushAll(a, b, c)
+        pushAll(b, c)
+    }
+
+    /**
+     * Push a packet to the host only.
+     *
+     * @param packet The packet to push
+     */
+    fun pushHost(packet: Packet) {
+        val host = getHostOrNull()
+        host?.push(packet)
     }
 
     /**
@@ -252,7 +260,7 @@ class Game(
      *
      * @param packet The packet to push
      */
-    private fun pushAll(packet: Packet) {
+    fun pushAll(packet: Packet) {
         forEachPlayer { player -> player.push(packet) }
     }
 
@@ -349,8 +357,9 @@ class Game(
 
             if (matchmakingSesion != null) {
                 optional("REAS", 0x3u, group("VALU") {
-                    number("FIT", 0x3f7a)
-                    number("MAXF", 0x5460)
+                    // 16250, 16675, 21050, 21500, 21600
+                    number("FIT", 0x3f7a) // 0x53fc, 0x3f7a, 0x5460, 0x4123, 0x523a
+                    number("MAXF", 0x5460) /// 0x5460
                     number("MSID", matchmakingSesion.matchmakingId) // Matchmaking session id
                     number("RSLT", matchmakingSesion.gameSlot)
                     number("USID", matchmakingSesion.playerIdSafe) // Player ID
@@ -407,7 +416,7 @@ class Game(
      * @param ruleSet The rule set to check against.
      * @return Whether this game matches.
      */
-    fun matchesRules(ruleSet: MatchRuleSet): Boolean{
+    fun matchesRules(ruleSet: MatchRuleSet): Boolean {
         return attributesLock.read { ruleSet.validate(attributes) }
     }
 

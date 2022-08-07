@@ -188,6 +188,8 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     val playerIdSafe: Int get() = player?.playerId ?: 1
 
+    private var playerState = 0x2
+
     init {
         updateEncoderContext() // Set the initial encoder context
     }
@@ -1648,6 +1650,28 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     }
 
     /**
+     * Handles setting of the player state variable.
+     * After the variable is set a notification packet
+     * is sent to the other players in the game.
+     *
+     * Notification packet won't be sent if the player
+     * is not in a game.
+     *
+     * @param value The new player state value.
+     */
+    fun setPlayerState(value: Int) {
+        playerState = value
+        val game = game ?: return
+        game.pushAll(
+            notify(Components.GAME_MANAGER, Commands.NOTIFY_GAME_PLAYER_STATE_CHANGE) {
+                number("GID", game.id)
+                number("PID", playerIdSafe)
+                number("STAT", value)
+            }
+        )
+    }
+
+    /**
      * Creates a packet which sets the session details for this
      * session.
      *
@@ -1683,7 +1707,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             +createNetworkingTdf("PNET") // Player Network Information
             number("SID", gameSlot) // Player Slot Index/ID
             number("SLOT", 0x0)
-            number("STAT", 0x2)
+            number("STAT", playerState)
             number("TIDX", 0xffff)
             number("TIME", 0x0)
             tripple("UGID", 0x0, 0x0, 0x0)
