@@ -72,12 +72,12 @@ class Game(
         players[gameSlot] = player
         val host = getHost()
         host.updateSessionFor(player)
+        val sessionPacket = player.createSetSessionPacket()
         host.pushAll(
             notify(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOINING) {
                 number("GID", id)
                 +player.createPlayerDataGroup()
             },
-            player.createSetSessionPacket()
         )
         forEachPlayer {
             player.updateSessionFor(it)
@@ -85,8 +85,8 @@ class Game(
         }
         player.pushAll(
             createGameSetupPacket(player),
-            player.createSetSessionPacket()
         )
+        pushAll(sessionPacket)
     }
 
     private fun updatePlayerSlots() {
@@ -352,7 +352,7 @@ class Game(
                     number("FIT", 0x3f7a)
                     number("MAXF", 0x5460)
                     number("MSID", matchmakingSesion.matchmakingId) // Matchmaking session id
-                    number("RSLT", 0x2)
+                    number("RSLT", matchmakingSesion.gameSlot)
                     number("USID", matchmakingSesion.playerIdSafe) // Player ID
                 })
             } else {
