@@ -21,7 +21,7 @@ object MakeCoalesced {
         val inFile = Paths.get("data/bini.bin")
         val inputExists = Files.exists(inFile) && Files.isRegularFile(inFile)
         require(inputExists) { "Input file data/bini.bin didn't exist or was not a file." }
-        val destFile = Paths.get("app/src/main/resources/data/bini.bin.chunked")
+        val destFile = Paths.get("src/main/resources/data/bini.bin.chunked")
         ResourceProcessing.processCoalesced(inFile, destFile)
         val outputExists = Files.exists(destFile) && Files.isRegularFile(destFile)
         require(outputExists) { "Something went wrong output file was never generate" }
