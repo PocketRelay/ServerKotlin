@@ -4,6 +4,10 @@ package com.jacobtread.kme.data.constants
  * This enum contains all the challenge reward banners that are
  * known.
  *
+ * Custom verison of the banners loaded from the HTTP server
+ * can be made using GIMP. Export as .dds with the compression format
+ * set to "BC3 / DXT5"
+ *
  * @property id The csreward value for this banner
  * @property rewardName The name of this challenge
  * @property text The text displayed on the banner
