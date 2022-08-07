@@ -48,12 +48,11 @@ object Matchmaking {
      * @param game The newly created game
      */
     internal fun onGameCreated(game: Game) {
-        val attributes = game.getAttributes()
         waitingLock.read {
             val iterator = waitingPlayers.iterator()
             while (iterator.hasNext()) {
                 val (session, ruleSet) = iterator.next()
-                if (ruleSet.validate(attributes) && game.isJoinable) {
+                if (game.matchesRules(ruleSet) && game.isJoinable) {
                     game.join(session)
                     waitingLock.write {
                         iterator.remove()
@@ -76,7 +75,7 @@ object Matchmaking {
         if (session.matchmakingId == 1uL) {
             session.matchmakingId = matchmakingId++
         }
-        val game = GameManager.tryFindGame { ruleSet.validate(it.getAttributes()) }
+        val game = GameManager.tryFindGame { it.matchesRules(ruleSet) }
         if (game != null) return game
         session.startMatchmaking()
         waitingLock.write { waitingPlayers[session] = ruleSet }

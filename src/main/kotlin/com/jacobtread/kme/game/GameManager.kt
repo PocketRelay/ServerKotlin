@@ -12,10 +12,10 @@ object GameManager {
     private val games = HashMap<ULong, Game>()
     private var gameId: ULong = 1uL
 
-    fun createGame(host: Session): Game = gamesLock.write {
+    fun createGame(host: Session, attributes: Map<String, String>): Game = gamesLock.write {
         val hostPlayer = host.player ?: throw NotAuthenticatedException()
         removeInactive()
-        val game = Game(gameId, host)
+        val game = Game(gameId, host, attributes)
 
         Logger.info("Created new game (${game.id}) hosted by ${hostPlayer.displayName}")
         games[game.id] = game

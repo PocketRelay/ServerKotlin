@@ -5,30 +5,41 @@ import com.jacobtread.blaze.notify
 import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.blaze.tdf.Tdf
 import com.jacobtread.blaze.tdf.types.GroupTdf
-import com.jacobtread.kme.data.attr.GameStateAttr
 import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
 import com.jacobtread.kme.exceptions.GameException
+import com.jacobtread.kme.game.match.MatchRuleSet
 import com.jacobtread.kme.utils.logging.Logger
-import java.util.*
+import java.util.Map.copyOf
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
 
+/**
+ * Represents a game on the server. Manages the players and any
+ * other game related logic such as state, settings and attributes
+ *
+ * @property id The unique identifier for this game
+ * @constructor Creates a new game instance.
+ *
+ * @param host The session which started hosting this game
+ * @param initialAttributes The initial attributes provided in game creation
+ */
 class Game(
     val id: ULong,
     host: Session,
+    initialAttributes: Map<String, String>,
 ) {
 
     companion object {
         const val MAX_PLAYERS = 4
     }
 
-    var gameState: Int = 0x1
-    var gameSetting: Int = 0x11f
+    private var gameState: Int = 0x1
+    private var gameSetting: Int = 0x11f
 
     private val attributesLock = ReentrantReadWriteLock()
-    private val attributes = HashMap<String, String>()
+    private val attributes = HashMap<String, String>(initialAttributes)
 
     var isActive = true
 
@@ -44,17 +55,6 @@ class Game(
         players[0] = host
         host.setGame(this, 0)
     }
-
-    private fun getHostOrNull(): Session? {
-        var host = players[0]
-        if (host == null) {
-            updatePlayerSlots()
-            host = players[0]
-        }
-        return host
-    }
-
-    private fun getHost(): Session = getHostOrNull() ?: throw GameException.StoppedException()
 
     fun setupHost() {
         val host = getHost()
@@ -130,6 +130,7 @@ class Game(
     }
 
     fun removeAtIndex(index: Int) {
+        val lastHost = getHostOrNull()
         playersLock.read {
             Logger.logIfDebug { "Removing player at id $index" }
             val removedPlayer = players[index]
@@ -167,14 +168,14 @@ class Game(
                         val playerEntity = host.player ?: return@logIfDebug ""
                         "Migrating host for $id to ${playerEntity.displayName} (${playerEntity.playerId})"
                     }
-                    migrateHost(host)
+                    migrateHost(lastHost, host)
                 }
             }
         }
     }
 
-    private fun migrateHost(newHost: Session) {
-        val startPacket = notify(
+    private fun migrateHost(lastHost: Session?, newHost: Session) {
+        pushAll(notify(
             Components.GAME_MANAGER,
             Commands.NOTIFY_HOST_MIGRATION_START
         ) {
@@ -182,16 +183,22 @@ class Game(
             number("HOST", newHost.playerIdSafe)
             number("PMIG", 0x2)
             number("SLOT", newHost.gameSlot)
-        }
-        val finishPacket = notify(
+        })
+
+        setGameState(0x82)
+
+        pushAll(notify(
             Components.GAME_MANAGER,
             Commands.NOTIFY_HOST_MIGRATION_FINISHED
         ) {
             number("GID", id)
-        }
-        pushAll(startPacket, createGameSetupPacket(null), finishPacket)
-    }
+        })
 
+        if (lastHost != null) {
+            val packet = lastHost.createSetSessionPacket()
+            pushAll(packet)
+        }
+    }
 
     private fun updatePlayersList() {
         val host = getHost()
@@ -239,15 +246,34 @@ class Game(
         pushAll(a, b, c)
     }
 
+    /**
+     * Pushes the provided packet to all the
+     * connected players in this game.
+     *
+     * @param packet The packet to push
+     */
     private fun pushAll(packet: Packet) {
         forEachPlayer { player -> player.push(packet) }
     }
 
+    /**
+     * Pushes all the provided packets to all the
+     * connected players in this game.
+     *
+     * @param packets The packets to push
+     */
     private fun pushAll(vararg packets: Packet) {
         forEachPlayer { player -> player.pushAll(*packets) }
     }
 
-
+    /**
+     * Inline function for safely iterating over all the
+     * players in the match.
+     *
+     * (Obtains a read lock before iterating)
+     *
+     * @param action The action to run on each player
+     */
     private inline fun forEachPlayer(action: (player: Session) -> Unit) {
         playersLock.read {
             players.forEach {
@@ -276,7 +302,7 @@ class Game(
             +group("GAME") {
                 // Game Admins
                 list("ADMN", playerIds)
-                map("ATTR", getAttributes())
+                map("ATTR", getCopyOfAttributes())
                 list("CAP", listOf(0x4, 0x0))
                 number("GID", id)
                 text("GNAM", hostPlayer.displayName)
@@ -337,20 +363,110 @@ class Game(
         }
     }
 
-    fun getAttributes(): Map<String, String> = attributesLock.read { attributes }
-
-    fun setAttributes(map: Map<String, String>, update: Boolean) {
-        attributesLock.write { attributes.putAll(map) }
-        if (update) { // Push an update to the client with the new attributes
-            pushAll(
-                notify(
-                    Components.GAME_MANAGER,
-                    Commands.NOTIFY_GAME_UPDATED
-                ) {
-                    map("ATTR", getAttributes())
-                    number("GID", id)
-                }
-            )
+    /**
+     * Retrieves the host player for this game
+     * (This is always the first player) or returns
+     * null if there are no players in the game.
+     *
+     * @return The host player session or null if none
+     */
+    private fun getHostOrNull(): Session? {
+        var host = players[0]
+        if (host == null) {
+            updatePlayerSlots()
+            host = players[0]
         }
+        return host
+    }
+
+    /**
+     * Retrieves the host player but without the
+     * possibility of being null. If the host is
+     * null then a [GameException.StoppedException]
+     * is thrown instead
+     *
+     * @return The host player session
+     */
+    private fun getHost(): Session = getHostOrNull() ?: throw GameException.StoppedException()
+
+
+    /**
+     * Retrieves the attributes map from within its lock
+     * and creates a copy which is then returned.
+     *
+     * @return The copy of the attributes map.
+     */
+    private fun getCopyOfAttributes(): Map<String, String> {
+        return attributesLock.read { copyOf(attributes) }
+    }
+
+    /**
+     * Checks if this game matches the provided rule
+     * set.
+     *
+     * @param ruleSet The rule set to check against.
+     * @return Whether this game matches.
+     */
+    fun matchesRules(ruleSet: MatchRuleSet): Boolean{
+        return attributesLock.read { ruleSet.validate(attributes) }
+    }
+
+    /**
+     * Sets the attributes for this game. The changes to the attributes
+     * are then send to the connected players
+     *
+     * @param attributes The map of attribute key value pairs.
+     */
+    fun setAttributes(attributes: Map<String, String>) {
+        attributesLock.write { this.attributes.putAll(attributes) }
+        pushAll(
+            notify(
+                Components.GAME_MANAGER,
+                Commands.NOTIFY_GAME_UPDATED
+            ) {
+                map("ATTR", getCopyOfAttributes())
+                number("GID", id)
+            }
+        )
+    }
+
+    /**
+     * Handles setting the game state value. When the game state is
+     * changed all the players are informed of this change with a
+     * [Components.GAME_MANAGER] / [Commands.NOTIFY_GAME_STATE_CHANGE]
+     *
+     * @param value The new game state value
+     */
+    fun setGameState(value: Int) {
+        gameState = value
+        pushAll(
+            notify(
+                Components.GAME_MANAGER,
+                Commands.NOTIFY_GAME_STATE_CHANGE
+            ) {
+                number("GID", id)
+                number("GSTA", value)
+            }
+        )
+    }
+
+    /**
+     * Handles setting the game setting value. When the game setting is
+     * changed all the players are informed of this change with a
+     * [Components.GAME_MANAGER] / [Commands.NOTIFY_GAME_SETTINGS_CHANGE]
+     *
+     * @param value The new game setting value
+     */
+    fun setGameSetting(value: Int) {
+        gameSetting = value
+        pushAll(
+            notify(
+                Components.GAME_MANAGER,
+                Commands.NOTIFY_GAME_SETTINGS_CHANGE
+            ) {
+                number("ATTR", value)
+                number("GID", id)
+            }
+        )
     }
 }

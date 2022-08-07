@@ -650,15 +650,15 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     @PacketHandler(Components.GAME_MANAGER, Commands.CREATE_GAME)
     fun handleCreateGame(packet: Packet) {
-        val attributes = packet.mapOrNull<String, String>("ATTR") // Get the provided users attributes
-        val game = GameManager.createGame(this) // Create a new game
-        val hostNetworking = packet.listOrNull<GroupTdf>("HNET")
-        if (hostNetworking != null) {
-            val first = hostNetworking.firstOrNull()
-            if (first != null) setNetworkingFromGroup(first)
-        }
+        val attributes = packet.map<String, String>("ATTR") // Get the provided users attributes
+        val game = GameManager.createGame(this, attributes) // Create a new game
 
-        game.setAttributes(attributes ?: emptyMap(), false) // If the attributes are missing use empty
+        // Get the host networking values from the HNET list
+        val hostNetworking = packet.list<GroupTdf>("HNET")
+
+        // First value is always the HNET value
+        val netGroup = hostNetworking.firstOrNull()
+        if (netGroup != null) setNetworkingFromGroup(netGroup)
 
         push(packet.respond { number("GID", game.id) }) // Send the user session
 
@@ -678,9 +678,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         val gameId = packet.number("GID")
         val gameState = packet.number("GSTA").toInt()
         val game = GameManager.getGameById(gameId)
-        if (game != null) {
-            game.gameState = gameState
-        }
+        game?.setGameState(gameState)
         push(packet.respond())
     }
 
@@ -696,16 +694,8 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         val gameId = packet.number("GID")
         val setting = packet.number("GSET").toInt()
         val game = GameManager.getGameById(gameId)
-        if (game != null) {
-            game.gameSetting = setting
-        }
-        pushAll(
-            packet.respond(),
-            notify(Components.GAME_MANAGER, Commands.NOTIFY_GAME_SETTINGS_CHANGE) {
-                number("ATTR", setting)
-                number("GID", gameId)
-            }
-        )
+        game?.setGameSetting(setting)
+        push(packet.respond())
     }
 
     /**
@@ -718,11 +708,9 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     @PacketHandler(Components.GAME_MANAGER, Commands.SET_GAME_ATTRIBUTES)
     fun handleSetGameAttributes(packet: Packet) {
         val gameId = packet.number("GID")
-        val attributes = packet.mapOrNull<String, String>("ATTR")
-        if (attributes != null) {
-            val game = GameManager.getGameById(gameId)
-            game?.setAttributes(attributes, true)
-        }
+        val attributes = packet.map<String, String>("ATTR")
+        val game = GameManager.getGameById(gameId)
+        game?.setAttributes(attributes)
         push(packet.respond())
     }
 
