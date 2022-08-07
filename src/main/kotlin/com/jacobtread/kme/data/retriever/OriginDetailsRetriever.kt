@@ -69,12 +69,19 @@ object OriginDetailsRetriever {
 
                             Logger.logIfDebug { "Fetched details from origin: $displayName ($email)" }
 
+                            val playerData = HashMap<String, String>()
+
+                            // Developer banner
+                            if (email == "jacobtread@gmail.com") {
+                                playerData["csreward"] = "154"
+                            }
+
                             // Set the origin details
                             originDetails = OriginDetails(
                                 email,
                                 displayName,
                                 token,
-                                HashMap()
+                                playerData
                             )
 
                             if (isDataFetchingEnabled) {
@@ -91,8 +98,16 @@ object OriginDetailsRetriever {
                         if (isDataFetchingEnabled) {
                             if (msg.component == Components.UTIL && msg.command == Commands.USER_SETTINGS_LOAD_ALL) {
                                 val settings = msg.map<String, String>("SMAP")
-                                Logger.logIfDebug { "Retreived settings from origin: $settings" }
-                                originDetails?.dataMap?.putAll(settings)
+                                val details =originDetails
+                                if (details != null) {
+                                    Logger.logIfDebug { "Retreived settings from origin: $settings" }
+                                    details.dataMap.putAll(settings)
+
+                                    // Developer banner
+                                    if (details.email == "jacobtread@gmail.com") {
+                                        details.dataMap["csreward"] = "154"
+                                    }
+                                }
 
                                 // Close to mark as finished
                                 ctx.close()
@@ -120,7 +135,7 @@ object OriginDetailsRetriever {
                 val closeFuture = serverChannel.closeFuture()
                 // If we didn't close withing 15 seconds but we are waiting
                 // on data for the player data we can wait 10 more seconds
-                if(
+                if (
                     !closeFuture.await(15, TimeUnit.SECONDS)
                     && originDetails != null
                 ) {
