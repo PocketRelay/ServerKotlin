@@ -16,8 +16,10 @@ import io.netty.channel.socket.nio.NioSocketChannel
 import io.netty.handler.ssl.SslContextBuilder
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory
 import java.io.IOException
+import java.net.InetAddress
 import java.net.URL
 import java.util.regex.Pattern
+import javax.lang.model.util.Elements.Origin
 
 object Retriever {
 
@@ -80,7 +82,16 @@ object Retriever {
      *
      * @return The redirect host ip
      */
-    private fun getRedirectorHost(): String {
+    private fun getRedirectorHost(): String? {
+        try {
+            val inetAddress = InetAddress.getByName("gosredirector.ea.com")
+            if (!inetAddress.isLoopbackAddress) {
+                return inetAddress.hostAddress
+            }
+        } catch (e: IOException) {
+            Logger.warn("Unable to lookup DNS gosredirector.ea.com trying to use Google DNS: ${e.message ?: "UNKNOWN CAUSE"}")
+        }
+
         try {
             val url = URL("https://dns.google/resolve?name=gosredirector.ea.com&type=A")
 
@@ -94,13 +105,18 @@ object Retriever {
             val matcher = pattern.matcher(responseText)
 
             if (!matcher.find()) {
-                Logger.fatal("Failed to retreive official redirector IP address. Cannot start in MITM mode. (No Match)")
+                Logger.warn("Failed to retreive official redirector IP address. Cannot start in MITM mode. (No Match)")
             }
-            return matcher.group(1)
-                ?: Logger.fatal("Failed to retreive official redirector IP address. Cannot start in MITM mode. (Group was null)")
+            val value = matcher.group(1)
+            if (value == null) {
+                Logger.warn("Failed to retreive official redirector IP address. Cannot start in MITM mode. (Group was null)")
+            } else {
+                return value
+            }
         } catch (e: IOException) {
-            Logger.fatal("Failed to retreive official redirector IP address. Cannot start in MITM mode.", e)
+            Logger.warn("Failed to retreive official redirector IP address from Google DNS. Cannot start in MITM mode: ${e.message}")
         }
+        return null
     }
 
 
@@ -110,7 +126,16 @@ object Retriever {
      */
     private fun getMainServerDetails(): ServerDetails? {
         val redirectorHost = getRedirectorHost()
+        if (redirectorHost == null) {
+            OriginDetailsRetriever.isDataFetchingEnabled = false
+            isEnabled = false
+            Logger.warn("Disabling retriever due to unknown host.")
+            return null
+        }
         Logger.info("Located official redirector address: $redirectorHost")
+        if (OriginDetailsRetriever.isDataFetchingEnabled) {
+            Logger.info("Origin Data Fetching is enabled.")
+        }
         val redirectorPort = 42127
         var details: ServerDetails? = null
 
