@@ -664,7 +664,8 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
 
         push(packet.respond { number("GID", game.id) }) // Send the user session
 
-        game.setupHost()
+        game.join(this)
+
         Matchmaking.onGameCreated(game)
     }
 

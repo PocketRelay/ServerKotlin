@@ -23,12 +23,10 @@ import kotlin.concurrent.write
  * @property id The unique identifier for this game
  * @constructor Creates a new game instance.
  *
- * @param host The session which started hosting this game
  * @param initialAttributes The initial attributes provided in game creation
  */
 class Game(
     val id: ULong,
-    host: Session,
     initialAttributes: Map<String, String>,
 ) {
 
@@ -42,43 +40,44 @@ class Game(
     private var playersCount = 1
     private val players = arrayOfNulls<Session>(MAX_PLAYERS)
 
-    private val isFull: Boolean get() = playersCount == MAX_PLAYERS
-    val isJoinable: Boolean get() = !isFull
+    val isNotFull: Boolean get() = playersCount != MAX_PLAYERS
 
-    init {
-        players[0] = host
-        host.setGame(this, 0)
-    }
-
-    fun setupHost() {
-        val host = getHost()
-        host.pushAll(
-            createGameSetupPacket(null),
-            host.createSetSessionPacket()
-        )
-    }
-
-    fun join(player: Session) = playersLock.write {
+    /**
+     * Handles joining the provided session to the game. Sets
+     * the player slot and notifies the host of the other player
+     * joining if this is not the host player.
+     *
+     * @param session The session trying to join this game
+     * @throws GameException.GameFullException When there are no free slots for this game
+     */
+    internal fun join(session: Session) {
         if (playersCount >= MAX_PLAYERS) throw GameException.GameFullException()
-        player.resetMatchmakingState()
-        val gameSlot = playersCount++
-        player.setGame(this, gameSlot)
-        players[gameSlot] = player
-        val host = getHost()
-        host.updateSessionFor(player)
-        val sessionPacket = player.createSetSessionPacket()
-        host.push(notify(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOINING) {
-            number("GID", id)
-            +player.createPlayerDataGroup()
-        })
-        forEachPlayer {
-            player.updateSessionFor(it)
-            it.updateSessionFor(player)
+        session.resetMatchmakingState()
+        playersLock.write {
+            val gameSlot = playersCount++
+            players[gameSlot] = session
+            session.setGame(this, gameSlot)
         }
-        pushAll(sessionPacket)
-        player.push(createGameSetupPacket(player))
+        if (session.gameSlot != 0) {
+            pushHost(notify(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOINING) {
+                number("GID", id)
+                +session.createPlayerDataGroup()
+            })
+        }
+        val sessionPacket = session.createSetSessionPacket()
+        forEachPlayer {
+            session.updateSessionFor(it)
+            it.updateSessionFor(session)
+            it.push(sessionPacket)
+        }
+        notifyGameSetup(session)
     }
 
+    /**
+     * Updates the player slots moving down the players
+     * into the empty slots and then telling the clients
+     * to retrieve the player data.
+     */
     private fun updatePlayerSlots() {
         playersCount = 0
         playersLock.write {
@@ -101,11 +100,34 @@ class Game(
             }
         }
         if (playersCount < 1) {
-            stop()
+            stop() // Stop the game if there's no mroe players
+        } else {
+            val host = getHost()
+            val hostPacket = notify(
+                Components.USER_SESSIONS,
+                Commands.FETCH_EXTENDED_DATA
+            ) {
+                number("BUID", host.playerIdSafe)
+            }
+            forEachPlayerExclHost {
+                val playerPacket = notify(
+                    Components.USER_SESSIONS,
+                    Commands.FETCH_EXTENDED_DATA
+                ) {
+                    number("BUID", it.playerIdSafe)
+                }
+                it.push(hostPacket)
+                host.push(playerPacket)
+            }
         }
     }
 
-
+    /**
+     * Finds and removes any players that have the
+     * provided player id.
+     *
+     * @param playerId The player id to look for
+     */
     fun removePlayerById(playerId: Int) {
         val player = playersLock.read {
             players.firstOrNull {
@@ -119,6 +141,13 @@ class Game(
         }
     }
 
+    /**
+     * Handles removing a player from the game. This updates
+     * the game players list as well as notifying the other
+     * players and migrating the host if nessicary.
+     *
+     * @param session The player session to remove
+     */
     fun removePlayer(session: Session) {
         Logger.logIfDebug {
             val player = session.player
@@ -129,17 +158,14 @@ class Game(
             }
         }
 
-        pushAll(
-            notify(
-                Components.GAME_MANAGER,
-                Commands.NOTIFY_PLAYER_REMOVED
-            ) {
-                number("CNTX", 0x0)
-                number("GID", id)
-                number("PID", session.playerIdSafe)
-                number("REAS", 0x6) // Possible remove reason? Investigate further
-            }
-        )
+        pushAll(notify(
+            Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_REMOVED
+        ) {
+            number("CNTX", 0x0)
+            number("GID", id)
+            number("PID", session.playerIdSafe)
+            number("REAS", 0x6) // Possible remove reason? Investigate further
+        })
 
         playersLock.write { players[session.gameSlot] = null }
 
@@ -153,7 +179,6 @@ class Game(
         }
 
         updatePlayerSlots()
-        updatePlayersList()
 
         val wasHost = session.gameSlot == 0
         if (playersCount > 0 && wasHost) {
@@ -166,6 +191,12 @@ class Game(
         session.clearGame()
     }
 
+    /**
+     * Migrates the host slot / access to a different player
+     *
+     * @param lastHost The previous host of this game
+     * @param newHost The new host of this game
+     */
     private fun migrateHost(lastHost: Session, newHost: Session) {
         Logger.logIfDebug {
             val lastPlayer = lastHost.player
@@ -179,8 +210,7 @@ class Game(
         }
 
         pushAll(notify(
-            Components.GAME_MANAGER,
-            Commands.NOTIFY_HOST_MIGRATION_START
+            Components.GAME_MANAGER, Commands.NOTIFY_HOST_MIGRATION_START
         ) {
             number("GID", id)
             number("HOST", newHost.playerIdSafe)
@@ -191,38 +221,13 @@ class Game(
         setGameState(0x82)
 
         pushAll(notify(
-            Components.GAME_MANAGER,
-            Commands.NOTIFY_HOST_MIGRATION_FINISHED
+            Components.GAME_MANAGER, Commands.NOTIFY_HOST_MIGRATION_FINISHED
         ) {
             number("GID", id)
         })
 
         val packet = lastHost.createSetSessionPacket()
         pushAll(packet)
-    }
-
-    private fun updatePlayersList() {
-        if (playersCount < 1) return
-        val host = getHost()
-        val hostPacket = notify(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", host.playerIdSafe) }
-        for (i in 1 until MAX_PLAYERS) {
-            val player = players[i] ?: continue
-            val playerPacket = notify(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", player.playerIdSafe) }
-
-            player.push(hostPacket)
-            host.push(playerPacket)
-        }
-    }
-
-    private fun stop() {
-        remove(this)
-        playersLock.write {
-            for (i in 0 until MAX_PLAYERS) {
-                val player = players[i] ?: continue
-                player.clearGame()
-                players[i] = null
-            }
-        }
     }
 
     fun updateMeshConnection(playerSession: Session) {
@@ -251,7 +256,7 @@ class Game(
      *
      * @param packet The packet to push
      */
-    fun pushHost(packet: Packet) {
+    private fun pushHost(packet: Packet) {
         val host = getHostOrNull()
         host?.push(packet)
     }
@@ -292,86 +297,113 @@ class Game(
         }
     }
 
-    private fun createGameSetupPacket(matchmakingSesion: Session?): Packet {
-        return notify(
-            Components.GAME_MANAGER,
-            Commands.NOTIFY_GAME_SETUP
-        ) {
-            val host = getHost()
-            val hostPlayer = host.player
-            check(hostPlayer != null) { "Host player was null couldn't create game group" }
-            val hostId = hostPlayer.playerId
-
-            val playerIds = ArrayList<ULong>()
-            val playerGroups = ArrayList<GroupTdf>()
-            forEachPlayer { player ->
-                playerIds.add(player.playerIdSafe.toULong())
-                playerGroups.add(player.createPlayerDataGroup())
-            }
-
-            +group("GAME") {
-                // Game Admins
-                list("ADMN", playerIds)
-                map("ATTR", getCopyOfAttributes())
-                list("CAP", listOf(0x4, 0x0))
-                number("GID", id)
-                text("GNAM", hostPlayer.displayName)
-                number("GPVH", GPVH)
-                number("GSET", gameSetting)
-                number("GSID", GSID)
-                number("GSTA", gameState)
-                text("GTYP", "")
-                // Host network information
-                list("HNET", listOf(host.createHNET()))
-                number("HSES", host.playerIdSafe)
-                number("IGNO", 0x0)
-                number("MCAP", 0x4)
-                +group("NQOS") {
-                    number("DBPS", host.dbps)
-                    number("NATT", host.nattType)
-                    number("UBPS", host.ubps)
-                }
-                number("NRES", 0x0)
-                number("NTOP", 0x0)
-                text("PGID", "")
-                blob("PGSR")
-                +group("PHST") {
-                    number("HPID", hostId)
-                    number("HSLT", 0x0)
-                }
-                number("PRES", 0x1)
-                text("PSAS", "")
-                number("QCAP", 0x0)
-                number("SEED", 0x4cbc8585) // Seed? Could be used for game randomness?
-                number("TCAP", 0x0)
-                +group("THST") {
-                    number("HPID", hostId)
-                    number("HSLT", 0x0)
-                }
-                text("UUID", "286a2373-3e6e-46b9-8294-3ef05e479503")
-                number("VOIP", 0x2)
-                text("VSTR", "ME3-295976325-179181965240128") // Mass effect version string?
-                blob("XNNC")
-                blob("XSES")
-            }
-
-            list("PROS", Tdf.GROUP, playerGroups)
-
-            if (matchmakingSesion != null) {
-                optional("REAS", 0x3u, group("VALU") {
-                    // 16250, 16675, 21050, 21500, 21600
-                    number("FIT", 0x3f7a) // 0x53fc (4), 0x3f7a (3), 0x5460 (2), 0x4123 (2), 0x523a (2)
-                    number("MAXF", 0x5460) /// 0x5460
-                    number("MSID", matchmakingSesion.matchmakingId) // Matchmaking session id
-                    number("RSLT", matchmakingSesion.gameSlot)
-                    number("USID", matchmakingSesion.playerIdSafe) // Player ID
-                })
-            } else {
-                optional("REAS", group("VALU") {
-                    number("DCTX", 0x0)
-                })
+    /**
+     * Inline function for safely iterating over all the
+     * players in the match excluding the host player.
+     *
+     * (Obtains a read lock before iterating)
+     *
+     * @param action The action to run on each player
+     */
+    private inline fun forEachPlayerExclHost(action: (player: Session) -> Unit) {
+        playersLock.read {
+            // Skips the 0 index which is the host player
+            for (i in 1 until players.size) {
+                val player = players[i]
+                if (player != null) action(player)
             }
         }
+    }
+
+    /**
+     * Creates the packet which notifies the creation / joining of a game
+     * this contains the information about the game and the players that
+     * are a part of this game.
+     *
+     * @param session The session this packet is for
+     * @return
+     */
+    private fun notifyGameSetup(session: Session) {
+        session.push(
+            notify(
+                Components.GAME_MANAGER, Commands.NOTIFY_GAME_SETUP
+            ) {
+                val host = getHost()
+                val hostPlayer = host.player
+                check(hostPlayer != null) { "Host player was null couldn't create game group" }
+                val hostId = hostPlayer.playerId
+
+                val playerIds = ArrayList<ULong>()
+                val playerGroups = ArrayList<GroupTdf>()
+                forEachPlayer { player ->
+                    playerIds.add(player.playerIdSafe.toULong())
+                    playerGroups.add(player.createPlayerDataGroup())
+                }
+
+                +group("GAME") {
+                    // Game Admins
+                    list("ADMN", playerIds)
+                    map("ATTR", getCopyOfAttributes())
+                    list("CAP", listOf(0x4, 0x0))
+                    number("GID", id)
+                    text("GNAM", hostPlayer.displayName)
+                    number("GPVH", GPVH)
+                    number("GSET", gameSetting)
+                    number("GSID", GSID)
+                    number("GSTA", gameState)
+                    text("GTYP", "")
+                    // Host network information
+                    list("HNET", listOf(host.createHNET()))
+                    number("HSES", host.playerIdSafe)
+                    number("IGNO", 0x0)
+                    number("MCAP", 0x4)
+                    +group("NQOS") {
+                        number("DBPS", host.dbps)
+                        number("NATT", host.nattType)
+                        number("UBPS", host.ubps)
+                    }
+                    number("NRES", 0x0)
+                    number("NTOP", 0x0)
+                    text("PGID", "")
+                    blob("PGSR")
+                    +group("PHST") {
+                        number("HPID", hostId)
+                        number("HSLT", 0x0)
+                    }
+                    number("PRES", 0x1)
+                    text("PSAS", "")
+                    number("QCAP", 0x0)
+                    number("SEED", 0x4cbc8585) // Seed? Could be used for game randomness?
+                    number("TCAP", 0x0)
+                    +group("THST") {
+                        number("HPID", hostId)
+                        number("HSLT", 0x0)
+                    }
+                    text("UUID", "286a2373-3e6e-46b9-8294-3ef05e479503")
+                    number("VOIP", 0x2)
+                    text("VSTR", "ME3-295976325-179181965240128") // Mass effect version string?
+                    blob("XNNC")
+                    blob("XSES")
+                }
+
+                list("PROS", Tdf.GROUP, playerGroups)
+
+                if (session.gameSlot != 0) {
+                    optional("REAS", 0x3u, group("VALU") {
+                        // 16250, 16675, 21050, 21500, 21600
+                        number("FIT", 0x3f7a) // 0x53fc (4), 0x3f7a (3), 0x5460 (2), 0x4123 (2), 0x523a (2)
+                        number("MAXF", 0x5460) /// 0x5460
+                        number("MSID", session.matchmakingId) // Matchmaking session id
+                        number("RSLT", session.gameSlot)
+                        number("USID", session.playerIdSafe) // Player ID
+                    })
+                } else {
+                    optional("REAS", group("VALU") {
+                        number("DCTX", 0x0)
+                    })
+                }
+            }
+        )
     }
 
     /**
@@ -430,15 +462,12 @@ class Game(
      */
     fun setAttributes(attributes: Map<String, String>) {
         attributesLock.write { this.attributes.putAll(attributes) }
-        pushAll(
-            notify(
-                Components.GAME_MANAGER,
-                Commands.NOTIFY_GAME_UPDATED
-            ) {
-                map("ATTR", getCopyOfAttributes())
-                number("GID", id)
-            }
-        )
+        pushAll(notify(
+            Components.GAME_MANAGER, Commands.NOTIFY_GAME_UPDATED
+        ) {
+            map("ATTR", getCopyOfAttributes())
+            number("GID", id)
+        })
     }
 
     /**
@@ -450,15 +479,12 @@ class Game(
      */
     fun setGameState(value: Int) {
         gameState = value
-        pushAll(
-            notify(
-                Components.GAME_MANAGER,
-                Commands.NOTIFY_GAME_STATE_CHANGE
-            ) {
-                number("GID", id)
-                number("GSTA", value)
-            }
-        )
+        pushAll(notify(
+            Components.GAME_MANAGER, Commands.NOTIFY_GAME_STATE_CHANGE
+        ) {
+            number("GID", id)
+            number("GSTA", value)
+        })
     }
 
     /**
@@ -470,17 +496,28 @@ class Game(
      */
     fun setGameSetting(value: Int) {
         gameSetting = value
-        pushAll(
-            notify(
-                Components.GAME_MANAGER,
-                Commands.NOTIFY_GAME_SETTINGS_CHANGE
-            ) {
-                number("ATTR", value)
-                number("GID", id)
-            }
-        )
+        pushAll(notify(
+            Components.GAME_MANAGER, Commands.NOTIFY_GAME_SETTINGS_CHANGE
+        ) {
+            number("ATTR", value)
+            number("GID", id)
+        })
     }
 
+    /**
+     * Handles "Stopping" the game by removing all the
+     * players and removing it from the game map
+     */
+    private fun stop() {
+        remove(this)
+        playersLock.write {
+            for (i in 0 until MAX_PLAYERS) {
+                val player = players[i] ?: continue
+                player.clearGame()
+                players[i] = null
+            }
+        }
+    }
 
     companion object {
         const val MAX_PLAYERS = 4
@@ -503,7 +540,7 @@ class Game(
         fun create(host: Session, attributes: Map<String, String>): Game {
             val hostPlayer = host.player ?: throw NotAuthenticatedException()
             Logger.info("Created new game ($gameId) hosted by ${hostPlayer.displayName} (${hostPlayer.playerId})")
-            val game = Game(gameId, host, attributes)
+            val game = Game(gameId, attributes)
             gamesLock.write {
                 games[gameId] = game
                 gameId++
@@ -530,7 +567,7 @@ class Game(
          */
         fun getByRules(ruleSet: MatchRuleSet): Game? {
             return gamesLock.read {
-                games.values.firstOrNull { it.matchesRules(ruleSet) }
+                games.values.firstOrNull { it.isNotFull && it.matchesRules(ruleSet) }
             }
         }
 

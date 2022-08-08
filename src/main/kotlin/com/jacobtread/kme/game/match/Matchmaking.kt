@@ -51,7 +51,7 @@ object Matchmaking {
             val iterator = waitingPlayers.iterator()
             while (iterator.hasNext()) {
                 val (session, ruleSet) = iterator.next()
-                if (game.matchesRules(ruleSet) && game.isJoinable) {
+                if (game.matchesRules(ruleSet) && game.isNotFull) {
                     game.join(session)
                     waitingLock.write {
                         iterator.remove()
