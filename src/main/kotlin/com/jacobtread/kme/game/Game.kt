@@ -1,5 +1,6 @@
 package com.jacobtread.kme.game
 
+import com.jacobtread.blaze.NotAuthenticatedException
 import com.jacobtread.blaze.group
 import com.jacobtread.blaze.notify
 import com.jacobtread.blaze.packet.Packet
@@ -31,25 +32,18 @@ class Game(
     initialAttributes: Map<String, String>,
 ) {
 
-    companion object {
-        const val MAX_PLAYERS = 4
-    }
-
     private var gameState: Int = 0x1
     private var gameSetting: Int = 0x11f
 
     private val attributesLock = ReentrantReadWriteLock()
     private val attributes = HashMap<String, String>(initialAttributes)
 
-    var isActive = true
-
-
     private val playersLock = ReentrantReadWriteLock()
     private var playersCount = 1
     private val players = arrayOfNulls<Session>(MAX_PLAYERS)
 
     private val isFull: Boolean get() = playersCount == MAX_PLAYERS
-    val isJoinable: Boolean get() = isActive && !isFull
+    val isJoinable: Boolean get() = !isFull
 
     init {
         players[0] = host
@@ -113,64 +107,77 @@ class Game(
 
 
     fun removePlayerById(playerId: Int) {
-        val playerIndex: Int = playersLock.read {
-            players.indexOfFirst {
-                if (it == null) return@indexOfFirst false
+        val player = playersLock.read {
+            players.firstOrNull {
+                if (it == null) return@firstOrNull false
                 val playerEntity = it.player
                 playerEntity != null && playerEntity.playerId == playerId
             }
         }
-        if (playerIndex != -1) {
-            removeAtIndex(playerIndex)
+        if (player != null) {
+            removePlayer(player)
         }
     }
 
-    fun removeAtIndex(index: Int) {
-        val lastHost = getHostOrNull()
-        playersLock.read {
-            Logger.logIfDebug { "Removing player at id $index" }
-            val removedPlayer = players[index]
-            if (removedPlayer != null) {
-                val removeNotifiation = notify(
-                    Components.GAME_MANAGER,
-                    Commands.NOTIFY_PLAYER_REMOVED
-                ) {
-                    number("CNTX", 0x0)
-                    number("GID", id)
-                    number("PID", removedPlayer.playerIdSafe)
-                    number("REAS", 0x6) // Possible remove reason? Investigate further
-                }
-                players.forEach { it?.push(removeNotifiation) }
-                playersLock.write { players[index] = null }
-                removedPlayer.clearGame()
-
-                Logger.logIfDebug {
-                    val playerEntity = removedPlayer.player ?: return@logIfDebug ""
-                    "Removed player in slot $index ${playerEntity.displayName} (${playerEntity.playerId})"
-                }
+    fun removePlayer(session: Session) {
+        Logger.logIfDebug {
+            val player = session.player
+            if (player != null) {
+                "Removing player ${player.displayName} (${player.playerId}) from game $id"
             } else {
-                Logger.logIfDebug { "Tried to remove player that doesn't exist" }
+                "Removing session ${session.sessionId} from game $id"
             }
         }
-        updatePlayerSlots()
-        if (playersCount > 0) {
-            updatePlayersList()
 
-            if (index == 0) {
-                // TODO: Host migration working state unknown
-                val host = getHostOrNull()
-                if (host != null) {
-                    Logger.logIfDebug {
-                        val playerEntity = host.player ?: return@logIfDebug ""
-                        "Migrating host for $id to ${playerEntity.displayName} (${playerEntity.playerId})"
-                    }
-                    migrateHost(lastHost, host)
-                }
+        pushAll(
+            notify(
+                Components.GAME_MANAGER,
+                Commands.NOTIFY_PLAYER_REMOVED
+            ) {
+                number("CNTX", 0x0)
+                number("GID", id)
+                number("PID", session.playerIdSafe)
+                number("REAS", 0x6) // Possible remove reason? Investigate further
+            }
+        )
+
+        playersLock.write { players[session.gameSlot] = null }
+
+        Logger.logIfDebug {
+            val player = session.player
+            if (player != null) {
+                "Removed player ${player.displayName} (${player.playerId}) from game $id"
+            } else {
+                "Removed session ${session.sessionId} from game $id"
             }
         }
+
+        updatePlayerSlots()
+        updatePlayersList()
+
+        val wasHost = session.gameSlot == 0
+        if (playersCount > 0 && wasHost) {
+            val newHost = getHostOrNull()
+            if (newHost != null) {
+                migrateHost(session, newHost)
+            }
+        }
+
+        session.clearGame()
     }
 
-    private fun migrateHost(lastHost: Session?, newHost: Session) {
+    private fun migrateHost(lastHost: Session, newHost: Session) {
+        Logger.logIfDebug {
+            val lastPlayer = lastHost.player
+            val newPlayer = newHost.player
+            if (lastPlayer != null && newPlayer != null) {
+                "Migrating host from ${lastPlayer.displayName} (${lastPlayer.playerId})" +
+                        " to ${newPlayer.displayName} (${newPlayer.playerId}) from game $id"
+            } else {
+                "Migratin host for game $id"
+            }
+        }
+
         pushAll(notify(
             Components.GAME_MANAGER,
             Commands.NOTIFY_HOST_MIGRATION_START
@@ -190,13 +197,12 @@ class Game(
             number("GID", id)
         })
 
-        if (lastHost != null) {
-            val packet = lastHost.createSetSessionPacket()
-            pushAll(packet)
-        }
+        val packet = lastHost.createSetSessionPacket()
+        pushAll(packet)
     }
 
     private fun updatePlayersList() {
+        if (playersCount < 1) return
         val host = getHost()
         val hostPacket = notify(Components.USER_SESSIONS, Commands.FETCH_EXTENDED_DATA) { number("BUID", host.playerIdSafe) }
         for (i in 1 until MAX_PLAYERS) {
@@ -209,8 +215,7 @@ class Game(
     }
 
     private fun stop() {
-        GameManager.releaseGame(this)
-        isActive = false
+        remove(this)
         playersLock.write {
             for (i in 0 until MAX_PLAYERS) {
                 val player = players[i] ?: continue
@@ -311,9 +316,9 @@ class Game(
                 list("CAP", listOf(0x4, 0x0))
                 number("GID", id)
                 text("GNAM", hostPlayer.displayName)
-                number("GPVH", 0x5a4f2b378b715c6)
+                number("GPVH", GPVH)
                 number("GSET", gameSetting)
-                number("GSID", 0x4000000a76b645)
+                number("GSID", GSID)
                 number("GSTA", gameState)
                 text("GTYP", "")
                 // Host network information
@@ -474,5 +479,70 @@ class Game(
                 number("GID", id)
             }
         )
+    }
+
+
+    companion object {
+        const val MAX_PLAYERS = 4
+        const val GPVH = 0x5a4f2b378b715c6
+        const val GSID = 0x4000000a76b645
+
+        private val gamesLock = ReentrantReadWriteLock()
+        private val games = HashMap<ULong, Game>()
+        private var gameId = 1uL
+
+        /**
+         * Creates a new game with the provided host and
+         * initial attributes. Aquires the games lock before
+         * creating the game and increments the game id
+         *
+         * @param host The host for the game
+         * @param attributes The initial game attributes
+         * @return The created game
+         */
+        fun create(host: Session, attributes: Map<String, String>): Game {
+            val hostPlayer = host.player ?: throw NotAuthenticatedException()
+            Logger.info("Created new game ($gameId) hosted by ${hostPlayer.displayName} (${hostPlayer.playerId})")
+            val game = Game(gameId, host, attributes)
+            gamesLock.write {
+                games[gameId] = game
+                gameId++
+            }
+            return game
+        }
+
+        /**
+         * Retrieves a game by its unique ID.
+         *
+         * @param id The id of the game
+         * @return The found game or null if none match
+         */
+        fun getById(id: ULong): Game? {
+            return gamesLock.read { games[id] }
+        }
+
+        /**
+         * Searches through the map of games trying to find
+         * a game which matches the provided ruleset
+         *
+         * @param ruleSet The rule set to match against
+         * @return The found game or null if none match
+         */
+        fun getByRules(ruleSet: MatchRuleSet): Game? {
+            return gamesLock.read {
+                games.values.firstOrNull { it.matchesRules(ruleSet) }
+            }
+        }
+
+        /**
+         * Removes the provided game from the map of
+         * games by aquiring the games lock first.
+         *
+         * @param game The game to remove
+         */
+        private fun remove(game: Game) {
+            Logger.info("Releasing game back to pool (${game.id})")
+            gamesLock.write { games.remove(game.id) }
+        }
     }
 }

@@ -653,7 +653,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     @PacketHandler(Components.GAME_MANAGER, Commands.CREATE_GAME)
     fun handleCreateGame(packet: Packet) {
         val attributes = packet.map<String, String>("ATTR") // Get the provided users attributes
-        val game = GameManager.createGame(this, attributes) // Create a new game
+        val game = Game.create(this, attributes) // Create a new game
 
         // Get the host networking values from the HNET list
         val hostNetworking = packet.list<GroupTdf>("HNET")
@@ -679,7 +679,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     fun handleAdvanceGameState(packet: Packet) {
         val gameId = packet.number("GID")
         val gameState = packet.number("GSTA").toInt()
-        val game = GameManager.getGameById(gameId)
+        val game = Game.getById(gameId)
         game?.setGameState(gameState)
         push(packet.respond())
     }
@@ -695,7 +695,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     fun handleSetGameSettings(packet: Packet) {
         val gameId = packet.number("GID")
         val setting = packet.number("GSET").toInt()
-        val game = GameManager.getGameById(gameId)
+        val game = Game.getById(gameId)
         game?.setGameSetting(setting)
         push(packet.respond())
     }
@@ -711,7 +711,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     fun handleSetGameAttributes(packet: Packet) {
         val gameId = packet.number("GID")
         val attributes = packet.map<String, String>("ATTR")
-        val game = GameManager.getGameById(gameId)
+        val game = Game.getById(gameId)
         game?.setAttributes(attributes)
         push(packet.respond())
     }
@@ -726,7 +726,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     fun handleRemovePlayer(packet: Packet) {
         val playerId = packet.number("PID").toInt()
         val gameId = packet.number("GID")
-        val game = GameManager.getGameById(gameId)
+        val game = Game.getById(gameId)
         game?.removePlayerById(playerId)
         push(packet.respond())
     }
@@ -778,7 +778,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     fun handleUpdateMeshConnection(packet: Packet) {
         val gameId = packet.number("GID")
         push(packet.respond())
-        val game = GameManager.getGameById(gameId) ?: return
+        val game = Game.getById(gameId) ?: return
         game.updateMeshConnection(this)
     }
 
@@ -1805,7 +1805,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     private fun removeFromGame() {
         resetMatchmakingState()
-        game?.removeAtIndex(gameSlot)
+        game?.removePlayer(this)
         clearGame()
     }
 

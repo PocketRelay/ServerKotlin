@@ -1,7 +1,6 @@
 package com.jacobtread.kme.game.match
 
 import com.jacobtread.kme.game.Game
-import com.jacobtread.kme.game.GameManager
 import com.jacobtread.kme.game.Session
 import com.jacobtread.kme.utils.logging.Logger
 import java.util.concurrent.Executors
@@ -75,7 +74,7 @@ object Matchmaking {
         if (session.matchmakingId == 1uL) {
             session.matchmakingId = matchmakingId++
         }
-        val game = GameManager.tryFindGame { it.matchesRules(ruleSet) }
+        val game = Game.getByRules(ruleSet)
         if (game != null) return game
         session.startMatchmaking()
         waitingLock.write { waitingPlayers[session] = ruleSet }
