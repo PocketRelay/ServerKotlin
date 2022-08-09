@@ -73,3 +73,5 @@ style:
   # such as parsing while skipping invalid field possible
   LoopWithTooManyJumpStatements:
     maxJumpCount: 3
+  NewLineAtEndOfFile:
+    active: false
