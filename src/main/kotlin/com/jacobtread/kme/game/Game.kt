@@ -58,7 +58,9 @@ class Game(
             players[gameSlot] = session
             session.setGame(this, gameSlot)
         }
-        if (session.gameSlot != 0) {
+        if (session.gameSlot != 0) { // Don't send if this is the host joining
+
+            // Notify all the players that a new player is being added
             pushAll(
                 notify(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOINING) {
                     number("GID", id)
@@ -66,12 +68,18 @@ class Game(
                 }
             )
         }
+
+        // Update all other player sessions for this player
         forEachPlayer {
             if (it != session) {
                 it.updateSessionFor(session)
             }
         }
+
+        // Notify the player of the game details
         notifyGameSetup(session)
+
+        // Set the player session
         session.push(session.createSetSessionPacket())
     }
 

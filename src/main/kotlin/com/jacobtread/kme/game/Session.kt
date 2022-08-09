@@ -591,10 +591,6 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             // If the session token's don't match send INVALID_ACCOUNT error
             if (!player.isSessionToken(auth)) return push(LoginError.INVALID_SESSION(packet))
 
-            if(true) {
-                return push(LoginError.INVALID_SESSION(packet))
-            }
-
             setAuthenticatedPlayer(player)
             push(createSilentAuthenticatedResponse(packet))
             updateSessionFor(this)
@@ -1134,7 +1130,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             when (type) {
                 "ME3_DATA" -> Data.createDataConfig() // Configurations for GAW, images and others
                 "ME3_MSG" -> emptyMap() // Custom multiplayer messages
-                "ME3_ENT" -> Data.createEntitlementMap() // Entitlements
+                "ME3_ENT" -> Data.getEntitlementMap() // Entitlements
                 "ME3_DIME" -> Data.createDimeResponse() // Shop contents?
                 "ME3_BINI_VERSION" -> mapOf(
                     "SECTION" to "BINI_PC_COMPRESSED",
