@@ -8,6 +8,7 @@ import com.jacobtread.blaze.respond
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
+import com.jacobtread.kme.utils.getIPv4Encoded
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.logging.Logger.error
 import com.jacobtread.kme.utils.logging.Logger.info
@@ -24,7 +25,6 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory
 import java.io.IOException
 import java.net.UnknownHostException
 import java.security.KeyStore
-import java.security.Security
 import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLException
 
@@ -73,23 +73,8 @@ class RedirectorHandler : ChannelInboundHandlerAdapter() {
 
     init {
         val externalAddress = Environment.externalAddress
-        // Regex pattern for matching IPv4 addresses
-        val ipv4Regex = Regex("^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)(\\.(?!\$)|\$)){4}\$")
-        if (externalAddress.matches(ipv4Regex)) { // Check if the address is an IPv4 Address
-            val ipParts = externalAddress.split('.', limit = 4) // Split the address into 4 parts
-            require(ipParts.size == 4) { "Invalid IPv4 Address" } // Ensure that the address is 4 parts
-            // Encoding the address as an unsigned long value
-            val ipEncoded: ULong = (ipParts[0].toULong() shl 24)
-                .or(ipParts[1].toULong() shl 16)
-                .or(ipParts[2].toULong() shl 8)
-                .or(ipParts[3].toULong())
-
-            targetAddress = ipEncoded
-            isHostname = false
-        } else {
-            targetAddress = 0u
-            isHostname = true
-        }
+        targetAddress = getIPv4Encoded(externalAddress)
+        isHostname = targetAddress != 0uL
     }
 
     /**
@@ -125,9 +110,9 @@ class RedirectorHandler : ChannelInboundHandlerAdapter() {
                     return
                 }
             }
-        } else  if (cause is IOException) {
+        } else if (cause is IOException) {
             val message = cause.message
-            if (message!= null && message.startsWith("Connection reset")) {
+            if (message != null && message.startsWith("Connection reset")) {
                 Logger.debug("Connection to client at $ipAddress lost")
                 return
             }

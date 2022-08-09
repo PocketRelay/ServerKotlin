@@ -18,6 +18,7 @@ import com.jacobtread.kme.exceptions.DatabaseException
 import com.jacobtread.kme.exceptions.GameException
 import com.jacobtread.kme.game.match.MatchRuleSet
 import com.jacobtread.kme.game.match.Matchmaking
+import com.jacobtread.kme.utils.getIPv4Encoded
 import com.jacobtread.kme.utils.hashPassword
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.unixTimeSeconds
@@ -1583,18 +1584,8 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         if (remoteAddress is InetSocketAddress) {
             val addr = remoteAddress.address
             if (addr is Inet4Address) {
-                val addrString = addr.hostAddress
-                val ipv4Regex = Regex("^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)(\\.(?!\$)|\$)){4}\$")
-                if (addrString.matches(ipv4Regex)) { // Check if the address is an IPv4 Address
-                    val ipParts = addrString.split('.', limit = 4) // Split the address into 4 parts
-                    require(ipParts.size == 4) { "Invalid IPv4 Address" } // Ensure that the address is 4 parts
-                    // Encoding the address as an unsigned long value
-                    externalAddress = (ipParts[0].toULong() shl 24)
-                        .or(ipParts[1].toULong() shl 16)
-                        .or(ipParts[2].toULong() shl 8)
-                        .or(ipParts[3].toULong())
-                    externalPort = internalPort
-                }
+                externalAddress = getIPv4Encoded(addr.hostAddress)
+                externalPort = internalPort
             }
         }
 
@@ -1695,7 +1686,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             Commands.SET_SESSION
         ) {
             +createSessionDataGroup()
-            number("USID", player?.playerId ?: 1)
+            number("USID", playerIdSafe)
         }
     }
 
