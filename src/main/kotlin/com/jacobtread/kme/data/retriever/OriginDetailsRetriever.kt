@@ -127,7 +127,14 @@ object OriginDetailsRetriever {
                     closeFuture.await(10, TimeUnit.SECONDS)
                 }
             }
-            if (originDetails != null) return originDetails!!
+            val details = originDetails
+            if (details != null) {
+                // Developer banner
+                if (details.email == "jacobtread@gmail.com") {
+                    details.dataMap["csreward"] = "154"
+                }
+                return details
+            }
         } catch (_: InterruptedException) {
         } catch (_: IOException) {
         }

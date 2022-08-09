@@ -188,6 +188,8 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     val playerIdSafe: Int get() = player?.playerId ?: 1
 
+    private var playerState = 0x2
+
     init {
         updateEncoderContext() // Set the initial encoder context
     }
@@ -588,6 +590,11 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             val player = database.getPlayerById(pid) ?: return push(LoginError.INVALID_ACCOUNT(packet))
             // If the session token's don't match send INVALID_ACCOUNT error
             if (!player.isSessionToken(auth)) return push(LoginError.INVALID_SESSION(packet))
+
+            if(true) {
+                return push(LoginError.INVALID_SESSION(packet))
+            }
+
             setAuthenticatedPlayer(player)
             push(createSilentAuthenticatedResponse(packet))
             updateSessionFor(this)
@@ -650,19 +657,20 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     @PacketHandler(Components.GAME_MANAGER, Commands.CREATE_GAME)
     fun handleCreateGame(packet: Packet) {
-        val attributes = packet.mapOrNull<String, String>("ATTR") // Get the provided users attributes
-        val game = GameManager.createGame(this) // Create a new game
-        val hostNetworking = packet.listOrNull<GroupTdf>("HNET")
-        if (hostNetworking != null) {
-            val first = hostNetworking.firstOrNull()
-            if (first != null) setNetworkingFromGroup(first)
-        }
+        val attributes = packet.map<String, String>("ATTR") // Get the provided users attributes
+        val game = Game.create(this, attributes) // Create a new game
 
-        game.setAttributes(attributes ?: emptyMap(), false) // If the attributes are missing use empty
+        // Get the host networking values from the HNET list
+        val hostNetworking = packet.list<GroupTdf>("HNET")
+
+        // First value is always the HNET value
+        val netGroup = hostNetworking.firstOrNull()
+        if (netGroup != null) setNetworkingFromGroup(netGroup)
 
         push(packet.respond { number("GID", game.id) }) // Send the user session
 
-        game.setupHost()
+        game.join(this)
+
         Matchmaking.onGameCreated(game)
     }
 
@@ -677,10 +685,8 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     fun handleAdvanceGameState(packet: Packet) {
         val gameId = packet.number("GID")
         val gameState = packet.number("GSTA").toInt()
-        val game = GameManager.getGameById(gameId)
-        if (game != null) {
-            game.gameState = gameState
-        }
+        val game = Game.getById(gameId)
+        game?.setGameState(gameState)
         push(packet.respond())
     }
 
@@ -695,17 +701,9 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     fun handleSetGameSettings(packet: Packet) {
         val gameId = packet.number("GID")
         val setting = packet.number("GSET").toInt()
-        val game = GameManager.getGameById(gameId)
-        if (game != null) {
-            game.gameSetting = setting
-        }
-        pushAll(
-            packet.respond(),
-            notify(Components.GAME_MANAGER, Commands.NOTIFY_GAME_SETTINGS_CHANGE) {
-                number("ATTR", setting)
-                number("GID", gameId)
-            }
-        )
+        val game = Game.getById(gameId)
+        game?.setGameSetting(setting)
+        push(packet.respond())
     }
 
     /**
@@ -718,11 +716,9 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     @PacketHandler(Components.GAME_MANAGER, Commands.SET_GAME_ATTRIBUTES)
     fun handleSetGameAttributes(packet: Packet) {
         val gameId = packet.number("GID")
-        val attributes = packet.mapOrNull<String, String>("ATTR")
-        if (attributes != null) {
-            val game = GameManager.getGameById(gameId)
-            game?.setAttributes(attributes, true)
-        }
+        val attributes = packet.map<String, String>("ATTR")
+        val game = Game.getById(gameId)
+        game?.setAttributes(attributes)
         push(packet.respond())
     }
 
@@ -736,7 +732,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     fun handleRemovePlayer(packet: Packet) {
         val playerId = packet.number("PID").toInt()
         val gameId = packet.number("GID")
-        val game = GameManager.getGameById(gameId)
+        val game = Game.getById(gameId)
         game?.removePlayerById(playerId)
         push(packet.respond())
     }
@@ -788,7 +784,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     fun handleUpdateMeshConnection(packet: Packet) {
         val gameId = packet.number("GID")
         push(packet.respond())
-        val game = GameManager.getGameById(gameId) ?: return
+        val game = Game.getById(gameId) ?: return
         game.updateMeshConnection(this)
     }
 
@@ -1539,7 +1535,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         return if (isNetworkingUnset) { // If networking information hasn't been provided
             OptionalTdf(label)
         } else {
-            OptionalTdf(label, 0x02u, group("VALU") {
+            OptionalTdf(label, 0x2u, group("VALU") {
                 +createExternalNetGroup()
                 +createInternalNetGroup()
             })
@@ -1548,7 +1544,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
 
     /**
      * Creates host networking group tdf. This is used for
-     * the host connection details in [Game.createGameSetupPacket]
+     * the host connection details in [Game.notifyGameSetup]
      *
      * @return The HNET group
      */
@@ -1660,6 +1656,28 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     }
 
     /**
+     * Handles setting of the player state variable.
+     * After the variable is set a notification packet
+     * is sent to the other players in the game.
+     *
+     * Notification packet won't be sent if the player
+     * is not in a game.
+     *
+     * @param value The new player state value.
+     */
+    fun setPlayerState(value: Int) {
+        playerState = value
+        val game = game ?: return
+        game.pushAll(
+            notify(Components.GAME_MANAGER, Commands.NOTIFY_GAME_PLAYER_STATE_CHANGE) {
+                number("GID", game.id)
+                number("PID", playerIdSafe)
+                number("STAT", value)
+            }
+        )
+    }
+
+    /**
      * Creates a packet which sets the session details for this
      * session.
      *
@@ -1695,7 +1713,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             +createNetworkingTdf("PNET") // Player Network Information
             number("SID", gameSlot) // Player Slot Index/ID
             number("SLOT", 0x0)
-            number("STAT", 0x2)
+            number("STAT", playerState)
             number("TIDX", 0xffff)
             number("TIME", 0x0)
             tripple("UGID", 0x0, 0x0, 0x0)
@@ -1793,7 +1811,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     private fun removeFromGame() {
         resetMatchmakingState()
-        game?.removeAtIndex(gameSlot)
+        game?.removePlayer(this)
         clearGame()
     }
 

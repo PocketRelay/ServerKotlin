@@ -18,12 +18,13 @@ object MakeTLKs {
     @JvmStatic
     fun main(args: Array<String>) {
         val tlkDir = Paths.get("data/tlk")
-        val outDir = Paths.get("app/src/main/resources/data/tlk")
+        val outDir = Paths.get("src/main/resources/data/tlk")
         if (Files.notExists(outDir)) Files.createDirectories(outDir)
         Files.newDirectoryStream(tlkDir)
             .forEach {
                 val fileName = it.fileName.toString()
                 if (fileName.endsWith(".tlk")) {
+                    println("PROCESSING $fileName")
                     val newName = when (fileName) {
                         "ME3TLK.tlk" -> "default.tlk.chunked"
                         else -> {
