@@ -160,7 +160,6 @@ class RedirectorHandler : ChannelInboundHandlerAdapter() {
                     number("PORT", Environment.mainPort)
                 })
                 // Determines if SSLv3 should be used when connecting to the main server
-                // only ever used if MITM is enabled and using secure
                 bool("SECU", false)
                 bool("XDNS", false)
             }

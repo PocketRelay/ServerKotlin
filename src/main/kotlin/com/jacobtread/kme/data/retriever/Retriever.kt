@@ -171,6 +171,7 @@ object Retriever {
                             port = addressGroup.numberInt("PORT"),
                             secure = msg.numberInt("SECU") == 0x1,
                         )
+
                         ctx.channel().close()
                         Logger.info("MITM Recieved server instance result. Closing now.")
                     }

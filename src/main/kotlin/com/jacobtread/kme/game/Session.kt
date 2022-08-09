@@ -641,6 +641,16 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         updateSessionFor(this)
     }
 
+    @PacketHandler(Components.AUTHENTICATION, Commands.GET_PASSWORD_RULES)
+    fun handleGetPasswordRules(packet: Packet) {
+        push(packet.respond {
+            number("MAXS", 64)
+            number("MINS", 4)
+            // Valid characters
+            text("VDCH", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789[]`!@#$%^&*()_={}:;<>+-',.~?/|\\")
+        })
+    }
+
     // endregion
 
     // region Game Manager Handlers
