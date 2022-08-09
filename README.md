@@ -14,6 +14,8 @@ but allowing you to host your own closed off private server or ever a server for
 So far this project has become a very well performing server and is constantly being improved and optimized in my free time.
 There are some bugs which need to be ironed out but at the moment it's a perfectly usable server
 
+
+
 ## Links
 - [**Latest Release** - The latest server jar release](https://github.com/jacobtread/KME3/releases/latest) 
 - [**Client Setup** - Setting up yourself to connect to KME3 servers](docs/SETUP_CLIENT.md)
