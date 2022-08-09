@@ -59,18 +59,20 @@ class Game(
             session.setGame(this, gameSlot)
         }
         if (session.gameSlot != 0) {
-            pushHost(notify(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOINING) {
-                number("GID", id)
-                +session.createPlayerDataGroup()
-            })
+            pushAll(
+                notify(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOINING) {
+                    number("GID", id)
+                    +session.createPlayerDataGroup()
+                }
+            )
         }
-        val sessionPacket = session.createSetSessionPacket()
         forEachPlayer {
-            session.updateSessionFor(it)
-            it.updateSessionFor(session)
-            it.push(sessionPacket)
+            if (it != session) {
+                it.updateSessionFor(session)
+            }
         }
         notifyGameSetup(session)
+        session.push(session.createSetSessionPacket())
     }
 
     /**
@@ -354,7 +356,7 @@ class Game(
                     text("GTYP", "")
                     // Host network information
                     list("HNET", listOf(host.createHNET()))
-                    number("HSES", host.playerIdSafe)
+                    number("HSES", hostId)
                     number("IGNO", 0x0)
                     number("MCAP", 0x4)
                     +group("NQOS") {
@@ -394,7 +396,7 @@ class Game(
                         number("FIT", 0x3f7a) // 0x53fc (4), 0x3f7a (3), 0x5460 (2), 0x4123 (2), 0x523a (2)
                         number("MAXF", 0x5460) /// 0x5460
                         number("MSID", session.matchmakingId) // Matchmaking session id
-                        number("RSLT", session.gameSlot)
+                        number("RSLT", 0x2)
                         number("USID", session.playerIdSafe) // Player ID
                     })
                 } else {

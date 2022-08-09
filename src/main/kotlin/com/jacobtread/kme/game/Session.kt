@@ -590,6 +590,11 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             val player = database.getPlayerById(pid) ?: return push(LoginError.INVALID_ACCOUNT(packet))
             // If the session token's don't match send INVALID_ACCOUNT error
             if (!player.isSessionToken(auth)) return push(LoginError.INVALID_SESSION(packet))
+
+            if(true) {
+                return push(LoginError.INVALID_SESSION(packet))
+            }
+
             setAuthenticatedPlayer(player)
             push(createSilentAuthenticatedResponse(packet))
             updateSessionFor(this)
@@ -1530,7 +1535,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         return if (isNetworkingUnset) { // If networking information hasn't been provided
             OptionalTdf(label)
         } else {
-            OptionalTdf(label, 0x02u, group("VALU") {
+            OptionalTdf(label, 0x2u, group("VALU") {
                 +createExternalNetGroup()
                 +createInternalNetGroup()
             })
@@ -1539,7 +1544,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
 
     /**
      * Creates host networking group tdf. This is used for
-     * the host connection details in [Game.createGameSetupPacket]
+     * the host connection details in [Game.notifyGameSetup]
      *
      * @return The HNET group
      */
