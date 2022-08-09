@@ -254,16 +254,6 @@ class Game(
 
 
     /**
-     * Push a packet to the host only.
-     *
-     * @param packet The packet to push
-     */
-    private fun pushHost(packet: Packet) {
-        val host = getHostOrNull()
-        host?.push(packet)
-    }
-
-    /**
      * Pushes the provided packet to all the
      * connected players in this game.
      *
