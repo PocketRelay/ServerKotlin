@@ -483,7 +483,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         Logger.info("Authenticated Origin Account ${player.displayName}")
 
         setAuthenticatedPlayer(player)
-        push(createSilentAuthenticatedResponse(packet))
+        pushAuthResponse(packet, true)
         updateSessionFor(this)
     }
 
@@ -567,7 +567,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             }
 
             setAuthenticatedPlayer(player) // Set the authenticated session
-            push(createAuthenticatedResponse(packet))
+            pushAuthResponse(packet, false)
         } catch (e: DatabaseException) {
             Logger.warn("Failed to login player", e)
             push(LoginError.SERVER_UNAVAILABLE(packet))
@@ -592,7 +592,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             if (!player.isSessionToken(auth)) return push(LoginError.INVALID_SESSION(packet))
 
             setAuthenticatedPlayer(player)
-            push(createSilentAuthenticatedResponse(packet))
+            pushAuthResponse(packet, true)
             updateSessionFor(this)
         } catch (e: IOException) {
             Logger.warn("Failed silent login", e)
@@ -621,7 +621,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             val hashedPassword = hashPassword(password)
             val player = database.createPlayer(email, hashedPassword)
             setAuthenticatedPlayer(player) // Link the player to this session
-            push(createAuthenticatedResponse(packet))
+            pushAuthResponse(packet, false)
         } catch (e: DatabaseException) {
             Logger.warn("Failed to create account", e)
             push(LoginError.SERVER_UNAVAILABLE(packet))
@@ -1728,47 +1728,34 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     }
 
     /**
-     * Creates an authenticated response message for the provided
-     * packet and returns the created message
+     * Creates a authentication response packet which is either
+     * for silent authentication (Origin / Token) or visible
+     * (Login / Create)
      *
-     * @param packet The packet to create the response for
-     * @return The created response
-     *
-     * @throws NotAuthenticatedException If the session is not authenticated
+     * @param packet The packet this response is for.
+     * @param isSilent Whether the auth response is a result of a silent login (Origin / Token)
      */
-    private fun createAuthenticatedResponse(packet: Packet): Packet {
-        val playerEntity = player ?: throw NotAuthenticatedException()
-        return packet.respond {
-            text("LDHT", "")
-            number("NTOS", 0)
-            text("PCTK", playerEntity.getSessionToken()) // PC Session Token
-            list("PLST", listOf(createPersonaGroup())) // Persona List
-            text("PRIV", "")
-            text("SKEY", playerEntity.getSessionToken())
-            number("SPAM", 0)
-            text("THST", "")
-            text("TSUI", "")
-            text("TURI", "")
-            number("UID", playerEntity.playerId) // Player ID
-        }
-    }
-
-    private fun createSilentAuthenticatedResponse(packet: Packet): Packet {
+    private fun pushAuthResponse(packet: Packet, isSilent: Boolean) {
         val player = player ?: throw NotAuthenticatedException()
-        setAuthenticatedPlayer(player)
-        // We don't store last login time so this is just computed here
-        return packet.respond {
-            number("AGUP", 0)
+        push(packet.respond {
+            if (isSilent) number("AGUP", 0)
             text("LDHT", "")
             number("NTOS", 0)
             text("PCTK", player.getSessionToken())
-            text("PRIV", "")
-            +group("SESS") { appendDetailsTo(this) }
+            if (isSilent) {
+                text("PRIV", "")
+                +group("SESS") { appendDetailsTo(this) }
+            } else {
+                list("PLST", listOf(createPersonaGroup()))
+                text("PRIV", "")
+                text("SKEY", player.getSessionToken())
+            }
             number("SPAM", 0)
             text("THST", "")
             text("TSUI", "")
             text("TURI", "")
-        }
+            if (!isSilent) number("UID", player.playerId) // Player ID
+        })
     }
 
     /**
