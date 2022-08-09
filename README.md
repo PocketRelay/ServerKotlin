@@ -14,6 +14,11 @@ but allowing you to host your own closed off private server or ever a server for
 So far this project has become a very well performing server and is constantly being improved and optimized in my free time.
 There are some bugs which need to be ironed out but at the moment it's a perfectly usable server
 
+## EA / BioWare Notice
+All code in this repository is authored by Jacobtread and none is taken from BioWare games. This code has been 
+produced from studying the protocol of the official servers and emulating its functionality. This program is
+in no way or form supported, endorsed, or provided by BioWare or Electronic Arts.
+
 ## Links
 - [**Latest Release** - The latest server jar release](https://github.com/jacobtread/KME3/releases/latest) 
 - [**Client Setup** - Setting up yourself to connect to KME3 servers](docs/SETUP_CLIENT.md)
@@ -32,11 +37,10 @@ I plan on making a tool for doing this automatically
 
 - [ ] Web panel interface
 - [ ] Leaderboard support
-- [ ] Automatic import from official servers
-- [ ] Origin authentication support 
 
 ## Credits
 
-1. [https://github.com/PrivateServerEmulator/ME3PSE](https://github.com/PrivateServerEmulator/ME3PSE) Sourced certificate and many game assets from this project
-2. [https://github.com/Erik-JS/masseffect-binkw32](https://github.com/Erik-JS/masseffect-binkw32) Game patcher
-3. [https://github.com/GamerClassN7/](https://github.com/GamerClassN7/) For providing me with an Origin copy of Mass Effect 3 and creating a patcher tool
+1.[https://github.com/GamerClassN7/](https://github.com/GamerClassN7/) For providing me with an Origin copy of Mass Effect 3 and creating a patcher tool as well as supporting me with the project and helping test
+2.[https://github.com/PrivateServerEmulator/ME3PSE](https://github.com/PrivateServerEmulator/ME3PSE) Sourced certificate and many game assets from this project
+3.[https://github.com/Erik-JS/masseffect-binkw32](https://github.com/Erik-JS/masseffect-binkw32) Game patcher
+

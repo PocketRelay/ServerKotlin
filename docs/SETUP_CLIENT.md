@@ -82,13 +82,7 @@ On this page you want to download the file named `me3_binkw32.zip`
 2. Copy `blinkw23.dll` and `blinkw32.dll` from inside `me3_binkw32.zip` and paste them into `%GAME_DIR%/Binaries/Win32` and make sure you allow file replacing
 3. All done
 
-### 4. Note on non-cracked Executables
-
-If your Mass Effect 3 Executable uses the username & password login then everything should work fine at this point. (If not contact me through Discord)
-If you are using an origin client you will not be able to change your username and will be stuck with "Origin (xxxx-xxxx-xxxx-xxxx)" to get around this
-you can use a cracked executable (I may link to one here at some point but please use version 1.5.5427.124)
-
-### 5. All done
+### 4. All done
 
 You should now be able to connect to the server if you entered the address correctly, and you should be able
 to create an online account.
