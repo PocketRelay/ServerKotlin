@@ -56,7 +56,7 @@ KME3 can be configured using environment variables. You can view a list of them 
 
 ### Port Forwarding
 
-In order for this server to be public available to non lan devices you will need
+In order for this server to be public available to non LAN devices you will need
 to forward the following ports
 
 > NOTE: If you have modified any of these ports in your configuration file
