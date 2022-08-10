@@ -1318,11 +1318,9 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     @PacketHandler(Components.UTIL, Commands.USER_SETTINGS_SAVE)
     fun handleUserSettingsSave(packet: Packet) {
         val playerEntity = player ?: throw NotAuthenticatedException()
-        val value = packet.textOrNull("DATA")
-        val key = packet.textOrNull("KEY")
-        if (value != null && key != null) {
-            playerEntity.setPlayerData(key, value)
-        }
+        val value = packet.text("DATA")
+        val key = packet.text("KEY")
+        playerEntity.setPlayerData(key, value)
         push(packet.respond())
     }
 
@@ -1350,7 +1348,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     @PacketHandler(Components.UTIL, Commands.SUSPEND_USER_PING)
     fun handleSuspendUserPing(packet: Packet) {
         push(
-            when (packet.numberOrNull("TVAL")) {
+            when (packet.number("TVAL")) {
                 0x1312D00uL -> packet.error(0x12D)
                 0x55D4A80uL -> packet.error(0x12E)
                 else -> packet.respond()
