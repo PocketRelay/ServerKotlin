@@ -1,7 +1,6 @@
 package com.jacobtread.kme.servers
 
-import com.jacobtread.blaze.PacketDecoder
-import com.jacobtread.blaze.PacketEncoder
+import com.jacobtread.blaze.PacketHandler
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.game.Session
 import com.jacobtread.kme.utils.logging.Logger
@@ -53,10 +52,9 @@ class MainInitializer : ChannelInitializer<Channel>() {
         val session = Session(ch)
         info("Main started new client session with $remoteAddress given id ${session.sessionId}")
         ch.pipeline()
-            // Add handler for decoding packet
-            .addLast(PacketDecoder())
+            // Add handler for packets
+            .addLast(PacketHandler())
             // Add handler for processing packets
             .addLast(session)
-            .addLast(PacketEncoder)
     }
 }

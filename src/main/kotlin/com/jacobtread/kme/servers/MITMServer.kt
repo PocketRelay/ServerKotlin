@@ -1,6 +1,7 @@
 package com.jacobtread.kme.servers
 
 import com.jacobtread.blaze.*
+import com.jacobtread.blaze.logging.PacketLogger
 import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.data.Data
@@ -27,11 +28,9 @@ fun startMITMServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
             .channel(NioServerSocketChannel::class.java)
             .childHandler(object : ChannelInitializer<Channel>() {
                 override fun initChannel(ch: Channel) {
-                    ch.attr(PacketEncoder.ENCODER_CONTEXT_KEY)
-                        .set("Connection to Client")
+                    PacketLogger.setContext(ch, "Connection to client")
                     ch.pipeline()
-                        .addFirst(PacketDecoder())
-                        .addLast(PacketEncoder)
+                        .addFirst(PacketHandler())
                         .addLast(MITMHandler(ch))
                 }
             })

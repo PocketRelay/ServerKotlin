@@ -1,10 +1,7 @@
 package com.jacobtread.kme.servers
 
-import com.jacobtread.blaze.PacketDecoder
-import com.jacobtread.blaze.PacketEncoder
-import com.jacobtread.blaze.group
+import com.jacobtread.blaze.*
 import com.jacobtread.blaze.packet.Packet
-import com.jacobtread.blaze.respond
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
@@ -91,9 +88,8 @@ class RedirectorHandler : ChannelInboundHandlerAdapter() {
         Logger.debug("Connection at $remoteAddress to Redirector Server")
 
         channel.pipeline()
-            .addFirst(PacketDecoder())
+            .addFirst(PacketHandler())
             .addFirst(context.newHandler(channel.alloc()))
-            .addLast(PacketEncoder)
     }
 
     @Suppress("OVERRIDE_DEPRECATION") // Not actually depreciated.

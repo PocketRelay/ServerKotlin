@@ -4,6 +4,7 @@ import com.jacobtread.blaze.*
 import com.jacobtread.blaze.annotations.PacketHandler
 import com.jacobtread.blaze.annotations.PacketProcessor
 import com.jacobtread.blaze.data.VarTriple
+import com.jacobtread.blaze.logging.PacketLogger
 import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.blaze.tdf.types.GroupTdf
 import com.jacobtread.blaze.tdf.types.OptionalTdf
@@ -104,7 +105,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      *  The type of Network Address Translation that needs to be used for the client
      *  that this session represents.  0 (Unknown?), 1 (Unknown?), 4 (Appears to be PAT "Port Address Translation")
      */
-    var nattType: ULong = 0uL
+    var nattType: Int = 0
         private set
 
     /**
@@ -266,9 +267,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         }
 
         // Update encoder context value
-        socketChannel
-            .attr(PacketEncoder.ENCODER_CONTEXT_KEY)
-            .set(builder.toString())
+        PacketLogger.setContext(socketChannel, builder.toString())
     }
 
     /**
@@ -583,7 +582,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     @PacketHandler(Components.AUTHENTICATION, Commands.SILENT_LOGIN)
     fun handleSilentLogin(packet: Packet) {
-        val pid = packet.numberInt("PID")
+        val pid = packet.int("PID")
         val auth = packet.text("AUTH")
         try {
             val database = Environment.database
@@ -690,8 +689,8 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     @PacketHandler(Components.GAME_MANAGER, Commands.ADVANCE_GAME_STATE)
     fun handleAdvanceGameState(packet: Packet) {
-        val gameId = packet.number("GID")
-        val gameState = packet.number("GSTA").toInt()
+        val gameId = packet.ulong("GID")
+        val gameState = packet.int("GSTA")
         val game = Game.getById(gameId)
         game?.setGameState(gameState)
         push(packet.respond())
@@ -706,8 +705,8 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     @PacketHandler(Components.GAME_MANAGER, Commands.SET_GAME_SETTINGS)
     fun handleSetGameSettings(packet: Packet) {
-        val gameId = packet.number("GID")
-        val setting = packet.number("GSET").toInt()
+        val gameId = packet.ulong("GID")
+        val setting = packet.int("GSET")
         val game = Game.getById(gameId)
         game?.setGameSetting(setting)
         push(packet.respond())
@@ -722,7 +721,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     @PacketHandler(Components.GAME_MANAGER, Commands.SET_GAME_ATTRIBUTES)
     fun handleSetGameAttributes(packet: Packet) {
-        val gameId = packet.number("GID")
+        val gameId = packet.ulong("GID")
         val attributes = packet.map<String, String>("ATTR")
         val game = Game.getById(gameId)
         game?.setAttributes(attributes)
@@ -737,8 +736,8 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     @PacketHandler(Components.GAME_MANAGER, Commands.REMOVE_PLAYER)
     fun handleRemovePlayer(packet: Packet) {
-        val playerId = packet.number("PID").toInt()
-        val gameId = packet.number("GID")
+        val playerId = packet.int("PID")
+        val gameId = packet.ulong("GID")
         val game = Game.getById(gameId)
         game?.removePlayerById(playerId)
         push(packet.respond())
@@ -789,7 +788,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     @PacketHandler(Components.GAME_MANAGER, Commands.UPDATE_MESH_CONNECTION)
     fun handleUpdateMeshConnection(packet: Packet) {
-        val gameId = packet.number("GID")
+        val gameId = packet.ulong("GID")
         push(packet.respond())
         val game = Game.getById(gameId) ?: return
         game.updateMeshConnection(this)
@@ -1084,13 +1083,13 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     @PacketHandler(Components.USER_SESSIONS, Commands.UPDATE_NETWORK_INFO)
     fun updateNetworkInfo(packet: Packet) {
-        val addr = packet.unionValue("ADDR") as GroupTdf
+        val addr = packet.optionalValue("ADDR") as GroupTdf
         setNetworkingFromGroup(addr)
 
         val nqos = packet.group("NQOS")
-        dbps = nqos.number("DBPS")
-        nattType = nqos.number("NATT")
-        ubps = nqos.number("UBPS")
+        dbps = nqos.ulong("DBPS")
+        nattType = nqos.int("NATT")
+        ubps = nqos.ulong("UBPS")
 
         val nlmp = packet.map<String, ULong>("NLMP")
         pslm = nlmp.getOrDefault("ea-sjc", 0xfff0fffu)
@@ -1107,7 +1106,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     @PacketHandler(Components.USER_SESSIONS, Commands.UPDATE_HARDWARE_FLAGS)
     fun updateHardwareFlag(packet: Packet) {
-        hardwareFlag = packet.number("HWFG").toInt()
+        hardwareFlag = packet.int("HWFG")
         push(packet.respond())
         push(createSetSessionPacket())
     }
@@ -1195,7 +1194,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     fun handlePreAuth(packet: Packet) {
 
         val infoGroup = packet.group("CINF")
-        location = infoGroup.number("LOC")
+        location = infoGroup.ulong("LOC")
 
         push(packet.respond {
             number("ANON", 0x0)
@@ -1348,7 +1347,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     @PacketHandler(Components.UTIL, Commands.SUSPEND_USER_PING)
     fun handleSuspendUserPing(packet: Packet) {
         push(
-            when (packet.number("TVAL")) {
+            when (packet.ulong("TVAL")) {
                 0x1312D00uL -> packet.error(0x12D)
                 0x55D4A80uL -> packet.error(0x12E)
                 else -> packet.respond()
@@ -1569,12 +1568,12 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     private fun setNetworkingFromGroup(group: GroupTdf) {
         val exip = group.group("EXIP")
-        externalAddress = exip.number("IP")
-        externalPort = exip.number("PORT")
+        externalAddress = exip.ulong("IP")
+        externalPort = exip.ulong("PORT")
 
         val inip = group.group("INIP")
-        internalAddress = inip.number("IP")
-        internalPort = inip.number("PORT")
+        internalAddress = inip.ulong("IP")
+        internalPort = inip.ulong("PORT")
 
         isNetworkingUnset = false
 

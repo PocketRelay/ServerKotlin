@@ -1,12 +1,32 @@
 package com.jacobtread.kme.data.blaze
 
-import com.jacobtread.blaze.debug.DebugNaming
+import com.jacobtread.blaze.logging.BlazeLoggingHandler
 import com.jacobtread.kme.utils.logging.Logger
 
-class DebugCommandNaming : DebugNaming {
+class DebugLoggingHandler : BlazeLoggingHandler {
+
+    override fun debug(text: String) {
+        Logger.debug(text)
+    }
+
+    override fun warn(text: String) {
+        Logger.warn(text)
+    }
+
+    override fun warn(text: String, cause: Throwable) {
+        Logger.warn(text, cause)
+    }
+
+    override fun error(text: String) {
+        Logger.error(text)
+    }
+
+    override fun error(text: String, cause: Throwable) {
+        Logger.error(text, cause)
+    }
 
     private fun loadNamingFile(fileName: String): Map<Int, String> {
-        val fileStream = DebugCommandNaming::class.java.getResourceAsStream("/data/$fileName")
+        val fileStream = DebugLoggingHandler::class.java.getResourceAsStream("/data/$fileName")
             ?: return emptyMap()
         val output = HashMap<Int, String>()
         val reader = fileStream.bufferedReader()

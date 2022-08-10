@@ -1,6 +1,7 @@
 package com.jacobtread.kme.data.retriever
 
 import com.jacobtread.blaze.*
+import com.jacobtread.blaze.logging.PacketLogger
 import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.blaze.tdf.types.GroupTdf
 import com.jacobtread.kme.data.blaze.Commands
@@ -53,10 +54,9 @@ object Retriever {
                 .connect(serverDetails.host, serverDetails.port)
                 .sync()
             val channel = channelFuture.channel()
-            channel.attr(PacketEncoder.ENCODER_CONTEXT_KEY)
-                .set("Connection to Official EA Server")
+            PacketLogger.setContext(channel, "Connection to Official EA Server")
             val pipeline = channel.pipeline()
-            pipeline.addFirst(PacketDecoder())
+            pipeline.addFirst(PacketHandler())
             if (serverDetails.secure) {
                 val context = SslContextBuilder.forClient()
                     .ciphers(listOf("TLS_RSA_WITH_RC4_128_SHA", "TLS_RSA_WITH_RC4_128_MD5"))
@@ -66,7 +66,6 @@ object Retriever {
                     .build()
                 pipeline.addFirst(context.newHandler(channel.alloc()))
             }
-            pipeline.addLast(PacketEncoder)
             return channel
         } catch (_: IOException) {
             return null
@@ -151,9 +150,8 @@ object Retriever {
                         .build()
                     val channel = ctx.channel()
                     val pipeline = channel.pipeline()
-                    pipeline.addFirst(PacketDecoder())
+                    pipeline.addFirst(PacketHandler())
                         .addFirst(sslContext.newHandler(channel.alloc()))
-                        .addLast(PacketEncoder)
                 }
 
                 override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
@@ -168,8 +166,8 @@ object Retriever {
 
                         details = ServerDetails(
                             host = addressGroup.text("HOST"),
-                            port = addressGroup.numberInt("PORT"),
-                            secure = msg.numberInt("SECU") == 0x1,
+                            port = addressGroup.int("PORT"),
+                            secure = msg.int("SECU") == 0x1,
                         )
 
                         ctx.channel().close()

@@ -1,9 +1,8 @@
 package com.jacobtread.kme
 
-import com.jacobtread.blaze.PacketLogger
-import com.jacobtread.blaze.debug.BlazeLoggingOutput
+import com.jacobtread.blaze.logging.PacketLogger
 import com.jacobtread.kme.data.Constants
-import com.jacobtread.kme.data.blaze.DebugCommandNaming
+import com.jacobtread.kme.data.blaze.DebugLoggingHandler
 import com.jacobtread.kme.data.retriever.OriginDetailsRetriever
 import com.jacobtread.kme.data.retriever.Retriever
 import com.jacobtread.kme.database.adapter.DatabaseAdapter
@@ -79,7 +78,7 @@ object Environment {
         val logPackets = env.booleanValue("KME_LOGGER_PACKETS", "logging.packets", false)
 
         if (logPackets && Logger.debugEnabled) { // Load command and component names for debugging
-            PacketLogger.init(DebugCommandNaming(), createBlazeLoggingOutput())
+            PacketLogger.init(DebugLoggingHandler())
         }
 
         // External address string
@@ -144,31 +143,6 @@ object Environment {
             OriginDetailsRetriever.isDataFetchingEnabled = env.booleanValue("KME_RETRIEVE_ORIGIN_DATA", "retriever.originPlayerData.enabled", true)
         }
     }
-
-    private fun createBlazeLoggingOutput(): BlazeLoggingOutput {
-        return object : BlazeLoggingOutput {
-            override fun debug(text: String) {
-                Logger.debug(text)
-            }
-
-            override fun warn(text: String) {
-                Logger.warn(text)
-            }
-
-            override fun warn(text: String, cause: Throwable) {
-                Logger.warn(text, cause)
-            }
-
-            override fun error(text: String) {
-                Logger.error(text)
-            }
-
-            override fun error(text: String, cause: Throwable) {
-                Logger.error(text, cause)
-            }
-        }
-    }
-
 
     private class Settings(val env: Map<String, String>, val properties: Properties) {
 
