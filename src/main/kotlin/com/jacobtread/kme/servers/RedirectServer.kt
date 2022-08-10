@@ -74,7 +74,7 @@ class RedirectorHandler : ChannelInboundHandlerAdapter() {
     init {
         val externalAddress = Environment.externalAddress
         targetAddress = getIPv4Encoded(externalAddress)
-        isHostname = targetAddress != 0uL
+        isHostname = targetAddress == 0uL
     }
 
     /**
