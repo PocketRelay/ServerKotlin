@@ -3,6 +3,7 @@ package com.jacobtread.kme.data.retriever
 import com.jacobtread.blaze.*
 import com.jacobtread.blaze.logging.PacketLogger
 import com.jacobtread.blaze.packet.Packet
+import com.jacobtread.blaze.packet.Packet.Companion.addPacketHandlers
 import com.jacobtread.blaze.tdf.types.GroupTdf
 import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
@@ -55,17 +56,15 @@ object Retriever {
                 .sync()
             val channel = channelFuture.channel()
             PacketLogger.setContext(channel, "Connection to Official EA Server")
-            val pipeline = channel.pipeline()
-            pipeline.addFirst(PacketHandler())
-            if (serverDetails.secure) {
-                val context = SslContextBuilder.forClient()
+            val context = if (serverDetails.secure) {
+               SslContextBuilder.forClient()
                     .ciphers(listOf("TLS_RSA_WITH_RC4_128_SHA", "TLS_RSA_WITH_RC4_128_MD5"))
                     .protocols("SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3")
                     .startTls(true)
                     .trustManager(InsecureTrustManagerFactory.INSTANCE)
                     .build()
-                pipeline.addFirst(context.newHandler(channel.alloc()))
-            }
+            } else null
+            channel.addPacketHandlers(context)
             return channel
         } catch (_: IOException) {
             return null
@@ -149,9 +148,7 @@ object Retriever {
                         .trustManager(InsecureTrustManagerFactory.INSTANCE)
                         .build()
                     val channel = ctx.channel()
-                    val pipeline = channel.pipeline()
-                    pipeline.addFirst(PacketHandler())
-                        .addFirst(sslContext.newHandler(channel.alloc()))
+                    channel.addPacketHandlers(sslContext)
                 }
 
                 override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
@@ -171,7 +168,7 @@ object Retriever {
                         )
 
                         ctx.channel().close()
-                        Logger.info("MITM Recieved server instance result. Closing now.")
+                        Logger.info("Recieved server instance result. Closing now.")
                     }
                 }
             })
@@ -179,6 +176,7 @@ object Retriever {
             .sync()
 
         val channel = channelFuture.channel()
+        PacketLogger.setEnabled(channel, true)
         Logger.info("Connected to official redirector server")
         Logger.info("Sending redirect request packet")
 
@@ -202,7 +200,7 @@ object Retriever {
 
         Logger.info("Waiting for server response and close")
         channel.closeFuture().sync()
-        Logger.info("Finished MITM Redirect finding")
+        Logger.info("Finished Redirect finding")
         if (details == null) {
             Logger.info("Failed to retrieve redirect information. Disabled data retrieving")
         }

@@ -1,13 +1,12 @@
 package com.jacobtread.kme.servers
 
-import com.jacobtread.blaze.PacketHandler
+import com.jacobtread.blaze.packet.Packet.Companion.addPacketHandlers
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.game.Session
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.logging.Logger.info
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
-import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.ChannelInitializer
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
@@ -28,33 +27,31 @@ fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
         ServerBootstrap()
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
-            .childHandler(MainInitializer())
+            .childHandler(object : ChannelInitializer<Channel>() {
+                override fun isSharable(): Boolean = true
+
+                /**
+                 * Initializes the channel that has connected. In this case
+                 * the packet handlers and a [Session] handler are added to
+                 * the channel and a connection message is logged.
+                 *
+                 * @param ch The channel to initialize
+                 */
+                override fun initChannel(ch: Channel) {
+                    val session = Session(ch) // New session
+                    val remoteAddress = ch.remoteAddress() // The remote address of the user
+                    info("Main started new client session with $remoteAddress given id ${session.sessionId}")
+                    // Add the packet handlers
+                    ch.addPacketHandlers()
+                        // Add handler for processing packets
+                        .addLast(session)
+                }
+            })
             // Bind the server to the host and port
             .bind(Environment.mainPort)
             // Wait for the channel to bind
             .addListener { info("Started Main Server on port ${Environment.mainPort}") }
     } catch (e: IOException) {
         Logger.error("Exception in redirector server", e)
-    }
-}
-
-/**
- * MainInitializer Channel Initializer for main server clients.
- * Creates sessions for the user as well as adding packet handlers
- * and the MainClient handler
- *
- * @constructor Create empty MainClientInitializer
- */
-@Sharable
-class MainInitializer : ChannelInitializer<Channel>() {
-    override fun initChannel(ch: Channel) {
-        val remoteAddress = ch.remoteAddress() // The remote address of the user
-        val session = Session(ch)
-        info("Main started new client session with $remoteAddress given id ${session.sessionId}")
-        ch.pipeline()
-            // Add handler for packets
-            .addLast(PacketHandler())
-            // Add handler for processing packets
-            .addLast(session)
     }
 }

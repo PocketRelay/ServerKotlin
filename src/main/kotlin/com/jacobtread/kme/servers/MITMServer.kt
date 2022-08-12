@@ -1,8 +1,11 @@
 package com.jacobtread.kme.servers
 
-import com.jacobtread.blaze.*
+import com.jacobtread.blaze.clientPacket
 import com.jacobtread.blaze.logging.PacketLogger
 import com.jacobtread.blaze.packet.Packet
+import com.jacobtread.blaze.packet.Packet.Companion.addPacketHandlers
+import com.jacobtread.blaze.respond
+import com.jacobtread.blaze.text
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.data.blaze.Commands
@@ -29,8 +32,7 @@ fun startMITMServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
             .childHandler(object : ChannelInitializer<Channel>() {
                 override fun initChannel(ch: Channel) {
                     PacketLogger.setContext(ch, "Connection to client")
-                    ch.pipeline()
-                        .addFirst(PacketHandler())
+                    ch.addPacketHandlers(null)
                         .addLast(MITMHandler(ch))
                 }
             })
