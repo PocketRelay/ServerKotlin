@@ -10,6 +10,7 @@ import com.jacobtread.netty.http.HttpRequest
 import com.jacobtread.netty.http.HttpResponse
 import com.jacobtread.netty.http.router.createRouter
 import io.netty.channel.EventLoopGroup
+import java.io.IOException
 
 fun startHttpServer(
     bossGroup: EventLoopGroup,
@@ -38,17 +39,13 @@ fun startHttpServer(
         routeContents()
         routeQOS()
     }
-    httpRouter.startHttpServer(
-        Environment.httpPort,
-        bossGroup,
-        workerGroup
-    ).addListener {
-        if (it.isSuccess) {
-            Logger.info("Started HTTP server on port ${Environment.httpPort}")
-        } else {
-            val cause = it.cause()
-            val reason = if (cause != null) (cause.message ?: cause.javaClass.simpleName) else "Unknown Reason"
-            Logger.fatal("Unable to start HTTP server: $reason")
-        }
+    try {
+        httpRouter
+            .startHttpServer(Environment.httpPort, bossGroup, workerGroup)
+            .sync()
+        Logger.info("Started HTTP server on port ${Environment.httpPort}")
+    } catch (e: IOException) {
+        val reason = e.message ?: e.javaClass.simpleName
+        Logger.fatal("Unable to start HTTP server: $reason")
     }
 }

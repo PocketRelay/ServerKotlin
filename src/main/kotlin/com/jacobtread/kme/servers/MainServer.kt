@@ -12,6 +12,7 @@ import io.netty.channel.Channel
 import io.netty.channel.ChannelInitializer
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
+import java.io.IOException
 
 /**
  * startMainServer Starts the main server
@@ -22,54 +23,53 @@ import io.netty.channel.socket.nio.NioServerSocketChannel
 fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
     val mitm = Environment.mitmEnabled
 
-    // Ensure retriever is initialized for MITM mode.
+    val name: String
     if (mitm) {
-        Retriever
+        Retriever // Ensure retriever is initialized for MITM mode.
         PacketLogger.isEnabled = false
+        name = "MITM"
+    } else {
+        name = "Main"
     }
+    try {
+        ServerBootstrap()
+            .group(bossGroup, workerGroup)
+            .channel(NioServerSocketChannel::class.java)
+            .childHandler(object : ChannelInitializer<Channel>() {
+                override fun isSharable(): Boolean = true
 
-    ServerBootstrap()
-        .group(bossGroup, workerGroup)
-        .channel(NioServerSocketChannel::class.java)
-        .childHandler(object : ChannelInitializer<Channel>() {
-            override fun isSharable(): Boolean = true
-
-            /**
-             * Initializes the channel that has connected. In this case
-             * the packet handlers and a [Session] handler are added to
-             * the channel and a connection message is logged.
-             *
-             * @param ch The channel to initialize
-             */
-            override fun initChannel(ch: Channel) {
-                // Enable packet logging on this channel
-                PacketLogger.setEnabled(ch, true)
-                if (mitm) {
-                    PacketLogger.setContext(ch, "MITM Connection to client")
-                    ch.addPacketHandlers()
-                        .addLast(MITMSession(ch))
-                } else {
-                    val session = Session(ch) // New session
-                    val remoteAddress = ch.remoteAddress() // The remote address of the user
-                    Logger.info("Main started new client session with $remoteAddress given id ${session.sessionId}")
-                    // Add the packet handlers
-                    ch.addPacketHandlers()
-                        // Add handler for processing packets
-                        .addLast(session)
+                /**
+                 * Initializes the channel that has connected. In this case
+                 * the packet handlers and a [Session] handler are added to
+                 * the channel and a connection message is logged.
+                 *
+                 * @param ch The channel to initialize
+                 */
+                override fun initChannel(ch: Channel) {
+                    // Enable packet logging on this channel
+                    PacketLogger.setEnabled(ch, true)
+                    if (mitm) {
+                        PacketLogger.setContext(ch, "MITM Connection to client")
+                        ch.addPacketHandlers()
+                            .addLast(MITMSession(ch))
+                    } else {
+                        val session = Session(ch) // New session
+                        val remoteAddress = ch.remoteAddress() // The remote address of the user
+                        Logger.info("Main started new client session with $remoteAddress given id ${session.sessionId}")
+                        // Add the packet handlers
+                        ch.addPacketHandlers()
+                            // Add handler for processing packets
+                            .addLast(session)
+                    }
                 }
-            }
-        })
-        // Bind the server to the host and port
-        .bind(Environment.mainPort)
-        // Wait for the channel to bind
-        .addListener {
-            val name = if (mitm) "MITM" else "Main"
-            if (it.isSuccess) {
-                Logger.info("Started $name server on port ${Environment.mainPort}")
-            } else {
-                val cause = it.cause()
-                val reason = if (cause != null) (cause.message ?: cause.javaClass.simpleName) else "Unknown Reason"
-                Logger.fatal("Unable to start $name server: $reason")
-            }
-        }
+            })
+            // Bind the server to the host and port
+            .bind(Environment.mainPort)
+            // Wait for the channel to bind
+            .sync()
+        Logger.info("Started $name server on port ${Environment.mainPort}")
+    } catch (e: IOException) {
+        val reason = e.message ?: e.javaClass.simpleName
+        Logger.fatal("Unable to start $name server: $reason")
+    }
 }

@@ -42,7 +42,7 @@ class MITMSession(clientChannel: Channel) : ChannelInboundHandlerAdapter() {
         val serverChannel: Channel = Retriever.createOfficialChannel(this)
             ?: Logger.fatal("Failed to create official server connection for MITM server")
 
-        // Setup the client and server channels
+        // Set up the client and server channels
         serverChannel.apply {
             PacketLogger.setEnabled(this, true)
             PacketLogger.setContext(this, "Connection to EA")

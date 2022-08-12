@@ -5,6 +5,7 @@ package com.jacobtread.kme
 import com.jacobtread.kme.servers.startHttpServer
 import com.jacobtread.kme.servers.startMainServer
 import com.jacobtread.kme.servers.startRedirector
+import com.jacobtread.kme.utils.logging.Logger
 import io.netty.channel.nio.NioEventLoopGroup
 
 fun main() {
@@ -20,5 +21,7 @@ fun main() {
     startMainServer(bossGroup, workerGroup)
 
     System.gc() // Cleanup after initialization
+
+    Logger.info("Server startup complete.")
 }
 

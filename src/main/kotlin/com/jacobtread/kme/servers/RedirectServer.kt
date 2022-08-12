@@ -33,22 +33,20 @@ import javax.net.ssl.SSLException
  * @param workerGroup The netty worker event loop group
  */
 fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
-    val listenPort = Environment.redirectorPort
-    val handler = RedirectorHandler()
-    ServerBootstrap()
-        .group(bossGroup, workerGroup)
-        .channel(NioServerSocketChannel::class.java)
-        .childHandler(handler)
-        .bind(listenPort)
-        .addListener {
-            if (it.isSuccess) {
-                Logger.info("Started Redirector on port ${Environment.redirectorPort}")
-            } else {
-                val cause = it.cause()
-                val reason = if (cause != null) (cause.message ?: cause.javaClass.simpleName) else "Unknown Reason"
-                Logger.fatal("Unable to start redirector server: $reason")
-            }
-        }
+    try {
+        val listenPort = Environment.redirectorPort
+        val handler = RedirectorHandler()
+        ServerBootstrap()
+            .group(bossGroup, workerGroup)
+            .channel(NioServerSocketChannel::class.java)
+            .childHandler(handler)
+            .bind(listenPort)
+            .sync()
+        Logger.info("Started Redirector on port ${Environment.redirectorPort}")
+    } catch (e: IOException) {
+        val reason = e.message ?: e.javaClass.simpleName
+        Logger.fatal("Unable to start redirector server: $reason")
+    }
 }
 
 
