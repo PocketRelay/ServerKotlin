@@ -1,7 +1,9 @@
 package com.jacobtread.kme.servers
 
+import com.jacobtread.blaze.logging.PacketLogger
 import com.jacobtread.blaze.packet.Packet.Companion.addPacketHandlers
 import com.jacobtread.kme.Environment
+import com.jacobtread.kme.data.retriever.Retriever
 import com.jacobtread.kme.game.Session
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.bootstrap.ServerBootstrap
@@ -17,10 +19,11 @@ import io.netty.channel.socket.nio.NioServerSocketChannel
  * @param workerGroup The netty worker event loop group
  */
 fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
-    if (Environment.mitmEnabled) { // If MITM is enabled
-        startMITMServer(bossGroup, workerGroup)
-        return // Don't create the normal main server
-    }
+    val mitm = Environment.mitmEnabled
+
+    // Ensure retriever is initialized for MITM mode.
+    if (mitm) Retriever
+
     ServerBootstrap()
         .group(bossGroup, workerGroup)
         .channel(NioServerSocketChannel::class.java)
@@ -35,25 +38,32 @@ fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
              * @param ch The channel to initialize
              */
             override fun initChannel(ch: Channel) {
-                val session = Session(ch) // New session
-                val remoteAddress = ch.remoteAddress() // The remote address of the user
-                Logger.info("Main started new client session with $remoteAddress given id ${session.sessionId}")
-                // Add the packet handlers
-                ch.addPacketHandlers()
-                    // Add handler for processing packets
-                    .addLast(session)
+                if (mitm) {
+                    PacketLogger.setContext(ch, "MITM Connection to client")
+                    ch.addPacketHandlers()
+                        .addLast(MITMHandler(ch))
+                } else {
+                    val session = Session(ch) // New session
+                    val remoteAddress = ch.remoteAddress() // The remote address of the user
+                    Logger.info("Main started new client session with $remoteAddress given id ${session.sessionId}")
+                    // Add the packet handlers
+                    ch.addPacketHandlers()
+                        // Add handler for processing packets
+                        .addLast(session)
+                }
             }
         })
         // Bind the server to the host and port
         .bind(Environment.mainPort)
         // Wait for the channel to bind
         .addListener {
+            val name = if(mitm) "MITM" else "Main"
             if (it.isSuccess) {
-                Logger.info("Started Main Server on port ${Environment.mainPort}")
+                Logger.info("Started $name server on port ${Environment.mainPort}")
             } else {
                 val cause = it.cause()
                 val reason = if (cause != null) (cause.message ?: cause.javaClass.simpleName) else "Unknown Reason"
-                Logger.fatal("Unable to start main server: $reason")
+                Logger.fatal("Unable to start $name server: $reason")
             }
         }
 }

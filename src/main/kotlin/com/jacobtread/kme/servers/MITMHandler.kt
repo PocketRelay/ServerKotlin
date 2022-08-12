@@ -20,31 +20,6 @@ import io.netty.channel.ChannelInitializer
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 
-fun startMITMServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
-    Retriever // Ensure retriever is initialized
-
-    ServerBootstrap()
-        .group(bossGroup, workerGroup)
-        .channel(NioServerSocketChannel::class.java)
-        .childHandler(object : ChannelInitializer<Channel>() {
-            override fun initChannel(ch: Channel) {
-                PacketLogger.setContext(ch, "Connection to client")
-                ch.addPacketHandlers(null)
-                    .addLast(MITMHandler(ch))
-            }
-        })
-        .bind(Environment.mainPort)
-        .addListener {
-            if (it.isSuccess) {
-                Logger.info("Started MITM server on port ${Environment.mainPort}")
-            } else {
-                val cause = it.cause()
-                val reason = if (cause != null) (cause.message ?: cause.javaClass.simpleName) else "Unknown Reason"
-                Logger.fatal("Unable to start MITM server: $reason")
-            }
-        }
-}
-
 
 class MITMHandler(
     private val clientChannel: Channel,

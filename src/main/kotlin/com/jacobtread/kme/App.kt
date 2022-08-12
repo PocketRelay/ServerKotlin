@@ -2,12 +2,10 @@
 
 package com.jacobtread.kme
 
-import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.servers.startHttpServer
 import com.jacobtread.kme.servers.startMainServer
 import com.jacobtread.kme.servers.startRedirector
 import io.netty.channel.nio.NioEventLoopGroup
-import java.util.*
 
 fun main() {
     Environment // Make sure environment is initialized
@@ -18,8 +16,8 @@ fun main() {
     val workerGroup = NioEventLoopGroup()
 
     startRedirector(bossGroup, workerGroup)
-    startMainServer(bossGroup, workerGroup)
     startHttpServer(bossGroup, workerGroup)
+    startMainServer(bossGroup, workerGroup)
 
     System.gc() // Cleanup after initialization
 }
