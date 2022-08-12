@@ -43,6 +43,7 @@ class Game(
 
     val isNotFull: Boolean get() = playersCount != MAX_PLAYERS
 
+
     /**
      * Handles joining the provided session to the game. Sets
      * the player slot and notifies the host of the other player
@@ -414,7 +415,7 @@ class Game(
      *
      * @return The host player session or null if none
      */
-    private fun getHostOrNull(): Session? {
+    fun getHostOrNull(): Session? {
         var host = players[0]
         if (host == null) {
             updatePlayerSlots()
@@ -440,9 +441,12 @@ class Game(
      *
      * @return The copy of the attributes map.
      */
-    private fun getCopyOfAttributes(): Map<String, String> {
+    fun getCopyOfAttributes(): Map<String, String> {
         return attributesLock.read { copyOf(attributes) }
     }
+
+    fun getPlayerCount(): Int = playersLock.read { players.count { it != null } }
+
 
     /**
      * Checks if this game matches the provided rule
@@ -547,6 +551,30 @@ class Game(
                 gameId++
             }
             return game
+        }
+
+        /**
+         * Iterates over all the games in the game map and applies
+         * the provided action on that game
+         *
+         * @param action The action to apply
+         */
+        fun forEachGame(action: (Game) -> Unit) {
+            gamesLock.read {
+                games.forEach { (_, value) ->
+                    action(value)
+                }
+            }
+        }
+
+        /**
+         * Copies all games into an immutable list
+         * and returns it.
+         *
+         * @return The list of games
+         */
+        fun getGameList(): List<Game> {
+            return gamesLock.read { games.values.toList() }
         }
 
         /**

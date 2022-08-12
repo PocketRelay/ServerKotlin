@@ -87,6 +87,11 @@ object Logger {
     fun error(text: String) = append(Level.ERROR, text)
     fun error(text: String, throwable: Throwable?) = appendThrowable(Level.ERROR, text, throwable)
 
+    fun commandResult(text: String) {
+        println(text)
+        if (saveFile) writer?.write(text)
+    }
+
     /**
      * append Appends a simple message to the log.
      *
