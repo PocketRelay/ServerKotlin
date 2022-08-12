@@ -10,45 +10,45 @@ import com.jacobtread.netty.http.HttpRequest
 import com.jacobtread.netty.http.HttpResponse
 import com.jacobtread.netty.http.router.createRouter
 import io.netty.channel.EventLoopGroup
-import java.io.IOException
 
 fun startHttpServer(
     bossGroup: EventLoopGroup,
     workerGroup: EventLoopGroup,
 ) {
-    try {
-        val httpRouter = createRouter {
-            eventHandler = object : HttpEventHandler {
-                override fun onExceptionHandled(cause: Exception) {
-                    Logger.warn("Exception occurred when handling http request", cause)
-                }
+    val httpRouter = createRouter {
+        eventHandler = object : HttpEventHandler {
+            override fun onExceptionHandled(cause: Exception) {
+                Logger.warn("Exception occurred when handling http request", cause)
+            }
 
-                override fun onRequestReceived(request: HttpRequest) {
-                    Logger.logIfDebug {
-                        val url = request.reconstructUrl()
-                        "[HTTP] [${request.method.name()}] Request to $url"
-                    }
-                }
-
-                override fun onResponseSent(response: HttpResponse) {
-                    Logger.logIfDebug {
-                        "[HTTP] [RESPONSE] Status [${response.status()}]"
-                    }
+            override fun onRequestReceived(request: HttpRequest) {
+                Logger.logIfDebug {
+                    val url = request.reconstructUrl()
+                    "[HTTP] [${request.method.name()}] Request to $url"
                 }
             }
-            routeGroupGAW()
-            routeContents()
-            routeQOS()
-        }
 
-        httpRouter.startHttpServer(
-            Environment.httpPort,
-            bossGroup,
-            workerGroup
-        ).addListener {
-            Logger.info("Started HTTP Server on port ${Environment.httpPort}")
+            override fun onResponseSent(response: HttpResponse) {
+                Logger.logIfDebug {
+                    "[HTTP] [RESPONSE] Status [${response.status()}]"
+                }
+            }
         }
-    } catch (e: IOException) {
-        Logger.error("Exception when starting HTTP server", e)
+        routeGroupGAW()
+        routeContents()
+        routeQOS()
+    }
+    httpRouter.startHttpServer(
+        Environment.httpPort,
+        bossGroup,
+        workerGroup
+    ).addListener {
+        if (it.isSuccess) {
+            Logger.info("Started HTTP server on port ${Environment.mainPort}")
+        } else {
+            val cause = it.cause()
+            val reason = if (cause != null) (cause.message ?: cause.javaClass.simpleName) else "Unknown Reason"
+            Logger.fatal("Unable to start HTTP server: $reason")
+        }
     }
 }

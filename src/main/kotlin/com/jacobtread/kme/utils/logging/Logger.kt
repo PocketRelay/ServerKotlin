@@ -62,17 +62,17 @@ object Logger {
     }
 
     fun info(text: String) = append(Level.INFO, text)
-    fun info(text: String, throwable: Throwable) = appendThrowable(Level.INFO, text, throwable)
+    fun info(text: String, throwable: Throwable?) = appendThrowable(Level.INFO, text, throwable)
 
     fun warn(text: String) = append(Level.WARN, text)
-    fun warn(text: String, throwable: Throwable) = appendThrowable(Level.WARN, text, throwable)
+    fun warn(text: String, throwable: Throwable?) = appendThrowable(Level.WARN, text, throwable)
 
     fun fatal(text: String): Nothing {
         append(Level.FATAL, text)
         exitProcess(1)
     }
 
-    fun fatal(text: String, throwable: Throwable): Nothing {
+    fun fatal(text: String, throwable: Throwable?): Nothing {
         appendThrowable(Level.FATAL, text, throwable)
         exitProcess(1)
     }
@@ -85,7 +85,7 @@ object Logger {
     fun debug(text: String) = append(Level.DEBUG, text)
 
     fun error(text: String) = append(Level.ERROR, text)
-    fun error(text: String, throwable: Throwable) = appendThrowable(Level.ERROR, text, throwable)
+    fun error(text: String, throwable: Throwable?) = appendThrowable(Level.ERROR, text, throwable)
 
     /**
      * append Appends a simple message to the log.
@@ -114,17 +114,19 @@ object Logger {
      * @param message The base message to log
      * @param throwable The throwable exception
      */
-    private fun appendThrowable(level: Level, message: String, throwable: Throwable) {
+    private fun appendThrowable(level: Level, message: String, throwable: Throwable?) {
         if (level.index > Logger.level.index) return
         append(level, message)
-        throwable.printStackTrace()
-        if (saveFile) {
-            val sw = StringWriter()
-            val pw = PrintWriter(sw)
-            throwable.printStackTrace(pw)
-            pw.println()
-            pw.flush()
-            writer?.write(sw.toString())
+        if (throwable != null) {
+            throwable.printStackTrace()
+            if (saveFile) {
+                val sw = StringWriter()
+                val pw = PrintWriter(sw)
+                throwable.printStackTrace(pw)
+                pw.println()
+                pw.flush()
+                writer?.write(sw.toString())
+            }
         }
     }
 }

@@ -19,28 +19,30 @@ import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.channel.ChannelInitializer
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
-import java.io.IOException
 
 fun startMITMServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
-    try {
-        Retriever // Ensure retriever is initialized
+    Retriever // Ensure retriever is initialized
 
-        PacketLogger.isEnabled = false
-        ServerBootstrap()
-            .group(bossGroup, workerGroup)
-            .channel(NioServerSocketChannel::class.java)
-            .childHandler(object : ChannelInitializer<Channel>() {
-                override fun initChannel(ch: Channel) {
-                    PacketLogger.setContext(ch, "Connection to client")
-                    ch.addPacketHandlers(null)
-                        .addLast(MITMHandler(ch))
-                }
-            })
-            .bind(Environment.mainPort)
-            .addListener { Logger.info("Started MITM Server on port ${Environment.mainPort}") }
-    } catch (e: IOException) {
-        Logger.error("Exception in man-in-the-middle server", e)
-    }
+    ServerBootstrap()
+        .group(bossGroup, workerGroup)
+        .channel(NioServerSocketChannel::class.java)
+        .childHandler(object : ChannelInitializer<Channel>() {
+            override fun initChannel(ch: Channel) {
+                PacketLogger.setContext(ch, "Connection to client")
+                ch.addPacketHandlers(null)
+                    .addLast(MITMHandler(ch))
+            }
+        })
+        .bind(Environment.mainPort)
+        .addListener {
+            if (it.isSuccess) {
+                Logger.info("Started MITM server on port ${Environment.mainPort}")
+            } else {
+                val cause = it.cause()
+                val reason = if (cause != null) (cause.message ?: cause.javaClass.simpleName) else "Unknown Reason"
+                Logger.fatal("Unable to start MITM server: $reason")
+            }
+        }
 }
 
 
@@ -48,14 +50,12 @@ class MITMHandler(
     private val clientChannel: Channel,
 ) : ChannelInboundHandlerAdapter() {
 
-
-    private val serverChannel: Channel
-
+    private val serverChannel: Channel = createServerChannel()
     private var forwardHttp: Boolean = false
     private var unlockCheat: Boolean = false
 
-    init {
-        serverChannel = Retriever.createOfficialChannel(object : ChannelInboundHandlerAdapter() {
+    private fun createServerChannel(): Channel {
+        return Retriever.createOfficialChannel(object : ChannelInboundHandlerAdapter() {
             override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
                 if (msg !is Packet) {
                     super.channelRead(ctx, msg)
@@ -63,7 +63,7 @@ class MITMHandler(
                 }
                 channelReadOfficial(msg)
             }
-        }) ?: Logger.fatal("Failed to create official server connection")
+        }) ?: Logger.fatal("Failed to create official server connection for MITM server")
     }
 
     /**

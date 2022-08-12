@@ -21,7 +21,7 @@ import io.netty.handler.ssl.SslContext
 import io.netty.handler.ssl.SslContextBuilder
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory
 import java.io.IOException
-import java.net.UnknownHostException
+import java.security.GeneralSecurityException
 import java.security.KeyStore
 import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLException
@@ -33,22 +33,22 @@ import javax.net.ssl.SSLException
  * @param workerGroup The netty worker event loop group
  */
 fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
-    try {
-        val listenPort = Environment.redirectorPort
-        val handler = RedirectorHandler()
-        ServerBootstrap()
-            .group(bossGroup, workerGroup)
-            .channel(NioServerSocketChannel::class.java)
-            .childHandler(handler)
-            .bind(listenPort)
-            .addListener {
+    val listenPort = Environment.redirectorPort
+    val handler = RedirectorHandler()
+    ServerBootstrap()
+        .group(bossGroup, workerGroup)
+        .channel(NioServerSocketChannel::class.java)
+        .childHandler(handler)
+        .bind(listenPort)
+        .addListener {
+            if (it.isSuccess) {
                 Logger.info("Started Redirector on port ${Environment.redirectorPort}")
+            } else {
+                val cause = it.cause()
+                val reason = if (cause != null) (cause.message ?: cause.javaClass.simpleName) else "Unknown Reason"
+                Logger.fatal("Unable to start redirector server: $reason")
             }
-    } catch (e: UnknownHostException) {
-        Logger.fatal("Unable to lookup server address \"${Environment.externalAddress}\"", e)
-    } catch (e: IOException) {
-        Logger.error("Exception in redirector server", e)
-    }
+        }
 }
 
 
@@ -142,29 +142,35 @@ class RedirectorHandler : ChannelInboundHandlerAdapter() {
 
     /**
      * Creates a new [SslContext] for Netty to create SslHandlers from
-     * so that we can accept the SSLv3 traffic.
+     * so that we can accept the SSLv3 traffic. Any exceptions
      *
      * @return The created [SslContext]
      */
     private fun createServerSslContext(): SslContext {
-        val keyStorePassword = charArrayOf('1', '2', '3', '4', '5', '6')
-        val keyStoreStream = RedirectorHandler::class.java.getResourceAsStream("/redirector.pfx")
-        checkNotNull(keyStoreStream) { "Missing required keystore for SSLv3" }
-        val keyStore = KeyStore.getInstance("PKCS12")
-        keyStoreStream.use {
-            keyStore.load(keyStoreStream, keyStorePassword)
-        }
-        val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
-        kmf.init(keyStore, keyStorePassword)
+        try {
+            val keyStorePassword = charArrayOf('1', '2', '3', '4', '5', '6')
+            val keyStoreStream = RedirectorHandler::class.java.getResourceAsStream("/redirector.pfx")
+            checkNotNull(keyStoreStream) { "Missing required keystore for SSLv3" }
+            val keyStore = KeyStore.getInstance("PKCS12")
+            keyStoreStream.use {
+                keyStore.load(keyStoreStream, keyStorePassword)
+            }
+            val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
+            kmf.init(keyStore, keyStorePassword)
 
-        // Create new SSLv3 compatible context
-        val context = SslContextBuilder.forServer(kmf)
-            .ciphers(listOf("TLS_RSA_WITH_RC4_128_SHA", "TLS_RSA_WITH_RC4_128_MD5"))
-            .protocols("SSLv3", "TLSv1.2", "TLSv1.3")
-            .startTls(true)
-            .trustManager(InsecureTrustManagerFactory.INSTANCE)
-            .build()
-        checkNotNull(context) { "Unable to create SSL Context" }
-        return context
+            // Create new SSLv3 compatible context
+            val context = SslContextBuilder.forServer(kmf)
+                .ciphers(listOf("TLS_RSA_WITH_RC4_128_SHA", "TLS_RSA_WITH_RC4_128_MD5"))
+                .protocols("SSLv3", "TLSv1.2", "TLSv1.3")
+                .startTls(true)
+                .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                .build()
+            checkNotNull(context) { "Unable to create SSL Context" }
+            return context
+        } catch (e: SSLException) {
+            Logger.fatal("Failed to create SSLContext for redirector", e)
+        } catch (e: GeneralSecurityException) {
+            Logger.fatal("Failed to create SSLContext for redirector", e)
+        }
     }
 }
