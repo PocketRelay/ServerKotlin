@@ -2,6 +2,7 @@
 
 package com.jacobtread.kme
 
+import com.jacobtread.kme.command.CommandManager
 import com.jacobtread.kme.servers.startHttpServer
 import com.jacobtread.kme.servers.startMainServer
 import com.jacobtread.kme.servers.startRedirector
@@ -23,5 +24,7 @@ fun main() {
     System.gc() // Cleanup after initialization
 
     Logger.info("Server startup complete.")
+
+    CommandManager.start()
 }
 
