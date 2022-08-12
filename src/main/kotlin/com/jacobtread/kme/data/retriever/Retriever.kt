@@ -81,6 +81,7 @@ object Retriever {
      * @return The redirect host ip
      */
     private fun getRedirectorHost(): String? {
+        Logger.info("Attempting to find official redirector address")
         try {
             val inetAddress = InetAddress.getByName("gosredirector.ea.com")
             if (!inetAddress.isLoopbackAddress) {
@@ -176,7 +177,6 @@ object Retriever {
             .sync()
 
         val channel = channelFuture.channel()
-        PacketLogger.setEnabled(channel, true)
         Logger.info("Connected to official redirector server")
         Logger.info("Sending redirect request packet")
 
