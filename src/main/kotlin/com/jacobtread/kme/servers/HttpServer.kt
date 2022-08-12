@@ -44,7 +44,7 @@ fun startHttpServer(
         workerGroup
     ).addListener {
         if (it.isSuccess) {
-            Logger.info("Started HTTP server on port ${Environment.mainPort}")
+            Logger.info("Started HTTP server on port ${Environment.httpPort}")
         } else {
             val cause = it.cause()
             val reason = if (cause != null) (cause.message ?: cause.javaClass.simpleName) else "Unknown Reason"

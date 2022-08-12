@@ -10,6 +10,7 @@ import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
 import com.jacobtread.kme.exceptions.GameException
 import com.jacobtread.kme.game.match.MatchRuleSet
+import com.jacobtread.kme.sessions.Session
 import com.jacobtread.kme.utils.logging.Logger
 import java.util.Map.copyOf
 import java.util.concurrent.locks.ReentrantReadWriteLock

@@ -4,7 +4,8 @@ import com.jacobtread.blaze.logging.PacketLogger
 import com.jacobtread.blaze.packet.Packet.Companion.addPacketHandlers
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.data.retriever.Retriever
-import com.jacobtread.kme.game.Session
+import com.jacobtread.kme.sessions.MITMSession
+import com.jacobtread.kme.sessions.Session
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
@@ -22,7 +23,10 @@ fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
     val mitm = Environment.mitmEnabled
 
     // Ensure retriever is initialized for MITM mode.
-    if (mitm) Retriever
+    if (mitm) {
+        Retriever
+        PacketLogger.isEnabled = false
+    }
 
     ServerBootstrap()
         .group(bossGroup, workerGroup)
@@ -38,10 +42,12 @@ fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
              * @param ch The channel to initialize
              */
             override fun initChannel(ch: Channel) {
+                // Enable packet logging on this channel
+                PacketLogger.setEnabled(ch, true)
                 if (mitm) {
                     PacketLogger.setContext(ch, "MITM Connection to client")
                     ch.addPacketHandlers()
-                        .addLast(MITMHandler(ch))
+                        .addLast(MITMSession(ch))
                 } else {
                     val session = Session(ch) // New session
                     val remoteAddress = ch.remoteAddress() // The remote address of the user
@@ -57,7 +63,7 @@ fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
         .bind(Environment.mainPort)
         // Wait for the channel to bind
         .addListener {
-            val name = if(mitm) "MITM" else "Main"
+            val name = if (mitm) "MITM" else "Main"
             if (it.isSuccess) {
                 Logger.info("Started $name server on port ${Environment.mainPort}")
             } else {

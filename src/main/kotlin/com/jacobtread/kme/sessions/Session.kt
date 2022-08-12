@@ -1,4 +1,4 @@
-package com.jacobtread.kme.game
+package com.jacobtread.kme.sessions
 
 import com.jacobtread.blaze.*
 import com.jacobtread.blaze.annotations.PacketHandler
@@ -17,6 +17,7 @@ import com.jacobtread.kme.data.blaze.Components
 import com.jacobtread.kme.database.data.Player
 import com.jacobtread.kme.exceptions.DatabaseException
 import com.jacobtread.kme.exceptions.GameException
+import com.jacobtread.kme.game.Game
 import com.jacobtread.kme.game.match.MatchRuleSet
 import com.jacobtread.kme.game.match.Matchmaking
 import com.jacobtread.kme.utils.getIPv4Encoded
