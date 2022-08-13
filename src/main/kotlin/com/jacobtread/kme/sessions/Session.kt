@@ -10,18 +10,15 @@ import com.jacobtread.blaze.tdf.types.GroupTdf
 import com.jacobtread.blaze.tdf.types.OptionalTdf
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.data.Constants
-import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.data.LoginError
 import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
 import com.jacobtread.kme.database.data.Player
-import com.jacobtread.kme.exceptions.DatabaseException
 import com.jacobtread.kme.exceptions.GameException
 import com.jacobtread.kme.game.Game
 import com.jacobtread.kme.game.match.MatchRuleSet
 import com.jacobtread.kme.game.match.Matchmaking
 import com.jacobtread.kme.utils.getIPv4Encoded
-import com.jacobtread.kme.utils.hashPassword
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.unixTimeSeconds
 import io.netty.channel.Channel
@@ -50,7 +47,6 @@ import java.util.concurrent.atomic.AtomicInteger
  *
  * @param channel The underlying channel this session is for
  */
-@PacketProcessor
 class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter() {
 
     /**
@@ -128,8 +124,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     private var pslm: ULong = 0xfff0fffu
 
-
-    private var location: ULong = 0x64654445uL
+    var location: ULong = 0x64654445uL
 
     /**
      * The unix timestamp in milliseconds of when the last ping packet was
@@ -137,7 +132,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      *
      * TODO: Implement timeout using this
      */
-    private var lastPingTime: Long = -1L
+    var lastPingTime: Long = -1L
 
     /**
      * References the current game that this session is a part of.
@@ -328,7 +323,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      *
      * @param player The new authenticated player or null to logout
      */
-    private fun setAuthenticatedPlayer(player: Player?) {
+    fun setAuthenticatedPlayer(player: Player?) {
         val existing = this.player
         if (existing != player) {
             removeFromGame()
@@ -365,7 +360,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
         if (msg !is Packet) return
         try { // Automatic routing to the desired function
-            routeSession(this, socketChannel, msg)
+            routePacket(socketChannel, msg)
         } catch (e: NotAuthenticatedException) { // Handle player access with no player
             push(LoginError.INVALID_ACCOUNT(msg))
             val address = ctx.channel().remoteAddress()
@@ -380,985 +375,6 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         ctx.flush()
         Packet.release(msg)
     }
-
-
-    // region Packet Handlers
-
-    // region Authentication Handlers
-
-    /**
-     * Functionality unknown
-     *
-     * Needs further investigation
-     *
-     * @param packet
-     */
-    @PacketHandler(Components.AUTHENTICATION, Commands.GET_LEGAL_DOCS_INFO)
-    fun handleGetLegalDocsInfo(packet: Packet) {
-        push(packet.respond {
-            number("EAMC", 0x0)
-            text("LHST", "")
-            number("PMC", 0x0)
-            text("PPUI", "")
-            text("TSUI", "")
-        })
-    }
-
-    /**
-     * Handles serving the terms of service content for displaying on the account login / creation
-     * screen. The terms of service are rendered as an HTML markup so HTML tags can be used in this
-     *
-     * @param packet The packet requesting the terms of service content
-     */
-    @PacketHandler(Components.AUTHENTICATION, Commands.GET_TERMS_OF_SERVICE_CONTENT)
-    fun handleTermsOfServiceContent(packet: Packet) {
-        // Terms of service is represented as HTML this is currently a placeholder value
-        // in the future Ideally this would be editable from the web control
-        val content = """
-            <div style="font-family: Calibri; margin: 4px;"><h1>This is a terms of service placeholder</h1></div>
-        """.trimIndent()
-        push(packet.respond {
-            // This is the URL of the page source this is prefixed by https://tos.ea.com/legalapp
-            text("LDVC", "webterms/au/en/pc/default/09082020/02042022")
-            number("TCOL", 0xdaed)
-            text("TCOT", content) // The HTML contents of this legal doc
-        })
-    }
-
-    /**
-     * Handles serving the privacy policy content for displaying on
-     * the account login / creation screen. The privacy policy is
-     * rendered as an HTML markup so HTML tags can be used in this
-     *
-     * The current response is just a placeholder
-     *
-     * @param packet The packet requesting the privacy policy content
-     */
-    @PacketHandler(Components.AUTHENTICATION, Commands.GET_PRIVACY_POLICY_CONTENT)
-    fun handlePrivacyPolicyContent(packet: Packet) {
-        // THe privacy policy is represented as HTML this is currently a placeholder value
-        // in the future Ideally this would be editable from the web control
-        val content = """
-            <div style="font-family: Calibri; margin: 4px;"><h1>This is a privacy policy placeholder</h1></div>
-        """.trimIndent()
-        push(packet.respond {
-            // This is the URL of the page source this is prefixed by https://tos.ea.com/legalapp
-            text("LDVC", "webprivacy/au/en/pc/default/08202020/02042022")
-            number("TCOL", 0xc99c)
-            text("TCOT", content) // The HTML contents of this legal doc
-        })
-    }
-
-    /**
-     * In the real EA implementation this handles sending out
-     * password reset emails. This could be implemented in the
-     * future but at the moment it only prints the email to the
-     * output
-     *
-     * @param packet The packet requesting a forgot password email
-     */
-    @PacketHandler(Components.AUTHENTICATION, Commands.PASSWORD_FORGOT)
-    fun handlePasswordForgot(packet: Packet) {
-        val mail = packet.text("MAIL") // The email of the account that wants a reset
-        Logger.info("Recieved password reset for $mail")
-        push(packet.respond())
-    }
-
-
-    /**
-     * Handles logins from clients using the origin system. This generates a
-     * unqiue username for the provided origin token.
-     *
-     * @param packet The packet requesting origin login
-     */
-    @PacketHandler(Components.AUTHENTICATION, Commands.ORIGIN_LOGIN)
-    fun handleOriginLogin(packet: Packet) {
-        val auth = packet.text("AUTH")
-        val player = Environment.database.getOriginPlayer(auth)
-        if (player == null) {
-            // Failed to create origin account.
-            push(LoginError.SERVER_UNAVAILABLE(packet))
-            return
-        }
-
-        Logger.info("Authenticated Origin Account ${player.displayName}")
-
-        setAuthenticatedPlayer(player)
-        pushAuthResponse(packet, true)
-        updateSessionFor(this)
-    }
-
-    /**
-     * Handles logging out the currently
-     * authenticated player
-     *
-     * @param packet The packet requesting logout
-     */
-    @PacketHandler(Components.AUTHENTICATION, Commands.LOGOUT)
-    fun handleLogout(packet: Packet) {
-        push(packet.respond())
-        val playerEntity = player ?: return
-        Logger.info("Logged out player ${playerEntity.displayName}")
-        setAuthenticatedPlayer(null)
-    }
-
-
-    /**
-     * Handles retrieving the user entitlements list for
-     * the authenticated player
-     *
-     * @param packet The packet requesting user entitlements
-     */
-    @PacketHandler(Components.AUTHENTICATION, Commands.LIST_USER_ENTITLEMENTS_2)
-    fun handleListUserEntitlements2(packet: Packet) {
-        val etag = packet.text("ETAG")
-        if (etag.isNotEmpty()) { // Empty responses for packets with ETAG's
-            return push(packet.respond())
-        }
-
-        // Respond with the entitlements
-        push(packet.respond { Data.createUserEntitlements(this) })
-    }
-
-    /**
-     * Handles getting an authentication token for the
-     * Galaxy at war http server. This is currently just
-     * using the player id hex value instead of an actual
-     * token
-     *
-     * @param packet The packet requesting the auth token
-     */
-    @PacketHandler(Components.AUTHENTICATION, Commands.GET_AUTH_TOKEN)
-    fun handleGetAuthToken(packet: Packet) {
-        val playerEntity = player ?: throw NotAuthenticatedException()
-        push(packet.respond {
-            text("AUTH", playerEntity.playerId.toString(16).uppercase())
-        })
-    }
-
-    /**
-     * Handles logging into an existing player account using
-     * the email and password.
-     *
-     * @param packet The packet requesting login
-     */
-    @PacketHandler(Components.AUTHENTICATION, Commands.LOGIN)
-    fun handleLogin(packet: Packet) {
-        val email: String = packet.text("MAIL")
-        val password: String = packet.text("PASS")
-        if (email.isBlank() || password.isBlank()) { // If we are missing email or password
-            return push(LoginError.INVALID_ACCOUNT(packet))
-        }
-
-        // Regex for matching emails
-        val emailRegex = Regex("^[\\p{L}\\p{N}._%+-]+@[\\p{L}\\p{N}.\\-]+\\.\\p{L}{2,}$")
-        if (!email.matches(emailRegex)) { // If the email is not a valid email
-            return push(LoginError.INVALID_EMAIL(packet))
-        }
-
-        try {
-            val database = Environment.database
-
-            // Retrieve the player with this email or send an email not found error
-            val player = database.getPlayerByEmail(email) ?: return push(LoginError.EMAIL_NOT_FOUND(packet))
-
-            // Compare the provided password with the hashed password of the player
-            if (!player.isMatchingPassword(password)) { // If it's not the same password
-                return push(LoginError.WRONG_PASSWORD(packet))
-            }
-
-            setAuthenticatedPlayer(player) // Set the authenticated session
-            pushAuthResponse(packet, false)
-        } catch (e: DatabaseException) {
-            Logger.warn("Failed to login player", e)
-            push(LoginError.SERVER_UNAVAILABLE(packet))
-        }
-    }
-
-    /**
-     * Handles silent behind the scenes token authentication for clients which
-     * have already previously entered their credentials.
-     *
-     * @param packet The packet requesting silent login
-     */
-    @PacketHandler(Components.AUTHENTICATION, Commands.SILENT_LOGIN)
-    fun handleSilentLogin(packet: Packet) {
-        val pid = packet.int("PID")
-        val auth = packet.text("AUTH")
-        try {
-            val database = Environment.database
-            // Find the player with a matching ID or send an INVALID_ACCOUNT error
-            val player = database.getPlayerById(pid) ?: return push(LoginError.INVALID_ACCOUNT(packet))
-            // If the session token's don't match send INVALID_ACCOUNT error
-            if (!player.isSessionToken(auth)) return push(LoginError.INVALID_SESSION(packet))
-
-            setAuthenticatedPlayer(player)
-            pushAuthResponse(packet, true)
-            updateSessionFor(this)
-        } catch (e: IOException) {
-            Logger.warn("Failed silent login", e)
-            push(LoginError.SERVER_UNAVAILABLE(packet))
-        }
-    }
-
-
-    /**
-     * Handles the creation of a new account using the email
-     * and password provided by the client
-     *
-     * @param packet The packet requesting account creation
-     */
-    @PacketHandler(Components.AUTHENTICATION, Commands.CREATE_ACCOUNT)
-    fun handleCreateAccount(packet: Packet) {
-        val email: String = packet.text("MAIL")
-        val password: String = packet.text("PASS")
-        try {
-            val database = Environment.database
-            if (database.isEmailTaken(email)) {
-                push(LoginError.EMAIL_ALREADY_IN_USE(packet))
-                return
-            }
-
-            val hashedPassword = hashPassword(password)
-            val player = database.createPlayer(email, hashedPassword)
-            setAuthenticatedPlayer(player) // Link the player to this session
-            pushAuthResponse(packet, false)
-        } catch (e: DatabaseException) {
-            Logger.warn("Failed to create account", e)
-            push(LoginError.SERVER_UNAVAILABLE(packet))
-        }
-    }
-
-    /**
-     * Handles logging into personas. On the official EA servers this
-     * would actually be handling with persona data but here it just
-     * uses the player data instead
-     *
-     * @param packet The packet rquesting the login of a persona
-     */
-    @PacketHandler(Components.AUTHENTICATION, Commands.LOGIN_PERSONA)
-    fun handleLoginPersona(packet: Packet) {
-        push(packet.respond { appendDetailsTo(this) })
-        updateSessionFor(this)
-    }
-
-    @PacketHandler(Components.AUTHENTICATION, Commands.GET_PASSWORD_RULES)
-    fun handleGetPasswordRules(packet: Packet) {
-        push(packet.respond {
-            number("MAXS", 64)
-            number("MINS", 4)
-            // Valid characters
-            text("VDCH", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789[]`!@#$%^&*()_={}:;<>+-',.~?/|\\")
-        })
-    }
-
-    // endregion
-
-    // region Game Manager Handlers
-
-    /**
-     * Handles the creation of a new game using the
-     * attributes provided by the client
-     *
-     * @param packet The packet creating the game
-     */
-    @PacketHandler(Components.GAME_MANAGER, Commands.CREATE_GAME)
-    fun handleCreateGame(packet: Packet) {
-        val attributes = packet.map<String, String>("ATTR") // Get the provided users attributes
-        val game = Game.create(this, attributes) // Create a new game
-
-        // Get the host networking values from the HNET list
-        val hostNetworking = packet.list<GroupTdf>("HNET")
-
-        // First value is always the HNET value
-        val netGroup = hostNetworking.firstOrNull()
-        if (netGroup != null) setNetworkingFromGroup(netGroup)
-
-        push(packet.respond { number("GID", game.id) }) // Send the user session
-
-        game.join(this)
-
-        Matchmaking.onGameCreated(game)
-    }
-
-    /**
-     * Handles updating the state of a game. States are not
-     * currently documented at this point. Further investation
-     * needs to happen to understand what each id means
-     *
-     * @param packet The packet updating the game state
-     */
-    @PacketHandler(Components.GAME_MANAGER, Commands.ADVANCE_GAME_STATE)
-    fun handleAdvanceGameState(packet: Packet) {
-        val gameId = packet.ulong("GID")
-        val gameState = packet.int("GSTA")
-        val game = Game.getById(gameId)
-        game?.setGameState(gameState)
-        push(packet.respond())
-    }
-
-    /**
-     * Handles updating the game setting.
-     *
-     * Needs further investigation for proper documentation
-     *
-     * @param packet
-     */
-    @PacketHandler(Components.GAME_MANAGER, Commands.SET_GAME_SETTINGS)
-    fun handleSetGameSettings(packet: Packet) {
-        val gameId = packet.ulong("GID")
-        val setting = packet.int("GSET")
-        val game = Game.getById(gameId)
-        game?.setGameSetting(setting)
-        push(packet.respond())
-    }
-
-    /**
-     * Handles updating a games attributes based on the newly
-     * provided attributes from the client. This packet is
-     * recieved when things like the enemy type or map change
-     *
-     * @param packet The packet that is setting the game attributes
-     */
-    @PacketHandler(Components.GAME_MANAGER, Commands.SET_GAME_ATTRIBUTES)
-    fun handleSetGameAttributes(packet: Packet) {
-        val gameId = packet.ulong("GID")
-        val attributes = packet.map<String, String>("ATTR")
-        val game = Game.getById(gameId)
-        game?.setAttributes(attributes)
-        push(packet.respond())
-    }
-
-    /**
-     * Handles removing a player from a game based on that
-     * player's ID and the game ID
-     *
-     * @param packet The packet requesting the player ID
-     */
-    @PacketHandler(Components.GAME_MANAGER, Commands.REMOVE_PLAYER)
-    fun handleRemovePlayer(packet: Packet) {
-        val playerId = packet.int("PID")
-        val gameId = packet.ulong("GID")
-        val game = Game.getById(gameId)
-        game?.removePlayerById(playerId)
-        push(packet.respond())
-    }
-
-    /**
-     * Handles matchmaking for players. Currently, this implementation
-     * works if a game already exists but the queue system currently
-     * does not work properly
-     *
-     * @param packet The packet requesting the matchmaking start
-     */
-    @PacketHandler(Components.GAME_MANAGER, Commands.START_MATCHMAKING)
-    fun handleStartMatchmaking(packet: Packet) {
-        val playerEntity = player ?: throw NotAuthenticatedException()
-        Logger.info("Player ${playerEntity.displayName} started match making")
-        val ruleSet = MatchRuleSet(packet)
-        val game = Matchmaking.getMatchOrQueue(this, ruleSet)
-        push(packet.respond { number("MSID", matchmakingId) })
-        if (game != null) {
-            Logger.info("Found matching game for player ${playerEntity.displayName}")
-            game.join(this)
-        }
-    }
-
-    /**
-     * Handles the player cancelling a matchmaking request. Removes the player
-     * from the matchmaking queue along with any games they managed to get into
-     * in the process.
-     *
-     * @param packet The packet requesting the matchmaking cancel
-     */
-    @PacketHandler(Components.GAME_MANAGER, Commands.CANCEL_MATCHMAKING)
-    fun handleCancelMatchmaking(packet: Packet) {
-        val playerEntity = player ?: throw NotAuthenticatedException()
-        Logger.info("Player ${playerEntity.displayName} cancelled match making")
-        Matchmaking.removeFromQueue(this)
-        removeFromGame()
-        push(packet.respond())
-    }
-
-
-    /**
-     * Handles updating a connection state across the mesh network between players
-     * and hosts of a game.
-     *
-     * @param packet The packet requesting the mesh update
-     */
-    @PacketHandler(Components.GAME_MANAGER, Commands.UPDATE_MESH_CONNECTION)
-    fun handleUpdateMeshConnection(packet: Packet) {
-        val gameId = packet.ulong("GID")
-        push(packet.respond())
-        val game = Game.getById(gameId) ?: return
-        game.updateMeshConnection(this)
-    }
-
-    // endregion
-
-    // region Stats Handlers
-
-    /**
-     * getLocaleName Translates the provided locale name
-     * to the user readable name
-     *
-     * @param code The shorthand code for the locale name
-     * @return The human-readable locale name
-     */
-    private fun getLocaleName(code: String): String = when (code.lowercase()) {
-        "global" -> "Global"
-        "de" -> "Germany"
-        "en" -> "English"
-        "es" -> "Spain"
-        "fr" -> "France"
-        "it" -> "Italy"
-        "ja" -> "Japan"
-        "pl" -> "Poland"
-        "ru" -> "Russia"
-        else -> code
-    }
-
-    /**
-     * Handle leaderboard group
-     *
-     * TODO: NOT IMPLEMENTED PROPERLY
-     *
-     * @param packet
-     */
-    @PacketHandler(Components.STATS, Commands.GET_LEADERBOARD_GROUP)
-    fun handleLeaderboardGroup(packet: Packet) {
-        val name: String = packet.text("NAME")
-        val isN7 = name.startsWith("N7Rating")
-        if (isN7 || name.startsWith("ChallengePoints")) {
-            val locale: String = name.substring(if (isN7) 8 else 15)
-            val localeName = getLocaleName(locale)
-            val desc: String
-            val sname: String
-            val sdsc: String
-            val gname: String
-            if (isN7) {
-                desc = "N7 Rating - $localeName"
-                sname = "n7rating"
-                sdsc = "N7 Rating"
-                gname = "ME3LeaderboardGroup"
-            } else {
-                desc = "Challenge Points - $localeName"
-                sname = "ChallengePoints"
-                sdsc = "Challenge Points"
-                gname = "ME3ChallengePoints"
-            }
-            push(packet.respond {
-                number("ACSD", 0x0)
-                text("BNAM", name)
-                text("DESC", desc)
-                pair("ETYP", 0x7802, 0x1)
-                map("KSUM", mapOf(
-                    "accountcountry" to group {
-                        map("KSVL", mapOf(0x0 to 0x0))
-                    }
-                ))
-                number("LBSZ", 0x7270e0)
-                list("LIST", listOf(
-                    group {
-                        text("CATG", "MassEffectStats")
-                        text("DFLT", "0")
-                        number("DRVD", 0x0)
-                        text("FRMT", "%d")
-                        text("KIND", "")
-                        text("LDSC", sdsc)
-                        text("META", "W=200, HMC=tableColHeader3, REMC=tableRowEntry3")
-                        text("NAME", sname)
-                        text("SDSC", sdsc)
-                        number("TYPE", 0x0)
-                    }
-                ))
-                text("META", "RF=@W=150, HMC=tableColHeader1, REMC=tableRowEntry1@ UF=@W=670, HMC=tableColHeader2, REMC=tableRowEntry2@")
-                text("NAME", gname)
-                text("SNAM", sname)
-            })
-        } else {
-            push(packet.respond())
-        }
-    }
-
-    /**
-     * Handles a filtered leaderboard
-     *
-     * TODO: Currently not implemented
-     *
-     * @param packet
-     */
-    @PacketHandler(Components.STATS, Commands.GET_FILTERED_LEADERBOARD)
-    fun handleFilteredLeaderboard(packet: Packet) {
-        push(packet.respond {
-            list("LDLS", emptyList<GroupTdf>())
-        })
-    }
-
-    /**
-     * Handles retrieving the number of entities on the leaderboard
-     *
-     * TODO: Currently not implemented
-     *
-     * @param packet
-     */
-    @PacketHandler(Components.STATS, Commands.GET_LEADERBOARD_ENTITY_COUNT)
-    fun handleLeaderboardEntityCount(packet: Packet) {
-        val entityCount = 1 // The number of leaderboard entities
-        push(packet.respond { number("CNT", entityCount) })
-    }
-
-    /**
-     * Handles retrieving the contents of the centered leaderboard
-     *
-     * TODO: Currently not implemented
-     *
-     * @param packet
-     */
-    @PacketHandler(Components.STATS, Commands.GET_CENTERED_LEADERBOARD)
-    fun handleCenteredLeadboard(packet: Packet) {
-        // TODO: Currenlty not implemented
-        push(packet.respond {
-            list("LDLS", emptyList<GroupTdf>())
-        })
-    }
-
-    // endregion
-
-    // region Messaging Handlers
-
-    /**
-     * Handles sending messages to the client when the client
-     * requests them. Currently, this only includes the main menu
-     * message. But once further investigation is complete I hope
-     * to have this include all messaging types.
-     *
-     * TODO: Investigate sending of other message types
-     *
-     * @param packet The packet requesting messages
-     */
-    @PacketHandler(Components.MESSAGING, Commands.FETCH_MESSAGES)
-    fun handleFetchMessages(packet: Packet) {
-        val playerEntity = player
-
-        if (playerEntity == null) { // If not authenticate display no messages
-            push(packet.respond { number("MCNT", 0) })
-            return
-        }
-
-        val ip = socketChannel.remoteAddress().toString()
-        val menuMessage = Environment.menuMessage
-            .replace("{v}", Constants.KME_VERSION)
-            .replace("{n}", playerEntity.displayName)
-            .replace("{ip}", ip) + 0xA.toChar()
-
-        pushAll(
-            packet.respond { number("MCNT", 1) }, // Number of messages
-
-            notify(Components.MESSAGING, Commands.SEND_MESSAGE) {
-                number("FLAG", 0x1)
-                number("MGID", 0x1)
-                text("NAME", menuMessage)
-                +group("PYLD") {
-                    map("ATTR", mapOf("B0000" to "160"))
-                    // Flag types
-                    // 0x1 = Default message
-                    // 0x2 = Unlocked acomplishment
-
-                    number("FLAG", 0x1)
-                    number("STAT", 0x0)
-                    number("TAG", 0x0)
-                    tripple(
-                        "TARG",
-                        Components.USER_SESSIONS,
-                        Commands.SET_SESSION,
-                        playerEntity.playerId
-                    )
-                    number("TYPE", 0x0)
-                }
-                tripple(
-                    "SRCE",
-                    Components.USER_SESSIONS,
-                    Commands.SET_SESSION,
-                    playerEntity.playerId
-                )
-                number("TIME", unixTimeSeconds())
-            }
-        )
-    }
-
-
-    // endregion
-
-    // region Association Lists Handlers
-
-    /**
-     * Needs further investigation for proper documentation.
-     *
-     * @param packet
-     */
-    @PacketHandler(Components.ASSOCIATION_LISTS, Commands.GET_LISTS)
-    fun handleAssociationListGetLists(packet: Packet) {
-        push(packet.respond {
-            list("LMAP", listOf(
-                group {
-                    +group("INFO") {
-                        tripple("BOID", 0x19, 0x1, 0x74b09c4)
-                        number("FLGS", 4)
-                        +group("LID") {
-                            text("LNM", "friendList")
-                            number("TYPE", 1)
-                        }
-                        number("LMS", 0xC8)
-                        number("PRID", 0)
-                    }
-                    number("OFRC", 0)
-                    number("TOCT", 0)
-                }
-            ))
-        })
-    }
-
-    // endregion
-
-    // region Game Reporting Handlers
-
-    /**
-     * Handles the submission of an offline game report.
-     *
-     * Needs further investigation for proper documentation.
-     *
-     * @param packet The game reporting packet
-     */
-    @PacketHandler(Components.GAME_REPORTING, Commands.SUBMIT_OFFLINE_GAME_REPORT)
-    fun handleSubmitOfflineReport(packet: Packet) {
-        push(packet.respond())
-        push(notify(Components.GAME_REPORTING, Commands.NOTIFY_GAME_REPORT_SUBMITTED) {
-            varList("DATA")
-            number("EROR", 0)
-            number("FNL", 0)
-            number("GHID", 0)
-            number("GRID", 0) // Game Report ID
-        })
-    }
-
-    // endregion
-
-    // region User Sessions Handlers
-
-    /**
-     * Handles resuming a session that was present on a previous run or
-     * that was logged out. This is done using the session key that was
-     * provided to that session upon authenticating. The session key
-     * provided by this packet is looked up in the database and if a
-     * player is found with a matching one they become authenticated
-     *
-     * @param packet The packet requesting the session resumption
-     */
-    @PacketHandler(Components.USER_SESSIONS, Commands.RESUME_SESSION)
-    fun handleResumeSession(packet: Packet) {
-        try {
-            val database = Environment.database
-            val sessionToken = packet.text("SKEY")
-            val player = database.getPlayerBySessionToken(sessionToken)
-            if (player == null) {
-                push(LoginError.INVALID_INFORMATION(packet))
-                return
-            }
-            setAuthenticatedPlayer(player)
-            push(packet.respond())
-        } catch (e: DatabaseException) {
-            Logger.warn("Failed to resume session", e)
-            push(packet.respond())
-        }
-    }
-
-    /**
-     * The packet recieved from the client contains networking information
-     * including the external and internal ip addresses and ports along with
-     * the natt type. All of this information is stored. This handler responds
-     * with a set session packet to update the clients view of its session
-     *
-     * @param packet The packet containing the network update information
-     */
-    @PacketHandler(Components.USER_SESSIONS, Commands.UPDATE_NETWORK_INFO)
-    fun updateNetworkInfo(packet: Packet) {
-        val addr = packet.optionalValue("ADDR") as GroupTdf
-        setNetworkingFromGroup(addr)
-
-        val nqos = packet.group("NQOS")
-        dbps = nqos.ulong("DBPS")
-        nattType = nqos.int("NATT")
-        ubps = nqos.ulong("UBPS")
-
-        val nlmp = packet.map<String, ULong>("NLMP")
-        pslm = nlmp.getOrDefault("ea-sjc", 0xfff0fffu)
-
-        pushAll(packet.respond(), createSetSessionPacket())
-    }
-
-    /**
-     * Handles updating the hardware flag using the value provided by the
-     * client using this packet. This handler responds with a set session
-     * packet to update the clients view of its session
-     *
-     * @param packet The packet containing the hardware flag
-     */
-    @PacketHandler(Components.USER_SESSIONS, Commands.UPDATE_HARDWARE_FLAGS)
-    fun updateHardwareFlag(packet: Packet) {
-        hardwareFlag = packet.int("HWFG")
-        push(packet.respond())
-        push(createSetSessionPacket())
-    }
-
-    // endregion
-
-    // region Util Handlers
-
-    /**
-     * Handles retrieving / creating of conf files and returning them
-     * to the client. This includes talk files as well as other data
-     * about the server
-     *
-     * - ME3_LIVE_TLK_PC_LANGUAGE: Talk files for the game
-     * - ME3_DATA: Configurations and http server locations
-     * - ME3_MSG: The current message this can be on the menu or in multiplayer
-     * - ME3_ENT: Map of user entitlements (includes online access entitlement)
-     * - ME3_DIME: Shop contents / Currency definition
-     * - ME3_BINI_VERSION: BINI version information
-     * - ME3_BINI_PC_COMPRESSED: ME3 BINI
-     *
-     * @param packet
-     */
-    @PacketHandler(Components.UTIL, Commands.FETCH_CLIENT_CONFIG)
-    fun handleFetchClientConfig(packet: Packet) {
-        val type = packet.text("CFID")
-        val conf: Map<String, String> = if (type.startsWith("ME3_LIVE_TLK_PC_")) {
-            val lang = type.substring(16)
-            Data.getTalkFileConfig(lang)
-        } else {
-            when (type) {
-                "ME3_DATA" -> Data.createDataConfig() // Configurations for GAW, images and others
-                "ME3_MSG" -> emptyMap() // Custom multiplayer messages
-                "ME3_ENT" -> Data.getEntitlementMap() // Entitlements
-                "ME3_DIME" -> Data.createDimeResponse() // Shop contents?
-                "ME3_BINI_VERSION" -> mapOf(
-                    "SECTION" to "BINI_PC_COMPRESSED",
-                    "VERSION" to "40128"
-                )
-
-                "ME3_BINI_PC_COMPRESSED" -> Data.loadBiniCompressed() // Loads the chunked + compressed bini
-                else -> emptyMap()
-            }
-        }
-        push(packet.respond {
-            map("CONF", conf)
-        })
-    }
-
-    /**
-     * Handles responding to pings from the client. Responsd with the
-     * server time in the response body.
-     *
-     * Currently this does nothing but update the last ping time
-     * variable
-     *
-     * TODO: Implement actual ping timeout
-     *
-     * @param packet The ping packet
-     */
-    @PacketHandler(Components.UTIL, Commands.PING)
-    fun handlePing(packet: Packet) {
-        lastPingTime = System.currentTimeMillis()
-        push(packet.respond {
-            number("STIM", unixTimeSeconds())
-        })
-    }
-
-    /**
-     * Handles the pre authentication packet this includes information about the
-     * client such as location, version, platform, etc. This response with information
-     * about the current server configuration. This function updates [location]
-     *
-     * Other CINF Fields:
-     *
-     * - PLAT: The platform the game is running on (e.g. Windows)
-     * - MAC: The mac address of the computer
-     * - BSDK: The Blaze SDK version used in the client
-     * - CVER: The mass effect client version
-     * - ENV: The client environment type
-     *
-     * @param packet
-     */
-    @PacketHandler(Components.UTIL, Commands.PRE_AUTH)
-    fun handlePreAuth(packet: Packet) {
-
-        val infoGroup = packet.group("CINF")
-        location = infoGroup.ulong("LOC")
-
-        push(packet.respond {
-            number("ANON", 0x0)
-            text("ASRC", "303107")
-            list(
-                // Component IDS? (They match up so assumptions...)
-                "CIDS", listOf(
-                    Components.AUTHENTICATION,
-                    Components.ASSOCIATION_LISTS,
-                    Components.GAME_MANAGER,
-                    Components.GAME_REPORTING,
-                    Components.STATS,
-                    Components.UTIL,
-                    63490,
-                    30720,
-                    Components.MESSAGING,
-                    30721,
-                    Components.USER_SESSIONS,
-                    30723,
-                    30725,
-                    30726,
-                    Components.DYNAMIC_FILTER
-                )
-            )
-            text("CNGN", "")
-            +group("CONF") {
-                map(
-                    "CONF", mapOf(
-                        "pingPeriod" to "15s", // The delay between each ping to the server
-                        "voipHeadsetUpdateRate" to "1000", // The rate at which headsets are updated
-                        "xlspConnectionIdleTimeout" to "300" // The xlsp connection idle timeout
-                    )
-                )
-            }
-            text("INST", "masseffect-3-pc") // The type of server?
-            number("MINR", 0x0)
-            text("NASP", "cem_ea_id")
-            text("PILD", "")
-            text("PLAT", "pc") // Platform
-            text("PTAG", "")
-            // The following addresses have all been redirected to localhost to be ignored
-            +group("QOSS") {
-
-                val serverGroup = group("BWPS") {
-                    text("PSA", Environment.externalAddress)
-                    number("PSP", Environment.httpPort)
-                    text("SNA", "prod-sjc")
-                }
-
-                +serverGroup
-                number("LNP", 0xA)
-                map(
-                    "LTPS", mapOf(
-                        "ea-sjc" to serverGroup
-                    )
-                )
-                number("SVID", 0x45410805)
-            }
-            text("RSRC", "303107")
-            text("SVER", "Blaze 3.15.08.0 (CL# 1629389)") // Blaze Server Version
-        })
-    }
-
-    /**
-     * Handles the post authentication packet which responds with
-     * information about the ticker and telemetry servers
-     *
-     * @param packet The packet requesting the post auth information
-     */
-    @PacketHandler(Components.UTIL, Commands.POST_AUTH)
-    fun handlePostAuth(packet: Packet) {
-        push(packet.respond {
-            +group("PSS") { // Player Sync Service
-                text("ADRS", "playersyncservice.ea.com") // Host / Address
-                blob("CSIG")
-                text("PJID", "303107")
-                number("PORT", 443) // Port
-                number("RPRT", 0xF)
-                number("TIID", 0x0)
-            }
-
-            //  telemetryAddress = "reports.tools.gos.ea.com:9988"
-            //  tickerAddress = "waleu2.tools.gos.ea.com:8999"
-
-            +group("TELE") {
-                text("ADRS", "127.0.0.1") // Server Address
-                number("ANON", 0)
-                text("DISA", "**")
-                text("FILT", "-UION/****") // Telemetry filter?
-                number("LOC", 1701725253)
-                text("NOOK", "US,CA,MX")
-                number("PORT", 9988)
-                number("SDLY", 15000)
-                text("SESS", "JMhnT9dXSED")
-                text("SKEY", "")
-                number("SPCT", 0x4B)
-                text("STIM", "")
-            }
-
-            +group("TICK") {
-                text("ADRS", "127.0.0.1")
-                number("port", 9988)
-                text("SKEY", "823287263,10.23.15.2:8999,masseffect-3-pc,10,50,50,50,50,0,12")
-            }
-
-            +group("UROP") {
-                number("TMOP", 0x1)
-                number("UID", sessionId)
-            }
-        })
-    }
-
-    /**
-     * Handles updating an individual setting provided by the client in the
-     * form of a key value pair named KEY and DATA. This is for updating any
-     * data stored on the player such as inventory, characters, classes etc
-     *
-     * @param packet The packet updating the setting
-     */
-    @PacketHandler(Components.UTIL, Commands.USER_SETTINGS_SAVE)
-    fun handleUserSettingsSave(packet: Packet) {
-        val playerEntity = player ?: throw NotAuthenticatedException()
-        val value = packet.text("DATA")
-        val key = packet.text("KEY")
-        playerEntity.setPlayerData(key, value)
-        push(packet.respond())
-    }
-
-    /**
-     * Handles loading all the user settings for the authenticated users. This
-     * loads all the player entity settings from the database and puts them
-     * as key value pairs into a map which is sent to the client.
-     *
-     * @param packet The packet requesting all the settings
-     */
-    @PacketHandler(Components.UTIL, Commands.USER_SETTINGS_LOAD_ALL)
-    fun handleUserSettingsLoadAll(packet: Packet) {
-        val playerEntity = player ?: throw NotAuthenticatedException()
-        push(packet.respond {
-            map("SMAP", playerEntity.createSettingsMap())
-        })
-    }
-
-    /**
-     * Handles suspend user pings. The purpose of this is not yet understood,
-     * and it requires further investigation before it can be documented
-     *
-     * @param packet The packet for suspend user ping
-     */
-    @PacketHandler(Components.UTIL, Commands.SUSPEND_USER_PING)
-    fun handleSuspendUserPing(packet: Packet) {
-        push(
-            when (packet.ulong("TVAL")) {
-                0x1312D00uL -> packet.error(0x12D)
-                0x55D4A80uL -> packet.error(0x12E)
-                else -> packet.respond()
-            }
-        )
-    }
-
-    // endregion
-
-    // endregion
 
     // region Packet Generators
 
@@ -1567,7 +583,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      *
      * @param group The tdf containing the EXIP and INIP groups
      */
-    private fun setNetworkingFromGroup(group: GroupTdf) {
+    fun setNetworkingFromGroup(group: GroupTdf) {
         val exip = group.group("EXIP")
         externalAddress = exip.ulong("IP")
         externalPort = exip.ulong("PORT")
@@ -1673,6 +689,41 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     }
 
     /**
+     * Set's the hardware flag value for this session
+     * and sends a set session packet to the client
+     *
+     * @param value The new hardware flag value
+     */
+    fun setHardwareFlag(value: Int) {
+        hardwareFlag = value
+        push(createSetSessionPacket())
+    }
+
+    /**
+     * Sets the networking data for this session
+     * and sends a set session packet to the client
+     *
+     * @param dbps
+     * @param nattType
+     * @param ubps
+     * @param pslm
+     */
+    fun setNetworkingData(
+        addr: GroupTdf,
+        dbps: ULong,
+        nattType: Int,
+        ubps: ULong,
+        pslm: ULong,
+    ) {
+        setNetworkingFromGroup(addr)
+        this.dbps = dbps
+        this.nattType = nattType
+        this.ubps = ubps
+        this.pslm = pslm
+        push(createSetSessionPacket())
+    }
+
+    /**
      * Creates a packet which sets the session details for this
      * session.
      *
@@ -1724,8 +775,8 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      * @param packet The packet this response is for.
      * @param isSilent Whether the auth response is a result of a silent login (Origin / Token)
      */
-    private fun pushAuthResponse(packet: Packet, isSilent: Boolean) {
-        val player = player ?: throw NotAuthenticatedException()
+    fun doAuthenticate(player: Player, packet: Packet, isSilent: Boolean) {
+        setAuthenticatedPlayer(player)
         push(packet.respond {
             if (isSilent) number("AGUP", 0)
             text("LDHT", "")
@@ -1745,6 +796,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
             text("TURI", "")
             if (!isSilent) number("UID", player.playerId) // Player ID
         })
+        updateSessionFor(this)
     }
 
     /**
@@ -1753,7 +805,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      *
      * @param builder The builder to append to
      */
-    private fun appendDetailsTo(builder: TdfBuilder) {
+    fun appendDetailsTo(builder: TdfBuilder) {
         val playerEntity = player ?: throw NotAuthenticatedException()
         with(builder) {
             number("BUID", playerEntity.playerId)
@@ -1788,10 +840,20 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     // endregion
 
     /**
+     * Returns the string representation of the ip
+     * address of the connected client.
+     *
+     * @return The ip address string
+     */
+    fun getAddressString(): String {
+        return socketChannel.remoteAddress().toString()
+    }
+
+    /**
      * Removes the player from the game it is currently in. (If it exists)
      * and then sets the current game to null
      */
-    private fun removeFromGame() {
+    fun removeFromGame() {
         resetMatchmakingState()
         game?.removePlayer(this)
         clearGame()
