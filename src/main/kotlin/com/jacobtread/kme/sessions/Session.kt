@@ -1,26 +1,21 @@
 package com.jacobtread.kme.sessions
 
 import com.jacobtread.blaze.*
-import com.jacobtread.blaze.annotations.PacketHandler
 import com.jacobtread.blaze.annotations.PacketProcessor
 import com.jacobtread.blaze.data.VarTriple
 import com.jacobtread.blaze.logging.PacketLogger
 import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.blaze.tdf.types.GroupTdf
 import com.jacobtread.blaze.tdf.types.OptionalTdf
-import com.jacobtread.kme.Environment
-import com.jacobtread.kme.data.Constants
 import com.jacobtread.kme.data.LoginError
 import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
 import com.jacobtread.kme.database.data.Player
 import com.jacobtread.kme.exceptions.GameException
 import com.jacobtread.kme.game.Game
-import com.jacobtread.kme.game.match.MatchRuleSet
 import com.jacobtread.kme.game.match.Matchmaking
 import com.jacobtread.kme.utils.getIPv4Encoded
 import com.jacobtread.kme.utils.logging.Logger
-import com.jacobtread.kme.utils.unixTimeSeconds
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
@@ -187,7 +182,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     val playerIdSafe: Int get() = player?.playerId ?: 1
 
-    private var playerState = 0x2
+    private var playerState: Int = 2
 
     init {
         updateEncoderContext() // Set the initial encoder context
@@ -389,9 +384,9 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         val playerEntity = player ?: return
         push(
             notify(Components.GAME_MANAGER, Commands.NOTIFY_MATCHMAKING_FAILED) {
-                number("MAXF", 0x5460)
+                number("MAXF", 21600)
                 number("MSID", matchmakingId)
-                number("RSLT", 0x4)
+                number("RSLT", 4)
                 number("USID", playerEntity.playerId)
             }
         )
@@ -412,21 +407,21 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
                 list("ASIL", listOf(
                     group {
                         +group("CGS") {
-                            number("EVST", if (matchmaking) 0x6 else 0x0)
-                            number("MMSN", 0x1)
-                            number("NOMP", 0x0)
+                            number("EVST", if (matchmaking) 6 else 0)
+                            number("MMSN", 1)
+                            number("NOMP", 0)
                         }
                         +group("CUST") {
                         }
                         +group("DNFS") {
-                            number("MDNF", 0x0)
-                            number("XDNF", 0x0)
+                            number("MDNF", 0)
+                            number("XDNF", 0)
                         }
                         +group("FGS") {
-                            number("GNUM", 0x0)
+                            number("GNUM", 0)
                         }
                         +group("GEOS") {
-                            number("DIST", 0x0)
+                            number("DIST", 0)
                         }
                         map(
                             "GRDA", mapOf(
@@ -478,36 +473,36 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
                             )
                         )
                         +group("GSRD") {
-                            number("PMAX", 0x4)
-                            number("PMIN", 0x2)
+                            number("PMAX", 4)
+                            number("PMIN", 2)
                         }
                         +group("HBRD") {
-                            number("BVAL", 0x1)
+                            number("BVAL", 1)
                         }
                         +group("HVRD") {
-                            number("VVAL", 0x0)
+                            number("VVAL", 0)
                         }
                         +group("PSRS") {
                         }
                         +group("RRDA") {
-                            number("RVAL", 0x0)
+                            number("RVAL", 0)
                         }
                         +group("TSRS") {
-                            number("TMAX", 0x0)
-                            number("TMIN", 0x0)
+                            number("TMAX", 0)
+                            number("TMIN", 0)
                         }
                         map(
                             "UEDS", mapOf(
                                 "ME3_characterSkill_Rule" to group {
-                                    number("AMAX", 0x1f4)
-                                    number("AMIN", 0x0)
-                                    number("MUED", 0x1f4)
+                                    number("AMAX", 500)
+                                    number("AMIN", 0)
+                                    number("MUED", 500)
                                     text("NAME", "ME3_characterSkill_Rule")
                                 },
                             )
                         )
                         +group("VGRS") {
-                            number("VVAL", 0x0)
+                            number("VVAL", 0)
                         }
                     }
                 ))
@@ -769,7 +764,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
     }
 
     /**
-     * Creates a authentication response packet which is either
+     * Creates an authentication response packet which is either
      * for silent authentication (Origin / Token) or visible
      * (Login / Create)
      *
