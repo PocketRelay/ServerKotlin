@@ -3,6 +3,7 @@ package com.jacobtread.kme.sessions
 import com.jacobtread.blaze.*
 import com.jacobtread.blaze.annotations.PacketProcessor
 import com.jacobtread.blaze.data.VarTriple
+import com.jacobtread.blaze.handler.PacketNettyHandler
 import com.jacobtread.blaze.logging.PacketLogger
 import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.blaze.tdf.types.GroupTdf
@@ -19,7 +20,6 @@ import com.jacobtread.kme.utils.logging.Logger
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
-import java.io.IOException
 import java.net.Inet4Address
 import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicInteger
@@ -43,18 +43,18 @@ import java.util.concurrent.atomic.AtomicInteger
  * @param channel The underlying channel this session is for
  */
 @PacketProcessor
-class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter() {
+class Session(
+    /**
+     * The socket channel that this session belongs to
+     */
+    override val channel: Channel,
+) : PacketNettyHandler() {
 
     /**
      * The unique identifier for this session. Retrieves from the
      * atomic integer value and increases it for the next session
      */
     val sessionId = nextSessionId.getAndIncrement()
-
-    /**
-     * The socket channel that this session belongs to
-     */
-    private val socketChannel: Channel = channel
 
     /**
      * Encoded external ip address. This is the ip address which is
@@ -241,7 +241,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      */
     private fun updateEncoderContext() {
         val builder = StringBuilder()
-        val remoteAddress = socketChannel.remoteAddress()
+        val remoteAddress = channel.remoteAddress()
 
         builder.append("Session: (ID: ")
             .append(sessionId)
@@ -259,53 +259,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         }
 
         // Update encoder context value
-        PacketLogger.setContext(socketChannel, builder.toString())
-    }
-
-    /**
-     * Handles pushing packets to be written to the socket
-     * connection. Checks if the push request was in the
-     * event loop and then writes and flushes the packet
-     * otherwise it tells the event loop to execute the
-     * same thing.
-     *
-     * @param packet The packet to write to the socket
-     */
-    override fun push(packet: Packet) {
-        val eventLoop = socketChannel.eventLoop()
-        if (eventLoop.inEventLoop()) { // If the push was made inside the event loop
-            // Write the packet and flush
-            socketChannel.write(packet)
-            socketChannel.flush()
-        } else { // If the push was made outside the event loop
-            eventLoop.execute { // Execute write and flush on event loop
-                socketChannel.write(packet)
-                socketChannel.flush()
-            }
-        }
-    }
-
-    /**
-     * Handles pushing multiple packets to be written to the socket
-     * connection. Checks to see if the push request was in the event
-     * loop and then writes all then packets before flushing. If it's
-     * called outside the event loop it tells the event loop to execute
-     * the same instruction
-     *
-     * @param packets The packets to write to the socket
-     */
-    override fun pushAll(vararg packets: Packet) {
-        val eventLoop = socketChannel.eventLoop()
-        if (eventLoop.inEventLoop()) { // If the push was made inside the event loop
-            // Write the packets and flush
-            packets.forEach { socketChannel.write(it) }
-            socketChannel.flush()
-        } else { // If the push was made outside the event loop
-            eventLoop.execute { // Execute write and flush on event loop
-                packets.forEach { socketChannel.write(it) }
-                socketChannel.flush()
-            }
-        }
+        PacketLogger.setContext(channel, builder.toString())
     }
 
     /**
@@ -329,47 +283,32 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
         updateEncoderContext()
     }
 
-    @Suppress("OVERRIDE_DEPRECATION") // Not actually depreciated.
-    override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
-        if (cause is IOException) {
-            val message = cause.message
-            if (message != null && message.startsWith("Connection reset")) {
-                val channel = ctx.channel()
-                val ipAddress = channel.remoteAddress()
-                Logger.debug("Connection to client at $ipAddress lost")
-                ctx.close()
-                return
-            }
-        }
-        Logger.warn("Exception caught in Session", cause)
-        ctx.close()
+    override fun handlePacket(ctx: ChannelHandlerContext, packet: Packet) {
+        routePacket(channel, packet)
     }
 
-    /**
-     * Handles dealing with messages that have been read from the pipeline.
-     * In this case it handles the packets that are recieved and passes them
-     * onto the generated routing function.
-     *
-     * @param ctx The channel context
-     * @param msg The recieved message
-     */
-    override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-        if (msg !is Packet) return
-        try { // Automatic routing to the desired function
-            routePacket(socketChannel, msg)
-        } catch (e: NotAuthenticatedException) { // Handle player access with no player
-            push(LoginError.INVALID_ACCOUNT(msg))
-            val address = ctx.channel().remoteAddress()
-            Logger.warn("Client at $address tried to access a authenticated route without authenticating")
-        } catch (e: Exception) {
-            Logger.warn("Failed to handle packet: $msg", e)
-            push(msg.respond())
-        } catch (e: GameException) {
-            Logger.warn("Client caused game exception", e)
-            push(msg.respond())
+    override fun handleConnectionLost(ctx: ChannelHandlerContext) {
+        val ipAddress = channel.remoteAddress()
+        Logger.debug("Connection to client at $ipAddress lost")
+    }
+
+    override fun handleException(ctx: ChannelHandlerContext, cause: Throwable, packet: Packet) {
+        when (cause) {
+            is NotAuthenticatedException -> {
+                push(LoginError.INVALID_ACCOUNT(packet))
+                val address = channel.remoteAddress()
+                Logger.warn("Client at $address tried to access a authenticated route without authenticating")
+            }
+
+            is GameException -> {
+                Logger.warn("Client caused game exception", cause)
+                push(packet.respond())
+            }
+            else -> {
+                Logger.warn("Failed to handle packet: $packet", cause)
+                super.handleException(ctx, cause, packet)
+            }
         }
-        ctx.flush()
-        Packet.release(msg)
     }
 
     // region Packet Generators
@@ -590,7 +529,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
 
         isNetworkingUnset = false
 
-        val remoteAddress = socketChannel.remoteAddress()
+        val remoteAddress = channel.remoteAddress()
         if (remoteAddress is InetSocketAddress) {
             val addr = remoteAddress.address
             if (addr is Inet4Address) {
@@ -842,7 +781,7 @@ class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter()
      * @return The ip address string
      */
     fun getAddressString(): String {
-        return socketChannel.remoteAddress().toString()
+        return channel.remoteAddress().toString()
     }
 
     /**
