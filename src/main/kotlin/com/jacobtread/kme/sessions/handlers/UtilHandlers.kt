@@ -1,4 +1,4 @@
-package com.jacobtread.kme.sessions
+package com.jacobtread.kme.sessions.handlers
 
 import com.jacobtread.blaze.*
 import com.jacobtread.blaze.annotations.PacketHandler
@@ -7,6 +7,7 @@ import com.jacobtread.kme.Environment
 import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
+import com.jacobtread.kme.sessions.Session
 import com.jacobtread.kme.utils.unixTimeSeconds
 
 /**
