@@ -41,8 +41,11 @@ object CommandManager {
                 Logger.commandResult("> $line")
                 command.execute(commandArgs)
             } catch (e: CommandException) {
-                Logger.error( "Failed to execute command $commandName cause: ${e.message ?: "Unknown"}")
-                Logger.error("Usage: ${command.usage}")
+                Logger.error("Failed to execute command $commandName cause: ${e.message ?: "Unknown"}")
+                Logger.error("Try using one of the following:")
+                command.usage.forEach {
+                    Logger.error("- $it")
+                }
             }
         }
     }

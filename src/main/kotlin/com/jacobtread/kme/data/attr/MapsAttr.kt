@@ -38,7 +38,6 @@ enum class MapsAttr(
     FIREBASE_GIANT_HAZARD("☣ Firebase Giant ☣", "Tuchanka", "map21"),
     FIREBASE_WHITE_HAZARD("☣ Firebase White ☣", "Noveria", "map22"),
 
-
     // Unknown Maps
     MAP_1("Map 1", "?", "map1"),
     MAP_6("Map 6", "?", "map6"),
@@ -52,7 +51,12 @@ enum class MapsAttr(
     MAP_29("Map 29", "?", "map29");
 
     companion object {
-        const val MAP_ATTR = "ME3map"
+        private const val MAP_ATTR = "ME3map"
         const val MAP_RULE = "ME3_gameMapMatchRule"
+
+        fun getFromAttr(map: Map<String, String>): MapsAttr {
+            val value = map[MAP_ATTR] ?: return UNKNOWN
+            return values().firstOrNull { it.key == value } ?: UNKNOWN
+        }
     }
 }

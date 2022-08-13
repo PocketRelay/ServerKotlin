@@ -8,7 +8,12 @@ enum class EnemyTypeAttr(val enemyName: String, val key: String) {
     COLLECTOR("Collector", "enemy4");
 
     companion object {
-        const val ENEMY_TYPE_ATTR = "ME3gameEnemyType"
+        private const val ENEMY_TYPE_ATTR = "ME3gameEnemyType"
         const val ENEMY_TYPE_RULE = "ME3_gameEnemyTypeRule"
+
+        fun getFromAttr(map: Map<String, String>): EnemyTypeAttr {
+            val value = map[ENEMY_TYPE_ATTR] ?: return RANDOM
+            return values().firstOrNull { it.key == value } ?: RANDOM
+        }
     }
 }

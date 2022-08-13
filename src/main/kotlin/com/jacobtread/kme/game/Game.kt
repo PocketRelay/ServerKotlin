@@ -31,8 +31,10 @@ class Game(
     initialAttributes: Map<String, String>,
 ) {
 
-    private var gameState: Int = 0x1
-    private var gameSetting: Int = 0x11f
+    var gameState: Int = 0x1
+        private set
+    var gameSetting: Int = 0x11f
+        private set
 
     private val attributesLock = ReentrantReadWriteLock()
     private val attributes = HashMap<String, String>(initialAttributes)
@@ -447,6 +449,16 @@ class Game(
 
     fun getPlayerCount(): Int = playersLock.read { players.count { it != null } }
 
+    fun appendPlayersTo(builder: StringBuilder) {
+        forEachPlayer {
+            val player = it.player
+            if (player != null) {
+                builder.append(player.playerId)
+                    .append(", ")
+                    .append(player.displayName)
+            }
+        }
+    }
 
     /**
      * Checks if this game matches the provided rule
@@ -468,7 +480,7 @@ class Game(
     fun setAttributes(attributes: Map<String, String>) {
         attributesLock.write { this.attributes.putAll(attributes) }
         pushAll(notify(
-            Components.GAME_MANAGER, Commands.NOTIFY_GAME_UPDATED
+            Components.GAME_MANAGER, Commands.NOTIFY_GAME_ATTRIB_CHANGE
         ) {
             map("ATTR", getCopyOfAttributes())
             number("GID", id)

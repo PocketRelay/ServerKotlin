@@ -7,7 +7,12 @@ enum class DifficultyAttr(val difficultyName: String, val key: String) {
     PLATINUM("Platinum", "difficulty3");
 
     companion object {
-        const val DIFFICULTY_ATTR = "ME3gameDifficulty"
+        private const val DIFFICULTY_ATTR = "ME3gameDifficulty"
         const val DIFFICULTY_RULE = "ME3_gameDifficultyRule"
+
+        fun getFromAttr(map: Map<String, String>): DifficultyAttr {
+            val value = map[DIFFICULTY_ATTR] ?: return BRONZE
+            return values().firstOrNull { it.key == value } ?: BRONZE
+        }
     }
 }

@@ -7,7 +7,7 @@ interface Command {
     val name: String
     val description: String
     val aliases: Array<String>
-    val usage: String
+    val usage: Array<String>
 
     fun execute(args: List<String>)
 
