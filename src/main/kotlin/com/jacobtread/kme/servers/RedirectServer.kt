@@ -1,5 +1,6 @@
 package com.jacobtread.kme.servers
 
+import com.jacobtread.blaze.annotations.PacketHandler
 import com.jacobtread.blaze.group
 import com.jacobtread.blaze.logging.PacketLogger
 import com.jacobtread.blaze.packet.Packet
@@ -8,22 +9,18 @@ import com.jacobtread.blaze.respond
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
+import com.jacobtread.kme.utils.createServerSslContext
 import com.jacobtread.kme.utils.getIPv4Encoded
 import com.jacobtread.kme.utils.logging.Logger
 import io.netty.bootstrap.ServerBootstrap
-import io.netty.channel.ChannelFutureListener
+import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
+import io.netty.channel.ChannelInitializer
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.codec.DecoderException
-import io.netty.handler.ssl.SslContext
-import io.netty.handler.ssl.SslContextBuilder
-import io.netty.handler.ssl.util.InsecureTrustManagerFactory
 import java.io.IOException
-import java.security.GeneralSecurityException
-import java.security.KeyStore
-import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLException
 
 /**
@@ -35,11 +32,21 @@ import javax.net.ssl.SSLException
 fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
     try {
         val listenPort = Environment.redirectorPort
-        val handler = RedirectorHandler()
+        val externalAddress = Environment.externalAddress
+        val targetAddress = getIPv4Encoded(externalAddress)
+        val context = createServerSslContext()
         ServerBootstrap()
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
-            .childHandler(handler)
+            .childHandler(object : ChannelInitializer<Channel>() {
+                override fun initChannel(ch: Channel) {
+                    val remoteAddress = ch.remoteAddress()
+                    Logger.debug("Connection at $remoteAddress to Redirector Server")
+                    PacketLogger.setEnabled(ch, true)
+                    ch.addPacketHandlers(context)
+                        .addLast(RedirectorHandler(ch, targetAddress))
+                }
+            })
             .bind(listenPort)
             .sync()
         Logger.info("Started Redirector on port ${Environment.redirectorPort}")
@@ -58,27 +65,11 @@ fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
  *
  * @constructor Creates a new redirector handler
  */
-class RedirectorHandler : ChannelInboundHandlerAdapter() {
-
-    private val targetAddress: ULong
-    private val isHostname: Boolean
-    private val context = createServerSslContext()
-
-    init {
-        val externalAddress = Environment.externalAddress
-        targetAddress = getIPv4Encoded(externalAddress)
-        isHostname = targetAddress == 0uL
-    }
-
-    override fun isSharable(): Boolean = true
-
-    override fun handlerAdded(ctx: ChannelHandlerContext) {
-        val channel = ctx.channel()
-        val remoteAddress = channel.remoteAddress()
-        Logger.debug("Connection at $remoteAddress to Redirector Server")
-        channel.addPacketHandlers(context)
-        PacketLogger.setEnabled(channel, true)
-    }
+class RedirectorHandler(
+    private val channel: Channel,
+    private val targetAddress: ULong,
+) : ChannelInboundHandlerAdapter() {
+    private val isHostname: Boolean = targetAddress == 0uL
 
     /**
      * Handles interacting with the result of a read if the
@@ -90,27 +81,31 @@ class RedirectorHandler : ChannelInboundHandlerAdapter() {
      */
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
         if (msg is Packet) {
-            val response = msg.respond {
-                if (msg.component == Components.REDIRECTOR && msg.command == Commands.GET_SERVER_INSTANCE) {
-                    optional("ADDR", group("VALU") {
-                        if (isHostname) {
-                            text("HOST", Environment.externalAddress)
-                        } else {
-                            number("IP", targetAddress)
-                        }
-                        number("PORT", Environment.mainPort)
-                    })
-                    // Determines if SSLv3 should be used when connecting to the main server
-                    bool("SECU", false)
-                    bool("XDNS", false)
-                }
-            }
-            ctx.writeAndFlush(response)
-                .addListener(ChannelFutureListener.CLOSE)
+            routePacket(channel, msg)
+            ctx.flush()
             Packet.release(msg)
         } else {
             ctx.fireChannelRead(msg)
         }
+    }
+
+    @PacketHandler(Components.REDIRECTOR, Commands.GET_SERVER_INSTANCE)
+    fun handleGetServerInstance(packet: Packet) {
+        channel.write(
+            packet.respond {
+                optional("ADDR", group("VALU") {
+                    if (isHostname) {
+                        text("HOST", Environment.externalAddress)
+                    } else {
+                        number("IP", targetAddress)
+                    }
+                    number("PORT", Environment.mainPort)
+                })
+                // Determines if SSLv3 should be used when connecting to the main server
+                bool("SECU", false)
+                bool("XDNS", false)
+            }
+        )
     }
 
     @Suppress("OVERRIDE_DEPRECATION") // Not actually depreciated.
@@ -135,40 +130,5 @@ class RedirectorHandler : ChannelInboundHandlerAdapter() {
             }
         }
         ctx.close()
-    }
-
-
-    /**
-     * Creates a new [SslContext] for Netty to create SslHandlers from
-     * so that we can accept the SSLv3 traffic. Any exceptions
-     *
-     * @return The created [SslContext]
-     */
-    private fun createServerSslContext(): SslContext {
-        try {
-            val keyStorePassword = charArrayOf('1', '2', '3', '4', '5', '6')
-            val keyStoreStream = RedirectorHandler::class.java.getResourceAsStream("/redirector.pfx")
-            checkNotNull(keyStoreStream) { "Missing required keystore for SSLv3" }
-            val keyStore = KeyStore.getInstance("PKCS12")
-            keyStoreStream.use {
-                keyStore.load(keyStoreStream, keyStorePassword)
-            }
-            val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
-            kmf.init(keyStore, keyStorePassword)
-
-            // Create new SSLv3 compatible context
-            val context = SslContextBuilder.forServer(kmf)
-                .ciphers(listOf("TLS_RSA_WITH_RC4_128_SHA", "TLS_RSA_WITH_RC4_128_MD5"))
-                .protocols("SSLv3", "TLSv1.2", "TLSv1.3")
-                .startTls(true)
-                .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                .build()
-            checkNotNull(context) { "Unable to create SSL Context" }
-            return context
-        } catch (e: SSLException) {
-            Logger.fatal("Failed to create SSLContext for redirector", e)
-        } catch (e: GeneralSecurityException) {
-            Logger.fatal("Failed to create SSLContext for redirector", e)
-        }
     }
 }
