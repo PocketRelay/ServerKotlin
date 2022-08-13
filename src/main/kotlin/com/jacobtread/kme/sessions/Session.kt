@@ -47,6 +47,7 @@ import java.util.concurrent.atomic.AtomicInteger
  *
  * @param channel The underlying channel this session is for
  */
+@PacketProcessor
 class Session(channel: Channel) : PacketPushable, ChannelInboundHandlerAdapter() {
 
     /**
