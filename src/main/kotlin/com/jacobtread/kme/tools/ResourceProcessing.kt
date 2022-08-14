@@ -96,11 +96,11 @@ object ResourceProcessing {
             val value = values[i]
             outBuilder
                 .append(key)
-                .append(":")
+                .append("=")
                 .append(value)
                 .append('\n')
         }
-        outBuilder.append("CHUNK_SIZE:255\nDATA_SIZE:")
+        outBuilder.append("CHUNK_SIZE=255\nDATA_SIZE=")
             .append(base64.length)
         return outBuilder.toString()
     }

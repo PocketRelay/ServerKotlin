@@ -59,7 +59,7 @@ class DebugLoggingHandler : BlazeLoggingHandler {
         return output
     }
 
-    override fun getComponentNames(): Map<Int, String> = loadNamingFile("components.naming")
-    override fun getCommandNames(): Map<Int, String> = loadNamingFile("commands.naming")
-    override fun getNotifyNames(): Map<Int, String> = loadNamingFile("notify.naming")
+    override fun getComponentNames(): Map<Int, String> = loadNamingFile("components.dmap")
+    override fun getCommandNames(): Map<Int, String> = loadNamingFile("commands.dmap")
+    override fun getNotifyNames(): Map<Int, String> = loadNamingFile("notify.dmap")
 }

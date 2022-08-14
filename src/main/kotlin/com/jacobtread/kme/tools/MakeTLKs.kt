@@ -26,10 +26,10 @@ object MakeTLKs {
                 if (fileName.endsWith(".tlk")) {
                     println("PROCESSING $fileName")
                     val newName = when (fileName) {
-                        "ME3TLK.tlk" -> "default.tlk.chunked"
+                        "ME3TLK.tlk" -> "default.tlk.dmap"
                         else -> {
                             val locale = fileName.substring(7, fileName.length - 4)
-                            "$locale.tlk.chunked"
+                            "$locale.tlk.dmap"
                         }
                     }
                     val outFile = outDir.resolve(newName)

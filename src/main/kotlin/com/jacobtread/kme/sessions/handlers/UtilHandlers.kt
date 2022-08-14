@@ -6,10 +6,11 @@ import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
+import com.jacobtread.kme.data.getMapData
+import com.jacobtread.kme.data.getTextData
 import com.jacobtread.kme.sessions.Session
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.unixTimeSeconds
-import java.io.IOException
 
 /**
  * Handles the pre authentication packet this includes information about the
@@ -113,53 +114,35 @@ fun Session.handleFetchClientConfig(packet: Packet) {
     val type = packet.text("CFID")
     val conf: Map<String, String> = if (type.startsWith("ME3_LIVE_TLK_PC_")) {
         val lang = type.substring(16)
-        getCompressedTalkFile(lang)
+        var map = getMapData("tlk/$lang.tlk.dmap")
+        if (map == null) map = getMapData("tlk/default.tlk.dmap")
+        if (map == null) map = emptyMap()
+        map
     } else {
         when (type) {
-            "ME3_DATA" -> createDataConfig() // Configurations for GAW, images and others
-            "ME3_MSG" -> emptyMap() // Custom multiplayer messages
-            "ME3_ENT" -> getEntitlementMap() // Entitlements
-            "ME3_DIME" -> createDimeResponse() // Shop contents?
-            "ME3_BINI_VERSION" -> mapOf(
-                "SECTION" to "BINI_PC_COMPRESSED",
-                "VERSION" to "40128"
-            )
+            "ME3_DATA" -> createDataConfig()
+            "ME3_MSG" -> emptyMap()
+            "ME3_ENT" -> {
+                getMapData("/entitlements.dmap")
+                    ?: Logger.fatal("Missing entitlements data. Try redownloading the server")
+            }
+            "ME3_DIME" -> {
+                val dime = getTextData("dime.xml")
+                    ?: Logger.fatal("Missing dime data. Try redownloading the server")
+                mapOf("Config" to dime)
+            }
+            "ME3_BINI_VERSION" -> mapOf("SECTION" to "BINI_PC_COMPRESSED", "VERSION" to "40128")
+            "ME3_BINI_PC_COMPRESSED" -> {
+                getMapData("coalesced.dmap")
+                    ?: Logger.fatal("Missing server coalesced. Try redownloading the server")
+            }
 
-            "ME3_BINI_PC_COMPRESSED" -> getCompressedCoalesced() // Loads the chunked + compressed bini
             else -> emptyMap()
         }
     }
     push(packet.respond {
         map("CONF", conf)
     })
-}
-
-private fun getCompressedTalkFile(lang: String): Map<String, String> {
-    var map = loadChunkedFile("data/tlk/$lang.tlk.chunked")
-    if (map == null) map = loadChunkedFile("data/tlk/default.tlk.chunked")
-    if (map == null) map = emptyMap()
-    return map
-}
-
-private fun getCompressedCoalesced(): Map<String, String> {
-    val value = loadChunkedFile("data/bini.bin.chunked")
-    return value ?: emptyMap()
-}
-
-private fun loadChunkedFile(path: String): Map<String, String>? {
-    val inputStream = Environment::class.java.getResourceAsStream("/$path")
-        ?: return null
-    val out = LinkedHashMap<String, String>()
-    val reader = inputStream.bufferedReader(Charsets.UTF_8)
-    reader.use {
-        while (true) {
-            val line = reader.readLine() ?: break
-            val parts = line.split(':', limit = 2)
-            if (parts.size < 2) continue
-            out[parts[0]] = parts[1]
-        }
-    }
-    return out
 }
 
 /**
@@ -195,35 +178,6 @@ private fun createDataConfig(): Map<String, String> {
         "TEL_SERVER" to "127.0.0.1",
     )
 }
-
-private fun getEntitlementMap(): Map<String, String> {
-    val out = LinkedHashMap<String, String>()
-    val inputStream = Environment::class.java.getResourceAsStream("/data/entitlements.properties")
-        ?: Logger.fatal("Missing entitlements file... Try redownloading the server")
-    val reader = inputStream.bufferedReader(Charsets.UTF_8)
-    reader.use {
-        while (true) {
-            val line = reader.readLine() ?: break
-            val parts = line.split('=', limit = 2)
-            if (parts.size < 2) continue
-            out[parts[0]] = parts[1]
-        }
-    }
-    return out
-}
-
-
-fun createDimeResponse(): Map<String, String> {
-    try {
-        val stream = Environment::class.java.getResourceAsStream("/data/dime.xml")
-            ?: throw IOException("Missing internal resource: data/dime.xml")
-        val dimeBytes = stream.use { stream.readAllBytes() }
-        return mapOf("Config" to String(dimeBytes, Charsets.UTF_8))
-    } catch (e: IOException) {
-        throw IOException("Missing internal resource: data/dime.xml", e)
-    }
-}
-
 
 /**
  * Handles the post authentication packet which responds with
