@@ -2,10 +2,8 @@ package com.jacobtread.kme.utils.logging
 
 import java.io.PrintWriter
 import java.io.StringWriter
-import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.*
 import kotlin.system.exitProcess
 
 /**
@@ -19,6 +17,9 @@ object Logger {
 
     // The date format used when printing
     private val printDateFormat = DateTimeFormatter.ofPattern("HH:mm:ss")
+
+    // The day of the month of the last write
+    private var lastWriteDay: Int = -1
 
     // The log file writer null unless file logging is enabled
     private var writer: LogWriter? = null
@@ -100,7 +101,14 @@ object Logger {
      */
     private fun append(level: Level, message: String) {
         if (level.index > Logger.level.index) return
-        val date =LocalDateTime.now()
+        val date = LocalDateTime.now()
+        val writer = writer
+        if (writer != null) {
+            if (lastWriteDay != date.dayOfMonth) {
+                writer.cycleFile()
+                lastWriteDay = date.dayOfMonth
+            }
+        }
         val time = printDateFormat.format(date)
         val text = "[$time] ${level.coloredText()} $message\n"
         val stream = if (level.index < 3) System.err else System.out

@@ -20,7 +20,7 @@ import java.util.zip.GZIPOutputStream
  */
 class LogWriter {
 
-    private val fileChannel: FileChannel
+    private var fileChannel: FileChannel
     private val outputBuffer: ByteBuffer = ByteBuffer.allocate(4024)
 
     init {
@@ -67,6 +67,17 @@ class LogWriter {
         } finally {
             outputBuffer.clear()
         }
+    }
+
+    /**
+     * Cycles the current logging file to a new file and
+     * archives the existing file.
+     */
+    fun cycleFile() {
+        flush()
+        fileChannel.close()
+        archiveOldLog()
+        fileChannel = createFileChannel()
     }
 
     /**
