@@ -267,17 +267,18 @@ class Game(
 
         playerSession.setPlayerState(4)
 
-        val a = notify(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOIN_COMPLETED) {
-            number("GID", id)
-            number("PID", playerId)
-        }
-        val b = notify(Components.GAME_MANAGER, Commands.NOTIFY_ADMIN_LIST_CHANGE) {
-            number("ALST", playerId)
-            number("GID", id)
-            number("OPER", 0) // 0 = add 1 = remove
-            number("UID", host.playerIdSafe)
-        }
-        pushAll(a, b)
+        pushAll(
+            notify(Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_JOIN_COMPLETED) {
+                number("GID", id)
+                number("PID", playerId)
+            },
+            notify(Components.GAME_MANAGER, Commands.NOTIFY_ADMIN_LIST_CHANGE) {
+                number("ALST", playerId)
+                number("GID", id)
+                number("OPER", 0) // 0 = add 1 = remove
+                number("UID", host.playerIdSafe)
+            }
+        )
     }
 
     /**
