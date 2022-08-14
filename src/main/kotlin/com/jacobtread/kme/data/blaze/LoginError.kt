@@ -1,4 +1,4 @@
-package com.jacobtread.kme.data
+package com.jacobtread.kme.data.blaze
 
 import com.jacobtread.blaze.error
 import com.jacobtread.blaze.packet.Packet

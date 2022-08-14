@@ -8,7 +8,7 @@ import com.jacobtread.blaze.logging.PacketLogger
 import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.blaze.tdf.types.GroupTdf
 import com.jacobtread.blaze.tdf.types.OptionalTdf
-import com.jacobtread.kme.data.LoginError
+import com.jacobtread.kme.data.blaze.LoginError
 import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
 import com.jacobtread.kme.database.data.Player

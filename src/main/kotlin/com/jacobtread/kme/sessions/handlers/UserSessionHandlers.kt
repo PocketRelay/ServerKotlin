@@ -5,7 +5,7 @@ import com.jacobtread.blaze.annotations.PacketHandler
 import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.blaze.tdf.types.GroupTdf
 import com.jacobtread.kme.Environment
-import com.jacobtread.kme.data.LoginError
+import com.jacobtread.kme.data.blaze.LoginError
 import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
 import com.jacobtread.kme.exceptions.DatabaseException
