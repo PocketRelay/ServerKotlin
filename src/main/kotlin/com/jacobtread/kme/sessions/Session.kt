@@ -323,7 +323,7 @@ class Session(
         val playerEntity = player ?: return
         push(
             notify(Components.GAME_MANAGER, Commands.NOTIFY_MATCHMAKING_FAILED) {
-                number("MAXF", 21600)
+                number("MAXF", 0x5460)
                 number("MSID", matchmakingId)
                 number("RSLT", 4)
                 number("USID", playerEntity.playerId)

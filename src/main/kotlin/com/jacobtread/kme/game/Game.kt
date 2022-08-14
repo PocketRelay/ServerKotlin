@@ -172,14 +172,17 @@ class Game(
             }
         }
 
-        pushAll(notify(
-            Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_REMOVED
-        ) {
-            number("CNTX", 0x0)
-            number("GID", id)
-            number("PID", session.playerIdSafe)
-            number("REAS", 0x6) // Possible remove reason? Investigate further
-        })
+
+        pushAll(
+            notify(
+                Components.GAME_MANAGER, Commands.NOTIFY_PLAYER_REMOVED
+            ) {
+                number("CNTX", 0x0)
+                number("GID", id)
+                number("PID", session.playerIdSafe)
+                number("REAS", 0x6) // Possible remove reason? Investigate further
+            }
+        )
 
         playersLock.write { players[session.gameSlot] = null }
 
@@ -245,6 +248,7 @@ class Game(
     }
 
     fun updateMeshConnection(playerSession: Session) {
+        if (!isPlayer(playerSession)) return
         val playerEntity = playerSession.player ?: return
         val playerId = playerEntity.playerId
         val host = getHost()
@@ -264,6 +268,16 @@ class Game(
         pushAll(a, b)
     }
 
+    /**
+     * Checks to see if the provided session is a
+     * player in this game
+     *
+     * @param session
+     * @return
+     */
+    private fun isPlayer(session: Session): Boolean {
+        return playersLock.read { players.any { it == session } }
+    }
 
     /**
      * Pushes the provided packet to all the
