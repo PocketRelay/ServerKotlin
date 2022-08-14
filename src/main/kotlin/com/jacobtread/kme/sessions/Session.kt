@@ -731,7 +731,7 @@ class Session(
             text("TURI", "")
             if (!isSilent) number("UID", player.playerId) // Player ID
         })
-        updateSessionFor(this)
+        if (isSilent) updateSessionFor(this)
     }
 
     /**
