@@ -26,7 +26,7 @@ class DebugLoggingHandler : BlazeLoggingHandler {
     }
 
     private fun loadNamingFile(fileName: String): Map<Int, String> {
-        val fileStream = DebugLoggingHandler::class.java.getResourceAsStream("/data/$fileName")
+        val fileStream = DebugLoggingHandler::class.java.getResourceAsStream("/data/$fileName.dmap")
             ?: return emptyMap()
         val output = HashMap<Int, String>()
         val reader = fileStream.bufferedReader()
@@ -59,7 +59,7 @@ class DebugLoggingHandler : BlazeLoggingHandler {
         return output
     }
 
-    override fun getComponentNames(): Map<Int, String> = loadNamingFile("components.dmap")
-    override fun getCommandNames(): Map<Int, String> = loadNamingFile("commands.dmap")
-    override fun getNotifyNames(): Map<Int, String> = loadNamingFile("notify.dmap")
+    override fun getComponentNames(): Map<Int, String> = loadNamingFile("components")
+    override fun getCommandNames(): Map<Int, String> = loadNamingFile("commands")
+    override fun getNotifyNames(): Map<Int, String> = loadNamingFile("notify")
 }
