@@ -104,16 +104,16 @@ object Retriever {
             val matcher = pattern.matcher(responseText)
 
             if (!matcher.find()) {
-                Logger.warn("Failed to retreive official redirector IP address. Cannot start in MITM mode. (No Match)")
+                Logger.warn("Failed to retreive official redirector IP address. (No Match)")
             }
             val value = matcher.group(1)
             if (value == null) {
-                Logger.warn("Failed to retreive official redirector IP address. Cannot start in MITM mode. (Group was null)")
+                Logger.warn("Failed to retreive official redirector IP address. (Group was null)")
             } else {
                 return value
             }
         } catch (e: IOException) {
-            Logger.warn("Failed to retreive official redirector IP address from Google DNS. Cannot start in MITM mode: ${e.message}")
+            Logger.warn("Failed to retreive official redirector IP address from Google DNS: ${e.message}")
         }
         return null
     }
