@@ -17,6 +17,8 @@ complexity:
       - "com.jacobtread.blaze.annotations.PacketProcessor"
   LongMethod:
     threshold: 500
+  LongParameterList:
+    functionThreshold: 8
 
 exceptions:
   # Exceptions need to be swallowed for certain functions
