@@ -4,11 +4,12 @@ import com.jacobtread.blaze.*
 import com.jacobtread.blaze.annotations.PacketHandler
 import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.kme.Environment
-import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
 import com.jacobtread.kme.sessions.Session
+import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.unixTimeSeconds
+import java.io.IOException
 
 /**
  * Handles the pre authentication packet this includes information about the
@@ -112,19 +113,19 @@ fun Session.handleFetchClientConfig(packet: Packet) {
     val type = packet.text("CFID")
     val conf: Map<String, String> = if (type.startsWith("ME3_LIVE_TLK_PC_")) {
         val lang = type.substring(16)
-        Data.getTalkFileConfig(lang)
+        getCompressedTalkFile(lang)
     } else {
         when (type) {
-            "ME3_DATA" -> Data.createDataConfig() // Configurations for GAW, images and others
+            "ME3_DATA" -> createDataConfig() // Configurations for GAW, images and others
             "ME3_MSG" -> emptyMap() // Custom multiplayer messages
-            "ME3_ENT" -> Data.getEntitlementMap() // Entitlements
-            "ME3_DIME" -> Data.createDimeResponse() // Shop contents?
+            "ME3_ENT" -> getEntitlementMap() // Entitlements
+            "ME3_DIME" -> createDimeResponse() // Shop contents?
             "ME3_BINI_VERSION" -> mapOf(
                 "SECTION" to "BINI_PC_COMPRESSED",
                 "VERSION" to "40128"
             )
 
-            "ME3_BINI_PC_COMPRESSED" -> Data.loadBiniCompressed() // Loads the chunked + compressed bini
+            "ME3_BINI_PC_COMPRESSED" -> getCompressedCoalesced() // Loads the chunked + compressed bini
             else -> emptyMap()
         }
     }
@@ -132,6 +133,97 @@ fun Session.handleFetchClientConfig(packet: Packet) {
         map("CONF", conf)
     })
 }
+
+private fun getCompressedTalkFile(lang: String): Map<String, String> {
+    var map = loadChunkedFile("data/tlk/$lang.tlk.chunked")
+    if (map == null) map = loadChunkedFile("data/tlk/default.tlk.chunked")
+    if (map == null) map = emptyMap()
+    return map
+}
+
+private fun getCompressedCoalesced(): Map<String, String> {
+    val value = loadChunkedFile("data/bini.bin.chunked")
+    return value ?: emptyMap()
+}
+
+private fun loadChunkedFile(path: String): Map<String, String>? {
+    val inputStream = Environment::class.java.getResourceAsStream("/$path")
+        ?: return null
+    val out = LinkedHashMap<String, String>()
+    val reader = inputStream.bufferedReader(Charsets.UTF_8)
+    reader.use {
+        while (true) {
+            val line = reader.readLine() ?: break
+            val parts = line.split(':', limit = 2)
+            if (parts.size < 2) continue
+            out[parts[0]] = parts[1]
+        }
+    }
+    return out
+}
+
+/**
+ * createDataConfig Creates a "data" configuration this contains information
+ * such as the image hosting url and the galaxy at war http server host. This
+ * is generated based on the environment config. There is also other configurations
+ * here however I haven't made use of/documented the rest of these
+ *
+ * @return The map of the data configuration
+ */
+private fun createDataConfig(): Map<String, String> {
+    val address = Environment.externalAddress
+    val port = Environment.httpPort
+    val host = if (port != 80) "$address:$port" else address
+    return mapOf(
+        // Replaces: https://wal.tools.gos.ea.com/wal/masseffect-gaw-pc
+        "GAW_SERVER_BASE_URL" to "http://$host/gaw",
+        // Replaces: http://eaassets-a.akamaihd.net/gameplayservices/prod/MassEffect/3/
+        "IMG_MNGR_BASE_URL" to "http://$host/content/",
+        "IMG_MNGR_MAX_BYTES" to "1048576",
+        "IMG_MNGR_MAX_IMAGES" to "5",
+        "JOB_THROTTLE_0" to "0",
+        "JOB_THROTTLE_1" to "0",
+        "JOB_THROTTLE_2" to "0",
+        "MATCH_MAKING_RULES_VERSION" to "5",
+        "MULTIPLAYER_PROTOCOL_VERSION" to "3",
+        "TEL_DISABLE" to "**",
+        "TEL_DOMAIN" to "pc/masseffect-3-pc-anon",
+        "TEL_FILTER" to "-UION/****",
+        "TEL_PORT" to "9988",
+        "TEL_SEND_DELAY" to "15000",
+        "TEL_SEND_PCT" to "75",
+        "TEL_SERVER" to "127.0.0.1",
+    )
+}
+
+private fun getEntitlementMap(): Map<String, String> {
+    val out = LinkedHashMap<String, String>()
+    val inputStream = Environment::class.java.getResourceAsStream("/data/entitlements.properties")
+        ?: Logger.fatal("Missing entitlements file... Try redownloading the server")
+    val reader = inputStream.bufferedReader(Charsets.UTF_8)
+    reader.use {
+        while (true) {
+            val line = reader.readLine() ?: break
+            val parts = line.split('=', limit = 2)
+            if (parts.size < 2) continue
+            out[parts[0]] = parts[1]
+        }
+    }
+    return out
+}
+
+
+fun createDimeResponse(): Map<String, String> {
+    try {
+        val stream = Environment::class.java.getResourceAsStream("/data/dime.xml")
+            ?: throw IOException("Missing internal resource: data/dime.xml")
+        val dimeBytes = stream.use { stream.readAllBytes() }
+        return mapOf("Config" to String(dimeBytes, Charsets.UTF_8))
+    } catch (e: IOException) {
+        throw IOException("Missing internal resource: data/dime.xml", e)
+    }
+}
+
 
 /**
  * Handles the post authentication packet which responds with

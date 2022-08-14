@@ -1,13 +1,10 @@
 package com.jacobtread.kme.sessions.handlers
 
-import com.jacobtread.blaze.NotAuthenticatedException
+import com.jacobtread.blaze.*
 import com.jacobtread.blaze.annotations.PacketHandler
-import com.jacobtread.blaze.int
 import com.jacobtread.blaze.packet.Packet
-import com.jacobtread.blaze.respond
-import com.jacobtread.blaze.text
+import com.jacobtread.blaze.tdf.types.GroupTdf
 import com.jacobtread.kme.Environment
-import com.jacobtread.kme.data.Data
 import com.jacobtread.kme.data.LoginError
 import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
@@ -50,24 +47,6 @@ fun Session.handleLogout(packet: Packet) {
     val playerEntity = player ?: return
     Logger.info("Logged out player ${playerEntity.displayName}")
     setAuthenticatedPlayer(null)
-}
-
-
-/**
- * Handles retrieving the user entitlements list for
- * the authenticated player
- *
- * @param packet The packet requesting user entitlements
- */
-@PacketHandler(Components.AUTHENTICATION, Commands.LIST_USER_ENTITLEMENTS_2)
-fun Session.handleListUserEntitlements2(packet: Packet) {
-    val etag = packet.text("ETAG")
-    if (etag.isNotEmpty()) { // Empty responses for packets with ETAG's
-        return push(packet.respond())
-    }
-
-    // Respond with the entitlements
-    push(packet.respond { Data.createUserEntitlements(this) })
 }
 
 /**
@@ -275,4 +254,99 @@ fun Session.handleGetPasswordRules(packet: Packet) {
         // Valid characters
         text("VDCH", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789[]`!@#$%^&*()_={}:;<>+-',.~?/|\\")
     })
+}
+
+/**
+ * Handles retrieving the user entitlements list for
+ * the authenticated player
+ *
+ * @param packet The packet requesting user entitlements
+ */
+@PacketHandler(Components.AUTHENTICATION, Commands.LIST_USER_ENTITLEMENTS_2)
+fun Session.handleListUserEntitlements2(packet: Packet) {
+    val etag = packet.text("ETAG")
+    if (etag.isNotEmpty()) { // Empty responses for packets with ETAG's
+        return push(packet.respond())
+    }
+
+    // Respond with the entitlements
+    push(packet.respond {
+        val pcTag = "ME3PCOffers"
+        val generalTag = "ME3GenOffers"
+
+        list(
+            "NLST", listOf(
+                // Project 10 = $10 Multiplayer Pass (Entitlement Required For Online Access)
+                createEntitlement(pcTag, 0xec5090c43f, "303107", 2, "DR:229644400", "PROJECT10_CODE_CONSUMED", 1),
+                createEntitlement(pcTag, 0xec3e4d793f, "304141", 2, "DR:230773600", "PROJECT10_CODE_CONSUMED_LE1", 1),
+
+                // Jeeze so many online pass entitlements
+                createEntitlement(pcTag, 0xec50b255ff, "300241", 2, "OFB-MASS:44370", "ONLINE_ACCESS", 1),
+                createEntitlement(pcTag, 0xec50a620ff, "300241", 2, "OFB-MASS:49465", "ONLINE_ACCESS", 1),
+                createEntitlement(pcTag, 0xec508db6ff, "303107", 2, "DR:229644400", "ONLINE_ACCESS", 1),
+                createEntitlement(pcTag, 0xec3e5393bf, "300241", 2, "OFB-EAST:46112", "ONLINE_ACCESS", 1),
+                createEntitlement(pcTag, 0xec3e50867f, "304141", 2, "DR:230773600", "ONLINE_ACCESS", 1),
+                createEntitlement(generalTag, 0xec4495bfff, "303107", 0, "", "ONLINE_ACCESS_GAW_PC", 1),
+                createEntitlement(generalTag, 0xea234c3e7f, "303107", 2, "", "ONLINE_ACCESS_GAW_XBL2", 1),
+
+                // Singleplayer DLC
+                createEntitlement(pcTag, 0xec3e62d5ff, "300241", 2, "OFB-MASS:51074", "ME3_PRC_EXTENDEDCUT", 5), // Extended Cut DLC
+                createEntitlement(pcTag, 0xec50b5633f, "300241", 2, "OFB-MASS:44370", "ME3_PRC_PROTHEAN", 5), // From Ashes DLC
+                createEntitlement(pcTag, 0xec3e56a0ff, "300241", 2, "OFB-EAST:46112", "ME3_PRC_PROTHEAN", 5), // From Ashes DLC
+                createEntitlement(pcTag, 0xec50b8707f, "300241", 2, "OFB-MASS:52001", "ME3_PRC_LEVIATHAN", 5), // Leviathan DLC
+                createEntitlement(pcTag, 0xec50ac3b7f, "300241", 2, "OFB-MASS:55146", "ME3_PRC_OMEGA", 5), // Omega DLC
+                createEntitlement(pcTag, 0xec50af48bf, "300241", 2, "OFB-MASS:57550", "ME3_PRC_CITADEL", 5), // Citadel DLC
+                createEntitlement(pcTag, 0xec5093d17f, "300241", 2, "OFB-EAST:58040", "MET_BONUS_CONTENT_DW", 5),
+
+                // Singleplayer Packs
+                createEntitlement(pcTag, 0xec50bb7dbf, "300241", 2, "OFB-MASS:56984", "ME3_MTX_APP01", 5), // Alternate Appearance Pack 1
+                createEntitlement(pcTag, 0xec5099ebff, "300241", 2, "OFB-MASS:49032", "ME3_MTX_GUN01", 5), // Firefight Pack
+                createEntitlement(pcTag, 0xec50c1983f, "300241", 2, "OFB-MASS:55147", "ME3_MTX_GUN02", 5), // Groundside Resistance Pack
+
+                // Multiplayer DLC
+                createEntitlement(pcTag, 0xec50a0067f, "300241", 2, "OFB-MASS:47872", "ME3_PRC_RESURGENCE", 5), // Resurgence DLC
+                createEntitlement(pcTag, 0xec50a92e3f, "300241", 2, "OFB-MASS:49465", "ME3_PRC_REBELLION", 5), // Rebellion DLC
+                createEntitlement(pcTag, 0xec5096debf, "300241", 2, "OFB-MASS:51073", "ME3_PRC_EARTH", 5), // Earth DLC
+                createEntitlement(pcTag, 0xec509cf93f, "300241", 2, "OFB-MASS:52000", "ME3_PRC_GOBIG", 5), // Retaliation DLC
+                createEntitlement(pcTag, 0xec50a313bf, "300241", 2, "OFB-MASS:59712", "ME3_PRC_MP5", 5), // Recokoning DLC
+
+                // Collectors Edition
+                createEntitlement(pcTag, 0xec3e5fc8bf, "300241", 2, "OFB-MASS:46484", "ME3_MTX_COLLECTORS_EDITION", 5),
+                createEntitlement(pcTag, 0xec3e5cbb7f, "300241", 2, "OFB-MASS:46483", "ME3_MTX_DIGITAL_ART_BOOKS", 5),
+                createEntitlement(generalTag, 0xec3e59ae3f, "300241", 2, "OFB-MASS:46482", "ME3_MTX_SOUNDTRACK", 5),
+
+                // Darkhorse Redeem Code (Character boosters and Collector Assault Rifle)
+                createEntitlement(pcTag, 0xec50be8aff, "300241", 2, "OFB-MASS:61524", "ME3_PRC_DARKHORSECOMIC", 5),
+            )
+        )
+    })
+}
+
+private fun createEntitlement(
+    name: String,
+    id: Long,
+    pjid: String,
+    prca: Int,
+    prid: String,
+    tag: String,
+    type: Int,
+): GroupTdf {
+    return group {
+        text("DEVI", "")
+        text("GDAY", "2012-12-15T16:15Z")
+        text("GNAM", name)
+        number("ID", id)
+        number("ISCO", 0)
+        number("PID", 0)
+        text("PJID", pjid)
+        number("PRCA", prca)
+        text("PRID", prid)
+        number("STAT", 1)
+        number("STRC", 0)
+        text("TAG", tag)
+        text("TDAY", "")
+        number("TYPE", type)
+        number("UCNT", 0)
+        number("VER", 0)
+    }
 }
