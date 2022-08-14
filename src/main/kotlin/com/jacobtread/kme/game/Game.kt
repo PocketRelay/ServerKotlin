@@ -186,6 +186,18 @@ class Game(
 
         playersLock.write { players[session.gameSlot] = null }
 
+        val host = getHostOrNull()
+        if (host != null) {
+            pushAll(
+                notify(Components.GAME_MANAGER, Commands.NOTIFY_ADMIN_LIST_CHANGE) {
+                    number("ALST", session.playerIdSafe)
+                    number("GID", id)
+                    number("OPER", 1) // 0 = add 1 = remove
+                    number("UID", host.playerIdSafe)
+                }
+            )
+        }
+
         Logger.logIfDebug {
             val player = session.player
             if (player != null) {
@@ -272,8 +284,8 @@ class Game(
      * Checks to see if the provided session is a
      * player in this game
      *
-     * @param session
-     * @return
+     * @param session The session to check
+     * @return Whether the session is in this game
      */
     private fun isPlayer(session: Session): Boolean {
         return playersLock.read { players.any { it == session } }
