@@ -64,7 +64,7 @@ object ResourceProcessing {
     private fun orderChunkedBase64(bytes: ByteArray): String {
         val base64 = Base64.getEncoder()
             .encodeToString(bytes)
-        
+
         val chunks = base64.chunked(255)
 
         val keys = ArrayList<String>(chunks.size)
