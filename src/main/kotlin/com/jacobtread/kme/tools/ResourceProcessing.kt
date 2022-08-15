@@ -1,6 +1,8 @@
 package com.jacobtread.kme.tools
 
-import io.netty.buffer.Unpooled
+import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
@@ -11,58 +13,58 @@ object ResourceProcessing {
     fun processCoalesced(file: Path, output: Path) {
         require(Files.exists(file)) { "No coalesced file at ${file.toAbsolutePath()}" }
         require(Files.isRegularFile(file)) { "Path ${file.fileName} is not a file" }
-        val result = processCoalescedBytes(Files.readAllBytes(file))
+        val result = createCompressedCoalesced(Files.readAllBytes(file))
         if (Files.notExists(output)) Files.createFile(output)
         Files.writeString(output, result)
     }
 
-    private fun processCoalescedBytes(contents: ByteArray): String {
+    private fun createCompressedCoalesced(contents: ByteArray): String {
+        val bodyBytes = compressByteArray(contents)
+        val bodySize = bodyBytes.size
+        val outputBuffer = ByteBuffer.allocate(16 + bodySize)
+        outputBuffer.order(ByteOrder.LITTLE_ENDIAN)
+        outputBuffer.put('N'.code.toByte())
+        outputBuffer.put('I'.code.toByte())
+        outputBuffer.put('B'.code.toByte())
+        outputBuffer.put('C'.code.toByte())
+        outputBuffer.putInt(1)
+        outputBuffer.putInt(bodySize) // 8 -> 12
+        outputBuffer.putInt(contents.size) // 12 -> 16
+        outputBuffer.put(bodyBytes)
+        outputBuffer.rewind()
+
+        val output = ByteArray(outputBuffer.remaining())
+        outputBuffer.get(output)
+        return orderChunkedBase64(output)
+    }
+
+    private fun compressByteArray(contents: ByteArray): ByteArray {
         val compress = Deflater()
         compress.setLevel(6)
         compress.setInput(contents)
         compress.finish()
-        val output = Unpooled.buffer(256)
-
-        output.writeByte('N'.code)
-        output.writeByte('I'.code)
-        output.writeByte('B'.code)
-        output.writeByte('C'.code)
-        output.writeIntLE(1)
-        output.writeIntLE(0) // 8 -> 12
-        output.writeIntLE(contents.size) // 12 -> 16
-
+        val bodyStream = ByteArrayOutputStream()
         val buffer = ByteArray(1024)
-        var totalSize = 0
         while (!compress.finished()) {
             val size = compress.deflate(buffer)
-            output.writeBytes(buffer, 0, size)
-            totalSize += size
+            bodyStream.write(buffer, 0, size)
         }
-
-        val writeIndex = output.writerIndex()
-        output.writerIndex(8)
-        output.writeIntLE(totalSize)
-        output.writerIndex(writeIndex)
-        val bytes = ByteArray(output.readableBytes())
-        output.readBytes(bytes)
-        return orderChunkedBase64(bytes)
+        return bodyStream.toByteArray()
     }
 
     fun processTlkFile(file: Path, output: Path) {
         require(Files.exists(file)) { "No tlk file at ${file.toAbsolutePath()}" }
         require(Files.isRegularFile(file)) { "Path ${file.fileName} is not a file" }
-        val result = processTlkBytes(Files.readAllBytes(file))
+        val result = orderChunkedBase64(Files.readAllBytes(file))
         if (Files.notExists(output)) Files.createFile(output)
         Files.writeString(output, result)
     }
 
 
-    private fun processTlkBytes(contents: ByteArray): String {
-        return orderChunkedBase64(contents)
-    }
-
     private fun orderChunkedBase64(bytes: ByteArray): String {
-        val base64 = Base64.getEncoder().encodeToString(bytes)
+        val base64 = Base64.getEncoder()
+            .encodeToString(bytes)
+        
         val chunks = base64.chunked(255)
 
         val keys = ArrayList<String>(chunks.size)
