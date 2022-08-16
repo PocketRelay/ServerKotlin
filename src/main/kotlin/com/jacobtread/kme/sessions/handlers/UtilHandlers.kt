@@ -123,7 +123,7 @@ fun Session.handleFetchClientConfig(packet: Packet) {
             "ME3_DATA" -> createDataConfig()
             "ME3_MSG" -> emptyMap()
             "ME3_ENT" -> {
-                getMapData("/entitlements.dmap")
+                getMapData("entitlements.dmap")
                     ?: Logger.fatal("Missing entitlements data. Try redownloading the server")
             }
             "ME3_DIME" -> {
