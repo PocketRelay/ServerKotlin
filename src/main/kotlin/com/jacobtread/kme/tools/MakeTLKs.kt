@@ -4,6 +4,7 @@ package com.jacobtread.kme.tools
 
 import java.nio.file.Files
 import java.nio.file.Paths
+import kotlin.system.measureTimeMillis
 
 object MakeTLKs {
     /**
@@ -17,24 +18,27 @@ object MakeTLKs {
      */
     @JvmStatic
     fun main(args: Array<String>) {
-        val tlkDir = Paths.get("data/tlk")
-        val outDir = Paths.get("src/main/resources/data/tlk")
-        if (Files.notExists(outDir)) Files.createDirectories(outDir)
-        Files.newDirectoryStream(tlkDir)
-            .forEach {
-                val fileName = it.fileName.toString()
-                if (fileName.endsWith(".tlk")) {
-                    println("PROCESSING $fileName")
-                    val newName = when (fileName) {
-                        "ME3TLK.tlk" -> "default.tlk.dmap"
-                        else -> {
-                            val locale = fileName.substring(7, fileName.length - 4)
-                            "$locale.tlk.dmap"
+        val time = measureTimeMillis {
+            val tlkDir = Paths.get("data/tlk")
+            val outDir = Paths.get("src/main/resources/data/tlk")
+            if (Files.notExists(outDir)) Files.createDirectories(outDir)
+            Files.newDirectoryStream(tlkDir)
+                .forEach {
+                    val fileName = it.fileName.toString()
+                    if (fileName.endsWith(".tlk")) {
+                        println("PROCESSING $fileName")
+                        val newName = when (fileName) {
+                            "ME3TLK.tlk" -> "default.tlk.dmap"
+                            else -> {
+                                val locale = fileName.substring(7, fileName.length - 4)
+                                "$locale.tlk.dmap"
+                            }
                         }
+                        val outFile = outDir.resolve(newName)
+                        ResourceProcessing.processTlkFile(it, outFile)
                     }
-                    val outFile = outDir.resolve(newName)
-                    ResourceProcessing.processTlkFile(it, outFile)
                 }
-            }
+        }
+        println("Took ${time}ms")
     }
 }
