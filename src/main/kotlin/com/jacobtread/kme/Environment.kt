@@ -41,6 +41,10 @@ object Environment {
     val gawReadinessDecay: Float
     val gawEnabledPromotions: Boolean
 
+    val panelEnabled: Boolean
+    val panelUsername: String
+    val panelPassword: String
+
     /**
      * Initializes the environment values from the system
      * environment variables as well as the config file if
@@ -110,6 +114,10 @@ object Environment {
         gawReadinessDecay = env.floatValue("KME_GAW_READINESS_DECAY", "gaw.readinessDailyDecay", 0f)
         gawEnabledPromotions = env.booleanValue("KME_GAW_ENABLE_PROMOTIONS", "gaw.enablePromotions", true)
 
+        // Panel information
+        panelEnabled = env.booleanValue("KME_PANEL_ENABLED", "panel.enabled", false)
+        panelUsername = env.stringValue("KME_PANEL_USERNAME", "panel.username", "admin")
+        panelPassword = env.stringValue("KME_PANEL_PASSWORD", "panel.password", "admin")
 
         // Database configuration
         val databaseType = env.stringValue("KME_DATABASE_TYPE", "database.type", "sqlite")

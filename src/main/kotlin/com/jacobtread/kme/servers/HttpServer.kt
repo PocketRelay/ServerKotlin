@@ -3,6 +3,7 @@ package com.jacobtread.kme.servers
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.servers.routes.routeContents
 import com.jacobtread.kme.servers.routes.routeGroupGAW
+import com.jacobtread.kme.servers.routes.routePanel
 import com.jacobtread.kme.servers.routes.routeQOS
 import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.netty.http.HttpEventHandler
@@ -38,6 +39,9 @@ fun startHttpServer(
         routeGroupGAW()
         routeContents()
         routeQOS()
+        if (Environment.panelEnabled) {
+            routePanel()
+        }
     }
     try {
         httpRouter

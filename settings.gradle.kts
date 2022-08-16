@@ -8,6 +8,7 @@ pluginManagement {
         id("com.github.johnrengelman.shadow") version shadowVersion
         id("com.google.devtools.ksp") version kspVersion
         id("io.gitlab.arturbosch.detekt") version detektVersion
+        kotlin("plugin.serialization") version kotlinVersion
     }
     repositories {
         gradlePluginPortal()

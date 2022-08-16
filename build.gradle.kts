@@ -11,11 +11,13 @@ plugins {
     id("com.github.johnrengelman.shadow")
     id("com.google.devtools.ksp")
     id("io.gitlab.arturbosch.detekt")
+    kotlin("plugin.serialization")
     idea
 }
 
 repositories {
     mavenCentral()
+    mavenLocal()
 }
 
 dependencies {
@@ -38,6 +40,9 @@ dependencies {
     // XML Dependencies
     val xmlVersion: String by project
     implementation("com.jacobtread.xml:xml-builder-kt:$xmlVersion")
+
+    val jsonVersion: String by project
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$jsonVersion")
 }
 
 detekt {
