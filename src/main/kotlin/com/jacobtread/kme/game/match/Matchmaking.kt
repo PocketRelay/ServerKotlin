@@ -93,12 +93,12 @@ object Matchmaking {
     }
 
     private fun updateMatchmakingQueue() {
-        Logger.logIfDebug { "Running scheduled matchmaking queue update..." }
         val currentTime = System.currentTimeMillis()
         waitingLock.read {
             if (waitingPlayers.isEmpty()) {
                 matchmakingId = 2uL
             } else {
+                Logger.logIfDebug { "Running scheduled matchmaking queue update..." }
                 val iterator = waitingPlayers.iterator()
                 while (iterator.hasNext()) {
                     val (session, _) = iterator.next()
