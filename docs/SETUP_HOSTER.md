@@ -6,8 +6,8 @@ This document contains the instructions for hosting a KME3 server
 
 ## Docker
 
-KME has a dockerfile in the root of the project this can be used to host the server within docker
-which requires no extra setup. The docker server can be configured using [Environment Variables](docs/ENV.md)
+Pocket Relay has a dockerfile in the root of the project this can be used to host the server within docker
+which requires no extra setup. The docker server can be configured using [Environment Variables](./ENV.md)
 if you are using docker then you can skip all other portions of this guide
 
 
@@ -52,7 +52,7 @@ If you are looking for information on how to connect to the server now you can t
 
 ### Environment Variables
 
-KME3 can be configured using environment variables. You can view a list of them at [Environment Variables](./ENV.md)
+Pocket Relay can be configured using environment variables. You can view a list of them at [Environment Variables](./ENV.md)
 
 ### Port Forwarding
 

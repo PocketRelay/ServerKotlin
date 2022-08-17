@@ -30,53 +30,53 @@ FROM openjdk:17-alpine
 
 # Use environment variable based config only shouldn't
 # be changed unless you want an on disk config as well
-ENV KME_ENVIRONMENT_CONFIG=true
+ENV RELAY_ENVIRONMENT_CONFIG=true
 
 # External address for clients to access this server through
 # this is the address that the redirector will tell the client
 # that the main server is hosted at
-ENV KME_EXTERNAL_ADDRESS="kme.jacobtread.local"
+ENV RELAY_EXTERNAL_ADDRESS="kme.jacobtread.local"
 
 # Server ports
-ENV KME_REDIRECTOR_PORT=42127
-ENV KME_MAIN_PORT=14219
-ENV KME_HTTP_PORT=80
+ENV RELAY_REDIRECTOR_PORT=42127
+ENV RELAY_MAIN_PORT=14219
+ENV RELAY_HTTP_PORT=80
 
 # Database config
-ENV KME_DATABASE_TYPE=sqlite
+ENV RELAY_DATABASE_TYPE=sqlite
 
 # SQLite config if using SQLite database
-ENV KME_SQLITE_FILE_PATH="data/app.db"
+ENV RELAY_SQLITE_FILE_PATH="data/app.db"
 
 # MySQL config if using MySQL database
-ENV KME_MYSQL_HOST="127.0.0.1"
-ENV KME_MYSQL_PORT=3306
-ENV KME_MYSQL_USER="root"
-ENV KME_MYSQL_PASSWORD="password"
-ENV KME_MYSQL_DATABASE="kme"
+ENV RELAY_MYSQL_HOST="127.0.0.1"
+ENV RELAY_MYSQL_PORT=3306
+ENV RELAY_MYSQL_USER="root"
+ENV RELAY_MYSQL_PASSWORD="password"
+ENV RELAY_MYSQL_DATABASE="kme"
 
 # Message to display in main menu
-ENV KME_MENU_MESSAGE="<font color='#B2B2B2'>KME3</font> - <font color='#FFFF66'>Logged as: {n}</font>"
+ENV RELAY_MENU_MESSAGE="<font color='#B2B2B2'>KME3</font> - <font color='#FFFF66'>Logged as: {n}</font>"
 
 # Galaxy at war config
-ENV KME_GAW_READINESS_DECAY=0.0
-ENV KME_GAW_ENABLE_PROMOTIONS=true
+ENV RELAY_GAW_READINESS_DECAY=0.0
+ENV RELAY_GAW_ENABLE_PROMOTIONS=true
 
 # Logging config
-ENV KME_LOGGER_LEVEL=INFO
-ENV KME_LOGGER_SAVE=true
-ENV KME_LOGGER_PACKETS=false
+ENV RELAY_LOGGER_LEVEL=INFO
+ENV RELAY_LOGGER_SAVE=true
+ENV RELAY_LOGGER_PACKETS=false
 
 # Retriever Config
-ENV KME_RETRIEVE_OFFICIAL=true
-ENV KME_RETRIEVE_ORIGIN_DATA=true
+ENV RELAY_RETRIEVE_OFFICIAL=true
+ENV RELAY_RETRIEVE_ORIGIN_DATA=true
 
-ENV KME_MITM_ENABLED=false
+ENV RELAY_MITM_ENABLED=false
 
 # Exposing the ports for all the servers
-EXPOSE ${KME_REDIRECTOR_PORT}
-EXPOSE ${KME_MAIN_PORT}
-EXPOSE ${KME_HTTP_PORT}
+EXPOSE ${RELAY_REDIRECTOR_PORT}
+EXPOSE ${RELAY_MAIN_PORT}
+EXPOSE ${RELAY_HTTP_PORT}
 
 # Create an app directory
 RUN mkdir "/app"

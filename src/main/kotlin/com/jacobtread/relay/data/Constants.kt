@@ -8,7 +8,7 @@ package com.jacobtread.relay.data
  * @constructor Create empty Constants
  */
 object Constants {
-    const val RELAY_VERSION = "%RELAY_VERSION%"
-    const val MYSQL_VERSION = "%MYSQL_VERSION%"
-    const val SQLITE_VERSION = "%SQLITE_VERSION%"
+    const val RELAY_VERSION = "1.0.5"
+    const val MYSQL_VERSION = "8.0.30"
+    const val SQLITE_VERSION = "3.36.0.3"
 }
