@@ -9,6 +9,7 @@ import com.jacobtread.kme.database.data.PlayerClass
 import com.jacobtread.kme.exceptions.DatabaseException
 import java.sql.*
 
+@Suppress("LargeClass")
 abstract class SQLDatabaseAdapter(
     protected val connection: Connection,
 ) : DatabaseAdapter {

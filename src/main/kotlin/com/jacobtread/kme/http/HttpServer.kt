@@ -1,4 +1,4 @@
-package com.jacobtread.kme.servers
+package com.jacobtread.kme.http
 
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.http.routes.routeApi
@@ -31,6 +31,7 @@ fun startHttpServer(
                     }
                 }
 
+                @Suppress("EmptyFunctionBlock")
                 override fun onResponsePreSend(response: HttpResponse) {
                 }
 
