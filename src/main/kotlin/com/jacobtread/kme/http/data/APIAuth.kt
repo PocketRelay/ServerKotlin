@@ -13,3 +13,8 @@ data class AuthResponse(
     val success: Boolean,
     val token: String
 )
+
+@Serializable
+data class CheckTokenRequest(
+    val token: String
+)

@@ -22,6 +22,7 @@ fun RoutingGroup.routeApi() {
         middleware(CORSMiddleware)
 
         routeStatus()
+        routeCheckToken()
         routeAuth()
 
         middlewareGroup(AuthMiddleware) {
@@ -41,6 +42,15 @@ private fun RoutingGroup.routeStatus() {
         responseJson {
             put("identity", "KME_SERVER")
             put("version", version)
+        }
+    }
+}
+
+private fun RoutingGroup.routeCheckToken() {
+    post("checkToken") {
+        val request = contentJson<CheckTokenRequest>()
+        responseJson {
+            put("valid", API.checkToken(request.token))
         }
     }
 }
