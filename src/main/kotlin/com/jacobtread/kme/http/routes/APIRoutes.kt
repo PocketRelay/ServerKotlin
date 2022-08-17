@@ -1,6 +1,7 @@
 package com.jacobtread.kme.http.routes
 
 import com.jacobtread.kme.Environment
+import com.jacobtread.kme.data.Constants
 import com.jacobtread.kme.exceptions.DatabaseException
 import com.jacobtread.kme.game.Game
 import com.jacobtread.kme.http.contentJson
@@ -14,11 +15,13 @@ import com.jacobtread.netty.http.router.RoutingGroup
 import com.jacobtread.netty.http.router.group
 import com.jacobtread.netty.http.router.middlewareGroup
 import io.netty.handler.codec.http.HttpResponseStatus
+import kotlinx.serialization.json.put
 
 fun RoutingGroup.routeApi() {
     group("api") {
         middleware(CORSMiddleware)
 
+        routeStatus()
         routeAuth()
 
         middlewareGroup(AuthMiddleware) {
@@ -28,6 +31,16 @@ fun RoutingGroup.routeApi() {
 
             routeGames()
             routeGame()
+        }
+    }
+}
+
+private fun RoutingGroup.routeStatus() {
+    val version = Constants.KME_VERSION
+    get("status") {
+        responseJson {
+            put("identity", "KME_SERVER")
+            put("version", version)
         }
     }
 }
