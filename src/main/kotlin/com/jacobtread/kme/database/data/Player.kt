@@ -4,7 +4,9 @@ import com.jacobtread.kme.Environment
 import com.jacobtread.kme.utils.MEStringParser
 import com.jacobtread.kme.utils.comparePasswordHash
 import com.jacobtread.kme.utils.generateRandomString
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class Player(
     /**
      * The unique id for this player which uniquely identifies it amoungst
@@ -98,7 +100,6 @@ data class Player(
             }
         }
     }
-
 
     fun getGalaxyAtWarData(): GalaxyAtWarData {
         val value = Environment.database.getGalaxyAtWarData(this)

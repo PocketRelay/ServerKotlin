@@ -51,6 +51,24 @@ abstract class SQLDatabaseAdapter(
         )
     }
 
+    override fun getPlayers(offset: Int, count: Int): List<Player> {
+        try {
+            val players = ArrayList<Player>()
+            val statement = connection.createStatement()
+            val resultSet = statement.executeQuery("SELECT * FROM `players` LIMIT $count OFFSET $offset")
+            var player: Player?
+            while (true) {
+                player = getPlayerFromResultSet(resultSet)
+                if (player == null) break
+                players.add(player)
+            }
+            statement.close()
+            return players
+        } catch (e: SQLException) {
+            throw DatabaseException("SQLException in getPlayers", e)
+        }
+    }
+
     override fun getPlayerById(id: Int): Player? {
         try {
             val statement = connection.prepareStatement("SELECT * FROM `players` WHERE `id` = ? LIMIT 1")

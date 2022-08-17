@@ -87,6 +87,17 @@ interface DatabaseAdapter {
     fun setPlayerSessionToken(player: Player, sessionToken: String)
 
     /**
+     * Retrieve the provided number of players at the provided offset
+     * (position = offset * count)
+     *
+     * @param offset The offset amount
+     * @param count The number of players try and return
+     * @return The list of players found
+     */
+    @Throws
+    fun getPlayers(offset: Int, count: Int): List<Player>
+
+    /**
      * Updates specific portions of the player data using
      * the provided key. This key is the key provided to
      * the [Player.setPlayerData] function and the fields
@@ -174,7 +185,6 @@ interface DatabaseAdapter {
      */
     @Throws(DatabaseException::class)
     fun setPlayerCharacter(player: Player, playerCharacter: PlayerCharacter)
-
 
     /**
      * Retrieves the Galaxy At War Data for the provided

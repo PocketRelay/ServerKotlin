@@ -31,6 +31,9 @@ fun startHttpServer(
                     }
                 }
 
+                override fun onResponsePreSend(response: HttpResponse) {
+                }
+
                 override fun onResponseSent(response: HttpResponse) {
                     Logger.logIfDebug {
                         "[HTTP] [RESPONSE] Status [${response.status()}]"

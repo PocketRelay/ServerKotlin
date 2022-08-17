@@ -8,8 +8,10 @@ import com.jacobtread.blaze.tdf.Tdf
 import com.jacobtread.blaze.tdf.types.GroupTdf
 import com.jacobtread.kme.data.blaze.Commands
 import com.jacobtread.kme.data.blaze.Components
+import com.jacobtread.kme.database.data.Player
 import com.jacobtread.kme.exceptions.GameException
 import com.jacobtread.kme.game.match.MatchRuleSet
+import com.jacobtread.kme.http.data.GameSerializable
 import com.jacobtread.kme.sessions.Session
 import com.jacobtread.kme.utils.logging.Logger
 import java.util.Map.copyOf
@@ -44,7 +46,6 @@ class Game(
     private val players = arrayOfNulls<Session>(MAX_PLAYERS)
 
     val isNotFull: Boolean get() = playersCount != MAX_PLAYERS
-
 
     /**
      * Handles joining the provided session to the game. Sets
@@ -561,6 +562,31 @@ class Game(
                 players[i] = null
             }
         }
+    }
+
+    /**
+     * Creates a serializable version of this game object
+     * for use in the HTTP API so that it can be serialized
+     * to JSON
+     *
+     * @return The created [GameSerializable] object
+     */
+    fun createGameSerial(): GameSerializable {
+        val players = ArrayList<Player>()
+        forEachPlayer {
+            val player = it.player
+            if (player != null) {
+                players.add(player)
+            }
+        }
+        val attributes = getCopyOfAttributes()
+        return GameSerializable(
+            id,
+            gameState,
+            gameSetting,
+            attributes,
+            players
+        )
     }
 
     companion object {
