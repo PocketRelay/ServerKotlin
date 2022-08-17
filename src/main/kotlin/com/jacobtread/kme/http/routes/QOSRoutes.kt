@@ -1,6 +1,6 @@
-package com.jacobtread.kme.servers.routes
+package com.jacobtread.kme.http.routes
 
-import com.jacobtread.kme.utils.responseXml
+import com.jacobtread.kme.http.responseXml
 import com.jacobtread.netty.http.router.RoutingGroup
 
 fun RoutingGroup.routeQOS() {

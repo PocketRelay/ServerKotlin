@@ -1,4 +1,4 @@
-package com.jacobtread.kme.servers.routes
+package com.jacobtread.kme.http.routes
 
 import com.jacobtread.netty.http.responseResource
 import com.jacobtread.netty.http.router.RoutingGroup

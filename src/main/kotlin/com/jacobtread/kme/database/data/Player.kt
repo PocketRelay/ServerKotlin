@@ -3,6 +3,7 @@ package com.jacobtread.kme.database.data
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.utils.MEStringParser
 import com.jacobtread.kme.utils.comparePasswordHash
+import com.jacobtread.kme.utils.generateRandomString
 
 data class Player(
     /**
@@ -111,10 +112,7 @@ data class Player(
     fun getSessionToken(): String {
         var sessionToken = sessionToken
         if (sessionToken == null) {
-            val chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPSQRSTUVWXYZ0123456789-"
-            val output = StringBuilder()
-            repeat(128) { output.append(chars.random()) }
-            sessionToken = output.toString()
+            sessionToken = generateRandomString(128)
             Environment.database.setPlayerSessionToken(this, sessionToken)
         }
         return sessionToken

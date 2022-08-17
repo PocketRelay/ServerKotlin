@@ -61,6 +61,20 @@ fun getIPv4Encoded(value: String): ULong {
     return 0u
 }
 
+/**
+ * Generates a string of random characters from a-zA-Z0-9
+ * with the provided [length] using a string builder and
+ * returns that value
+ *
+ * @param length the length of the string to generate
+ * @return The generated string
+ */
+fun generateRandomString(length: Int): String {
+    val chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPSQRSTUVWXYZ0123456789"
+    val builder = StringBuilder()
+    repeat(length) { builder.append(chars.random()) }
+    return builder.toString()
+}
 
 /**
  * Creates a new [SslContext] for Netty to create SslHandlers from

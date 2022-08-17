@@ -1,4 +1,4 @@
-package com.jacobtread.kme.utils
+package com.jacobtread.kme.http
 
 import com.jacobtread.netty.http.HttpRequest
 import com.jacobtread.netty.http.HttpResponse
@@ -14,6 +14,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /**
  * responseXml Creates an XML response that initializes the xml node tree
@@ -59,4 +60,13 @@ inline fun <reified T> responseJson(
 inline fun <reified T> HttpRequest.contentJson(): T {
     val content = contentString()
     return Json.decodeFromString(content)
+}
+
+fun responseError(
+    message: String,
+    status: HttpResponseStatus = HttpResponseStatus.BAD_REQUEST,
+): HttpResponse {
+    return responseJson(status) {
+        put("message", message)
+    }
 }

@@ -1,11 +1,11 @@
-package com.jacobtread.kme.servers.routes
+package com.jacobtread.kme.http.routes
 
 import com.jacobtread.kme.Environment
 import com.jacobtread.kme.database.data.GalaxyAtWarData
 import com.jacobtread.kme.database.data.Player
 import com.jacobtread.kme.exceptions.DatabaseException
 import com.jacobtread.kme.utils.logging.Logger
-import com.jacobtread.kme.utils.responseXml
+import com.jacobtread.kme.http.responseXml
 import com.jacobtread.kme.utils.unixTimeSeconds
 import com.jacobtread.netty.http.HttpResponse
 import com.jacobtread.netty.http.httpBadRequest
