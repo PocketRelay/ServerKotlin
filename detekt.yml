@@ -10,7 +10,7 @@ complexity:
     excludes:
       # Database logic has a large amount of functions
       # reducing this would reduce efficiency
-      - "**/com/jacobtread/kme/database/**"
+      - "**/com/jacobtread/relay/database/**"
   # Packet processing classes are large by design.
   LargeClass:
     ignoreAnnotated:
@@ -63,9 +63,7 @@ style:
   # too long to fit the original (120)
   MaxLineLength:
     maxLineLength: 150
-    excludes:
-      - "**/com/jacobtread/kme/data/Data.kt"
-
+    
   # Maximum return count increased for functions that must make many
   # checks to determine the outcome (handleLogin)
   ReturnCount:
