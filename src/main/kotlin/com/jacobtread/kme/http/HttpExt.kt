@@ -46,15 +46,15 @@ inline fun responseJson(
 ): HttpResponse {
     val jsonObject = buildJsonObject(init)
     val content = Json.encodeToString(jsonObject)
-    return response(status, Unpooled.copiedBuffer(content, Charsets.UTF_8), "application/json")
+    return responseText(content, "application/json", status)
 }
 
 inline fun <reified T> responseJson(
-    status: HttpResponseStatus = HttpResponseStatus.OK,
     response: T,
+    status: HttpResponseStatus = HttpResponseStatus.OK,
 ): HttpResponse {
     val content = Json.encodeToString(response)
-    return response(status, Unpooled.copiedBuffer(content, Charsets.UTF_8), "application/json")
+    return responseText(content, "application/json", status)
 }
 
 inline fun <reified T> HttpRequest.contentJson(): T {

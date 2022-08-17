@@ -4,14 +4,14 @@ import com.jacobtread.kme.Environment
 import com.jacobtread.kme.database.data.GalaxyAtWarData
 import com.jacobtread.kme.database.data.Player
 import com.jacobtread.kme.exceptions.DatabaseException
-import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.http.responseXml
+import com.jacobtread.kme.utils.logging.Logger
 import com.jacobtread.kme.utils.unixTimeSeconds
 import com.jacobtread.netty.http.HttpResponse
-import com.jacobtread.netty.http.httpBadRequest
-import com.jacobtread.netty.http.httpInternalServerError
 import com.jacobtread.netty.http.router.RoutingGroup
 import com.jacobtread.netty.http.router.group
+import com.jacobtread.netty.http.throwBadRequest
+import com.jacobtread.netty.http.throwServerError
 
 /**
  * routeGroupGAW Adds routing for the galaxy at war
@@ -35,7 +35,7 @@ private fun RoutingGroup.routeAuthentication() {
         val playerId = queryInt("auth", 16)
         try {
             val database = Environment.database
-            val player = database.getPlayerById(playerId) ?: return@get httpBadRequest()
+            val player = database.getPlayerById(playerId) ?: throwBadRequest()
             Logger.debug("Authenticated GAW User ${player.displayName}")
             val time = unixTimeSeconds()
             responseXml("fulllogin") {
@@ -67,7 +67,7 @@ private fun RoutingGroup.routeAuthentication() {
             }
         } catch (e: DatabaseException) {
             Logger.warn("Failed to authenticate gaw", e)
-            httpInternalServerError()
+            throwServerError()
         }
     }
 }
@@ -81,13 +81,12 @@ private fun RoutingGroup.routeRatings() {
         val playerId = paramInt("id", 16)
         try {
             val database = Environment.database
-            val player = database.getPlayerById(playerId)
-                ?: return@get httpBadRequest()
+            val player = database.getPlayerById(playerId) ?: throwBadRequest()
             val rating = player.getGalaxyAtWarData()
             respondRatings(player, rating)
         } catch (e: DatabaseException) {
             Logger.warn("Failed to get route ratings")
-            httpInternalServerError()
+            throwServerError()
         }
     }
 }
@@ -101,7 +100,7 @@ private fun RoutingGroup.routeIncreaseRatings() {
         try {
             val database = Environment.database
             val playerId = paramInt("id", 16)
-            val player = database.getPlayerById(playerId) ?: return@get httpBadRequest()
+            val player = database.getPlayerById(playerId) ?: throwBadRequest()
             val rating = player.getGalaxyAtWarData()
             rating.add(
                 queryInt("rinc|0", default = 0),
@@ -115,7 +114,7 @@ private fun RoutingGroup.routeIncreaseRatings() {
             respondRatings(player, rating)
         } catch (e: DatabaseException) {
             Logger.warn("Failed to increase ratings", e)
-            httpInternalServerError()
+            throwServerError()
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.jacobtread.kme.http.data
 
+import com.jacobtread.kme.Environment
 import com.jacobtread.kme.utils.generateRandomString
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
@@ -72,4 +73,9 @@ object API {
         tokensLock.write { tokens.put(token, expiryTime) }
         return token
     }
+
+    fun isCredentials(username: String, password: String): Boolean {
+        return username == Environment.apiUsername && password == Environment.apiPassword
+    }
+
 }
