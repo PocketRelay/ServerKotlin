@@ -2,7 +2,6 @@
 
 ![License](https://img.shields.io/github/license/jacobtread/PocketRelay?style=for-the-badge)
 [![Gradle Build](https://img.shields.io/github/workflow/status/jacobtread/PocketRelay/gradle-build?style=for-the-badge)](https://github.com/jacobtread/PocketRelay/actions/workflows/gradle.yml)
-![Total Lines](https://img.shields.io/tokei/lines/github/jacobtread/PocketRelay?style=for-the-badge)
 
 [Discord Server (https://discord.gg/yvycWW8RgR)](https://discord.gg/yvycWW8RgR)
 
