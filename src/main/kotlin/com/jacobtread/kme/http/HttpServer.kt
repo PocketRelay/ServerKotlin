@@ -10,7 +10,6 @@ import com.jacobtread.netty.http.HttpEventHandler
 import com.jacobtread.netty.http.HttpRequest
 import com.jacobtread.netty.http.HttpResponse
 import com.jacobtread.netty.http.router.createHttpServer
-import com.jacobtread.netty.http.router.createRouter
 import io.netty.channel.EventLoopGroup
 import java.io.IOException
 

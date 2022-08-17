@@ -5,6 +5,7 @@ import com.jacobtread.kme.http.data.API
 import com.jacobtread.kme.http.data.AuthRequest
 import com.jacobtread.kme.http.data.AuthResponse
 import com.jacobtread.kme.http.middleware.AuthMiddleware
+import com.jacobtread.kme.http.middleware.CORSMiddleware
 import com.jacobtread.kme.http.responseJson
 import com.jacobtread.netty.http.responseText
 import com.jacobtread.netty.http.router.RoutingGroup
@@ -13,6 +14,8 @@ import com.jacobtread.netty.http.router.middlewareGroup
 
 fun RoutingGroup.routeApi() {
     group("api") {
+        middleware(CORSMiddleware)
+
         routeAuth()
 
         middlewareGroup(AuthMiddleware) {
