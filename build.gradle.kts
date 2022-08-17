@@ -1,21 +1,23 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val kme3Version: String by project
+val serverVersion: String by project
 
-group = "com.jacobtread.kme"
-version = kme3Version
+group = "com.jacobtread.relay"
+version = serverVersion
 
 plugins {
     kotlin("jvm")
     id("com.github.johnrengelman.shadow")
     id("com.google.devtools.ksp")
     id("io.gitlab.arturbosch.detekt")
+    kotlin("plugin.serialization")
     idea
 }
 
 repositories {
     mavenCentral()
+    mavenLocal()
 }
 
 dependencies {
@@ -38,6 +40,9 @@ dependencies {
     // XML Dependencies
     val xmlVersion: String by project
     implementation("com.jacobtread.xml:xml-builder-kt:$xmlVersion")
+
+    val jsonVersion: String by project
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$jsonVersion")
 }
 
 detekt {
@@ -55,18 +60,18 @@ detekt {
 tasks.register("generateConstants") {
     val input = file("src/main/resources/templates/Constants.kt.template")
     val propertiesFile = rootDir.absoluteFile.resolve("gradle.properties")
-    val output = file("src/main/kotlin/com/jacobtread/kme/data/Constants.kt")
+    val output = file("src/main/kotlin/com/jacobtread/relay/data/Constants.kt")
 
     inputs.files(input, propertiesFile)
     outputs.file(output)
 
     doFirst {
-        val kme3Version: String by project
+        val serverVersion: String by project
         val mysqlVersion: String by project
         val sqliteVersion: String by project
         if (input.exists()) {
             val templateFile = input.readText(Charsets.UTF_8)
-                .replace("%KME_VERSION%", kme3Version)
+                .replace("%RELAY_VERSION%", serverVersion)
                 .replace("%MYSQL_VERSION%", mysqlVersion)
                 .replace("%SQLITE_VERSION%", sqliteVersion)
             output.writeText(templateFile, Charsets.UTF_8)
@@ -98,7 +103,7 @@ tasks.withType(Jar::class) {
     archiveFileName.set(outputJarFile) // Set the output jar name to server.jar
     manifest {
         // Set the main class of the jar in the manifest
-        attributes["Main-Class"] = "com.jacobtread.kme.App"
+        attributes["Main-Class"] = "com.jacobtread.relay.App"
     }
     exclude("templates/**")
 }
@@ -108,7 +113,7 @@ tasks.withType(Jar::class) {
  * Gradle task for starting the application
  */
 tasks.create("startApp", JavaExec::class) {
-    mainClass.set("com.jacobtread.kme.App")
+    mainClass.set("com.jacobtread.relay.App")
     classpath(sourceSets["main"].runtimeClasspath)
     workingDir(rootProject.projectDir.resolve("run"))
 }
@@ -119,7 +124,7 @@ tasks.create("startApp", JavaExec::class) {
  * from the root directory then execute this task
  */
 tasks.create("makeCoalesced", JavaExec::class) {
-    mainClass.set("com.jacobtread.kme.tools.MakeCoalesced")
+    mainClass.set("com.jacobtread.relay.tools.MakeCoalesced")
     classpath(sourceSets["main"].runtimeClasspath)
     workingDir(rootProject.projectDir)
 }
@@ -130,7 +135,7 @@ tasks.create("makeCoalesced", JavaExec::class) {
  * file and all other languages should be named ME3TLK_${LANG_CODE}.tlk
  */
 tasks.create("makeTLKs", JavaExec::class) {
-    mainClass.set("com.jacobtread.kme.tools.MakeTLKs")
+    mainClass.set("com.jacobtread.relay.tools.MakeTLKs")
     classpath(sourceSets["main"].runtimeClasspath)
     workingDir(rootProject.projectDir)
 }

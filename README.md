@@ -1,6 +1,4 @@
-# KME3
-
-Kotlin Mass Effect 3
+![Logo](data/logo.png)
 
 ![License](https://img.shields.io/github/license/jacobtread/KME3?style=for-the-badge)
 [![Gradle Build](https://img.shields.io/github/workflow/status/jacobtread/KME3/gradle-build?style=for-the-badge)](https://github.com/jacobtread/KME3/actions/workflows/gradle.yml)
@@ -8,7 +6,7 @@ Kotlin Mass Effect 3
 
 [Discord Server (https://discord.gg/yvycWW8RgR)](https://discord.gg/yvycWW8RgR)
 
-KME3 is a custom private server for Mass Effect 3 emulating the functionatlity of the official EA servers
+Pocket Relay is a custom private server for Mass Effect 3 emulating the functionatlity of the official EA servers
 but allowing you to host your own closed off private server or ever a server for playing together over lan
 
 So far this project has become a very well performing server and is constantly being improved and optimized in my free time.
@@ -40,7 +38,7 @@ I plan on making a tool for doing this automatically
 
 ## Credits
 
-1.[https://github.com/GamerClassN7/](https://github.com/GamerClassN7/) For providing me with an Origin copy of Mass Effect 3 and creating a patcher tool as well as supporting me with the project and helping test
-2.[https://github.com/PrivateServerEmulator/ME3PSE](https://github.com/PrivateServerEmulator/ME3PSE) Sourced certificate and many game assets from this project
-3.[https://github.com/Erik-JS/masseffect-binkw32](https://github.com/Erik-JS/masseffect-binkw32) Game patcher
+1. [https://github.com/GamerClassN7/](https://github.com/GamerClassN7/) For providing me with an Origin copy of Mass Effect 3 and creating a patcher tool as well as supporting me with the project and helping test
+2. [https://github.com/PrivateServerEmulator/ME3PSE](https://github.com/PrivateServerEmulator/ME3PSE) Sourced certificate and many game assets from this project
+3. [https://github.com/Erik-JS/masseffect-binkw32](https://github.com/Erik-JS/masseffect-binkw32) Game patcher
 

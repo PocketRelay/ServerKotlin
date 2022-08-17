@@ -1,4 +1,4 @@
-package com.jacobtread.kme.data
+package com.jacobtread.relay.data
 
 /**
  * Constants Don't modify this file directly. It is generated before the kotlinCompile task
@@ -8,7 +8,7 @@ package com.jacobtread.kme.data
  * @constructor Create empty Constants
  */
 object Constants {
-    const val KME_VERSION = "%KME_VERSION%"
+    const val RELAY_VERSION = "%RELAY_VERSION%"
     const val MYSQL_VERSION = "%MYSQL_VERSION%"
     const val SQLITE_VERSION = "%SQLITE_VERSION%"
 }
