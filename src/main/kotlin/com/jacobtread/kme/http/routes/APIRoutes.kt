@@ -4,20 +4,16 @@ import com.jacobtread.kme.Environment
 import com.jacobtread.kme.exceptions.DatabaseException
 import com.jacobtread.kme.game.Game
 import com.jacobtread.kme.http.contentJson
-import com.jacobtread.kme.http.data.API
-import com.jacobtread.kme.http.data.AuthRequest
-import com.jacobtread.kme.http.data.AuthResponse
-import com.jacobtread.kme.http.data.GameSerializable
+import com.jacobtread.kme.http.data.*
 import com.jacobtread.kme.http.middleware.AuthMiddleware
 import com.jacobtread.kme.http.middleware.CORSMiddleware
 import com.jacobtread.kme.http.responseJson
 import com.jacobtread.kme.utils.logging.Logger
-import com.jacobtread.netty.http.httpNotFound
+import com.jacobtread.netty.http.*
 import com.jacobtread.netty.http.router.RoutingGroup
 import com.jacobtread.netty.http.router.group
 import com.jacobtread.netty.http.router.middlewareGroup
-import com.jacobtread.netty.http.throwBadRequest
-import com.jacobtread.netty.http.throwServerError
+import io.netty.handler.codec.http.HttpResponseStatus
 
 fun RoutingGroup.routeApi() {
     group("api") {
@@ -28,6 +24,7 @@ fun RoutingGroup.routeApi() {
         middlewareGroup(AuthMiddleware) {
             routePlayers()
             routePlayer()
+            routeUpdatePlayer()
 
             routeGames()
             routeGame()
@@ -62,16 +59,45 @@ private fun RoutingGroup.routePlayers() {
     }
 }
 
+
 private fun RoutingGroup.routePlayer() {
     get("players/:id") {
         val id = paramInt("id")
         try {
             val database = Environment.database
             val player = database.getPlayerById(id)
-            responseJson(player)
+                ?: throw HttpException(HttpResponseStatus.NOT_FOUND)
+            val characters = database.getPlayerCharacters(player)
+            val classes = database.getPlayerClasses(player)
+            val charactersSerial = characters.map {
+                CharacterSerializable(it.index, it.kitName, it.name, it.deployed)
+            }
+            val playerData = FullPlayerData(player, classes, charactersSerial)
+            responseJson(playerData)
         } catch (e: DatabaseException) {
             Logger.error("Error while retrieving player", e)
-            httpNotFound()
+            throwServerError()
+        }
+    }
+}
+
+private fun RoutingGroup.routeUpdatePlayer() {
+    put("players/:id") {
+        val id = paramInt("id")
+        val playerUpdate = contentJson<PlayerUpdate>()
+        try {
+            val database = Environment.database
+            val player = database.getPlayerById(id)
+                ?: throw HttpException(HttpResponseStatus.NOT_FOUND)
+            player.displayName = playerUpdate.displayName
+            player.credits = playerUpdate.credits
+            player.inventory = playerUpdate.inventory
+            player.csReward = playerUpdate.csReward
+            Environment.database.updatePlayerFully(player)
+            response(HttpResponseStatus.OK)
+        } catch (e: DatabaseException) {
+            Logger.error("Error while updating player", e)
+            throwServerError()
         }
     }
 }

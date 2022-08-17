@@ -23,7 +23,7 @@ data class Player(
      * is the first 99 chars of the email until a system for
      * updating this is added.
      */
-    val displayName: String,
+    var displayName: String,
     private val password: String,
     private var sessionToken: String?,
     /**

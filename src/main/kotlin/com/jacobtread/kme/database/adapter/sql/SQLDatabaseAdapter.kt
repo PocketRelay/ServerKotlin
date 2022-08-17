@@ -305,7 +305,7 @@ abstract class SQLDatabaseAdapter(
                     |`games_played` = ?, `seconds_played` = ?, `inventory` = ?,
                     |`csreward` = ?, `face_codes` = ?, `new_item` = ?, `completion` = ?,
                     |`progress` = ?, `cs_completion` = ?, `cs_timestamps_1` = ?, `cs_timestamps_2` = ?,
-                    |`cs_timestamps_3` = ?
+                    |`cs_timestamps_3` = ?, `display_name` = ?
                     |WHERE `id` = ?
                 """.trimMargin(),
             )
@@ -324,7 +324,8 @@ abstract class SQLDatabaseAdapter(
             statement.setString(13, player.cstimestamps1)
             statement.setString(14, player.cstimestamps2)
             statement.setString(15, player.cstimestamps3)
-            statement.setInt(16, player.playerId)
+            statement.setString(16, player.displayName)
+            statement.setInt(17, player.playerId)
             statement.executeUpdate()
             statement.close()
         } catch (e: SQLException) {

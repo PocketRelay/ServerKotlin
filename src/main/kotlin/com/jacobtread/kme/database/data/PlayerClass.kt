@@ -1,7 +1,9 @@
 package com.jacobtread.kme.database.data
 
 import com.jacobtread.kme.utils.MEStringParser
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class PlayerClass(
     val index: Int,
     val name: String,
