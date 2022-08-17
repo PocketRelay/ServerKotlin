@@ -1,8 +1,8 @@
 ![Logo](data/logo.png)
 
-![License](https://img.shields.io/github/license/jacobtread/KME3?style=for-the-badge)
-[![Gradle Build](https://img.shields.io/github/workflow/status/jacobtread/KME3/gradle-build?style=for-the-badge)](https://github.com/jacobtread/KME3/actions/workflows/gradle.yml)
-![Total Lines](https://img.shields.io/tokei/lines/github/jacobtread/KME3?style=for-the-badge)
+![License](https://img.shields.io/github/license/jacobtread/PocketRelay?style=for-the-badge)
+[![Gradle Build](https://img.shields.io/github/workflow/status/jacobtread/PocketRelay/gradle-build?style=for-the-badge)](https://github.com/jacobtread/PocketRelay/actions/workflows/gradle.yml)
+![Total Lines](https://img.shields.io/tokei/lines/github/jacobtread/PocketRelay?style=for-the-badge)
 
 [Discord Server (https://discord.gg/yvycWW8RgR)](https://discord.gg/yvycWW8RgR)
 
@@ -18,7 +18,7 @@ produced from studying the protocol of the official servers and emulating its fu
 in no way or form supported, endorsed, or provided by BioWare or Electronic Arts.
 
 ## Links
-- [**Latest Release** - The latest server jar release](https://github.com/jacobtread/KME3/releases/latest) 
+- [**Latest Release** - The latest server jar release](https://github.com/jacobtread/PocketRelay/releases/latest) 
 - [**Client Setup** - Setting up yourself to connect to KME3 servers](docs/SETUP_CLIENT.md)
 - [**Hosting Setup** - Setting up yourself to host a KME3 servers](docs/SETUP_HOSTER.md)
 
