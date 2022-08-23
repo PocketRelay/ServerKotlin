@@ -47,6 +47,13 @@ object PlayerCharactersTable : Table {
         );
     """.trimIndent()
 
+    /**
+     * Function for converting the data stored on a [ResultSet]
+     * into a [PlayerCharacter] object. Will return null if there
+     * is no rows in the [ResultSet]
+     *
+     * @return The player character data or null
+     */
     private fun ResultSet.asPlayerCharacter(): PlayerCharacter? {
         if (!next()) return null
         return PlayerCharacter(
@@ -74,6 +81,12 @@ object PlayerCharactersTable : Table {
         )
     }
 
+    /**
+     * Retrieves the player characters for the provided player
+     *
+     * @param player The player to get characters for
+     * @return The future with the value of the player characters list
+     */
     fun getByPlayer(player: Player): Future<ArrayList<PlayerCharacter>> {
         return Database
             .query("SELECT * FROM `player_characters` WHERE `player_id` = ?") {
@@ -82,6 +95,15 @@ object PlayerCharactersTable : Table {
             .thenApply { outer -> outer.asList { inner -> inner.asPlayerCharacter() } }
     }
 
+
+    /**
+     * Checks whether the provided player has a character at
+     * the provided index.
+     *
+     * @param player The player to check
+     * @param index The index to check
+     * @return The future with the value of whether the player has a character at that index
+     */
     private fun hasByPlayer(player: Player, index: Int): Future<Boolean> {
         return Database
             .exists("SELECT `id` FROM `player_characters` WHERE `player_id` = ? AND `index` = ?") {
@@ -90,6 +112,15 @@ object PlayerCharactersTable : Table {
             }
     }
 
+
+    /**
+     * Sets the provided player character for the provided player
+     * will create a new player character row or update existing ones
+     *
+     * @param player The player to set the character for
+     * @param playerCharacter The player character data
+     * @return The future for the update
+     */
     fun setByPlayer(player: Player, playerCharacter: PlayerCharacter): Future<Void> {
         return hasByPlayer(player, playerCharacter.index)
             .thenCompose { exists ->
