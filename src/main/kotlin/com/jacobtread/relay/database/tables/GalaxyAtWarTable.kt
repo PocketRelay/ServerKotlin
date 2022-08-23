@@ -1,14 +1,34 @@
 package com.jacobtread.relay.database.tables
 
 import com.jacobtread.relay.database.Database
-import com.jacobtread.relay.database.data.GalaxyAtWarData
-import com.jacobtread.relay.database.data.Player
+import com.jacobtread.relay.database.Table
+import com.jacobtread.relay.database.models.GalaxyAtWarData
+import com.jacobtread.relay.database.models.Player
 import com.jacobtread.relay.utils.Future
 import com.jacobtread.relay.utils.VoidFuture
 import org.intellij.lang.annotations.Language
 import java.sql.ResultSet
 
-object GalaxyAtWarTable {
+object GalaxyAtWarTable : Table {
+
+    @Language("MySQL")
+    override fun sql(): String = """
+        -- Galaxy At War Table
+        CREATE TABLE IF NOT EXISTS `player_gaw`
+        (
+            `id`            INT(255)    NOT NULL PRIMARY KEY AUTO_INCREMENT,
+            `player_id`     INT(255)    NOT NULL,
+            `last_modified` BIGINT(255) NOT NULL,
+            `group_a`       INT(8)      NOT NULL,
+            `group_b`       INT(8)      NOT NULL,
+            `group_c`       INT(8)      NOT NULL,
+            `group_d`       INT(8)      NOT NULL,
+            `group_e`       INT(8)      NOT NULL,
+
+            FOREIGN KEY (`player_id`) REFERENCES `players` (`id`)
+        );
+    """.trimIndent()
+
     private fun ResultSet.asGalaxyAtWarData(): GalaxyAtWarData? {
         if (!next()) return null
         return GalaxyAtWarData(
@@ -23,14 +43,14 @@ object GalaxyAtWarTable {
 
     fun hasByPlayer(player: Player): Future<Boolean> {
         return Database
-            .executeExists("SELECT * FROM `player_gaw` WHERE `player_id` = ? LIMIT 1") {
+            .exists("SELECT * FROM `player_gaw` WHERE `player_id` = ? LIMIT 1") {
                 setInt(1, player.playerId)
             }
     }
 
     fun getByPlayer(player: Player): Future<GalaxyAtWarData> {
         return Database
-            .executeQuery("SELECT * FROM `player_gaw` WHERE `player_id` = ? LIMIT 1") {
+            .query("SELECT * FROM `player_gaw` WHERE `player_id` = ? LIMIT 1") {
                 setInt(1, player.playerId)
             }
             .thenCompose {
@@ -76,7 +96,7 @@ object GalaxyAtWarTable {
                     ) VALUES (?, ?, ?, ?, ?, ?, ?)
                     """.trimIndent()
                 }
-                Database.executeUpdateVoid(query) {
+                Database.update(query) {
                     setLong(1, galaxyAtWarData.lastModified)
                     setInt(2, galaxyAtWarData.groupA)
                     setInt(3, galaxyAtWarData.groupB)

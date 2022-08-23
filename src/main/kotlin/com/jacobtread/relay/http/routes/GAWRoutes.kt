@@ -6,8 +6,8 @@ import com.jacobtread.netty.http.router.group
 import com.jacobtread.netty.http.throwBadRequest
 import com.jacobtread.netty.http.throwServerError
 import com.jacobtread.relay.Environment
-import com.jacobtread.relay.database.data.GalaxyAtWarData
-import com.jacobtread.relay.database.data.Player
+import com.jacobtread.relay.database.models.GalaxyAtWarData
+import com.jacobtread.relay.database.models.Player
 import com.jacobtread.relay.database.tables.GalaxyAtWarTable
 import com.jacobtread.relay.database.tables.PlayersTable
 import com.jacobtread.relay.http.responseXml

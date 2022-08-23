@@ -5,14 +5,15 @@ import com.jacobtread.relay.data.Constants
 import com.jacobtread.relay.data.blaze.DebugLoggingHandler
 import com.jacobtread.relay.data.retriever.OriginDetailsRetriever
 import com.jacobtread.relay.data.retriever.Retriever
-import com.jacobtread.relay.database.RuntimeDriver
 import com.jacobtread.relay.database.Database
+import com.jacobtread.relay.database.RuntimeDriver
 import com.jacobtread.relay.utils.logging.Logger
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.security.Security
+import java.sql.SQLException
 import java.util.*
 
 /**
@@ -118,24 +119,28 @@ object Environment {
         // Database configuration
         val databaseType = env.stringValue("RELAY_DATABASE_TYPE", "database.type", "sqlite")
             .lowercase()
-        when (databaseType) {
-            "mysql" -> {
-                val host = env.stringValue("RELAY_MYSQL_HOST", "database.host", "127.0.0.1")
-                val port = env.intValue("RELAY_MYSQL_PORT", "database.port", 3306)
-                val user = env.stringValue("RELAY_MYSQL_USER", "database.user", "root")
-                val password = env.stringValue("RELAY_MYSQL_PASSWORD", "database.password", "password")
-                val database = env.stringValue("RELAY_MYSQL_DATABASE", "database.db", "relay")
-                val connection = RuntimeDriver.createMySQLConnection(host, port, user, password, database)
-                Database.init(connection, false)
-            }
+        try {
+            when (databaseType) {
+                "mysql" -> {
+                    val host = env.stringValue("RELAY_MYSQL_HOST", "database.host", "127.0.0.1")
+                    val port = env.intValue("RELAY_MYSQL_PORT", "database.port", 3306)
+                    val user = env.stringValue("RELAY_MYSQL_USER", "database.user", "root")
+                    val password = env.stringValue("RELAY_MYSQL_PASSWORD", "database.password", "password")
+                    val database = env.stringValue("RELAY_MYSQL_DATABASE", "database.db", "relay")
+                    val connection = RuntimeDriver.createMySQLConnection(host, port, user, password, database)
+                    Database.init(connection, false)
+                }
 
-            "sqlite" -> {
-                val file = env.stringValue("RELAY_SQLITE_FILE", "database.file", "data/app.db")
-                val connection = RuntimeDriver.createSQLiteConnection(file)
-                Database.init(connection, true)
-            }
+                "sqlite" -> {
+                    val file = env.stringValue("RELAY_SQLITE_FILE", "database.file", "data/app.db")
+                    val connection = RuntimeDriver.createSQLiteConnection(file)
+                    Database.init(connection, true)
+                }
 
-            else -> Logger.fatal("Unknwon database type: $databaseType (expected mysql, or sqlite)")
+                else -> Logger.fatal("Unknwon database type: $databaseType (expected mysql, or sqlite)")
+            }
+        } catch (e: SQLException) {
+            Logger.fatal("Failed to initialize database", e)
         }
 
         val retrieverEnabled = env.booleanValue("RELAY_RETRIEVE_OFFICIAL", "retriever.enabled", true)

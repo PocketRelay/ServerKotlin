@@ -1,15 +1,33 @@
 package com.jacobtread.relay.database.tables
 
 import com.jacobtread.relay.database.Database
+import com.jacobtread.relay.database.Table
 import com.jacobtread.relay.database.asList
-import com.jacobtread.relay.database.data.Player
-import com.jacobtread.relay.database.data.PlayerClass
+import com.jacobtread.relay.database.models.Player
+import com.jacobtread.relay.database.models.PlayerClass
 import com.jacobtread.relay.utils.Future
 import com.jacobtread.relay.utils.VoidFuture
 import org.intellij.lang.annotations.Language
 import java.sql.ResultSet
 
-object PlayerClassesTable {
+object PlayerClassesTable : Table {
+
+    @Language("MySQL")
+    override fun sql(): String = """
+        -- Player Classes Table
+        CREATE TABLE IF NOT EXISTS `player_classes`
+        (
+            `id`         INT(255) NOT NULL PRIMARY KEY AUTO_INCREMENT,
+            `player_id`  INT(255) NOT NULL,
+            `index`      INT(2)   NOT NULL,
+            `name`       TEXT     NOT NULL,
+            `level`      INT(3)   NOT NULL,
+            `exp`        FLOAT(4) NOT NULL,
+            `promotions` INT(255) NOT NULL,
+        
+            FOREIGN KEY (`player_id`) REFERENCES `players` (`id`)
+        );
+    """.trimIndent()
 
     private fun ResultSet.asPlayerClass(): PlayerClass? {
         if (!next()) return null
@@ -24,7 +42,7 @@ object PlayerClassesTable {
 
     fun getByPlayer(player: Player): Future<ArrayList<PlayerClass>> {
         return Database
-            .executeQuery("SELECT * FROM `player_classes` WHERE `player_id` = ?") {
+            .query("SELECT * FROM `player_classes` WHERE `player_id` = ?") {
                 setInt(1, player.playerId)
             }
             .thenApply { outer -> outer.asList { inner -> inner.asPlayerClass() } }
@@ -32,7 +50,7 @@ object PlayerClassesTable {
 
     private fun hasByPlayer(player: Player, index: Int): Future<Boolean> {
         return Database
-            .executeExists("SELECT `id` FROM `player_classes` WHERE `player_id` = ? AND `index` = ?") {
+            .exists("SELECT `id` FROM `player_classes` WHERE `player_id` = ? AND `index` = ?") {
                 setInt(1, player.playerId)
                 setInt(2, index)
             }
@@ -48,7 +66,7 @@ object PlayerClassesTable {
                 } else {
                     query = "INSERT INTO `player_classes` (`name`, `level`, `exp`, `promotions`, `player_id`, `index`) VALUES (?, ?, ?, ?, ?, ?)"
                 }
-                Database.executeUpdateVoid(query) {
+                Database.update(query) {
                     setString(1, playerClass.name)
                     setInt(2, playerClass.level)
                     setFloat(3, playerClass.exp)

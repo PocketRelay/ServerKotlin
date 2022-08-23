@@ -1,15 +1,52 @@
 package com.jacobtread.relay.database.tables
 
 import com.jacobtread.relay.database.Database
+import com.jacobtread.relay.database.Table
 import com.jacobtread.relay.database.asList
-import com.jacobtread.relay.database.data.Player
-import com.jacobtread.relay.database.data.PlayerCharacter
+import com.jacobtread.relay.database.models.Player
+import com.jacobtread.relay.database.models.PlayerCharacter
 import com.jacobtread.relay.utils.Future
 import com.jacobtread.relay.utils.VoidFuture
 import org.intellij.lang.annotations.Language
 import java.sql.ResultSet
 
-object PlayerCharactersTable {
+object PlayerCharactersTable : Table {
+
+    @Language("MySQL")
+    override fun sql(): String = """
+         -- Player Characters Table
+        CREATE TABLE IF NOT EXISTS `player_characters`
+        (
+            `id`                INT(255)    NOT NULL PRIMARY KEY AUTO_INCREMENT,
+            `player_id`         INT(255)    NOT NULL,
+            `index`             INT(3)      NOT NULL,
+            `kit_name`          TEXT        NOT NULL,
+            `name`              TEXT        NOT NULL,
+            `tint1`             INT(4)      NOT NULL,
+            `tint2`             INT(4)      NOT NULL,
+            `pattern`           INT(4)      NOT NULL,
+            `pattern_color`     INT(4)      NOT NULL,
+            `phong`             INT(4)      NOT NULL,
+            `emissive`          INT(4)      NOT NULL,
+            `skin_tone`         INT(4)      NOT NULL,
+            `seconds_played`    BIGINT(255) NOT NULL,
+        
+            `timestamp_year`    INT(255)    NOT NULL,
+            `timestamp_month`   INT(255)    NOT NULL,
+            `timestamp_day`     INT(255)    NOT NULL,
+            `timestamp_seconds` INT(255)    NOT NULL,
+        
+            `powers`            TEXT        NOT NULL,
+            `hotkeys`           TEXT        NOT NULL,
+            `weapons`           TEXT        NOT NULL,
+            `weapon_mods`       TEXT        NOT NULL,
+        
+            `deployed`          BOOLEAN     NOT NULL,
+            `leveled_up`        BOOLEAN     NOT NULL,
+        
+            FOREIGN KEY (`player_id`) REFERENCES `players` (`id`)
+        );
+    """.trimIndent()
 
     private fun ResultSet.asPlayerCharacter(): PlayerCharacter? {
         if (!next()) return null
@@ -40,7 +77,7 @@ object PlayerCharactersTable {
 
     fun getByPlayer(player: Player): Future<ArrayList<PlayerCharacter>> {
         return Database
-            .executeQuery("SELECT * FROM `player_characters` WHERE `player_id` = ?") {
+            .query("SELECT * FROM `player_characters` WHERE `player_id` = ?") {
                 setInt(1, player.playerId)
             }
             .thenApply { outer -> outer.asList { inner -> inner.asPlayerCharacter() } }
@@ -48,7 +85,7 @@ object PlayerCharactersTable {
 
     private fun hasByPlayer(player: Player, index: Int): Future<Boolean> {
         return Database
-            .executeExists("SELECT `id` FROM `player_characters` WHERE `player_id` = ? AND `index` = ?") {
+            .exists("SELECT `id` FROM `player_characters` WHERE `player_id` = ? AND `index` = ?") {
                 setInt(1, player.playerId)
                 setInt(2, index)
             }
@@ -83,7 +120,7 @@ object PlayerCharactersTable {
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """.trimIndent()
                 }
-                Database.executeUpdateVoid(query) {
+                Database.update(query) {
                     setString(1, playerCharacter.kitName)
                     setString(2, playerCharacter.name)
                     setInt(3, playerCharacter.tint1)

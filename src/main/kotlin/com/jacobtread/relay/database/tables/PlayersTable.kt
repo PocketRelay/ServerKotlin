@@ -2,18 +2,50 @@ package com.jacobtread.relay.database.tables
 
 import com.jacobtread.relay.data.retriever.OriginDetailsRetriever
 import com.jacobtread.relay.database.Database
+import com.jacobtread.relay.database.Table
 import com.jacobtread.relay.database.asList
-import com.jacobtread.relay.database.data.Player
-import com.jacobtread.relay.exceptions.DatabaseException
+import com.jacobtread.relay.database.models.Player
 import com.jacobtread.relay.utils.Future
 import com.jacobtread.relay.utils.VoidFuture
+import org.intellij.lang.annotations.Language
 import java.sql.ResultSet
+import java.util.concurrent.CompletableFuture
 
-object PlayersTable {
+object PlayersTable : Table {
+
+    @Language("MySQL")
+    override fun sql(): String = """
+        -- Players Table
+        CREATE TABLE IF NOT EXISTS `players`
+        (
+            `id`              INT(255)               NOT NULL PRIMARY KEY AUTO_INCREMENT,
+            `email`           VARCHAR(254)           NOT NULL,
+            `display_name`    VARCHAR(99)            NOT NULL,
+            `session_token`   VARCHAR(254) DEFAULT NULL,
+            `origin`          BOOLEAN                NOT NULL,
+            `password`        VARCHAR(128)           NOT NULL,
+
+            `credits`         INT(255)     DEFAULT 0 NOT NULL,
+            `credits_spent`   INT(255)     DEFAULT 0 NOT NULL,
+            `games_played`    INT(255)     DEFAULT 0 NOT NULL,
+            `seconds_played`  BIGINT(255)  DEFAULT 0 NOT NULL,
+            `inventory`       TEXT                   NOT NULL,
+            `csreward`        INT(6)       DEFAULT 0 NOT NULL,
+            `face_codes`      TEXT         DEFAULT NULL,
+            `new_item`        TEXT         DEFAULT NULL,
+            `completion`      TEXT         DEFAULT NULL,
+            `progress`        TEXT         DEFAULT NULL,
+            `cs_completion`   TEXT         DEFAULT NULL,
+            `cs_timestamps_1` TEXT         DEFAULT NULL,
+            `cs_timestamps_2` TEXT         DEFAULT NULL,
+            `cs_timestamps_3` TEXT         DEFAULT NULL
+        );
+    """.trimIndent()
+
 
     fun isEmailTaken(email: String): Future<Boolean> {
         return Database
-            .executeExists("SELECT `id` FROM `players` WHERE email = ? LIMIT 1") {
+            .exists("SELECT `id` FROM `players` WHERE email = ? LIMIT 1") {
                 setString(1, email)
             }
     }
@@ -45,13 +77,13 @@ object PlayersTable {
 
     fun getList(offset: Int, count: Int): Future<List<Player>> {
         return Database
-            .executeQuery("SELECT * FROM `players` LIMIT $count OFFSET $offset")
+            .query("SELECT * FROM `players` LIMIT $count OFFSET $offset")
             .thenApply { outer -> outer.asList { inner -> inner.asPlayer() } }
     }
 
     fun getByID(id: Int): Future<Player?> {
         return Database
-            .executeQuery("SELECT * FROM `players` WHERE `id` = ? LIMIT 1") {
+            .query("SELECT * FROM `players` WHERE `id` = ? LIMIT 1") {
                 setInt(1, id)
             }
             .thenApply { it.asPlayer() }
@@ -59,7 +91,7 @@ object PlayersTable {
 
     fun getByEmail(email: String): Future<Player?> {
         return Database
-            .executeQuery("SELECT * FROM `players` WHERE `email` = ? LIMIT 1") {
+            .query("SELECT * FROM `players` WHERE `email` = ? LIMIT 1") {
                 setString(1, email)
             }
             .thenApply { it.asPlayer() }
@@ -67,7 +99,7 @@ object PlayersTable {
 
     fun getBySessionToken(sessionToken: String): Future<Player?> {
         return Database
-            .executeQuery("SELECT * FROM `players` WHERE `session_token` = ? AND `origin` = ? LIMIT 1") {
+            .query("SELECT * FROM `players` WHERE `session_token` = ? AND `origin` = ? LIMIT 1") {
                 setString(1, sessionToken)
                 setBoolean(2, false)
             }
@@ -76,14 +108,14 @@ object PlayersTable {
 
     fun setSessionToken(player: Player, sessionToken: String): VoidFuture {
         return Database
-            .executeUpdateVoid("UPDATE `players` SET `session_token` = ? WHERE `id` = ?") {
+            .update("UPDATE `players` SET `session_token` = ? WHERE `id` = ?") {
                 setString(1, sessionToken)
                 setInt(2, player.playerId)
             }
     }
 
     fun setPlayerFully(player: Player): VoidFuture {
-        return Database.executeUpdateVoid(
+        return Database.update(
             """
             UPDATE `players` SET 
             `session_token` = ?, `credits` = ?, `credits_spent` = ?,
@@ -116,7 +148,7 @@ object PlayersTable {
 
     fun setPlayerPartial(player: Player, key: String): VoidFuture {
         return when (key) {
-            "Base" -> Database.executeUpdateVoid(
+            "Base" -> Database.update(
                 """
                 UPDATE `players` SET 
                 `credits` = ?, `credits_spent` = ?, 
@@ -133,47 +165,47 @@ object PlayersTable {
                 setInt(6, player.playerId)
             }
 
-            "FaceCodes" -> Database.executeUpdateVoid("UPDATE `players` SET `face_codes` = ? WHERE `id` = ?") {
+            "FaceCodes" -> Database.update("UPDATE `players` SET `face_codes` = ? WHERE `id` = ?") {
                 setString(1, player.faceCodes)
                 setInt(2, player.playerId)
             }
 
-            "NewItem" -> Database.executeUpdateVoid("UPDATE `players` SET `new_item` = ? WHERE `id` = ?") {
+            "NewItem" -> Database.update("UPDATE `players` SET `new_item` = ? WHERE `id` = ?") {
                 setString(1, player.newItem)
                 setInt(2, player.playerId)
             }
 
-            "csreward" -> Database.executeUpdateVoid("UPDATE `players` SET `csreward` = ? WHERE `id` = ?") {
+            "csreward" -> Database.update("UPDATE `players` SET `csreward` = ? WHERE `id` = ?") {
                 setInt(1, player.csReward)
                 setInt(2, player.playerId)
             }
 
-            "Completion" -> Database.executeUpdateVoid("UPDATE `players` SET `completion` = ? WHERE `id` = ?") {
+            "Completion" -> Database.update("UPDATE `players` SET `completion` = ? WHERE `id` = ?") {
                 setString(1, player.completion)
                 setInt(2, player.playerId)
             }
 
-            "Progress" -> Database.executeUpdateVoid("UPDATE `players` SET `progress` = ? WHERE `id` = ?") {
+            "Progress" -> Database.update("UPDATE `players` SET `progress` = ? WHERE `id` = ?") {
                 setString(1, player.progress)
                 setInt(2, player.playerId)
             }
 
-            "cscompletion" -> Database.executeUpdateVoid("UPDATE `players` SET `cs_completion` = ? WHERE `id` = ?") {
+            "cscompletion" -> Database.update("UPDATE `players` SET `cs_completion` = ? WHERE `id` = ?") {
                 setString(1, player.cscompletion)
                 setInt(2, player.playerId)
             }
 
-            "cstimestamps" -> Database.executeUpdateVoid("UPDATE `players` SET `cs_timestamps_1` = ? WHERE `id` = ?") {
+            "cstimestamps" -> Database.update("UPDATE `players` SET `cs_timestamps_1` = ? WHERE `id` = ?") {
                 setString(1, player.cstimestamps1)
                 setInt(2, player.playerId)
             }
 
-            "cstimestamps2" -> Database.executeUpdateVoid("UPDATE `players` SET `cs_timestamps_2` = ? WHERE `id` = ?") {
+            "cstimestamps2" -> Database.update("UPDATE `players` SET `cs_timestamps_2` = ? WHERE `id` = ?") {
                 setString(1, player.cstimestamps2)
                 setInt(2, player.playerId)
             }
 
-            "cstimestamps3" -> Database.executeUpdateVoid("UPDATE `players` SET `cs_timestamps_3` = ? WHERE `id` = ?") {
+            "cstimestamps3" -> Database.update("UPDATE `players` SET `cs_timestamps_3` = ? WHERE `id` = ?") {
                 setString(1, player.cstimestamps3)
                 setInt(2, player.playerId)
             }
@@ -189,24 +221,29 @@ object PlayersTable {
         origin: Boolean,
     ): Future<Player> {
         return Database
-            .executeUpdateWithKeys("INSERT INTO `players` (`email`, `display_name`, `password`, `inventory`, `origin`) VALUES (?, ?, ?, ?, ?)") {
+            .updateWithKeys("INSERT INTO `players` (`email`, `display_name`, `password`, `inventory`, `origin`) VALUES (?, ?, ?, ?, ?)") {
                 setString(1, email)
                 setString(2, displayName) // Display name
                 setString(3, hashedPassword) // Password
                 setString(4, "") // Inventory
                 setBoolean(5, origin)
             }
-            .thenApply { keys ->
-                if (!keys.next()) throw DatabaseException("Failed to create player no ID was generated")
-                val id = keys.getInt(1)
-                Player(id, email, displayName, hashedPassword)
+            .thenCompose { keys ->
+                val future = CompletableFuture<Player>()
+                if (!keys.next()) {
+                    future.completeExceptionally(null)
+                } else {
+                    val id = keys.getInt(1)
+                    future.complete(Player(id, email, displayName, hashedPassword))
+                }
+                future
             }
     }
 
     fun getByOrigin(token: String): Future<Player?> {
         val details = OriginDetailsRetriever.retrieve(token) ?: return Future.completedFuture(null)
         return Database
-            .executeQuery("SELECT * FROM `players` WHERE  `email` = ? AND `origin` = ? LIMIT 1") {
+            .query("SELECT * FROM `players` WHERE  `email` = ? AND `origin` = ? LIMIT 1") {
                 setString(1, details.email)
                 setBoolean(2, true)
             }
@@ -237,7 +274,7 @@ object PlayersTable {
 
     fun hasOriginData(details: OriginDetailsRetriever.OriginDetails): Future<Boolean> {
         return Database
-            .executeExists("SELECT * FROM `players` WHERE `email` = ? AND `origin` = ? LIMIT 1") {
+            .exists("SELECT * FROM `players` WHERE `email` = ? AND `origin` = ? LIMIT 1") {
                 setString(1, details.email)
                 setBoolean(2, true)
             }

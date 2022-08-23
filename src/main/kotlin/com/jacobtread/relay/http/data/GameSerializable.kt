@@ -1,6 +1,6 @@
 package com.jacobtread.relay.http.data
 
-import com.jacobtread.relay.database.data.Player
+import com.jacobtread.relay.database.models.Player
 import kotlinx.serialization.Serializable
 
 @Serializable

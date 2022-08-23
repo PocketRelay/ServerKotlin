@@ -4,12 +4,10 @@ import com.jacobtread.netty.http.*
 import com.jacobtread.netty.http.router.RoutingGroup
 import com.jacobtread.netty.http.router.group
 import com.jacobtread.netty.http.router.middlewareGroup
-import com.jacobtread.relay.Environment
 import com.jacobtread.relay.data.Constants
 import com.jacobtread.relay.database.tables.PlayerCharactersTable
 import com.jacobtread.relay.database.tables.PlayerClassesTable
 import com.jacobtread.relay.database.tables.PlayersTable
-import com.jacobtread.relay.exceptions.DatabaseException
 import com.jacobtread.relay.game.Game
 import com.jacobtread.relay.http.contentJson
 import com.jacobtread.relay.http.data.*
@@ -122,7 +120,7 @@ private fun RoutingGroup.routeUpdatePlayer() {
             player.csReward = playerUpdate.csReward
             PlayersTable.setPlayerFully(player)
             response(HttpResponseStatus.OK)
-        } catch (e: DatabaseException) {
+        } catch (e: ExecutionException) {
             Logger.error("Error while updating player", e)
             throwServerError()
         }

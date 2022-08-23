@@ -1,18 +1,36 @@
 package com.jacobtread.relay.database
 
-import com.jacobtread.relay.exceptions.DatabaseException
+import com.jacobtread.relay.database.tables.GalaxyAtWarTable
+import com.jacobtread.relay.database.tables.PlayerCharactersTable
+import com.jacobtread.relay.database.tables.PlayerClassesTable
+import com.jacobtread.relay.database.tables.PlayersTable
 import com.jacobtread.relay.utils.Future
 import com.jacobtread.relay.utils.VoidFuture
-import com.jacobtread.relay.utils.logging.Logger
 import org.intellij.lang.annotations.Language
-import java.sql.*
-import java.util.concurrent.CompletableFuture
+import java.sql.Connection
+import java.sql.ResultSet
+import java.sql.SQLException
+import java.sql.Statement
 import java.util.concurrent.Executors
 import java.util.regex.Pattern
+import kotlin.jvm.Throws
 
+/**
+ * Central class for database connection and querying logic.
+ * Functions on this object should not be called until [init]
+ * is called in [com.jacobtread.relay.Environment]
+ */
 object Database {
 
-    internal lateinit var connection: Connection
+    /**
+     * The connection to the SQL database
+     */
+    private lateinit var connection: Connection
+
+    /**
+     * Single threaded executor for executing SQL queries on
+     * the [connection]
+     */
     private var executor = Executors.newSingleThreadExecutor()
 
     /**
@@ -22,54 +40,63 @@ object Database {
      * @param connection The database connection
      * @param sqlite whether to transform the creation queries for SQLite
      */
+    @Throws(SQLException::class)
     internal fun init(connection: Connection, sqlite: Boolean) {
         Database.connection = connection
-        try {
-            val statement = connection.createStatement()
-            statement.use {
-                /**
-                 * SQLite can execute multiple create table querys in a single
-                 * update, so they are combined and then transformed for SQLite
-                 * using [transformTableSQLite]
-                 */
-                if (sqlite) {
-                    val queryBuilder = StringBuilder()
-                    queryBuilder.appendLine(playersTable())
-                    queryBuilder.appendLine(playerClassesTable())
-                    queryBuilder.appendLine(playerCharactersTable())
-                    queryBuilder.appendLine(playerGAWTable())
-                    val query = transformTableSQLite(queryBuilder.toString())
-                    statement.executeUpdate(query)
-                } else {
-                    statement.executeUpdate(playersTable())
-                    statement.executeUpdate(playerClassesTable())
-                    statement.executeUpdate(playerCharactersTable())
-                    statement.executeUpdate(playerGAWTable())
-                }
+        val statement = connection.createStatement()
+        statement.use {
+            val tables = listOf(PlayersTable, PlayerClassesTable, PlayerCharactersTable, GalaxyAtWarTable)
+            /**
+             * SQLite can execute multiple create table querys in a single
+             * update, so they are combined and then transformed for SQLite
+             * using [transformTableSQLite]
+             */
+            if (sqlite) {
+                val queryBuilder = StringBuilder()
+                tables.forEach { queryBuilder.append(it.sql()) }
+                val query = transformTableSQLite(queryBuilder.toString())
+                statement.executeUpdate(query)
+            } else {
+                tables.forEach { statement.executeUpdate(it.sql()) }
             }
-        } catch (e: SQLException) {
-            Logger.fatal("Failed to initialize database", e)
         }
     }
 
-    private inline fun executeCatching(future: Future<*>, crossinline action: () -> Unit) {
+    /**
+     * Executes a task on the [executor] while catching any
+     * [SQLException] that get thrown in the process of doing
+     * so and returns a future to monitor the progress
+     *
+     * @param T The future return type
+     * @param action The action to execute
+     * @return The future result
+     */
+    private inline fun <T> executeCatching(crossinline action: (Future<T>) -> Unit): Future<T> {
+        val future = Future<T>()
         executor.execute {
             try {
-                action()
+                action(future)
             } catch (e: SQLException) {
-                future.completeExceptionally(e)
-            } catch (e: DatabaseException) {
                 future.completeExceptionally(e)
             }
         }
+        return future
     }
 
-    fun executeQuery(
+
+    /**
+     * Executes a SQL query on the connection returning
+     * a future of the result set.
+     *
+     * @param query The SQL query
+     * @param setup The optional setup function for the prepared statement
+     * @return The future result
+     */
+    fun query(
         @Language("MySQL") query: String,
-        setup: (PreparedStatement.() -> Unit)? = null,
+        setup: StatementSetup? = null,
     ): Future<ResultSet> {
-        val future = Future<ResultSet>()
-        executeCatching(future) {
+        return executeCatching { future ->
             val statement = connection.prepareStatement(query)
             statement.use {
                 if (setup != null) {
@@ -79,49 +106,38 @@ object Database {
                 future.complete(resultSet)
             }
         }
-        return future
     }
 
-    fun executeExists(
+    /**
+     * Executes an SQL query which returns a boolean future
+     * which is the value of whether a data in the database
+     * exists and matches the provided query
+     *
+     * @param query The SQL query
+     * @param setup The optional setup function for the prepared statement
+     * @return The future result
+     */
+    fun exists(
         @Language("MySQL") query: String,
-        setup: (PreparedStatement.() -> Unit)? = null,
+        setup: StatementSetup? = null,
     ): Future<Boolean> {
-        val future = Future<Boolean>()
-        executeCatching(future) {
-            val statement = connection.prepareStatement(query)
-            statement.use {
-                if (setup != null) {
-                    setup(statement)
-                }
-                val resultSet = statement.executeQuery()
-                future.complete(resultSet.next())
-            }
-        }
-        return future
+        return query(query, setup)
+            .thenApply { it.next() }
     }
 
-    fun executeUpdate(
+    /**
+     * Executes an SQL update that returns a [ResultSet] containing
+     * keys that were generated by the database
+     *
+     * @param query The SQL query
+     * @param setup The optional setup function for the prepared statement
+     * @return The future result
+     */
+    fun updateWithKeys(
         @Language("MySQL") query: String,
-        setup: PreparedStatement.() -> Unit,
-    ): Future<PreparedStatement> {
-        val future = Future<PreparedStatement>()
-        executeCatching(future) {
-            val statement = connection.prepareStatement(query)
-            statement.use {
-                setup(statement)
-                statement.executeUpdate()
-                future.complete(statement)
-            }
-        }
-        return future
-    }
-
-    fun executeUpdateWithKeys(
-        @Language("MySQL") query: String,
-        setup: PreparedStatement.() -> Unit,
+        setup: StatementSetup,
     ): Future<ResultSet> {
-        val future = Future<ResultSet>()
-        executeCatching(future) {
+        return executeCatching { future ->
             val statement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)
             statement.use {
                 setup(statement)
@@ -129,15 +145,20 @@ object Database {
                 future.complete(statement.generatedKeys)
             }
         }
-        return future
     }
 
-    fun executeUpdateVoid(
+    /**
+     * Executes an SQL update
+     *
+     * @param query The SQL query
+     * @param setup The optional setup function for the prepared statement
+     * @return The future result
+     */
+    fun update(
         @Language("MySQL") query: String,
-        setup: PreparedStatement.() -> Unit,
+        setup: StatementSetup,
     ): VoidFuture {
-        val future = VoidFuture()
-        executeCatching(future) {
+        return executeCatching { future ->
             val statement = connection.prepareStatement(query)
             statement.use {
                 setup(statement)
@@ -145,113 +166,12 @@ object Database {
                 future.complete(null)
             }
         }
-        return future
     }
-
-    @Language("MySQL")
-    private fun playersTable(): String = """
-        -- Players Table
-        CREATE TABLE IF NOT EXISTS `players`
-        (
-            `id`              INT(255)               NOT NULL PRIMARY KEY AUTO_INCREMENT,
-            `email`           VARCHAR(254)           NOT NULL,
-            `display_name`    VARCHAR(99)            NOT NULL,
-            `session_token`   VARCHAR(254) DEFAULT NULL,
-            `origin`          BOOLEAN                NOT NULL,
-            `password`        VARCHAR(128)           NOT NULL,
-
-            `credits`         INT(255)     DEFAULT 0 NOT NULL,
-            `credits_spent`   INT(255)     DEFAULT 0 NOT NULL,
-            `games_played`    INT(255)     DEFAULT 0 NOT NULL,
-            `seconds_played`  BIGINT(255)  DEFAULT 0 NOT NULL,
-            `inventory`       TEXT                   NOT NULL,
-            `csreward`        INT(6)       DEFAULT 0 NOT NULL,
-            `face_codes`      TEXT         DEFAULT NULL,
-            `new_item`        TEXT         DEFAULT NULL,
-            `completion`      TEXT         DEFAULT NULL,
-            `progress`        TEXT         DEFAULT NULL,
-            `cs_completion`   TEXT         DEFAULT NULL,
-            `cs_timestamps_1` TEXT         DEFAULT NULL,
-            `cs_timestamps_2` TEXT         DEFAULT NULL,
-            `cs_timestamps_3` TEXT         DEFAULT NULL
-        );
-    """.trimIndent()
-
-    @Language("MySQL")
-    private fun playerClassesTable(): String = """
-        -- Player Classes Table
-        CREATE TABLE IF NOT EXISTS `player_classes`
-        (
-            `id`         INT(255) NOT NULL PRIMARY KEY AUTO_INCREMENT,
-            `player_id`  INT(255) NOT NULL,
-            `index`      INT(2)   NOT NULL,
-            `name`       TEXT     NOT NULL,
-            `level`      INT(3)   NOT NULL,
-            `exp`        FLOAT(4) NOT NULL,
-            `promotions` INT(255) NOT NULL,
-        
-            FOREIGN KEY (`player_id`) REFERENCES `players` (`id`)
-        );
-    """.trimIndent()
-
-    @Language("MySQL")
-    private fun playerCharactersTable(): String = """
-         -- Player Characters Table
-        CREATE TABLE IF NOT EXISTS `player_characters`
-        (
-            `id`                INT(255)    NOT NULL PRIMARY KEY AUTO_INCREMENT,
-            `player_id`         INT(255)    NOT NULL,
-            `index`             INT(3)      NOT NULL,
-            `kit_name`          TEXT        NOT NULL,
-            `name`              TEXT        NOT NULL,
-            `tint1`             INT(4)      NOT NULL,
-            `tint2`             INT(4)      NOT NULL,
-            `pattern`           INT(4)      NOT NULL,
-            `pattern_color`     INT(4)      NOT NULL,
-            `phong`             INT(4)      NOT NULL,
-            `emissive`          INT(4)      NOT NULL,
-            `skin_tone`         INT(4)      NOT NULL,
-            `seconds_played`    BIGINT(255) NOT NULL,
-        
-            `timestamp_year`    INT(255)    NOT NULL,
-            `timestamp_month`   INT(255)    NOT NULL,
-            `timestamp_day`     INT(255)    NOT NULL,
-            `timestamp_seconds` INT(255)    NOT NULL,
-        
-            `powers`            TEXT        NOT NULL,
-            `hotkeys`           TEXT        NOT NULL,
-            `weapons`           TEXT        NOT NULL,
-            `weapon_mods`       TEXT        NOT NULL,
-        
-            `deployed`          BOOLEAN     NOT NULL,
-            `leveled_up`        BOOLEAN     NOT NULL,
-        
-            FOREIGN KEY (`player_id`) REFERENCES `players` (`id`)
-        );
-    """.trimIndent()
-
-    @Language("MySQL")
-    private fun playerGAWTable(): String = """
-        -- Galaxy At War Table
-        CREATE TABLE IF NOT EXISTS `player_gaw`
-        (
-            `id`            INT(255)    NOT NULL PRIMARY KEY AUTO_INCREMENT,
-            `player_id`     INT(255)    NOT NULL,
-            `last_modified` BIGINT(255) NOT NULL,
-            `group_a`       INT(8)      NOT NULL,
-            `group_b`       INT(8)      NOT NULL,
-            `group_c`       INT(8)      NOT NULL,
-            `group_d`       INT(8)      NOT NULL,
-            `group_e`       INT(8)      NOT NULL,
-
-            FOREIGN KEY (`player_id`) REFERENCES `players` (`id`)
-        );
-    """.trimIndent()
 
     /**
      * Transform the specified SQL create table query for
      * use in SQLite which is as simple as removing all the
-     * lengths from the data types and transforming them
+     * lengths from the models types and transforming them
      * to their SQLite form and removing the underscore
      * from AUTO_INCREMENT
      *
