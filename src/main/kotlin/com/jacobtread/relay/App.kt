@@ -2,7 +2,6 @@
 
 package com.jacobtread.relay
 
-import com.jacobtread.relay.command.CommandManager
 import com.jacobtread.relay.http.startHttpServer
 import com.jacobtread.relay.servers.startMainServer
 import com.jacobtread.relay.servers.startRedirector
@@ -24,7 +23,5 @@ fun main() {
     System.gc() // Cleanup after initialization
 
     Logger.info("Server startup complete.")
-
-    CommandManager.start()
 }
 
