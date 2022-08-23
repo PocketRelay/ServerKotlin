@@ -2,8 +2,8 @@ package com.jacobtread.relay.data.retriever
 
 import com.jacobtread.blaze.*
 import com.jacobtread.blaze.packet.Packet
-import com.jacobtread.relay.data.blaze.Commands
-import com.jacobtread.relay.data.blaze.Components
+import com.jacobtread.relay.blaze.Commands
+import com.jacobtread.relay.blaze.Components
 import com.jacobtread.relay.database.tables.PlayersTable
 import com.jacobtread.relay.utils.logging.Logger
 import io.netty.channel.Channel

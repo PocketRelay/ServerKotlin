@@ -2,7 +2,7 @@ package com.jacobtread.relay
 
 import com.jacobtread.blaze.logging.PacketLogger
 import com.jacobtread.relay.data.Constants
-import com.jacobtread.relay.data.blaze.DebugLoggingHandler
+import com.jacobtread.relay.blaze.DebugLoggingHandler
 import com.jacobtread.relay.data.retriever.OriginDetailsRetriever
 import com.jacobtread.relay.data.retriever.Retriever
 import com.jacobtread.relay.database.Database

@@ -4,8 +4,8 @@ import com.jacobtread.blaze.*
 import com.jacobtread.blaze.annotations.PacketHandler
 import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.relay.Environment
-import com.jacobtread.relay.data.blaze.Commands
-import com.jacobtread.relay.data.blaze.Components
+import com.jacobtread.relay.blaze.Commands
+import com.jacobtread.relay.blaze.Components
 import com.jacobtread.relay.data.getMapData
 import com.jacobtread.relay.data.getTextData
 import com.jacobtread.relay.sessions.Session

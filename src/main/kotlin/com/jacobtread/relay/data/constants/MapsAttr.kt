@@ -1,4 +1,4 @@
-package com.jacobtread.relay.data.attr
+package com.jacobtread.relay.data.constants
 
 enum class MapsAttr(
     val mapName: String,

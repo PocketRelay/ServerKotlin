@@ -1,4 +1,4 @@
-package com.jacobtread.relay.data.attr
+package com.jacobtread.relay.data.constants
 
 enum class EnemyTypeAttr(val enemyName: String, val key: String) {
     RANDOM("Unknown Enemy", "random"),

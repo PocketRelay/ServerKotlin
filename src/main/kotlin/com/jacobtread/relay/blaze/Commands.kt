@@ -1,4 +1,4 @@
-package com.jacobtread.relay.data.blaze
+package com.jacobtread.relay.blaze
 
 @Suppress("unused")
 object Commands {

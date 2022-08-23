@@ -1,4 +1,4 @@
-package com.jacobtread.relay.data.attr
+package com.jacobtread.relay.data.constants
 
 enum class DifficultyAttr(val difficultyName: String, val key: String) {
     BRONZE("Bronze", "difficulty0"),

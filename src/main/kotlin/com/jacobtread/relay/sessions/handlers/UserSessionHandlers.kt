@@ -4,9 +4,9 @@ import com.jacobtread.blaze.*
 import com.jacobtread.blaze.annotations.PacketHandler
 import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.blaze.tdf.types.GroupTdf
-import com.jacobtread.relay.data.blaze.Commands
-import com.jacobtread.relay.data.blaze.Components
-import com.jacobtread.relay.data.blaze.LoginError
+import com.jacobtread.relay.blaze.Commands
+import com.jacobtread.relay.blaze.Components
+import com.jacobtread.relay.blaze.LoginError
 import com.jacobtread.relay.database.tables.PlayersTable
 import com.jacobtread.relay.sessions.Session
 import com.jacobtread.relay.utils.logging.Logger

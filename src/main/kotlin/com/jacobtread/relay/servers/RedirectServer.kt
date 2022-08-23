@@ -9,8 +9,8 @@ import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.blaze.packet.Packet.Companion.addPacketHandlers
 import com.jacobtread.blaze.respond
 import com.jacobtread.relay.Environment
-import com.jacobtread.relay.data.blaze.Commands
-import com.jacobtread.relay.data.blaze.Components
+import com.jacobtread.relay.blaze.Commands
+import com.jacobtread.relay.blaze.Components
 import com.jacobtread.relay.utils.createServerSslContext
 import com.jacobtread.relay.utils.getIPv4Encoded
 import com.jacobtread.relay.utils.logging.Logger
