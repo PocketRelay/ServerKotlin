@@ -5,11 +5,9 @@ import com.jacobtread.relay.database.Database
 import com.jacobtread.relay.database.Table
 import com.jacobtread.relay.database.asList
 import com.jacobtread.relay.database.models.Player
-import com.jacobtread.relay.utils.Future
-import com.jacobtread.relay.utils.VoidFuture
 import org.intellij.lang.annotations.Language
 import java.sql.ResultSet
-import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CompletableFuture as Future
 
 object PlayersTable : Table {
 
@@ -106,7 +104,7 @@ object PlayersTable : Table {
             .thenApply { it.asPlayer() }
     }
 
-    fun setSessionToken(player: Player, sessionToken: String): VoidFuture {
+    fun setSessionToken(player: Player, sessionToken: String): Future<Void> {
         return Database
             .update("UPDATE `players` SET `session_token` = ? WHERE `id` = ?") {
                 setString(1, sessionToken)
@@ -114,7 +112,7 @@ object PlayersTable : Table {
             }
     }
 
-    fun setPlayerFully(player: Player): VoidFuture {
+    fun setPlayerFully(player: Player): Future<Void> {
         return Database.update(
             """
             UPDATE `players` SET 
@@ -146,7 +144,7 @@ object PlayersTable : Table {
         }
     }
 
-    fun setPlayerPartial(player: Player, key: String): VoidFuture {
+    fun setPlayerPartial(player: Player, key: String): Future<Void> {
         return when (key) {
             "Base" -> Database.update(
                 """
@@ -229,7 +227,7 @@ object PlayersTable : Table {
                 setBoolean(5, origin)
             }
             .thenCompose { keys ->
-                val future = CompletableFuture<Player>()
+                val future = Future<Player>()
                 if (!keys.next()) {
                     future.completeExceptionally(null)
                 } else {

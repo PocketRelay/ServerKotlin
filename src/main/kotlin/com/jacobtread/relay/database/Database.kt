@@ -1,11 +1,10 @@
 package com.jacobtread.relay.database
 
+import com.jacobtread.relay.database.Database.init
 import com.jacobtread.relay.database.tables.GalaxyAtWarTable
 import com.jacobtread.relay.database.tables.PlayerCharactersTable
 import com.jacobtread.relay.database.tables.PlayerClassesTable
 import com.jacobtread.relay.database.tables.PlayersTable
-import com.jacobtread.relay.utils.Future
-import com.jacobtread.relay.utils.VoidFuture
 import org.intellij.lang.annotations.Language
 import java.sql.Connection
 import java.sql.ResultSet
@@ -13,7 +12,7 @@ import java.sql.SQLException
 import java.sql.Statement
 import java.util.concurrent.Executors
 import java.util.regex.Pattern
-import kotlin.jvm.Throws
+import java.util.concurrent.CompletableFuture as Future
 
 /**
  * Central class for database connection and querying logic.
@@ -157,7 +156,7 @@ object Database {
     fun update(
         @Language("MySQL") query: String,
         setup: StatementSetup,
-    ): VoidFuture {
+    ): Future<Void> {
         return executeCatching { future ->
             val statement = connection.prepareStatement(query)
             statement.use {

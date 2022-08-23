@@ -4,12 +4,11 @@ import com.jacobtread.relay.database.tables.GalaxyAtWarTable
 import com.jacobtread.relay.database.tables.PlayerCharactersTable
 import com.jacobtread.relay.database.tables.PlayerClassesTable
 import com.jacobtread.relay.database.tables.PlayersTable
-import com.jacobtread.relay.utils.Future
 import com.jacobtread.relay.utils.MEStringParser
 import com.jacobtread.relay.utils.comparePasswordHash
 import com.jacobtread.relay.utils.generateRandomString
 import kotlinx.serialization.Serializable
-import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CompletableFuture as Future
 
 @Serializable
 data class Player(
@@ -136,7 +135,7 @@ data class Player(
             .append(secondsPlayed).append(";0;")
             .append(inventory)
             .toString()
-        return CompletableFuture.allOf(classesFuture, charactersFuture)
+        return Future.allOf(classesFuture, charactersFuture)
             .thenApply {
                 faceCodes?.apply { out["FaceCodes"] = this }
                 newItem?.apply { out["NewItem"] = this }

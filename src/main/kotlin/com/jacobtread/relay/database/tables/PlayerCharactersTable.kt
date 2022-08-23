@@ -5,10 +5,9 @@ import com.jacobtread.relay.database.Table
 import com.jacobtread.relay.database.asList
 import com.jacobtread.relay.database.models.Player
 import com.jacobtread.relay.database.models.PlayerCharacter
-import com.jacobtread.relay.utils.Future
-import com.jacobtread.relay.utils.VoidFuture
 import org.intellij.lang.annotations.Language
 import java.sql.ResultSet
+import java.util.concurrent.CompletableFuture as Future
 
 object PlayerCharactersTable : Table {
 
@@ -91,7 +90,7 @@ object PlayerCharactersTable : Table {
             }
     }
 
-    fun setByPlayer(player: Player, playerCharacter: PlayerCharacter): VoidFuture {
+    fun setByPlayer(player: Player, playerCharacter: PlayerCharacter): Future<Void> {
         return hasByPlayer(player, playerCharacter.index)
             .thenCompose { exists ->
                 @Language("MySQL")

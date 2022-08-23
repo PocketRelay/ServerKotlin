@@ -4,10 +4,9 @@ import com.jacobtread.relay.database.Database
 import com.jacobtread.relay.database.Table
 import com.jacobtread.relay.database.models.GalaxyAtWarData
 import com.jacobtread.relay.database.models.Player
-import com.jacobtread.relay.utils.Future
-import com.jacobtread.relay.utils.VoidFuture
 import org.intellij.lang.annotations.Language
 import java.sql.ResultSet
+import java.util.concurrent.CompletableFuture as Future
 
 object GalaxyAtWarTable : Table {
 
@@ -67,7 +66,7 @@ object GalaxyAtWarTable : Table {
             }
     }
 
-    fun setByPlayer(player: Player, galaxyAtWarData: GalaxyAtWarData): VoidFuture {
+    fun setByPlayer(player: Player, galaxyAtWarData: GalaxyAtWarData): Future<Void> {
         return hasByPlayer(player)
             .thenCompose { exists ->
                 @Language("MySQL")
