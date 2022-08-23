@@ -12,7 +12,7 @@ import com.jacobtread.relay.blaze.Commands
 import com.jacobtread.relay.blaze.Components
 import com.jacobtread.relay.blaze.LoginError
 import com.jacobtread.relay.database.models.Player
-import com.jacobtread.relay.exceptions.GameException
+import com.jacobtread.relay.game.GameException
 import com.jacobtread.relay.game.Game
 import com.jacobtread.relay.game.match.Matchmaking
 import com.jacobtread.relay.utils.getIPv4Encoded
