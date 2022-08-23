@@ -13,6 +13,7 @@ import io.netty.channel.ChannelInitializer
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import java.io.IOException
+import java.util.concurrent.CompletableFuture as Future
 
 /**
  * startMainServer Starts the main server
@@ -20,7 +21,8 @@ import java.io.IOException
  * @param bossGroup The netty boss event loop group
  * @param workerGroup The netty worker event loop group
  */
-fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
+fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup): Future<Void>{
+    val startupFuture = Future<Void>()
     val mitm = Environment.mitmEnabled
 
     val name: String
@@ -65,11 +67,13 @@ fun startMainServer(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
             })
             // Bind the server to the host and port
             .bind(Environment.mainPort)
-            // Wait for the channel to bind
-            .sync()
-        Logger.info("Started $name server on port ${Environment.mainPort}")
+            .addListener {
+                Logger.info("Started $name server on port ${Environment.mainPort}")
+                startupFuture.complete(null)
+            }
     } catch (e: IOException) {
         val reason = e.message ?: e.javaClass.simpleName
         Logger.fatal("Unable to start $name server: $reason")
     }
+    return startupFuture
 }
