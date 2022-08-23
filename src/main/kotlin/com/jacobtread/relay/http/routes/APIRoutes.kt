@@ -6,6 +6,9 @@ import com.jacobtread.netty.http.router.group
 import com.jacobtread.netty.http.router.middlewareGroup
 import com.jacobtread.relay.Environment
 import com.jacobtread.relay.data.Constants
+import com.jacobtread.relay.database.tables.PlayerCharactersTable
+import com.jacobtread.relay.database.tables.PlayerClassesTable
+import com.jacobtread.relay.database.tables.PlayersTable
 import com.jacobtread.relay.exceptions.DatabaseException
 import com.jacobtread.relay.game.Game
 import com.jacobtread.relay.http.contentJson
@@ -16,6 +19,7 @@ import com.jacobtread.relay.http.responseJson
 import com.jacobtread.relay.utils.logging.Logger
 import io.netty.handler.codec.http.HttpResponseStatus
 import kotlinx.serialization.json.put
+import java.util.concurrent.ExecutionException
 
 fun RoutingGroup.routeApi() {
     group("api") {
@@ -72,10 +76,10 @@ private fun RoutingGroup.routePlayers() {
         val offset = queryInt("offset", default = 0)
         val count = queryInt("count", default = 10)
         try {
-            val database = Environment.database
-            val players = database.getPlayers(offset, count)
+            val players = PlayersTable.getList(offset, count)
+                .get()
             responseJson(players)
-        } catch (e: DatabaseException) {
+        } catch (e: ExecutionException) {
             Logger.error("Error while retrieving players", e)
             throwServerError()
         }
@@ -87,17 +91,18 @@ private fun RoutingGroup.routePlayer() {
     get("players/:id") {
         val id = paramInt("id")
         try {
-            val database = Environment.database
-            val player = database.getPlayerById(id)
-                ?: throw HttpException(HttpResponseStatus.NOT_FOUND)
-            val characters = database.getPlayerCharacters(player)
-            val classes = database.getPlayerClasses(player)
+            val player = PlayersTable.getByID(id)
+                .get() ?: throw HttpException(HttpResponseStatus.NOT_FOUND)
+            val characters = PlayerCharactersTable.getByPlayer(player)
+                .get()
+            val classes = PlayerClassesTable.getByPlayer(player)
+                .get()
             val charactersSerial = characters.map {
                 CharacterSerializable(it.index, it.kitName, it.name, it.deployed)
             }
             val playerData = FullPlayerData(player, classes, charactersSerial)
             responseJson(playerData)
-        } catch (e: DatabaseException) {
+        } catch (e: ExecutionException) {
             Logger.error("Error while retrieving player", e)
             throwServerError()
         }
@@ -109,14 +114,13 @@ private fun RoutingGroup.routeUpdatePlayer() {
         val id = paramInt("id")
         val playerUpdate = contentJson<PlayerUpdate>()
         try {
-            val database = Environment.database
-            val player = database.getPlayerById(id)
-                ?: throw HttpException(HttpResponseStatus.NOT_FOUND)
+            val player = PlayersTable.getByID(id)
+                .get() ?: throw HttpException(HttpResponseStatus.NOT_FOUND)
             player.displayName = playerUpdate.displayName
             player.credits = playerUpdate.credits
             player.inventory = playerUpdate.inventory
             player.csReward = playerUpdate.csReward
-            Environment.database.updatePlayerFully(player)
+            PlayersTable.setPlayerFully(player)
             response(HttpResponseStatus.OK)
         } catch (e: DatabaseException) {
             Logger.error("Error while updating player", e)

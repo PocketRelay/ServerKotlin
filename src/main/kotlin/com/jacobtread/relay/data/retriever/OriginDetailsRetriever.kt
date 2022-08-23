@@ -4,6 +4,7 @@ import com.jacobtread.blaze.*
 import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.relay.data.blaze.Commands
 import com.jacobtread.relay.data.blaze.Components
+import com.jacobtread.relay.database.tables.PlayersTable
 import com.jacobtread.relay.utils.logging.Logger
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
@@ -78,10 +79,21 @@ object OriginDetailsRetriever {
                             )
 
                             if (isDataFetchingEnabled) {
-                                Logger.logIfDebug { "Attempting to fetch settings from origin" }
-                                // Send a request for the user settings
-                                val packet = clientPacket(Components.UTIL, Commands.USER_SETTINGS_LOAD_ALL, 0x2) {}
-                                serverChannel?.writeAndFlush(packet)
+                                Logger.logIfDebug { "Checking database for existing origin player data" }
+
+                                PlayersTable.hasOriginData(originDetails!!)
+                                    .thenApplyAsync {exists ->
+                                        if (exists) {
+                                            Logger.logIfDebug { "Origin data already in database skipping download." }
+                                            ctx.close()
+                                        } else {
+                                            Logger.logIfDebug { "Attempting to fetch settings from origin" }
+                                            // Send a request for the user settings
+                                            val packet = clientPacket(Components.UTIL, Commands.USER_SETTINGS_LOAD_ALL, 0x2) {}
+                                            serverChannel?.writeAndFlush(packet)
+                                        }
+                                    }
+
                             } else {
                                 // Close to mark as finished
                                 ctx.close()

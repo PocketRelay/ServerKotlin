@@ -1,10 +1,15 @@
 package com.jacobtread.relay.database.data
 
-import com.jacobtread.relay.Environment
+import com.jacobtread.relay.database.tables.GalaxyAtWarTable
+import com.jacobtread.relay.database.tables.PlayerCharactersTable
+import com.jacobtread.relay.database.tables.PlayerClassesTable
+import com.jacobtread.relay.database.tables.PlayersTable
+import com.jacobtread.relay.utils.Future
 import com.jacobtread.relay.utils.MEStringParser
 import com.jacobtread.relay.utils.comparePasswordHash
 import com.jacobtread.relay.utils.generateRandomString
 import kotlinx.serialization.Serializable
+import java.util.concurrent.CompletableFuture
 
 @Serializable
 data class Player(
@@ -25,96 +30,63 @@ data class Player(
      */
     var displayName: String,
     private val password: String,
-    private var sessionToken: String?,
+    private var sessionToken: String? = null,
     /**
      * The total number of usable credits that this player has
      */
-    var credits: Int,
+    var credits: Int = 0,
     /**
      * The total number of credits that this player has spent
      */
-    var creditsSpent: Int,
+    var creditsSpent: Int = 0,
     /**
      * The total number of games that this player has played
      */
-    var gamesPlayed: Int,
+    var gamesPlayed: Int = 0,
     /**
      * The total number of seconds that this player has spent
      * inside of games.
      */
-    var secondsPlayed: Long,
+    var secondsPlayed: Long = 0,
     /**
      * List of values representing the amount/level of each
      * inventory item this player has.
      */
-    var inventory: String,
+    var inventory: String = "",
 
-    var faceCodes: String?,
-    var newItem: String?,
+    var faceCodes: String? = null,
+    var newItem: String? = null,
 
     /**
      * The challenge reward banner to display behind the player profile
      * see the known values listed in [com.jacobtread.relay.data.constants.ChallengeRewards]
      */
-    var csReward: Int,
+    var csReward: Int = 0,
 
-    var completion: String?,
-    var progress: String?,
-    var cscompletion: String?,
-    var cstimestamps1: String?,
-    var cstimestamps2: String?,
-    var cstimestamps3: String?,
+    var completion: String? = null,
+    var progress: String? = null,
+    var cscompletion: String? = null,
+    var cstimestamps1: String? = null,
+    var cstimestamps2: String? = null,
+    var cstimestamps3: String? = null,
 ) {
 
-    init {
-        // makeGod()
-    }
-
-    fun makeGod() {
-        inventory = "F".repeat(1342)
-        credits = Int.MAX_VALUE - (Int.MAX_VALUE / 24)
-        csReward = 154
-        val completionBuilder = StringBuilder("22")
-        repeat(221) { completionBuilder.append(",255") }
-        completion = completionBuilder.toString()
-        Environment.database.updatePlayerFully(this)
-        val classes = Environment.database.getPlayerClasses(this)
-        classes.forEach { playerClass ->
-            playerClass.level = 20
-            playerClass.promotions = 200
-            Environment.database.setPlayerClass(this, playerClass)
-        }
-
-        val characters = Environment.database.getPlayerCharacters(this)
-        characters.forEach { playerCharacter ->
-            val powers = playerCharacter.getParsedPowers()
-            if (powers.isNotEmpty()) {
-                powers.forEach {
-                    it.level = 6.000f
-                    it.rank4 = 3
-                    it.rank5 = 3
-                    it.rank6 = 3
+    fun getGalaxyAtWarData(): Future<GalaxyAtWarData> {
+        return GalaxyAtWarTable.getByPlayer(this)
+            .thenApply { value ->
+                value.applyDecay()
+                if (value.isModified) {
+                    GalaxyAtWarTable.setByPlayer(this, value)
                 }
-                playerCharacter.setPowersFromParsed(powers)
-                Environment.database.setPlayerCharacter(this, playerCharacter)
+                value
             }
-        }
-    }
-
-    fun getGalaxyAtWarData(): GalaxyAtWarData {
-        val value = Environment.database.getGalaxyAtWarData(this)
-        value.applyDecay()
-        if (value.isModified) {
-            Environment.database.setGalaxyAtWarData(this, value)
-        }
-        return value
     }
 
     fun getSessionToken(): String {
         var sessionToken = sessionToken
         if (sessionToken == null) {
             sessionToken = generateRandomString(128)
-            Environment.database.setPlayerSessionToken(this, sessionToken)
+            PlayersTable.setSessionToken(this, sessionToken)
         }
         return sessionToken
     }
@@ -129,42 +101,34 @@ data class Player(
         return comparePasswordHash(password, this.password)
     }
 
-    fun getTotalPromotions(): Int {
-        val classes = Environment.database.getPlayerClasses(this)
-        return classes.sumOf { it.promotions }
+    fun getTotalPromotions(): Future<Int> {
+        return PlayerClassesTable.getByPlayer(this)
+            .thenApply { clases -> clases.sumOf { it.promotions } }
     }
 
-    fun getN7Rating(): Int {
-        val classes = Environment.database.getPlayerClasses(this)
-        var level = 0
-        var promotions = 0
-        classes.forEach {
-            level += it.level
-            promotions += it.promotions
-        }
-        return level + promotions * 30
+    fun getN7Rating(): Future<Int> {
+        return PlayerClassesTable.getByPlayer(this)
+            .thenApply { classes ->
+                var level = 0
+                var promotions = 0
+                classes.forEach {
+                    level += it.level
+                    promotions += it.promotions
+                }
+                level + promotions * 30
+            }
     }
 
-    fun createSettingsMap(): LinkedHashMap<String, String> {
+    fun createSettingsMap(): Future<Map<String, String>> {
         val out = LinkedHashMap<String, String>()
-
-        val classes = Environment.database.getPlayerClasses(this)
-        val characters = Environment.database.getPlayerCharacters(this)
-
-        classes.forEach { out[it.getKey()] = it.toEncoded() }
-        characters.forEach { out[it.getKey()] = it.toEncoded() }
-
-        faceCodes?.apply { out["FaceCodes"] = this }
-        newItem?.apply { out["NewItem"] = this }
-        out["csreward"] = csReward.toString()
-
-        completion?.apply { out["Completion"] = this }
-        progress?.apply { out["Progress"] = this }
-        cscompletion?.apply { out["cscompletion"] = this }
-        cstimestamps1?.apply { out["cstimestamps"] = this }
-        cstimestamps2?.apply { out["cstimestamps2"] = this }
-        cstimestamps3?.apply { out["cstimestamps3"] = this }
-
+        val classesFuture = PlayerClassesTable.getByPlayer(this)
+            .thenApply { classes ->
+                classes.forEach { out[it.getKey()] = it.toEncoded() }
+            }
+        val charactersFuture = PlayerCharactersTable.getByPlayer(this)
+            .thenApply { characters ->
+                characters.forEach { out[it.getKey()] = it.toEncoded() }
+            }
         val settingsBase = StringBuilder("20;4;")
             .append(credits).append(";-1;0;")
             .append(creditsSpent).append(";0;")
@@ -172,9 +136,21 @@ data class Player(
             .append(secondsPlayed).append(";0;")
             .append(inventory)
             .toString()
-        out["Base"] = settingsBase
+        return CompletableFuture.allOf(classesFuture, charactersFuture)
+            .thenApply {
+                faceCodes?.apply { out["FaceCodes"] = this }
+                newItem?.apply { out["NewItem"] = this }
+                out["csreward"] = csReward.toString()
 
-        return out
+                completion?.apply { out["Completion"] = this }
+                progress?.apply { out["Progress"] = this }
+                cscompletion?.apply { out["cscompletion"] = this }
+                cstimestamps1?.apply { out["cstimestamps"] = this }
+                cstimestamps2?.apply { out["cstimestamps2"] = this }
+                cstimestamps3?.apply { out["cstimestamps3"] = this }
+                out["Base"] = settingsBase
+                out
+            }
     }
 
     fun setPlayerDataBulk(map: Map<String, String>) {
@@ -193,10 +169,9 @@ data class Player(
             }
         }
 
-        val database = Environment.database
-        database.updatePlayerFully(this)
-        classes.forEach { database.setPlayerClass(this, it) }
-        characters.forEach { database.setPlayerCharacter(this, it) }
+        PlayersTable.setPlayerFully(this)
+        classes.forEach { PlayerClassesTable.setByPlayer(this, it) }
+        characters.forEach { PlayerCharactersTable.setByPlayer(this, it) }
     }
 
     private fun setPlayerDataOther(key: String, value: String) {
@@ -229,13 +204,13 @@ data class Player(
     fun setPlayerData(key: String, value: String) {
         if (key.startsWith("class")) {
             val playerClass = PlayerClass.createFromKeyValue(key, value)
-            Environment.database.setPlayerClass(this, playerClass)
+            PlayerClassesTable.setByPlayer(this, playerClass)
         } else if (key.startsWith("char")) {
             val playerCharacter = PlayerCharacter.createFromKeyValue(key, value)
-            Environment.database.setPlayerCharacter(this, playerCharacter)
+            PlayerCharactersTable.setByPlayer(this, playerCharacter)
         } else {
             setPlayerDataOther(key, value)
-            Environment.database.setUpdatedPlayerData(this, key)
+            PlayersTable.setPlayerPartial(this, key)
         }
     }
 }

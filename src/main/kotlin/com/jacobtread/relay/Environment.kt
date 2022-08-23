@@ -5,10 +5,8 @@ import com.jacobtread.relay.data.Constants
 import com.jacobtread.relay.data.blaze.DebugLoggingHandler
 import com.jacobtread.relay.data.retriever.OriginDetailsRetriever
 import com.jacobtread.relay.data.retriever.Retriever
-import com.jacobtread.relay.database.adapter.DatabaseAdapter
-import com.jacobtread.relay.database.adapter.sql.MySQLDatabaseAdapter
-import com.jacobtread.relay.database.adapter.sql.SQLiteDatabaseAdapter
-import com.jacobtread.relay.exceptions.DatabaseException
+import com.jacobtread.relay.database.RuntimeDriver
+import com.jacobtread.relay.database.Database
 import com.jacobtread.relay.utils.logging.Logger
 import java.io.IOException
 import java.nio.file.Files
@@ -25,8 +23,6 @@ import java.util.*
  * @constructor Create empty Environment
  */
 object Environment {
-
-    val database: DatabaseAdapter
 
     val externalAddress: String
 
@@ -122,27 +118,24 @@ object Environment {
         // Database configuration
         val databaseType = env.stringValue("RELAY_DATABASE_TYPE", "database.type", "sqlite")
             .lowercase()
-        database = when (databaseType) {
+        when (databaseType) {
             "mysql" -> {
                 val host = env.stringValue("RELAY_MYSQL_HOST", "database.host", "127.0.0.1")
                 val port = env.intValue("RELAY_MYSQL_PORT", "database.port", 3306)
                 val user = env.stringValue("RELAY_MYSQL_USER", "database.user", "root")
                 val password = env.stringValue("RELAY_MYSQL_PASSWORD", "database.password", "password")
                 val database = env.stringValue("RELAY_MYSQL_DATABASE", "database.db", "relay")
-                MySQLDatabaseAdapter(host, port, user, password, database)
+                val connection = RuntimeDriver.createMySQLConnection(host, port, user, password, database)
+                Database.init(connection, false)
             }
 
             "sqlite" -> {
                 val file = env.stringValue("RELAY_SQLITE_FILE", "database.file", "data/app.db")
-                SQLiteDatabaseAdapter(file)
+                val connection = RuntimeDriver.createSQLiteConnection(file)
+                Database.init(connection, true)
             }
 
             else -> Logger.fatal("Unknwon database type: $databaseType (expected mysql, or sqlite)")
-        }
-        try {
-            database.setup()
-        } catch (e: DatabaseException) {
-            Logger.fatal("Failed to setup database", e)
         }
 
         val retrieverEnabled = env.booleanValue("RELAY_RETRIEVE_OFFICIAL", "retriever.enabled", true)

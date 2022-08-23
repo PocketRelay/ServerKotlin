@@ -126,11 +126,13 @@ fun Session.handleFetchClientConfig(packet: Packet) {
                 getMapData("entitlements.dmap")
                     ?: Logger.fatal("Missing entitlements data. Try redownloading the server")
             }
+
             "ME3_DIME" -> {
                 val dime = getTextData("dime.xml")
                     ?: Logger.fatal("Missing dime data. Try redownloading the server")
                 mapOf("Config" to dime)
             }
+
             "ME3_BINI_VERSION" -> mapOf("SECTION" to "BINI_PC_COMPRESSED", "VERSION" to "40128")
             "ME3_BINI_PC_COMPRESSED" -> {
                 getMapData("coalesced.dmap")
@@ -291,7 +293,10 @@ fun Session.handleUserSettingsSave(packet: Packet) {
 @PacketHandler(Components.UTIL, Commands.USER_SETTINGS_LOAD_ALL)
 fun Session.handleUserSettingsLoadAll(packet: Packet) {
     val playerEntity = player ?: throw NotAuthenticatedException()
-    push(packet.respond {
-        map("SMAP", playerEntity.createSettingsMap())
-    })
+    playerEntity.createSettingsMap()
+        .thenApplyAsync { settings ->
+            push(packet.respond {
+                map("SMAP", settings)
+            })
+        }
 }

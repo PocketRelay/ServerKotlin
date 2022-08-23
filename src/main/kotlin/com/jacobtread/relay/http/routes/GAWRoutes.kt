@@ -1,17 +1,19 @@
 package com.jacobtread.relay.http.routes
 
-import com.jacobtread.relay.Environment
-import com.jacobtread.relay.database.data.GalaxyAtWarData
-import com.jacobtread.relay.database.data.Player
-import com.jacobtread.relay.exceptions.DatabaseException
-import com.jacobtread.relay.http.responseXml
-import com.jacobtread.relay.utils.logging.Logger
-import com.jacobtread.relay.utils.unixTimeSeconds
 import com.jacobtread.netty.http.HttpResponse
 import com.jacobtread.netty.http.router.RoutingGroup
 import com.jacobtread.netty.http.router.group
 import com.jacobtread.netty.http.throwBadRequest
 import com.jacobtread.netty.http.throwServerError
+import com.jacobtread.relay.Environment
+import com.jacobtread.relay.database.data.GalaxyAtWarData
+import com.jacobtread.relay.database.data.Player
+import com.jacobtread.relay.database.tables.GalaxyAtWarTable
+import com.jacobtread.relay.database.tables.PlayersTable
+import com.jacobtread.relay.http.responseXml
+import com.jacobtread.relay.utils.logging.Logger
+import com.jacobtread.relay.utils.unixTimeSeconds
+import java.util.concurrent.ExecutionException
 
 /**
  * routeGroupGAW Adds routing for the galaxy at war
@@ -34,8 +36,8 @@ private fun RoutingGroup.routeAuthentication() {
     get("authentication/sharedTokenLogin") {
         val playerId = queryInt("auth", 16)
         try {
-            val database = Environment.database
-            val player = database.getPlayerById(playerId) ?: throwBadRequest()
+            val player = PlayersTable.getByID(playerId)
+                .get() ?: throwBadRequest()
             Logger.debug("Authenticated GAW User ${player.displayName}")
             val time = unixTimeSeconds()
             responseXml("fulllogin") {
@@ -65,7 +67,7 @@ private fun RoutingGroup.routeAuthentication() {
                 node("termsofserviceuri")
                 node("tosuri")
             }
-        } catch (e: DatabaseException) {
+        } catch (e: ExecutionException) {
             Logger.warn("Failed to authenticate gaw", e)
             throwServerError()
         }
@@ -80,11 +82,11 @@ private fun RoutingGroup.routeRatings() {
     get("galaxyatwar/getRatings/:id") {
         val playerId = paramInt("id", 16)
         try {
-            val database = Environment.database
-            val player = database.getPlayerById(playerId) ?: throwBadRequest()
-            val rating = player.getGalaxyAtWarData()
-            respondRatings(player, rating)
-        } catch (e: DatabaseException) {
+            val player = PlayersTable.getByID(playerId)
+                .get() ?: throwBadRequest()
+            val dataFuture = player.getGalaxyAtWarData()
+            respondRatings(player, dataFuture.get())
+        } catch (e: ExecutionException) {
             Logger.warn("Failed to get route ratings")
             throwServerError()
         }
@@ -98,21 +100,22 @@ private fun RoutingGroup.routeRatings() {
 private fun RoutingGroup.routeIncreaseRatings() {
     get("galaxyatwar/increaseRatings/:id") {
         try {
-            val database = Environment.database
             val playerId = paramInt("id", 16)
-            val player = database.getPlayerById(playerId) ?: throwBadRequest()
-            val rating = player.getGalaxyAtWarData()
-            rating.add(
+            val player = PlayersTable.getByID(playerId)
+                .get() ?: throwBadRequest()
+            val galaxyAtWarData = player.getGalaxyAtWarData()
+                .get()
+            galaxyAtWarData.add(
                 queryInt("rinc|0", default = 0),
                 queryInt("rinc|1", default = 0),
                 queryInt("rinc|2", default = 0),
                 queryInt("rinc|3", default = 0),
                 queryInt("rinc|4", default = 0)
             )
-            database.setGalaxyAtWarData(player, rating)
+            GalaxyAtWarTable.setByPlayer(player, galaxyAtWarData)
 
-            respondRatings(player, rating)
-        } catch (e: DatabaseException) {
+            respondRatings(player, galaxyAtWarData)
+        } catch (e: ExecutionException) {
             Logger.warn("Failed to increase ratings", e)
             throwServerError()
         }
@@ -129,7 +132,15 @@ private fun RoutingGroup.routeIncreaseRatings() {
  */
 private fun respondRatings(player: Player, rating: GalaxyAtWarData): HttpResponse {
     val level = rating.average
-    val promotions: Int = if (Environment.gawEnabledPromotions) player.getTotalPromotions() else 0
+    val promotions: Int = if (Environment.gawEnabledPromotions) {
+        try {
+            player.getTotalPromotions().get()
+        } catch (e: ExecutionException) {
+            0
+        }
+    } else {
+        0
+    }
     return responseXml("galaxyatwargetratings") {
         node("ratings") {
             textNode("ratings", rating.groupA)
