@@ -436,23 +436,35 @@ class Session(
         if (remoteAddress is InetSocketAddress) {
             val addr = remoteAddress.address
             if (addr is Inet4Address) {
-                var rawAddress = addr.hostAddress
-
-                /**
-                 * In cases where the server is running on the same network
-                 * or same machine as the client the external address must be
-                 * obtained using the public address of the server instead
-                 */
-                if (addr.isSiteLocalAddress || addr.isLoopbackAddress) {
-                    val publicAddress = getPublicAddress()
-                    if (publicAddress != null) rawAddress = publicAddress
-                }
-
+                val rawAddress = getAddressFrom(addr)
                 externalAddress = getIPv4Encoded(rawAddress)
                 externalPort = internalPort
             }
         }
 
+    }
+
+    /**
+     * Retrieves the IPv4 address that should be used for provided
+     * address. If the address is a local network or loopback address
+     * then [getPublicAddress] is called to find the public IP address
+     * of the server instead.
+     *
+     * @param addr The network address of the connection
+     * @return The IPv4 address to use
+     */
+    private fun getAddressFrom(addr: Inet4Address): String {
+        /**
+         * In cases where the server is running on the same network
+         * or same machine as the client the external address must be
+         * obtained using the public address of the server instead
+         */
+        if (addr.isSiteLocalAddress || addr.isLoopbackAddress) {
+            val publicAddress = getPublicAddress()
+            if (publicAddress != null) return publicAddress
+        }
+
+        return addr.hostAddress
     }
 
     /**
