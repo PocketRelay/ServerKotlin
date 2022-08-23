@@ -9,7 +9,8 @@ import java.sql.ResultSet
 import java.util.concurrent.CompletableFuture as Future
 
 /**
- * Table for storing player Galaxy At War data
+ * Table for storing player Galaxy At War data along with
+ * functions for accessing it based on specific players
  */
 object GalaxyAtWarTable : Table {
 

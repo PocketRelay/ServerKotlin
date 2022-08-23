@@ -142,7 +142,7 @@ fun Session.handleCreateAccount(packet: Packet) {
             } else {
                 val hashedPassword = hashPassword(password)
                 val displayName = email.take(99)
-                PlayersTable.createBasic(email, displayName, hashedPassword, false)
+                PlayersTable.create(email, displayName, hashedPassword, false)
                     .thenApplyAsync { player ->
                         doAuthenticate(player, packet, false)
                     }
