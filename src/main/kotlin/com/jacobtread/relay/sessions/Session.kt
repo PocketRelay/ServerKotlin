@@ -8,9 +8,9 @@ import com.jacobtread.blaze.logging.PacketLogger
 import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.blaze.tdf.types.GroupTdf
 import com.jacobtread.blaze.tdf.types.OptionalTdf
-import com.jacobtread.relay.data.blaze.LoginError
 import com.jacobtread.relay.data.blaze.Commands
 import com.jacobtread.relay.data.blaze.Components
+import com.jacobtread.relay.data.blaze.LoginError
 import com.jacobtread.relay.database.data.Player
 import com.jacobtread.relay.exceptions.GameException
 import com.jacobtread.relay.game.Game
@@ -20,8 +20,11 @@ import com.jacobtread.relay.utils.logging.Logger
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
+import java.io.IOException
+import java.net.HttpURLConnection
 import java.net.Inet4Address
 import java.net.InetSocketAddress
+import java.net.URL
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -304,6 +307,7 @@ class Session(
                 Logger.warn("Client caused game exception", cause)
                 push(packet.respond())
             }
+
             else -> {
                 Logger.warn("Failed to handle packet: $packet", cause)
                 super.handleException(ctx, cause, packet)
@@ -432,11 +436,43 @@ class Session(
         if (remoteAddress is InetSocketAddress) {
             val addr = remoteAddress.address
             if (addr is Inet4Address) {
-                externalAddress = getIPv4Encoded(addr.hostAddress)
+                var rawAddress = addr.hostAddress
+
+                /**
+                 * In cases where the server is running on the same network
+                 * or same machine as the client the external address must be
+                 * obtained using the public address of the server instead
+                 */
+                if (addr.isSiteLocalAddress || addr.isLoopbackAddress) {
+                    val publicAddress = getPublicAddress()
+                    if (publicAddress != null) rawAddress = publicAddress
+                }
+
+                externalAddress = getIPv4Encoded(rawAddress)
                 externalPort = internalPort
             }
         }
 
+    }
+
+    /**
+     * Queries the https://icanhazip.com/ service to get the public IP
+     * address of this server
+     *
+     * @return The public address of the server or null if unable to find
+     */
+    private fun getPublicAddress(): String? {
+        return try {
+            val url = URL("https://icanhazip.com/")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.doInput = true
+            val inputStream = connection.inputStream
+            val bytes = inputStream.use { it.readAllBytes() }
+            return String(bytes, Charsets.UTF_8)
+        } catch (e: IOException) {
+            Logger.warn("Failed to retrieve server public IP address: ${e.message ?: "UNKNOWN CAUSE"}")
+            null
+        }
     }
 
     /**
