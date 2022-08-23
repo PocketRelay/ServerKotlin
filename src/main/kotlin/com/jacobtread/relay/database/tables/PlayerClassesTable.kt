@@ -28,6 +28,13 @@ object PlayerClassesTable : Table {
         );
     """.trimIndent()
 
+    /**
+     * Function for converting data stored on a [ResultSet]
+     * into a [PlayerClass] object. Will return null if there
+     * is no rows in the [ResultSet]
+     *
+     * @return The player class data or null
+     */
     private fun ResultSet.asPlayerClass(): PlayerClass? {
         if (!next()) return null
         return PlayerClass(
@@ -39,6 +46,12 @@ object PlayerClassesTable : Table {
         )
     }
 
+    /**
+     * Retrieves the player classes for the provided player
+     *
+     * @param player The player to get classes for
+     * @return The future with the value of the player classes list
+     */
     fun getByPlayer(player: Player): Future<ArrayList<PlayerClass>> {
         return Database
             .query("SELECT * FROM `player_classes` WHERE `player_id` = ?") {
@@ -47,6 +60,14 @@ object PlayerClassesTable : Table {
             .thenApply { outer -> outer.asList { inner -> inner.asPlayerClass() } }
     }
 
+    /**
+     * Checks whether the provided player has a class at
+     * the provided index.
+     *
+     * @param player The player to check
+     * @param index The index to check
+     * @return The future with the value of whether the player has a class at that index
+     */
     private fun hasByPlayer(player: Player, index: Int): Future<Boolean> {
         return Database
             .exists("SELECT `id` FROM `player_classes` WHERE `player_id` = ? AND `index` = ?") {
@@ -55,6 +76,14 @@ object PlayerClassesTable : Table {
             }
     }
 
+    /**
+     * Sets the provided player class for the provided player
+     * will create a new player class row or update existing ones
+     *
+     * @param player The player to set the class for
+     * @param playerClass The player class data
+     * @return The future for the update
+     */
     fun setByPlayer(player: Player, playerClass: PlayerClass): Future<Void> {
         return hasByPlayer(player, playerClass.index)
             .thenCompose { exists ->
