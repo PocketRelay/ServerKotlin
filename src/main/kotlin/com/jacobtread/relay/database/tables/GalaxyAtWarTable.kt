@@ -8,6 +8,9 @@ import org.intellij.lang.annotations.Language
 import java.sql.ResultSet
 import java.util.concurrent.CompletableFuture as Future
 
+/**
+ * Table for storing player Galaxy At War data
+ */
 object GalaxyAtWarTable : Table {
 
     @Language("MySQL")
@@ -28,6 +31,13 @@ object GalaxyAtWarTable : Table {
         );
     """.trimIndent()
 
+    /**
+     * Function for converting the data stored on a [ResultSet]
+     * into a [GalaxyAtWarData] object. Will return null if there
+     * is no rows in the [ResultSet]
+     *
+     * @return The galaxy at war data or null
+     */
     private fun ResultSet.asGalaxyAtWarData(): GalaxyAtWarData? {
         if (!next()) return null
         return GalaxyAtWarData(
@@ -40,13 +50,28 @@ object GalaxyAtWarTable : Table {
         )
     }
 
-    fun hasByPlayer(player: Player): Future<Boolean> {
+    /**
+     * Checks whether the provided [player] has galaxy at
+     * war data
+     *
+     * @param player The player to check
+     * @return The future with the value of whether the player has GAW data
+     */
+    private fun hasByPlayer(player: Player): Future<Boolean> {
         return Database
             .exists("SELECT * FROM `player_gaw` WHERE `player_id` = ? LIMIT 1") {
                 setInt(1, player.playerId)
             }
     }
 
+    /**
+     * Retrieves the Galaxy At War data for the provided player.
+     * Will create a new default galaxy at war data if the player
+     * doesn't have one already.
+     *
+     * @param player The player to get the galaxy at war data for
+     * @return The galaxy at war data for the player
+     */
     fun getByPlayer(player: Player): Future<GalaxyAtWarData> {
         return Database
             .query("SELECT * FROM `player_gaw` WHERE `player_id` = ? LIMIT 1") {
@@ -66,6 +91,14 @@ object GalaxyAtWarTable : Table {
             }
     }
 
+    /**
+     * Sets the Galaxy At War data for the provided [player]
+     * to  the provided [galaxyAtWarData]
+     *
+     * @param player The player the data belongs to
+     * @param galaxyAtWarData The galaxy at war data
+     * @return The future for when the update is complete
+     */
     fun setByPlayer(player: Player, galaxyAtWarData: GalaxyAtWarData): Future<Void> {
         return hasByPlayer(player)
             .thenCompose { exists ->
