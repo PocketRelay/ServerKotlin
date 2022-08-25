@@ -9,7 +9,8 @@ fun RoutingGroup.routeQOS() {
             textNode("numprobes", 0)
             textNode("qosport", 17499) // This is a port
             textNode("probesize", 0)
-            textNode("qosip", 2733913518) // This is a encoded ip address
+            // 162.244.53.174
+            textNode("qosip", 2733913518)
             textNode("requestid", 1)
             textNode("reqsecret", 0)
         }
