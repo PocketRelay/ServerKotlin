@@ -480,6 +480,8 @@ class Session(
             val inputStream = connection.inputStream
             val bytes = inputStream.use { it.readAllBytes() }
             return String(bytes, Charsets.UTF_8)
+                .replace("\n", "")
+                .trim()
         } catch (e: IOException) {
             Logger.warn("Failed to retrieve server public IP address: ${e.message ?: "UNKNOWN CAUSE"}")
             null
