@@ -474,7 +474,7 @@ class Session(
      */
     private fun getPublicAddress(): String? {
         return try {
-            val url = URL("https://icanhazip.com/")
+            val url = URL("https://ipv4.icanhazip.com/")
             val connection = url.openConnection() as HttpURLConnection
             connection.doInput = true
             val inputStream = connection.inputStream
