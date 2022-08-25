@@ -1,4 +1,4 @@
-package com.jacobtread.relay.exceptions
+package com.jacobtread.relay.game
 
 open class GameException : RuntimeException {
     constructor(message: String) : super(message)

@@ -50,13 +50,12 @@ fun getIPv4Encoded(value: String): ULong {
     val ipv4Regex = Regex("^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)(\\.(?!\$)|\$)){4}\$")
     if (value.matches(ipv4Regex)) { // Check if the address is an IPv4 Address
         val ipParts = value.split('.', limit = 4) // Split the address into 4 parts
-        require(ipParts.size == 4) { "Invalid IPv4 Address" } // Ensure that the address is 4 parts
-        // Encoding the address as an unsigned long value
-        return (ipParts[0].toULong() shl 24)
-            .or(ipParts[1].toULong() shl 16)
-            .or(ipParts[2].toULong() shl 8)
-            .or(ipParts[3].toULong())
-
+        if (ipParts.size == 4) {
+            return (ipParts[0].toULong() shl 24)
+                .or(ipParts[1].toULong() shl 16)
+                .or(ipParts[2].toULong() shl 8)
+                .or(ipParts[3].toULong())
+        }
     }
     return 0u
 }

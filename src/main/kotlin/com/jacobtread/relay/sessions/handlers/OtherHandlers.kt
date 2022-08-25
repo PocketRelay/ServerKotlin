@@ -5,8 +5,8 @@ import com.jacobtread.blaze.group
 import com.jacobtread.blaze.notify
 import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.blaze.respond
-import com.jacobtread.relay.data.blaze.Commands
-import com.jacobtread.relay.data.blaze.Components
+import com.jacobtread.relay.blaze.Commands
+import com.jacobtread.relay.blaze.Components
 import com.jacobtread.relay.sessions.Session
 
 /**

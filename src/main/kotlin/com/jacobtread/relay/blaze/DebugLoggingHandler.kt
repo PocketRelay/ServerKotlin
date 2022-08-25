@@ -1,4 +1,4 @@
-package com.jacobtread.relay.data.blaze
+package com.jacobtread.relay.blaze
 
 import com.jacobtread.blaze.logging.BlazeLoggingHandler
 import com.jacobtread.relay.utils.logging.Logger

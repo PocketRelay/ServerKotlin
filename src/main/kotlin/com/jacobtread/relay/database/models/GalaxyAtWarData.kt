@@ -1,4 +1,4 @@
-package com.jacobtread.relay.database.data
+package com.jacobtread.relay.database.models
 
 import com.jacobtread.relay.Environment
 import com.jacobtread.relay.utils.unixTimeDaysSince

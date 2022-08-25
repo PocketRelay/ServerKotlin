@@ -1,4 +1,4 @@
-package com.jacobtread.relay.database.data
+package com.jacobtread.relay.database.models
 
 import com.jacobtread.relay.utils.MEStringParser
 import kotlinx.serialization.Serializable

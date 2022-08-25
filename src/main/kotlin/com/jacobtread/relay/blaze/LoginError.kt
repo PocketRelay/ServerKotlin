@@ -1,4 +1,4 @@
-package com.jacobtread.relay.data.blaze
+package com.jacobtread.relay.blaze
 
 import com.jacobtread.blaze.error
 import com.jacobtread.blaze.packet.Packet

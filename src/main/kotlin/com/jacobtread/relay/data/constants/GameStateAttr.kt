@@ -1,4 +1,4 @@
-package com.jacobtread.relay.data.attr
+package com.jacobtread.relay.data.constants
 
 enum class GameStateAttr(val value: String, val intValue: Int = 0) {
     IN_LOBBY("IN_LOBBY", 130),

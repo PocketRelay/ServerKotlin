@@ -4,11 +4,10 @@ import com.jacobtread.blaze.*
 import com.jacobtread.blaze.annotations.PacketHandler
 import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.blaze.tdf.types.GroupTdf
-import com.jacobtread.relay.Environment
-import com.jacobtread.relay.data.blaze.LoginError
-import com.jacobtread.relay.data.blaze.Commands
-import com.jacobtread.relay.data.blaze.Components
-import com.jacobtread.relay.exceptions.DatabaseException
+import com.jacobtread.relay.blaze.Commands
+import com.jacobtread.relay.blaze.Components
+import com.jacobtread.relay.blaze.LoginError
+import com.jacobtread.relay.database.tables.PlayersTable
 import com.jacobtread.relay.sessions.Session
 import com.jacobtread.relay.utils.logging.Logger
 
@@ -23,20 +22,17 @@ import com.jacobtread.relay.utils.logging.Logger
  */
 @PacketHandler(Components.USER_SESSIONS, Commands.RESUME_SESSION)
 fun Session.handleResumeSession(packet: Packet) {
-    try {
-        val database = Environment.database
-        val sessionToken = packet.text("SKEY")
-        val player = database.getPlayerBySessionToken(sessionToken)
-        if (player == null) {
-            push(LoginError.INVALID_INFORMATION(packet))
-            return
+    val sessionToken = packet.text("SKEY")
+    PlayersTable.getBySessionToken(sessionToken)
+        .thenApplyAsync { player ->
+            if (player == null) {
+                push(LoginError.INVALID_INFORMATION(packet))
+            } else {
+                setAuthenticatedPlayer(player)
+            }
         }
-        setAuthenticatedPlayer(player)
-    } catch (e: DatabaseException) {
-        Logger.warn("Failed to resume session", e)
-    } finally {
-        push(packet.respond())
-    }
+        .exceptionallyAsync { Logger.warn("Failed to resume session", it) }
+        .whenCompleteAsync { _, _ -> push(packet.respond()) }
 }
 
 /**

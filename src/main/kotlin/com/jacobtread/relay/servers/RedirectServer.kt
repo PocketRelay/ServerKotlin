@@ -9,8 +9,8 @@ import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.blaze.packet.Packet.Companion.addPacketHandlers
 import com.jacobtread.blaze.respond
 import com.jacobtread.relay.Environment
-import com.jacobtread.relay.data.blaze.Commands
-import com.jacobtread.relay.data.blaze.Components
+import com.jacobtread.relay.blaze.Commands
+import com.jacobtread.relay.blaze.Components
 import com.jacobtread.relay.utils.createServerSslContext
 import com.jacobtread.relay.utils.getIPv4Encoded
 import com.jacobtread.relay.utils.logging.Logger
@@ -21,6 +21,7 @@ import io.netty.channel.ChannelInitializer
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import java.io.IOException
+import java.util.concurrent.CompletableFuture as Future
 
 /**
  * startRedirector
@@ -28,7 +29,8 @@ import java.io.IOException
  * @param bossGroup The netty boss event loop group
  * @param workerGroup The netty worker event loop group
  */
-fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup) {
+fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup): Future<Void> {
+    val startupFuture = Future<Void>()
     try {
         val listenPort = Environment.redirectorPort
         val externalAddress = Environment.externalAddress
@@ -47,12 +49,15 @@ fun startRedirector(bossGroup: NioEventLoopGroup, workerGroup: NioEventLoopGroup
                 }
             })
             .bind(listenPort)
-            .sync()
-        Logger.info("Started Redirector on port ${Environment.redirectorPort}")
+            .addListener {
+                Logger.info("Started Redirector on port ${Environment.redirectorPort}")
+                startupFuture.complete(null)
+            }
     } catch (e: IOException) {
         val reason = e.message ?: e.javaClass.simpleName
         Logger.fatal("Unable to start redirector server: $reason")
     }
+    return startupFuture
 }
 
 

@@ -4,15 +4,13 @@ import com.jacobtread.blaze.*
 import com.jacobtread.blaze.annotations.PacketHandler
 import com.jacobtread.blaze.packet.Packet
 import com.jacobtread.blaze.tdf.types.GroupTdf
-import com.jacobtread.relay.Environment
-import com.jacobtread.relay.data.blaze.LoginError
-import com.jacobtread.relay.data.blaze.Commands
-import com.jacobtread.relay.data.blaze.Components
-import com.jacobtread.relay.exceptions.DatabaseException
+import com.jacobtread.relay.blaze.Commands
+import com.jacobtread.relay.blaze.Components
+import com.jacobtread.relay.blaze.LoginError
+import com.jacobtread.relay.database.tables.PlayersTable
 import com.jacobtread.relay.sessions.Session
 import com.jacobtread.relay.utils.hashPassword
 import com.jacobtread.relay.utils.logging.Logger
-import java.io.IOException
 
 /**
  * Handles logins from clients using the origin system. This generates a
@@ -23,16 +21,15 @@ import java.io.IOException
 @PacketHandler(Components.AUTHENTICATION, Commands.ORIGIN_LOGIN)
 fun Session.handleOriginLogin(packet: Packet) {
     val auth = packet.text("AUTH")
-    val player = Environment.database.getOriginPlayer(auth)
-    if (player == null) {
-        // Failed to create origin account.
-        push(LoginError.SERVER_UNAVAILABLE(packet))
-        return
-    }
-
-    Logger.info("Authenticated Origin Account ${player.displayName}")
-
-    doAuthenticate(player, packet, true)
+    PlayersTable.getByOrigin(auth)
+        .thenApplyAsync { player ->
+            if (player == null) {
+                push(LoginError.SERVER_UNAVAILABLE(packet))
+            } else {
+                Logger.info("Authenticated Origin Account ${player.displayName}")
+                doAuthenticate(player, packet, true)
+            }
+        }
 }
 
 /**
@@ -85,22 +82,20 @@ fun Session.handleLogin(packet: Packet) {
         return push(LoginError.INVALID_EMAIL(packet))
     }
 
-    try {
-        val database = Environment.database
-
-        // Retrieve the player with this email or send an email not found error
-        val player = database.getPlayerByEmail(email) ?: return push(LoginError.EMAIL_NOT_FOUND(packet))
-
-        // Compare the provided password with the hashed password of the player
-        if (!player.isMatchingPassword(password)) { // If it's not the same password
-            return push(LoginError.WRONG_PASSWORD(packet))
+    PlayersTable.getByEmail(email)
+        .thenApplyAsync { player ->
+            if (player == null) {
+                push(LoginError.EMAIL_NOT_FOUND(packet))
+            } else if (!player.isMatchingPassword(password)) { // If it's not the same password
+                push(LoginError.WRONG_PASSWORD(packet))
+            } else {
+                doAuthenticate(player, packet, false)
+            }
         }
-
-        doAuthenticate(player, packet, false)
-    } catch (e: DatabaseException) {
-        Logger.warn("Failed to login player", e)
-        push(LoginError.SERVER_UNAVAILABLE(packet))
-    }
+        .exceptionally {
+            Logger.warn("Failed to login player", it)
+            push(LoginError.SERVER_UNAVAILABLE(packet))
+        }
 }
 
 /**
@@ -113,18 +108,20 @@ fun Session.handleLogin(packet: Packet) {
 fun Session.handleSilentLogin(packet: Packet) {
     val pid = packet.int("PID")
     val auth = packet.text("AUTH")
-    try {
-        val database = Environment.database
-        // Find the player with a matching ID or send an INVALID_ACCOUNT error
-        val player = database.getPlayerById(pid) ?: return push(LoginError.INVALID_ACCOUNT(packet))
-        // If the session token's don't match send INVALID_ACCOUNT error
-        if (!player.isSessionToken(auth)) return push(LoginError.INVALID_SESSION(packet))
-
-        doAuthenticate(player, packet, true)
-    } catch (e: IOException) {
-        Logger.warn("Failed silent login", e)
-        push(LoginError.SERVER_UNAVAILABLE(packet))
-    }
+    PlayersTable.getByID(pid)
+        .thenApplyAsync { player ->
+            if (player == null) {
+                push(LoginError.INVALID_ACCOUNT(packet))
+            } else if (!player.isSessionToken(auth)) {
+                push(LoginError.INVALID_SESSION(packet))
+            } else {
+                doAuthenticate(player, packet, true)
+            }
+        }
+        .exceptionallyAsync {
+            Logger.warn("Failed silent login", it)
+            push(LoginError.SERVER_UNAVAILABLE(packet))
+        }
 }
 
 
@@ -138,20 +135,28 @@ fun Session.handleSilentLogin(packet: Packet) {
 fun Session.handleCreateAccount(packet: Packet) {
     val email: String = packet.text("MAIL")
     val password: String = packet.text("PASS")
-    try {
-        val database = Environment.database
-        if (database.isEmailTaken(email)) {
-            push(LoginError.EMAIL_ALREADY_IN_USE(packet))
-            return
+    PlayersTable.isEmailTaken(email)
+        .thenApplyAsync { taken ->
+            if (taken) {
+                push(LoginError.EMAIL_ALREADY_IN_USE(packet))
+            } else {
+                val hashedPassword = hashPassword(password)
+                val displayName = email.take(99)
+                PlayersTable.create(email, displayName, hashedPassword, false)
+                    .thenApplyAsync { player ->
+                        doAuthenticate(player, packet, false)
+                    }
+                    .exceptionallyAsync {
+                        Logger.warn("Failed to create account", it)
+                        push(LoginError.SERVER_UNAVAILABLE(packet))
+                    }
+            }
+        }
+        .exceptionallyAsync {
+            Logger.warn("Failed to check if email exists", it)
+            push(LoginError.SERVER_UNAVAILABLE(packet))
         }
 
-        val hashedPassword = hashPassword(password)
-        val player = database.createPlayer(email, hashedPassword)
-        doAuthenticate(player, packet, false)
-    } catch (e: DatabaseException) {
-        Logger.warn("Failed to create account", e)
-        push(LoginError.SERVER_UNAVAILABLE(packet))
-    }
 }
 
 /**
