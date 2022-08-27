@@ -5,6 +5,7 @@ import com.jacobtread.relay.database.Database
 import com.jacobtread.relay.database.Table
 import com.jacobtread.relay.database.asList
 import com.jacobtread.relay.database.models.Player
+import com.jacobtread.relay.utils.logging.Logger
 import org.intellij.lang.annotations.Language
 import java.sql.ResultSet
 import java.util.concurrent.CompletableFuture as Future
@@ -301,12 +302,15 @@ object PlayersTable : Table {
                 setString(4, "") // Inventory
                 setBoolean(5, origin)
             }
-            .thenCompose { keys ->
+            .thenApply {
+                if (!it.next()) null
+                else it.getInt(1)
+            }
+            .thenCompose { id ->
                 val future = Future<Player>()
-                if (!keys.next()) {
+                if (id == null) {
                     future.completeExceptionally(null)
                 } else {
-                    val id = keys.getInt(1)
                     future.complete(Player(id, email, displayName, hashedPassword))
                 }
                 future
@@ -329,14 +333,15 @@ object PlayersTable : Table {
                 setString(1, details.email)
                 setBoolean(2, true)
             }
-            .thenCompose {
-                val player = it.asPlayer()
+            .thenApply { it.asPlayer() }
+            .thenCompose { player ->
                 if (player == null) {
                     createOrigin(details)
                 } else {
                     Future.completedFuture(player)
                 }
             }
+
     }
 
     /**
@@ -359,6 +364,7 @@ object PlayersTable : Table {
         ).thenApplyAsync { player ->
             val dataMap = details.dataMap
             if (dataMap.isNotEmpty()) {
+                Logger.logIfDebug { "Storing player origin details" }
                 player.setPlayerDataBulk(dataMap)
             }
             player
