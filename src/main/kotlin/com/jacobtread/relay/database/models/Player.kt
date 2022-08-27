@@ -118,38 +118,43 @@ data class Player(
             }
     }
 
-    fun createSettingsMap(): Future<Map<String, String>> {
-        val out = LinkedHashMap<String, String>()
-        val classesFuture = PlayerClassesTable.getByPlayer(this)
-            .thenApply { classes ->
-                classes.forEach { out[it.getKey()] = it.toEncoded() }
-            }
-        val charactersFuture = PlayerCharactersTable.getByPlayer(this)
-            .thenApply { characters ->
-                characters.forEach { out[it.getKey()] = it.toEncoded() }
-            }
-        val settingsBase = StringBuilder("20;4;")
-            .append(credits).append(";-1;0;")
-            .append(creditsSpent).append(";0;")
-            .append(gamesPlayed).append(';')
-            .append(secondsPlayed).append(";0;")
-            .append(inventory)
-            .toString()
-        return Future.allOf(classesFuture, charactersFuture)
-            .thenApply {
-                faceCodes?.apply { out["FaceCodes"] = this }
-                newItem?.apply { out["NewItem"] = this }
-                out["csreward"] = csReward.toString()
+    class SettingsMapLoader(private val player: Player) {
+        private val out = LinkedHashMap<String, String>()
 
-                completion?.apply { out["Completion"] = this }
-                progress?.apply { out["Progress"] = this }
-                cscompletion?.apply { out["cscompletion"] = this }
-                cstimestamps1?.apply { out["cstimestamps"] = this }
-                cstimestamps2?.apply { out["cstimestamps2"] = this }
-                cstimestamps3?.apply { out["cstimestamps3"] = this }
-                out["Base"] = settingsBase
-                out
-            }
+        fun load(): Future<Map<String, String>> {
+            val classesFuture = PlayerClassesTable.getByPlayer(player)
+                .thenApply { classes -> classes.forEach { out[it.getKey()] = it.toEncoded() } }
+            val charactersFuture = PlayerCharactersTable.getByPlayer(player)
+                .thenApply { characters -> characters.forEach { out[it.getKey()] = it.toEncoded() } }
+            val settingsBase = StringBuilder("20;4;")
+                .append(player.credits).append(";-1;0;")
+                .append(player.creditsSpent).append(";0;")
+                .append(player.gamesPlayed).append(';')
+                .append(player.secondsPlayed).append(";0;")
+                .append(player.inventory)
+                .toString()
+            return Future.allOf(classesFuture, charactersFuture)
+                .thenApply {
+                    player.faceCodes?.apply { out["FaceCodes"] = this }
+                    player.newItem?.apply { out["NewItem"] = this }
+                    out["csreward"] = player.csReward.toString()
+
+                    player.completion?.apply { out["Completion"] = this }
+                    player.progress?.apply { out["Progress"] = this }
+                    player.cscompletion?.apply { out["cscompletion"] = this }
+                    player.cstimestamps1?.apply { out["cstimestamps"] = this }
+                    player.cstimestamps2?.apply { out["cstimestamps2"] = this }
+                    player.cstimestamps3?.apply { out["cstimestamps3"] = this }
+                    out["Base"] = settingsBase
+                    out
+                }
+        }
+
+    }
+
+    fun createSettingsMap(): Future<Map<String, String>> {
+        val loader = SettingsMapLoader(this)
+        return loader.load()
     }
 
     fun setPlayerDataBulk(map: Map<String, String>) {

@@ -202,21 +202,6 @@ fun Session.handlePostAuth(packet: Packet) {
         //  telemetryAddress = "reports.tools.gos.ea.com:9988"
         //  tickerAddress = "waleu2.tools.gos.ea.com:8999"
 
-        +group("TELE") {
-            text("ADRS", "127.0.0.1") // Server Address
-            number("ANON", 0)
-            text("DISA", "**")
-            text("FILT", "-UION/****") // Telemetry filter?
-            number("LOC", 1701725253)
-            text("NOOK", "US,CA,MX")
-            number("PORT", 9988)
-            number("SDLY", 15000)
-            text("SESS", "JMhnT9dXSED")
-            text("SKEY", "")
-            number("SPCT", 0x4B)
-            text("STIM", "")
-        }
-
         +group("TICK") {
             text("ADRS", "127.0.0.1")
             number("port", 9988)
