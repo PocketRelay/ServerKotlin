@@ -9,7 +9,6 @@ import com.jacobtread.relay.servers.startRedirector
 import com.jacobtread.relay.servers.startTelemetryServer
 import com.jacobtread.relay.utils.logging.Logger
 import io.netty.channel.nio.NioEventLoopGroup
-import startSyncServer
 import java.util.concurrent.CompletableFuture as Future
 
 fun main() {
@@ -22,7 +21,6 @@ fun main() {
         startRedirector(bossGroup, workerGroup),
         startHttpServer(bossGroup, workerGroup),
         startMainServer(bossGroup, workerGroup),
-        startSyncServer(bossGroup, workerGroup),
         startTelemetryServer(bossGroup, workerGroup),
         startQOSServer(bossGroup, workerGroup)
     ).get()
