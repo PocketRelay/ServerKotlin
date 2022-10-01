@@ -18,8 +18,9 @@ docker pull jacobtread/kme:latest
 
 ## Prerequisites
 - The server executable (This can be found in the releases [HERE](https://github.com/jacobtread/KME3/releases/latest))
-- Minimum Java 11 (If you would like to use another Java version you must recompile KME against that version)
-    - Oracle: ([https://www.oracle.com/java/technologies/downloads/](https://www.oracle.com/java/technologies/downloads/))
+- Minimum Java JDK 11 (If you would like to use another Java version you must recompile KME against that version) The following are some JDK's that I would recommend you use but you can also use OpenJDK if you wish
+    - Eclipse Adoptium ([https://adoptium.net/temurin/releases](https://adoptium.net/temurin/releases))
+    - GraalVM ([https://www.graalvm.org/downloads/](https://www.graalvm.org/downloads/))
 
 
 ### 1. Preparing
