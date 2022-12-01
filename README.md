@@ -8,8 +8,6 @@ This version of the server is no longer being maintained and is being replaced b
 server [Here (https://github.com/PocketRelay/ServerRust)](https://github.com/PocketRelay/ServerRust). This version will
 no longer recieve updates. 
 
-This verison of the server
-
 [Discord Server (https://discord.gg/yvycWW8RgR)](https://discord.gg/yvycWW8RgR)
 
 Pocket Relay is a custom private server for Mass Effect 3 emulating the functionatlity of the official EA servers
