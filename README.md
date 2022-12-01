@@ -3,10 +3,15 @@
 ![License](https://img.shields.io/github/license/jacobtread/PocketRelay?style=for-the-badge)
 [![Gradle Build](https://img.shields.io/github/workflow/status/jacobtread/PocketRelay/gradle-build?style=for-the-badge)](https://github.com/jacobtread/PocketRelay/actions/workflows/gradle.yml)
 
-## 📌 Archive Notice
+# 📌 Archive Notice
 This version of the server is no longer being maintained and is being replaced by the new
 server [Here (https://github.com/PocketRelay/ServerRust)](https://github.com/PocketRelay/ServerRust). This version will
 no longer recieve updates. 
+
+
+
+
+
 
 [Discord Server (https://discord.gg/yvycWW8RgR)](https://discord.gg/yvycWW8RgR)
 
